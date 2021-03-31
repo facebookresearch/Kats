@@ -5,13 +5,17 @@ import numpy as np
 import pandas as pd
 from numba import jit # @manual
 from scipy import stats
+import statsmodels.api as sm
 from scipy.signal import periodogram  # @manual
 from infrastrategy.kats.consts import TimeSeriesData
-from infrastrategy.kats.detectors import cusum_detection
-from infrastrategy.kats.detectors import bocpd
-from infrastrategy.kats.detectors import robust_stat_detection
-from infrastrategy.kats.detectors import outlier
-from infrastrategy.kats.detectors import trend_mk
+from infrastrategy.kats.detectors import (
+    cusum_detection,
+    bocpd,
+    robust_stat_detection,
+    outlier,
+    trend_mk,
+    seasonality,
+)
 from infrastrategy.kats.models.nowcasting import feature_extraction
 from statsmodels.tsa.seasonal import STL
 from statsmodels.stats.diagnostic import het_arch
@@ -146,6 +150,12 @@ class TsFeatures:
                 "MACDsign_26_5",
                 "MACDdiff_26_5",
             ],
+            "seasonalities": [
+                "seasonal_period",
+                "trend_mag",
+                "seasonality_mag",
+                "residual_std",
+            ]
         }
         f2g = {}
         for k, v in g2f.items():
@@ -195,6 +205,7 @@ class TsFeatures:
         self.outlier_detector = kwargs.get('outlier_detector', False)
         self.trend_detector = kwargs.get('trend_detector', False)
         self.nowcasting = kwargs.get('nowcasting', False)
+        self.seasonalities = kwargs.get('seasonalities', False)
 
         # For lower level of the features
         self.__kwargs__ = kwargs
@@ -369,6 +380,15 @@ class TsFeatures:
                 default_status=self.default
             )
 
+        # calculate seasonality features
+        dict_seasonality_features = {}
+        if self.seasonalities:
+            dict_seasonality_features = self.get_seasonalities(
+                ts,
+                extra_args=self.__kwargs__,
+                default_status=self.default
+            )
+
         return {
             **_dict_features_,
             **dict_stl_features,
@@ -382,7 +402,8 @@ class TsFeatures:
             **dict_bocp_detector_features,
             **dict_outlier_detector_features,
             **dict_trend_detector_features,
-            **dict_nowcasting_features
+            **dict_nowcasting_features,
+            **dict_seasonality_features,
         }
 
     # length
@@ -968,3 +989,55 @@ class TsFeatures:
             return nowcasting_features
         except Exception:
             return nowcasting_features
+
+    # seasonality features (4)
+    @staticmethod
+    def get_seasonalities(ts, extra_args=None, default_status=True):
+        """
+        Run the Kats seaonality detectors to get the estimated seasonal period, then extract trend, seasonality and residual magnitudes
+        """
+
+        seasonality_features = {
+            'seasonal_period': np.nan,
+            'trend_mag': np.nan,
+            'seasonality_mag': np.nan,
+            'residual_std': np.nan,
+        }
+
+        try:
+            # detrending for period estimation
+            detrended = TimeSeriesData(pd.DataFrame({
+                'time': len(ts.value.values) - 1,
+                'value': ts.value.values[1:] - ts.value.values[:-1]
+            }))
+            detected = seasonality.FFTDetector(detrended).detector()
+
+            if detected['seasonality_presence']:
+                _period = int(np.min(detected['seasonalities']))
+            elif not detected['seasonality_presence']:
+                _period = 7
+            res = STL(ts.value.values, period = _period).fit()
+
+            if extra_args.get('seasonal_period', default_status):
+                seasonality_features['seasonal_period'] = _period
+
+            # getting seasonality magnitude
+            if extra_args.get('seasonality_mag', default_status):
+                seasonality_features['seasonality_mag'] = np.round(np.quantile(res.seasonal, 0.95) - np.quantile(res.seasonal, 0.05))
+
+            # fitting linear regression for trend magnitude
+            if extra_args.get('trend_mag', default_status):
+                exog = res.trend
+                _series = exog - exog[0]
+                mod = sm.OLS(_series, np.arange(len(_series)))
+                _res = mod.fit()
+                # trend magnitude
+                seasonality_features['trend_mag'] = _res.params[0]
+
+            # residual standard deviation
+            if extra_args.get('residual_std', default_status):
+                seasonality_features['residual_std'] = np.std(res.resid)
+
+            return seasonality_features
+        except Exception:
+            return seasonality_features

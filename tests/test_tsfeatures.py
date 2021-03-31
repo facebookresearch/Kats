@@ -94,7 +94,7 @@ class TSfeaturesTest(TestCase):
 
         # test if there are 36 features in the feature vector now
         self.assertEqual(
-            len(np.asarray(list(feature_vector.values()))) == (TsFeatures()._total_feature_len_ - len(disable_features) - 24),
+            len(np.asarray(list(feature_vector.values()))) == (TsFeatures()._total_feature_len_ - len(disable_features) - 28),
             True,
         )
 
@@ -199,7 +199,11 @@ class TSfeaturesTest(TestCase):
             "LAG_5",
             "MACD_26_5",
             "MACDsign_26_5",
-            "MACDdiff_26_5"
+            "MACDdiff_26_5",
+            "seasonal_period",
+            "seasonality_mag",
+            "trend_mag",
+            "residual_std",
         ]
         feature_vector = TsFeatures(selected_features = extension_features).transform(TSData)
         feature_vector_round = {key: round(feature_vector[key], 6) for key in feature_vector}
@@ -237,7 +241,11 @@ class TSfeaturesTest(TestCase):
                 'LAG_5': 273.136691,
                 'MACD_26_5': -23.360015,
                 'MACDsign_26_5': -23.248081,
-                'MACDdiff_26_5': -1.142731
+                'MACDdiff_26_5': -1.142731,
+                'seasonal_period': 7,
+                'trend_mag': 2.404464,
+                'seasonality_mag': 35.0,
+                'residual_std': 21.258429,
             }
         )
 
