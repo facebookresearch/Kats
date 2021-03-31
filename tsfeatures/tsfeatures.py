@@ -894,14 +894,22 @@ class TsFeatures:
         try:
             cusum = cusum_detection.CUSUMDetector(ts)
             cusum_cp = cusum.detector()
-            cusum_detector_features['cusum_num'] = len(cusum_cp)
-            cusum_detector_features['cusum_conf'] = 0 if len(cusum_cp)==0 else cusum_cp[0][0].confidence
-            cusum_detector_features['cusum_cp_index'] = 0 if len(cusum_cp)==0 else cusum_cp[0][1]._cp_index / len(ts)
-            cusum_detector_features['cusum_delta'] = 0 if len(cusum_cp)==0 else cusum_cp[0][1]._delta
-            cusum_detector_features['cusum_llr'] = 0 if len(cusum_cp)==0 else cusum_cp[0][1]._llr
-            cusum_detector_features['cusum_regression_detected'] = False if len(cusum_cp)==0 else cusum_cp[0][1]._regression_detected
-            cusum_detector_features['cusum_stable_changepoint'] = False if len(cusum_cp)==0 else cusum_cp[0][1]._stable_changepoint
-            cusum_detector_features['cusum_p_value'] = 0 if len(cusum_cp)==0 else cusum_cp[0][1]._p_value
+            if extra_args.get('cusum_num', default_status):
+                cusum_detector_features['cusum_num'] = len(cusum_cp)
+            if extra_args.get('cusum_conf', default_status):
+                cusum_detector_features['cusum_conf'] = 0 if len(cusum_cp)==0 else cusum_cp[0][0].confidence
+            if extra_args.get('cusum_cp_index', default_status):
+                cusum_detector_features['cusum_cp_index'] = 0 if len(cusum_cp)==0 else cusum_cp[0][1]._cp_index / len(ts)
+            if extra_args.get('cusum_delta', default_status):
+                cusum_detector_features['cusum_delta'] = 0 if len(cusum_cp)==0 else cusum_cp[0][1]._delta
+            if extra_args.get('cusum_llr', default_status):
+                cusum_detector_features['cusum_llr'] = 0 if len(cusum_cp)==0 else cusum_cp[0][1]._llr
+            if extra_args.get('cusum_regression_detected', default_status):
+                cusum_detector_features['cusum_regression_detected'] = False if len(cusum_cp)==0 else cusum_cp[0][1]._regression_detected
+            if extra_args.get('cusum_stable_changepoint', default_status):
+                cusum_detector_features['cusum_stable_changepoint'] = False if len(cusum_cp)==0 else cusum_cp[0][1]._stable_changepoint
+            if extra_args.get('cusum_p_value', default_status):
+                cusum_detector_features['cusum_p_value'] = 0 if len(cusum_cp)==0 else cusum_cp[0][1]._p_value
             return cusum_detector_features
         except Exception:
             return cusum_detector_features
@@ -916,8 +924,10 @@ class TsFeatures:
         try:
             robust = robust_stat_detection.RobustStatDetector(ts)
             robust_cp = robust.detector()
-            robust_stat_detector_features['robust_num'] = len(robust_cp)
-            robust_stat_detector_features['robust_metric_mean'] = 0 if len(robust_cp)==0 else np.sum([cp[1]._metric for cp in robust_cp]) / len(robust_cp)
+            if extra_args.get('robust_num', default_status):
+                robust_stat_detector_features['robust_num'] = len(robust_cp)
+            if extra_args.get('robust_metric_mean', default_status):
+                robust_stat_detector_features['robust_metric_mean'] = 0 if len(robust_cp)==0 else np.sum([cp[1]._metric for cp in robust_cp]) / len(robust_cp)
             return robust_stat_detector_features
         except Exception:
             return robust_stat_detector_features
@@ -931,10 +941,13 @@ class TsFeatures:
         bocp_detector_features = {'bocp_num': np.nan, 'bocp_conf_max': np.nan, 'bocp_conf_mean': np.nan}
         try:
             bocp = bocpd.BOCPDetector(ts)
-            bocp_cp = bocp.detector()
-            bocp_detector_features['bocp_num'] = len(bocp_cp)
-            bocp_detector_features['bocp_conf_max'] = 0 if len(bocp_cp)==0 else np.max([cp[0].confidence for cp in bocp_cp])
-            bocp_detector_features['bocp_conf_mean'] = 0 if len(bocp_cp)==0 else np.sum([cp[0].confidence for cp in bocp_cp]) / len(bocp_cp)
+            bocp_cp = bocp.detector(choose_priors = False)
+            if extra_args.get('bocp_num', default_status):
+                bocp_detector_features['bocp_num'] = len(bocp_cp)
+            if extra_args.get('bocp_conf_max', default_status):
+                bocp_detector_features['bocp_conf_max'] = 0 if len(bocp_cp)==0 else np.max([cp[0].confidence for cp in bocp_cp])
+            if extra_args.get('bocp_conf_mean', default_status):
+                bocp_detector_features['bocp_conf_mean'] = 0 if len(bocp_cp)==0 else np.sum([cp[0].confidence for cp in bocp_cp]) / len(bocp_cp)
             return bocp_detector_features
         except Exception:
             return bocp_detector_features
@@ -949,7 +962,8 @@ class TsFeatures:
         try:
             odetector = outlier.OutlierDetector(ts, decomp=decomp, iqr_mult=iqr_mult)
             odetector.detector()
-            outlier_detector_features['outlier_num'] = len(odetector.outliers[0])
+            if extra_args.get('outlier_num', default_status):
+                outlier_detector_features['outlier_num'] = len(odetector.outliers[0])
             return outlier_detector_features
         except Exception:
             return outlier_detector_features
@@ -964,9 +978,12 @@ class TsFeatures:
         try:
             tdetector = trend_mk.MKDetector(data=ts, threshold=threshold)
             tdetected_time_points = tdetector.detector(direction='both')
-            trend_detector_features['trend_num'] = len(tdetected_time_points)
-            trend_detector_features['trend_num_increasing'] = len([p for p in tdetected_time_points if p[1].trend_direction == 'decreasing'])
-            trend_detector_features['trend_avg_abs_tau'] = 0 if len(tdetected_time_points)==0 else np.sum([abs(p[1].Tau) for p in tdetected_time_points]) / len(tdetected_time_points)
+            if extra_args.get('trend_num', default_status):
+                trend_detector_features['trend_num'] = len(tdetected_time_points)
+            if extra_args.get('trend_num_increasing', default_status):
+                trend_detector_features['trend_num_increasing'] = len([p for p in tdetected_time_points if p[1].trend_direction == 'decreasing'])
+            if extra_args.get('trend_avg_abs_tau', default_status):
+                trend_detector_features['trend_avg_abs_tau'] = 0 if len(tdetected_time_points)==0 else np.sum([abs(p[1].Tau) for p in tdetected_time_points]) / len(tdetected_time_points)
             return trend_detector_features
         except Exception:
             return trend_detector_features
@@ -985,7 +1002,21 @@ class TsFeatures:
             ts_df = feature_extraction.MOM(ts_df, window)
             ts_df = feature_extraction.LAG(ts_df, window)
             ts_df = feature_extraction.MACD(ts_df, n_fast=n_fast, n_slow=n_slow)
-            nowcasting_features = dict(ts_df.drop(['y','hist_ds'],axis=1).mean().fillna(0).replace([np.inf,-np.inf], 0))
+            nc_feats = dict(ts_df.drop(['y','hist_ds'],axis=1).mean().fillna(0).replace([np.inf,-np.inf], 0))
+            if extra_args.get('ROC_5', default_status):
+                nowcasting_features['ROC_5'] = nc_feats['ROC_5']
+            if extra_args.get('MA_5', default_status):
+                nowcasting_features['MA_5'] = nc_feats['MA_5']
+            if extra_args.get('MOM_5', default_status):
+                nowcasting_features['MOM_5'] = nc_feats['MOM_5']
+            if extra_args.get('LAG_5', default_status):
+                nowcasting_features['LAG_5'] = nc_feats['LAG_5']
+            if extra_args.get('MACD_26_5', default_status):
+                nowcasting_features['MACD_26_5'] = nc_feats['MACD_26_5']
+            if extra_args.get('MACDsign_26_5', default_status):
+                nowcasting_features['MACDsign_26_5'] = nc_feats['MACDsign_26_5']
+            if extra_args.get('MACDdiff_26_5', default_status):
+                nowcasting_features['MACDdiff_26_5'] = nc_feats['MACDdiff_26_5']
             return nowcasting_features
         except Exception:
             return nowcasting_features
