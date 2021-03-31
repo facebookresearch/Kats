@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# Copyright (c) Facebook, Inc. and its affiliates.
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
 # Ensemble models with weighted average individual models
 # Assume we have k base models, after we make forecasts with each individual
 # model, we learn the weights for each individual model based on corresponding

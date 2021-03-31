@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# Copyright (c) Facebook, Inc. and its affiliates.
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
 import math
 import random
 import time
@@ -54,7 +58,6 @@ from infrastrategy.kats.detectors.window_slo_detector import WindowSloDetectorMo
 from infrastrategy.kats.models.bayesian_var import BayesianVARParams
 from infrastrategy.kats.models.harmonic_regression import HarmonicRegressionModel
 from infrastrategy.kats.models.var import VARParams
-from infrastrategy.kats.utils.simulator import Simulator
 from infrastrategy.kats.utils.simulator import Simulator
 from scipy.special import expit  # @manual
 from scipy.stats import chi2  # @manual
