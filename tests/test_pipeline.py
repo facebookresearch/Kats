@@ -28,7 +28,7 @@ class cupikTest(TestCase):
         # Scene 1: window_size = 7, direction = 'up'
         pipe = Pipeline(
             [
-                ("trend_detector", MKDetector()),
+                ("trend_detector", MKDetector(threshold=0.8)),
             ]
         )
         pipe.fit(
@@ -44,7 +44,7 @@ class cupikTest(TestCase):
         # Scene 2: Default parameters of MKDetector
         pipe = Pipeline(
             [
-                ("trend_detector", MKDetector()),
+                ("trend_detector", MKDetector(threshold=0.8)),
             ]
         )
         pipe.fit(TSData)
@@ -69,7 +69,7 @@ class cupikTest(TestCase):
         # test if the model can be built on the output from the detector
         pipe = Pipeline(
             [
-                ("trend_detector", MKDetector()),
+                ("trend_detector", MKDetector(threshold=0.8)),
                 ("theta_model", ThetaModel(params = ThetaParams())),
             ]
         )
