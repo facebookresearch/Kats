@@ -17,6 +17,7 @@ from infrastrategy.kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from infrastrategy.kats.detector import Detector
 from scipy.stats import norm  # @manual
 from statsmodels.tsa.api import SimpleExpSmoothing
+import pymannkendall as mk
 
 
 # Constants
@@ -177,51 +178,12 @@ class MKDetector(Detector):
             x = x[~np.isnan(x).any(axis=1)]
         return x, len(x)
 
-    def _mk_score(self, x: np.array) -> float:
-        """ Calculate the Mann-Kendall score s. """
-        s = 0
-        n = len(x)
-        for k in range(n - 1):
-            for j in range(k + 1, n):
-                s += np.sign(x[j] - x[k])
-        return s
-
-    def _var_s(self, x: np.array) -> float:
-        """ Calculate the Mann-Kendall's variance var_s. """
-        n = len(x)
-        unique_x = np.unique(x)
-        if n == len(unique_x):  # there are no duplicated values
-            var_s = (n * (n - 1) * (2 * n + 5)) / 18
-        else:  # there are some duplicated values
-            tp = np.array(list(Counter(np.array(x)).values()), dtype=float)
-            var_s = (
-                n * (n - 1) * (2 * n + 5) + np.sum(tp * (tp - 1) * (2 * tp + 5))
-            ) / 18
-        return var_s
-
-    def _z_score(self, s: float, var_s: float) -> float:
-        """ Calculate the normalized test statistics z. """
-        if s > 0:
-            z = (s - 1) / np.sqrt(var_s)
-        elif s == 0:
-            z = 0
-        elif s < 0:
-            z = (s + 1) / np.sqrt(var_s)
-        return z
-
-    def _p_value(self, z: float, Tau: float) -> Tuple[float, str]:
-        """ Calculate the p-value of the significance test and tells the trend. """
-        p = 2 * (1 - norm.cdf(abs(z)))  # p-value of the significance test
-        h = abs(z) > norm.ppf(1 - self.alpha / 2)  # whether there exists a trend
-
-        if (z < 0) and h and Tau < (-1 * self.threshold):
-            trend = "decreasing"
-        elif (z > 0) and h and Tau > self.threshold:
-            trend = "increasing"
-        else:
+    def _apply_threshold(self, trend, Tau):
+        if trend == "decreasing" and Tau >= (-1 * self.threshold):
             trend = "no trend"
-
-        return p, trend
+        if trend == "increasing" and Tau <= self.threshold:
+            trend = "no trend"
+        return trend
 
     def MKtest(self, ts: pd.DataFrame) -> Tuple[dt, str, float, float]:
         """
@@ -237,24 +199,13 @@ class MKDetector(Detector):
             Tau: Kendall Tau
         """
         x, _ = self._preprocessing(ts)
-        x, n = self._drop_missing_values(x)
+        x, _ = self._drop_missing_values(x)
 
         anchor_date = ts.index[-1]
 
-        # calculate s
-        s = self._mk_score(x)
 
-        # calculate var_s
-        var_s = self._var_s(x)
-
-        # calculate the z_score
-        z = self._z_score(s, var_s)
-
-        # calculate Tau
-        Tau = s / (0.5 * n * (n - 1))
-
-        # calculate the p_value and trend
-        p, trend = self._p_value(z, Tau)
+        trend, _, p, _, Tau, _, _, _, _ = mk.original_test(x)
+        trend = self._apply_threshold(trend, Tau)
 
         return anchor_date, trend, p, Tau
 
@@ -271,9 +222,6 @@ class MKDetector(Detector):
             p: p-value of the significance test
             Tau_dict: Kendall Tau for each metric
         """
-        s = 0
-        var_s = 0
-        denominator = 0
 
         anchor_date = ts.index[-1]
 
@@ -284,32 +232,23 @@ class MKDetector(Detector):
 
         x, c = self._preprocessing(ts)
 
+        trend, _, p, _, Tau, _, _, _, _ = mk.multivariate_test(x)
+        trend = self._apply_threshold(trend, Tau)
+
+        Tau_dict["overall"] = Tau
+        trend_dict["overall"] = trend
+
         for i in range(c):
             x_i, n = self._drop_missing_values(x[:, i])
-            s_i = self._mk_score(x_i)
-            var_s_i = self._var_s(x_i)
-            denominator_i = 0.5 * n * (n - 1)
-
             # individual Tau score and trend
             try:
-                Tau_i = s_i / denominator_i
-                z_i = self._z_score(s_i, var_s_i)
-                p_i, trend_i = self._p_value(z_i, Tau_i)
+                trend_i, _, _, _, Tau_i, _, _, _, _ = mk.original_test(x_i)
+                trend_i = self._apply_threshold(trend_i, Tau_i)
                 Tau_dict[ts.columns[i]] = Tau_i
                 trend_dict[ts.columns[i]] = trend_i
-
             except ZeroDivisionError:
                 Tau_dict[ts.columns[i]] = None
                 trend_dict[ts.columns[i]] = None
-
-            s = s + s_i
-            var_s = var_s + var_s_i
-            denominator = denominator + denominator_i
-
-        Tau_dict["overall"] = s / denominator  # overall Tau score
-
-        z = self._z_score(s, var_s)
-        p, trend_dict["overall"] = self._p_value(z, Tau_dict["overall"])
 
         return anchor_date, trend_dict, p, Tau_dict
 
