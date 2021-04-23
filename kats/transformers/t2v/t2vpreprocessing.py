@@ -50,7 +50,7 @@ class T2VPreprocessing:
         self.output_size = (
             (np.max(label) + 1)
             if ((label is not None) & (self.mode == "classification"))
-            else 1
+            else param.training_output_size
         )  # if label is provided and it's we train it in a classification
         # fashion, then output_size is determined by the max of the labels,
         # else, we train it in a regression fashion
@@ -91,19 +91,24 @@ class T2VPreprocessing:
         ts_sample = self.data[0]
         end = len(ts_sample)
         if self.label is None and not self.dummy_label:
-            end -= 1  # when data is unlabeled, using last
+            end -= self.output_size  # when data is unlabeled, using last
             # element as label for training embedding
         self.window = end
 
-        seq = [
-            self.param.normalizer(ts.value.values[:end]) for ts in self.data
-        ]  # normalize each time series
+        if self.param.normalizer is not None:
+            seq = [
+                self.param.normalizer(ts.value.values[:end]) for ts in self.data
+            ]  # normalize each time series
+        else:
+            seq = [
+                ts.value.values[:end] for ts in self.data
+            ]
 
         if not self.dummy_label:
             label = (
                 self.label
                 if self.label is not None
-                else [ts.value.values[end] for ts in self.data]
+                else [ts.value.values[end:] for ts in self.data]
             )  # retrieve the label of each time series
         elif self.dummy_label:
             label = [-1 for _ in range(len(self.data))]
