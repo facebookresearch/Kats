@@ -9,13 +9,13 @@ from typing import Any, List, Optional, NamedTuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from kats.transformers.t2v import utils
 from sklearn.metrics import mean_absolute_error, accuracy_score
 
 
 def T2VParam(
     mode: str = "regression",
-    normalizer: Optional[Any] = utils.Normalize,
+    normalizer: Optional[Any] = None,
+    training_output_size: int = 1,
     batch_size: int = 16,
     vector_length: int = 16,
     learning_rate: float = 0.001,
@@ -36,6 +36,11 @@ def T2VParam(
     normalizer: Any
         Normalization function imported from utils.
         Currently, only Normalize and Standardize are supported.
+        Default value is None.
+    training_output_size: int
+        How many outputs do we have. This serves as the multi-output
+        function under training in regression mode.
+        Default value is 1.
     batch_size: int
         Data to be contained in each batch for feeding NN.
     vector_length: int
@@ -74,6 +79,7 @@ def T2VParam(
         [
             ("mode", str),
             ("normalizer", Optional[Any]),
+            ("training_output_size", int),
             ("batch_size", int),
             ("vector_length", int),
             ("loss_function", Any),
@@ -88,6 +94,7 @@ def T2VParam(
 
     T2VParam.mode = mode
     T2VParam.normalizer = normalizer
+    T2VParam.training_output_size = training_output_size
     T2VParam.batch_size = batch_size
     T2VParam.vector_length = vector_length
     T2VParam.epochs = epochs
@@ -127,12 +134,12 @@ class TSV(nn.Module):
     def forward(self, x):
         original = self.w * x + self.p
 
-        dotted = torch.mm(x, self.W.t())
+        dotted = torch.matmul(x, self.W.t())
         added = torch.add(dotted, self.P.t())
         sin_trans = torch.sin(added)
 
         catted = torch.cat([sin_trans, original], dim=-1)
-        return catted.view(1, len(x), self.output_length)
+        return catted.view(x.shape[0], x.shape[1], self.output_length)
 
 
 # LSTM
@@ -156,7 +163,7 @@ class LSTM(nn.Module):
 
     def forward(self, input_seq):
         c_out = self.tsv(input_seq)
-        embedding = self.reduced_embedding(c_out.view([-1]))
+        embedding = self.reduced_embedding(c_out.view([c_out.shape[0], -1]))
         for lstm in self.lstms:
             c_out, (ht, ct) = lstm(c_out)
 

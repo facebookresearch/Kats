@@ -60,11 +60,11 @@ class T2VNN:
             with torch.no_grad():
                 if self.mode == "regression":
                     label, embedding = self.model(seq.double())
-                    labels.append(label.detach().item())
+                    labels.extend(list(label.detach().numpy()))
                 elif self.mode == "classification":
                     label, embedding = self.model(seq.float())
                     labels.append(np.argmax(label.detach().numpy()))
-                embeddings.append(embedding.numpy())
+                embeddings.append(embedding.view(-1).numpy())
         elapsed_time = time.time() - start_time
         logging.info(f"Embedding translation time: {elapsed_time}")
         return embeddings, labels
@@ -85,29 +85,20 @@ class T2VNN:
             for b in self.data:
                 optimizer.zero_grad()
                 if self.batched:  # if data type is t2vbatched
-                    loss = 0.0
-                    for seq, label in b:
-                        y_pred, _ = model(seq.double())
-                        loss += loss_function(
-                            y_pred.view(
-                                1,
-                            ),
-                            label.view(
-                                1,
-                            ),
-                        )
+                    seq, label = (
+                        torch.tensor([bb[0].numpy() for bb in b]),
+                        torch.tensor([bb[1].numpy() for bb in b]),
+                    )
+                    y_pred, _ = model(seq.double())
+
                 elif not self.batched:  # if data type is t2vprocessed
                     seq, label = torch.from_numpy(b[0]), torch.tensor(b[1])
-                    y_pred, vector = model(seq.double())
-                    loss = loss_function(
-                        y_pred.view(
-                            1,
-                        ),
-                        label.view(
-                            1,
-                        ),
-                    )
+                    y_pred, vector = model(seq.view([1, seq.shape[0], 1]).double())
 
+                loss = loss_function(
+                    y_pred.view(-1),
+                    label.view(-1),
+                )
                 loss.backward()
                 optimizer.step()
                 training_loss.append(loss.item())
@@ -139,25 +130,20 @@ class T2VNN:
             for b in self.data:
                 optimizer.zero_grad()
                 if self.batched:  # if data type is t2vbatched
-                    loss = 0.0
-                    for seq, label in b:
-                        y_pred, _ = model(seq.float())
-                        loss += loss_function(
-                            y_pred.view(1, self.output_size),
-                            label.view(
-                                1,
-                            ),
-                        )
+                    seq, label = (
+                        torch.tensor([bb[0].numpy() for bb in b]),
+                        torch.tensor(np.array([bb[1].numpy() for bb in b])),
+                    )
+                    y_pred, _ = model(seq.float())
                 elif not self.batched:  # if data type is t2vprocessed
                     seq, label = torch.from_numpy(b[0]), torch.tensor(b[1])
-                    y_pred, _ = model(seq.float())
-                    loss = loss_function(
-                        y_pred.view(1, self.output_size),
-                        label.view(
-                            1,
-                        ),
-                    )
+                    y_pred, _ = model(seq.view([1, seq.shape[0], 1]).float())
 
+                output_length = len(b) if self.batched else 1
+                loss = loss_function(
+                    y_pred.view(output_length, self.output_size),
+                    label.view(-1),
+                )
                 loss.backward()
                 optimizer.step()
                 training_loss.append(loss.item())
@@ -206,11 +192,11 @@ class T2VNN:
             if self.batched:
                 for b in self.data:
                     for seq, label in b:
-                        seq_2_translate.append(seq)
+                        seq_2_translate.append(seq.view([1, seq.shape[0], 1]))
                         labels.append(label.item())
             elif not self.batched:
                 for seq, label in self.data:
-                    seq_2_translate.append(torch.from_numpy(seq))
+                    seq_2_translate.append(torch.from_numpy(seq).view([1, seq.shape[0], 1]))
                     labels.append(label)
 
             train_translated, _ = self._translate(seq_2_translate)
@@ -228,12 +214,12 @@ class T2VNN:
             val_data = val_data.batched_tensors
             for b in val_data:
                 for seq, label in b:
-                    seq_2_translate.append(seq)
+                    seq_2_translate.append(seq.view([1, seq.shape[0], 1]))
                     labels.append(label)
         elif not val_data.batched:  # when data is of type t2vprocessed
             val_data = zip(val_data.seq, val_data.label)
             for seq, label in val_data:
-                seq_2_translate.append(torch.from_numpy(seq))
+                seq_2_translate.append(torch.from_numpy(seq).view([1, seq.shape[0], 1]))
                 labels.append(label)
 
         _, val_labels = self._translate(seq_2_translate)
@@ -257,10 +243,10 @@ class T2VNN:
             test_data = test_data.batched_tensors
             for b in test_data:
                 for seq, _ in b:
-                    seq_2_translate.append(seq)
+                    seq_2_translate.append(seq.view([1, seq.shape[0], 1]))
         elif not test_data.batched:  # when data type is of t2vprocessed
             for seq in test_data.seq:
-                seq_2_translate.append(torch.from_numpy(seq))
+                seq_2_translate.append(torch.from_numpy(seq).view([1, seq.shape[0], 1]))
 
         embeddings, _ = self._translate(seq_2_translate)
         return embeddings

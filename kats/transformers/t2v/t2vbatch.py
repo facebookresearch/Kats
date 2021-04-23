@@ -20,14 +20,14 @@ class T2VBatch:
     preprocessed: NamedTuple
         The output from t2vpreprocessing, a NamedTuple with preprocessed
         sequences, labels, and output_size.
-    batch_size: int
-        User defined number of sequence-label tensor combos in each batch.
+    param: NamedTuple
+        T2V param object containing information of the batch size.
     """
 
     def __init__(
         self,
         preprocessed: NamedTuple,
-        batch_size: int,
+        param: NamedTuple,
     ):
         self.seq = preprocessed.seq
         self.label = preprocessed.label
@@ -35,7 +35,7 @@ class T2VBatch:
         self.window = preprocessed.window
         logging.info("all attributes inherited from T2VProcessed.")
 
-        self.batch_size = batch_size
+        self.batch_size = param.batch_size
 
     def transform(
         self,
