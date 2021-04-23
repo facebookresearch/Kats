@@ -295,7 +295,7 @@ class Simulator:
                 """
             )
 
-        if cp_arr[-1] >= self.n:
+        if len(cp_arr) > 0 and cp_arr[-1] >= self.n:
             raise ValueError(f"Last cp {cp_arr[-1]} is greater than length {self.n}")
 
         cp_arr.append(self.n)
@@ -366,7 +366,7 @@ class Simulator:
             z_score_arr = []
 
         # we need atleast points till second cp
-        if self.n < np.max(cp_arr):
+        if len(cp_arr) > 0 and self.n < np.max(cp_arr):
             self._adjust_length(np.max(cp_arr))
 
         ts = TimeSeriesData(
@@ -480,7 +480,7 @@ class Simulator:
                 """
             )
 
-        if cp_arr[-1] >= self.n:
+        if len(cp_arr) > 0 and cp_arr[-1] >= self.n:
             raise ValueError(f"Last cp {cp_arr[-1]} is greater than length {self.n}")
 
         cp_arr.append(self.n)
