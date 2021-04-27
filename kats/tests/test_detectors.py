@@ -2591,6 +2591,7 @@ class TestMultiStatSigDetector(TestCase):
         with self.assertRaises(ValueError):
             ss_detect.fit_predict(historical_data=ts_init, data=ts_later)
 
+
 class HourlyRatioDectorTest(TestCase):
     def data_generation(self, freq="H", drop: bool = True, frac: float = 0.95):
         time = pd.date_range("2018-01-01", "2020-01-01", freq=freq)
@@ -2633,9 +2634,7 @@ class HourlyRatioDectorTest(TestCase):
         self.assertRaises(ValueError, HourlyRatioDetector, TSData_empty)
 
         ts = self.data_generation(freq="T")
-        self.assertRaises(
-            ValueError, HourlyRatioDetector, data=ts
-        )
+        self.assertRaises(ValueError, HourlyRatioDetector, data=ts)
 
         self.assertRaises(
             ValueError, HourlyRatioDetector, data=ts, aggregate="other_method"
@@ -3458,6 +3457,28 @@ class TestSlowDriftDetector(TestCase):
         self.assertAlmostEqual(
             seasonality[5].value, 0.9 * seasonality[0].value, delta=0.001
         )
+
+    def test_serialize(self):
+        model = SlowDriftDetectorModel(
+            slow_drift_window=28 * 86400,
+            algorithm_version=3,
+            seasonality_period=14,
+            seasonality_num_points=12,
+        )
+
+        ts = self.generate_ts_with_slope_and_seasonality()
+        model.fit(ts)
+
+        serialized_model = model.serialize()
+        self.assertIsInstance(serialized_model, bytes)
+        loaded_model = SlowDriftDetectorModel(
+            slow_drift_window=28 * 86400,
+            algorithm_version=3,
+            seasonality_period=14,
+            seasonality_num_points=12,
+            serialized_model=serialized_model,
+        )
+        self.assertEqual(model.model._model_data, loaded_model.model._model_data)
 
 
 class TestChangepointEvaluator(TestCase):

@@ -11,16 +11,19 @@ For details, see
 https://www.internalfb.com/intern/wiki/Anomaly_Detection/Technical_Guide/Slow_Drift_detectors/
 """
 
-import numpy as np
-import pandas as pd
-
 from typing import List
 from typing import Optional
 
+import numpy as np
+import pandas as pd
 from data_ai.slow_drift import utils
-from data_ai.slow_drift.model import Model
 from data_ai.slow_drift.evaluate_op_stateless import EvaluateOpStateless
-from data_ai.slow_drift.slow_drift.ttypes import DataPoint, ExponentialSmoothingParameters, ModelData
+from data_ai.slow_drift.model import Model
+from data_ai.slow_drift.slow_drift.ttypes import (
+    DataPoint,
+    ExponentialSmoothingParameters,
+    ModelData,
+)
 from facebook.monitoring.anomaly_structs.ttypes import Anomaly
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import DetectorModel
@@ -31,12 +34,17 @@ DEFAULT_ALPHA = 0.15
 DEFAULT_BETA = 0.015
 DEFAULT_GAMMA = 0.3
 
+
 def time_series_to_data_points(data: TimeSeriesData) -> List[DataPoint]:
     if not data.is_univariate():
         raise ValueError("Multiple time series not supported for Slow Drift")
 
-    time_copy = data.time.astype(int) / 10**9
-    return [DataPoint(timestamp=t, value=v) for t, v in zip(time_copy.values, data.value.values)]
+    # Additional conversion after division required: otherwise the result is not serializable
+    time_copy = (data.time.astype(int) / 10 ** 9).astype(int)
+    return [
+        DataPoint(timestamp=t, value=v)
+        for t, v in zip(time_copy.values, data.value.values)
+    ]
 
 
 class SlowDriftDetectorModel(DetectorModel):
@@ -47,6 +55,7 @@ class SlowDriftDetectorModel(DetectorModel):
 
     Contains fit and predict methods
     """
+
     def __init__(
         self,
         slow_drift_window: int,
@@ -73,9 +82,11 @@ class SlowDriftDetectorModel(DetectorModel):
         self.n_stdev = n_stdev
 
     def serialize(self) -> bytes:
-        return utils._serialize_model_data(self.model.get_model_data)
+        return utils._serialize_model_data(self.model.get_model_data())
 
-    def fit(self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None) -> None:
+    def fit(
+        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+    ) -> None:
         """Fit exponential smoothing model to smooth the data"""
 
         evaluate_op = EvaluateOpStateless(
@@ -87,9 +98,10 @@ class SlowDriftDetectorModel(DetectorModel):
         )
         self.model = evaluate_op.train()
 
-    def predict(self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None) -> AnomalyResponse:
+    def predict(
+        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+    ) -> AnomalyResponse:
         """Return anomalies by detecing spikes in second derivative of smoothed series"""
-
         evaluate_op = EvaluateOpStateless(
             ts=time_series_to_data_points(data),
             model=self.model,
@@ -117,7 +129,9 @@ class SlowDriftDetectorModel(DetectorModel):
             stat_sig_ts=TimeSeriesData(time=data.time, value=pd.Series(zeros)),
         )
 
-    def fit_predict(self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None) -> AnomalyResponse:
+    def fit_predict(
+        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+    ) -> AnomalyResponse:
         """Fits Exponential smoothing model and returns the anomalous drift location as AnomalyResponse"""
 
         self.fit(data, historical_data)
