@@ -4,6 +4,17 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+"""
+ Bayesian estimation of Vector Autoregressive Model using
+ Minnesota prior on the coefficient matrix. This version is
+ useful for regularization when they are too many coefficients
+ to be estimated.
+
+ Implementation inspired by the following two articles/papers:
+    https://www.mathworks.com/help/econ/normalbvarm.html#mw_4a1ab118-9ef3-4380-8c5a-12b848254117
+    http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf (page 5)
+"""
+
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -20,6 +31,18 @@ from scipy.linalg import block_diag  # @manual
 
 @dataclass
 class BayesianVARParams(Params):
+    """Parameter class for Bayesian VAR model
+
+    Attributes:
+        p: Historical lag to use
+        Below parameters are hyperparameters in the covariance matrix for coefficient prior.
+        See page 5 in http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf for more details.
+        phi_0: tightness on the variance of the first lag
+        phi_1: relative tightness of other variables
+        phi_2: relative tightness of the exogenous variables
+        phi_3: decay with lag is parameterized as lag^phi_3
+    """
+
     p: int = 5
     phi_0: float = 0.02
     phi_1: float = 0.25
@@ -41,9 +64,13 @@ class BayesianVARParams(Params):
 
 class BayesianVAR(m.Model):
     """
-    Implementation inspired by the following two articles/papers:
-    https://www.mathworks.com/help/econ/normalbvarm.html#mw_4a1ab118-9ef3-4380-8c5a-12b848254117
-    http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf (page 5)
+    Model class for bayesian VAR
+
+    This class provides fit, predict, and plot methods for bayesian VAR model
+
+    Attributes:
+        data: the input time series data as `TimeSeriesData`
+        params: the parameter class defined with `BayesianVARParams`
     """
 
     def __init__(self, data: TimeSeriesData, params: BayesianVARParams) -> None:
@@ -130,6 +157,8 @@ class BayesianVAR(m.Model):
         return df_resid
 
     def fit(self) -> None:
+        """Fit Bayesian VAR model"""
+
         self.sigma_ols = self._compute_sigma_ols()
 
         mu_prior = np.zeros((self.m, self.N))
@@ -314,6 +343,18 @@ class BayesianVAR(m.Model):
     def predict(
         self, steps: int, include_history=False, verbose=False
     ) -> Dict[str, TimeSeriesData]:
+        """Predict with the fitted VAR model
+
+        Args:
+            steps: Number of time steps to forecast
+            include_history: return fitted values also
+
+        Returns:
+            Disctionary of predicted results for each metric. Each metric result
+            has following columns: `time`, `fcst`, `fcst_lower`, and `fcst_upper`
+            Note confidence intervals of forecast are not yet implemented.
+        """
+
         assert self.fitted, "Please fit the model before forecasting with .fit()"
 
         times = []
@@ -387,6 +428,8 @@ class BayesianVAR(m.Model):
         return self.forecast
 
     def plot(self) -> None:
+        """Plot forecasted results from Bayesian VAR model"""
+
         assert hasattr(self, "forecast"), "Please run .predict() before plotting"
 
         plt.figure(figsize=(20, 6))
