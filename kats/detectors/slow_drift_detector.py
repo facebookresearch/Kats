@@ -4,6 +4,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+
+"""
+Slow Drift detector used in One Detection.
+For details, see
+https://www.internalfb.com/intern/wiki/Anomaly_Detection/Technical_Guide/Slow_Drift_detectors/
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -33,6 +40,13 @@ def time_series_to_data_points(data: TimeSeriesData) -> List[DataPoint]:
 
 
 class SlowDriftDetectorModel(DetectorModel):
+    """
+    Designed to find changes to the behaviour of analytical metrics
+    that occur of a period of weeks or months, typically too long for Predictive detectors
+    to flag changes.
+
+    Contains fit and predict methods
+    """
     def __init__(
         self,
         slow_drift_window: int,
@@ -62,6 +76,8 @@ class SlowDriftDetectorModel(DetectorModel):
         return utils._serialize_model_data(self.model.get_model_data)
 
     def fit(self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None) -> None:
+        """Fit exponential smoothing model to smooth the data"""
+
         evaluate_op = EvaluateOpStateless(
             ts=time_series_to_data_points(data),
             model=self.model,
@@ -72,6 +88,8 @@ class SlowDriftDetectorModel(DetectorModel):
         self.model = evaluate_op.train()
 
     def predict(self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None) -> AnomalyResponse:
+        """Return anomalies by detecing spikes in second derivative of smoothed series"""
+
         evaluate_op = EvaluateOpStateless(
             ts=time_series_to_data_points(data),
             model=self.model,
@@ -100,5 +118,7 @@ class SlowDriftDetectorModel(DetectorModel):
         )
 
     def fit_predict(self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None) -> AnomalyResponse:
+        """Fits Exponential smoothing model and returns the anomalous drift location as AnomalyResponse"""
+
         self.fit(data, historical_data)
         return self.predict(data, historical_data)
