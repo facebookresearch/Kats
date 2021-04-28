@@ -12,6 +12,7 @@ import torch
 from kats.consts import TimeSeriesData
 from kats.models.globalmodel.backtester import GMBackTester
 from kats.models.globalmodel.data_processor import GMDataLoader, GMBatch
+from kats.models.globalmodel.ensemble import GMEnsemble, load_gmensemble_from_file
 from kats.models.globalmodel.model import GMModel, load_gmmodel_from_file
 from kats.models.globalmodel.utils import (
     LSTM2Cell,
@@ -490,3 +491,48 @@ class GMBacktesterTest(TestCase):
         )
 
         _ = gmbt.run_backtest()
+
+
+class GMEnsembleTest(TestCase):
+    def test_gmensemble(self):
+
+        TSs = {str(i): get_ts(n * 3, "2019-05-06") for i, n in enumerate(range(20, 40))}
+        ts = get_ts(20, "2019-05-06")
+        gmparam = GMParam(
+            freq="d",
+            input_window=7,
+            fcst_window=5,
+            seasonality=3,
+            min_training_step_num=2,
+            gmfeature=["last_date"],
+            epoch_num=2,
+            batch_size={0: 3, 1: 4},
+            learning_rate={0: 1e-4, 1: 1e-30},
+            nn_structure=[[1, 2, 3], [4, 5]],
+            loss_function="adjustedpinball",
+            epoch_size=3,
+            cell_name="S2Cell",
+            h_size=30,
+            fcst_step_num=2,
+        )
+
+        gme = GMEnsemble(
+            gmparam,
+            splits=3,
+            replicate=1,
+            overlap=False,
+            multi=True,
+        )
+
+        gme.train(TSs, test_size=0.1)
+        fcst = gme.predict([ts])[0]
+
+        # test save/load gme
+        gme.save_model("gme_test.p")
+        gme_2 = load_gmensemble_from_file("gme_test.p")
+        fcst_2 = gme_2.predict([ts])[0]
+
+        self.assertTrue(
+            fcst.equals(fcst_2),
+            "The original GMEnsemble object and the new GMEnsemble object (loaded from save file) should generate the same predictions.",
+        )
