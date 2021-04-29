@@ -5,13 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 from datetime import datetime
-
+import unittest
 import numpy as np
 import pandas as pd
 import pytz
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
-from libfb.py import testutil
 from pandas.util.testing import (
     assert_frame_equal,
     assert_index_equal,
@@ -57,7 +56,7 @@ EMPTY_DF_WITH_COLS = pd.concat([EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1)
 NUM_YEARS_OFFSET = 12
 
 
-class TimeSeriesDataInitTest(testutil.BaseFacebookTestCase):
+class TimeSeriesDataInitTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Univariate TimeSeriesData initialized from a pd.DataFrame
@@ -715,7 +714,7 @@ class TimeSeriesDataInitTest(testutil.BaseFacebookTestCase):
         )
 
 
-class TimeSeriesDataOpsTest(testutil.BaseFacebookTestCase):
+class TimeSeriesDataOpsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Creating DataFrames
@@ -1083,7 +1082,7 @@ class TimeSeriesDataOpsTest(testutil.BaseFacebookTestCase):
         self.ts_multi_1.plot(cols = ["y", "y_1"])
 
 
-class TimeSeriesDataMiscTest(testutil.BaseFacebookTestCase):
+class TimeSeriesDataMiscTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Creating TimeSeriesData objects
@@ -1119,7 +1118,7 @@ class TimeSeriesDataMiscTest(testutil.BaseFacebookTestCase):
         )
 
 
-class TSIteratorTest(testutil.BaseFacebookTestCase):
+class TSIteratorTest(unittest.TestCase):
     def test_ts_iterator_univariate_next(self) -> None:
         df = pd.DataFrame(
             [["2020-03-01", 100], ["2020-03-02", 120], ["2020-03-03", 130]],

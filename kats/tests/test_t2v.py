@@ -144,7 +144,10 @@ class test_batch(TestCase):
         logging.info("Time series data simulated.")
 
         # preprocessing time series data
-        param = T2VParam()
+        param = T2VParam(
+            normalizer=Normalize,
+            batch_size=32,
+        )
         preprocessor = T2VPreprocessing(
             param=param,
             data=TS,
@@ -152,7 +155,7 @@ class test_batch(TestCase):
         preprocessed = preprocessor.transform()
         logging.info("Time series data preprocessed.")
 
-        batched = T2VBatch(preprocessed, 32).transform()
+        batched = T2VBatch(preprocessed, param).transform()
         logging.info("Time series data batched.")
         self.assertTrue(len(batched.seq) == 100)
         self.assertTrue(len(batched.batched_tensors[0]) == 32)
@@ -203,7 +206,10 @@ class test_batch(TestCase):
         logging.info("Time series data simulated.")
 
         # Test Normalize normalization function
-        param = T2VParam()
+        param = T2VParam(
+            normalizer=Normalize,
+            batch_size=16,
+        )
         preprocessor = T2VPreprocessing(
             param=param,
             data=TS,
@@ -211,7 +217,7 @@ class test_batch(TestCase):
         preprocessed = preprocessor.transform()
         logging.info("Time series data preprocessed.")
 
-        batched = T2VBatch(preprocessed, 16).transform()
+        batched = T2VBatch(preprocessed, param).transform()
         logging.info("Time series data batched.")
 
         self.assertTrue(len(batched.batched_tensors[-1]) == 16)

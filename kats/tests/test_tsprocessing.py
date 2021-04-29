@@ -466,6 +466,19 @@ class SimulatorTest(TestCase):
 
         self.assertEqual(len(ts2), 450)
 
+        sim3 = Simulator(n=450, start="2018-01-01")
+        ts3 = sim3.level_shift_sim(
+            cp_arr=[],
+            level_arr=[3],
+            noise=3,
+            seasonal_period=7,
+            seasonal_magnitude=3,
+            anomaly_arr = [50, 150, 250],
+            z_score_arr = [10, -10, 20],
+        )
+
+        self.assertEqual(len(ts3), 450)
+
     def test_level_shift_mvn_indep(self):
 
         sim = Simulator(n=450, start="2018-01-01")
@@ -508,6 +521,19 @@ class SimulatorTest(TestCase):
 
         self.assertEqual(len(ts2), 450)
 
+        sim3 = Simulator(n=450, start="2018-01-01")
+        ts3 = sim3.trend_shift_sim(
+            cp_arr=[],
+            trend_arr=[3],
+            intercept=30,
+            noise=30,
+            seasonal_period=7,
+            seasonal_magnitude=3,
+            anomaly_arr = [50, 150, 250],
+            z_score_arr = [10, -10, 20],
+        )
+
+        self.assertEqual(len(ts3), 450)
 
 if __name__ == "__main__":
     unittest.main()
