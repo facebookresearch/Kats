@@ -4,15 +4,22 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+"""
+Module with generic outlier detection models. Supports a univariate algorithm that
+treates each metric separately to identify outliers and a multivariate detection
+algorithm that determines outliers based on joint distribution of metrics
+"""
+
 import datetime as dt
 import logging
 import sys
 import traceback
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+from datetime import datetime
 import pandas as pd
 from kats.consts import Params, TimeSeriesData, TimeSeriesIterator
 from kats.detectors.detector import Detector
@@ -24,6 +31,16 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 
 
 class OutlierDetector(Detector):
+    """
+    This univariate outlier detection algorithm mimics the outlier
+    detection algorithm in R
+
+    Attributes:
+        data: TimeSeriesData object with the time series
+        decomp : 'additive' or 'multiplicative' decomposition
+        iqr_mult : iqr_mult * inter quartile range is used to classify outliers
+    """
+
     def __init__(
         self, data: TimeSeriesData, decomp: str = "additive", iqr_mult: float = 3.0
     ) -> None:
@@ -37,6 +54,15 @@ class OutlierDetector(Detector):
         self.iqr_mult = iqr_mult
 
     def __clean_ts__(self, original: pd.DataFrame) -> List:
+        """
+        Performs detection for a single metric. First decomposes the time series
+        and detects outliers when the values in residual time series are beyond the
+        specified multiplier times the inter quartile range
+        Args:
+            original: original time series as DataFrame
+        Returns: List of detected outlier timepoints in each metric
+        """
+
         original.index = pd.to_datetime(original.index)
 
         if pd.infer_freq(original.index) is None:
@@ -69,6 +95,10 @@ class OutlierDetector(Detector):
         return list(outliers.index)
 
     def detector(self):
+        """
+        Detects outliers and stores in self.outliers
+        """
+
         self.iter = TimeSeriesIterator(self.data)
         self.outliers = []
         logging.Logger("Detecting Outliers")
@@ -90,6 +120,19 @@ class MultivariateAnomalyDetectorType(Enum):
 
 
 class MultivariateAnomalyDetector(Detector):
+    """
+    Detector class for Multivariate Outlier Detection.
+    Provides utilities to calculate anomaly scores, get anomalous
+    datapoints and anomalous metrics at those points.
+
+    Attributes:
+        data: Input metrics TimeSeriesData
+        params: Parameter class for multivariate VAR/ BVAR model
+        training_days: num of days of data to use for initial training.
+                    If less than a day, specify as fraction of a day
+        model_type: The type of multivariate anomaly detector (currently 'BAYESIAN_VAR' and 'VAR' options available)
+    """
+
     DETECTOR_CONVERSION = {
         MultivariateAnomalyDetectorType.VAR: VARModel,
         MultivariateAnomalyDetectorType.BAYESIAN_VAR: BayesianVAR,
@@ -102,14 +145,6 @@ class MultivariateAnomalyDetector(Detector):
         training_days: float,
         model_type: MultivariateAnomalyDetectorType = MultivariateAnomalyDetectorType.VAR,
     ) -> None:
-        """
-        Arg:
-            data: Input metrics TimeSeriesData
-            params: Params class
-            training_days: num of days of data to use for initial training.
-                        If less than a day, specify as fraction of a day
-            model_type: The type of multivariate anomaly detector (currently 'BAYESIAN_VAR' and 'VAR' options available)
-        """
         super().__init__(data)
         df = data.to_dataframe().set_index("time")
         self.df = df
@@ -133,6 +168,15 @@ class MultivariateAnomalyDetector(Detector):
         ]
 
     def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Remove outliers in training data based on zscore
+
+        Args:
+            df: input dataframe
+
+        Returns: Clean dataframe
+        """
+
         z_score_threshold = 3
         zscore_df = stats.zscore(df)
         non_outlier_flag = zscore_df < z_score_threshold
@@ -143,11 +187,26 @@ class MultivariateAnomalyDetector(Detector):
         return df_clean
 
     def _is_pos_def(self, mat: np.ndarray) -> bool:
+        """
+        Check if matrix is positive definite.
+
+        Args:
+            mat: numpy matrix
+
+        Returns:
+            True if mat is positive definite
+        """
         return np.all(np.linalg.eigvals(mat) > 0)
 
-    def _generate_forecast(self, t: Any) -> pd.DataFrame:
+    def _generate_forecast(self, t: datetime) -> pd.DataFrame:
         """
         Fit VAR model and generate 1 step ahead forecasts (t+1)
+
+        Args:
+            t: time until which to use for training the VAR model
+
+        Returns:
+            DataFrame with predicted expected value for each metric value at (t+1)
         """
         logging.info(f"Generating forecasts at {t}")
         look_back = dt.timedelta(days=self.training_days)
@@ -180,6 +239,16 @@ class MultivariateAnomalyDetector(Detector):
         return pred_df
 
     def _calc_anomaly_scores(self, pred_df: pd.DataFrame) -> Dict[str, float]:
+        """
+        Calculate overall anomay score at time t based on multivariate Mahalonabis distance
+        and individual anomaly scores as zscores
+
+        Args:
+            pred_df: Dataframe with forecasted values
+
+        Returns:
+            Dictionary with overall and individual anomaly scores along with p-value
+        """
 
         # individual anomaly scores
         cov = self.sigma_u
@@ -204,9 +273,11 @@ class MultivariateAnomalyDetector(Detector):
 
     def detector(self) -> pd.DataFrame:
         """
+        Fit the detection model and return the results
+
         Returns:
             DataFrame with colums corresponding to individual anomaly scores
-            of each metric and the overall anomaly score
+            of each metric and the overall anomaly score for the whole timeseries
         """
         anomaly_score_df = pd.DataFrame()
         look_back = dt.timedelta(days=self.training_days)
@@ -226,7 +297,9 @@ class MultivariateAnomalyDetector(Detector):
 
     def get_anomaly_timepoints(self, alpha: float) -> List:
         """
-        Arg:
+        Helper function to get anomaly timepoints based on the significance level
+
+        Args:
             alpha: significance level to consider the timeperiod anomalous
             Use .plot() to help choose a good threshold
 
@@ -239,11 +312,11 @@ class MultivariateAnomalyDetector(Detector):
 
         return list(anomaly_ts)
 
-    def get_anomalous_metrics(self, t: Any, top_k: int = None) -> pd.DataFrame:
+    def get_anomalous_metrics(self, t: datetime, top_k: Optional[int] = None) -> pd.DataFrame:
         """
         Find top k metrics with most anomalous behavior at time t
 
-        Arg:
+        Args:
             t: time instant of interest (same type as TimeSeriesData.time)
             top_k: Top few metrics to return. If None, returns all
 
