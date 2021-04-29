@@ -203,7 +203,7 @@ class MultivariateVARDetectorTest(TestCase):
 
         params = BayesianVARParams(p=3)
         d = MultivariateAnomalyDetector(
-            TSData_multi,
+            TSData_multi[24:-2*24], # testing on shorter data
             params,
             training_days=3,
             model_type=MultivariateAnomalyDetectorType.BAYESIAN_VAR,
@@ -214,7 +214,7 @@ class MultivariateVARDetectorTest(TestCase):
             list(TSData_multi.value.columns) + ["overall_anomaly_score", "p_value"],
         )
         d.plot()
-        alpha = 0.01
+        alpha = 0.05
         anomalies = d.get_anomaly_timepoints(alpha)
         d.get_anomalous_metrics(anomalies[0], top_k=5)
 
