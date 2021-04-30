@@ -4,18 +4,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import base64
 import pickle
-from ManagedCompression import ManagedCompressionFactory
 
-
-# compression version of saving/loading model
-# proof of concept in
-# https://www.internalfb.com/intern/anp/view/?id=374769
-
-
-# original from from data.ai.forecasting.forecastservice.common.common_util.SimpleJsonSerializer
-# need to adapt for model saving using pickle
 class SimplePickleSerializer:
     def _jdefault(self, o):
         if isinstance(o, set):
@@ -41,21 +31,10 @@ class SimplePickleSerializer:
             return None
         return pickle.loads(decoded)
 
-def get_compression_factory():
-    return ManagedCompressionFactory(b"data_ai_forecasting", b"forecast").getCodec(
-        b"default"
-    )  # ZSTD
-
-
 def serialize_for_zippy(input):
-    compress_factory = get_compression_factory()
     serializer = SimplePickleSerializer()
-    return base64.b64encode(compress_factory.compress(serializer.serialize(input)))
-
+    return serializer.serialize(input))
 
 def deserialize_from_zippy(input, use_case_id=None):
-    compress_factory = get_compression_factory()
     serializer = SimplePickleSerializer()
-    return serializer.deserialize(
-        compress_factory.uncompress(base64.decodebytes(input))
-    )
+    return serializer.deserialize(input)
