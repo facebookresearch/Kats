@@ -4,6 +4,29 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+"""CUSUMDetectorModel is a wraper of CUSUMDetector to detect multiple change points
+
+    Typical usage example:
+
+    # Define CUSUMDetectorModel
+    >>> model = CUSUMDetectorModel(
+            scan_window=43200,
+            historical_window=604800,
+            threshold=0.01,
+            delta_std_ratio=1.0,
+            serialized_model=None,
+            change_directions=["increase"],
+            score_func=CusumScoreFunction.percentage_change,
+            remove_seasonality=True,
+        )
+    # Run detector
+    >>> respond = model.fit_predict(tsd)
+    # plot anomaly score
+    >>> respond.scores.plot(cols=['value'])
+    # Get change points in unixtime
+    >>> change_points = model.cps
+"""
+
 import json
 import logging
 from datetime import datetime
@@ -30,14 +53,36 @@ MAX_CHANGEPOINT = 10
 def percentage_change(
     data: TimeSeriesData, pre_mean: float, **kwargs: Any
 ) -> TimeSeriesData:
+    """
+    Calculate percentage change absolute change / baseline change
+    Args:
+        data: The data need to calculate the score
+        pre_mean: Baseline mean
+    """
+
     return (data - pre_mean) / (pre_mean)
 
 
 def change(data: TimeSeriesData, pre_mean: float, **kwargs: Any) -> TimeSeriesData:
+    """
+    Calculate absolute change
+    Args:
+        data: The data need to calculate the score
+        pre_mean: Baseline mean
+    """
+
     return data - pre_mean
 
 
 def z_score(data: TimeSeriesData, pre_mean: float, pre_std: float) -> TimeSeriesData:
+    """
+    Calculate z score: absolute change / std
+    Args:
+        data: The data need to calculate the score
+        pre_mean: Baseline mean
+        pre_std: Baseline std
+    """
+
     return (data - pre_mean) / (pre_std)
 
 
@@ -55,6 +100,31 @@ SCORE_FUNC_DICT = {
 
 
 class CUSUMDetectorModel(DetectorModel):
+    """CUSUMDetectorModel for detecting multiple level shift change points
+
+    CUSUMDetectorModel runs CUSUMDetector multiple times to detect multiple change
+    points. In each run, CUSUMDetector will use historical_window + scan_window as
+    input time series, and find change point in scan_window. The DetectorModel stores
+    change points and returns anomaly score.
+
+    Attributes:
+        cps: Change points detected in unixtime.
+        alert_fired: If a change point is detected and the anomaly still present.
+        pre_mean: Previous baseline mean.
+        pre_std: Previous baseline std.
+        number_of_normal_scan: Number of scans with mean returned back to baseline.
+        alert_change_direction: Increase or decrease.
+        scan_window: Length in seconds of scan window.
+        historical_window: Length in seconds of historical window.
+        step_window: The time difference between CUSUM runs.
+        threshold: CUSUMDetector threshold.
+        delta_std_ratio: The mean delta have to larger than this parameter times std of
+            the data to be consider as a change.
+        magnitude_quantile: See in CUSUMDetector.
+        magnitude_ratio: See in CUSUMDetector.
+        score_func: The score function to calculate the anomaly score.
+        remove_seasonality: If apply STL to remove seasonality.
+    """
     def __init__(
         self,
         serialized_model: Optional[bytes] = None,
@@ -140,19 +210,23 @@ class CUSUMDetectorModel(DetectorModel):
         return False
 
     def serialize(self) -> bytes:
+        """
+        Retrun serilized model.
+        """
+
         return str.encode(json.dumps(self.__dict__))
 
-    def set_alert_off(self):
+    def _set_alert_off(self) -> None:
         self.alert_fired = False
         self.number_of_normal_scan = 0
 
-    def set_alert_on(self, baseline_mean, baseline_std, alert_change_direction):
+    def _set_alert_on(self, baseline_mean: float, baseline_std: float, alert_change_direction: str) -> None:
         self.alert_fired = True
         self.alert_change_direction = alert_change_direction
         self.pre_mean = baseline_mean
         self.pre_std = baseline_std
 
-    def if_normal(self, cur_mean, change_directions):
+    def _if_normal(self, cur_mean: float, change_directions: str) -> None:
         if change_directions is not None:
             increase, decrease = (
                 "increase" in change_directions,
@@ -184,23 +258,24 @@ class CUSUMDetectorModel(DetectorModel):
         magnitude_quantile: float = CUSUM_DEFAULT_ARGS["magnitude_quantile"],
         magnitude_ratio: float = CUSUM_DEFAULT_ARGS["magnitude_ratio"],
         change_directions: List[str] = CUSUM_DEFAULT_ARGS["change_directions"],
-    ):
-        """
-        data: the new data the model never seen
-        historical_data: the historical data, `historical_data` have to end with the
-            datapoint right before the first data point in `data`
-        scan_window: scan window length in seconds, scan window is the window where
-            cusum search for changepoint(s)
-        threshold: changepoint significant level, higher the value more changepoints
-            detected
-        delta_std_ratio: the mean change have to larger than `delta_std_ratio` *
-           `std(data[:changepoint])` to be consider as a change, higher the value
-           less changepoints detected
-        magnitude_quantile: float, the quantile for magnitude comparison, if
-            none, will skip the magnitude comparison;
-        magnitude_ratio: float, comparable ratio;
-        change_directions: a list contain either or both 'increas' and 'decrease' to
-            specify what type of change to detect;
+    ) -> None:
+        """Fit CUSUM model.
+        Args:
+            data: the new data the model never seen
+            historical_data: the historical data, `historical_data` have to end with the
+                datapoint right before the first data point in `data`
+            scan_window: scan window length in seconds, scan window is the window where
+                cusum search for changepoint(s)
+            threshold: changepoint significant level, higher the value more changepoints
+                detected
+            delta_std_ratio: the mean change have to larger than `delta_std_ratio` *
+            `std(data[:changepoint])` to be consider as a change, higher the value
+            less changepoints detected
+            magnitude_quantile: float, the quantile for magnitude comparison, if
+                none, will skip the magnitude comparison;
+            magnitude_ratio: float, comparable ratio;
+            change_directions: a list contain either or both 'increas' and 'decrease' to
+                specify what type of change to detect;
         """
         historical_data.extend(data, validate=False)
         n = len(historical_data)
@@ -231,7 +306,7 @@ class CUSUMDetectorModel(DetectorModel):
                 if len(self.cps) > MAX_CHANGEPOINT:
                     self.cps.pop(0)
 
-                self.set_alert_on(
+                self._set_alert_on(
                     historical_data.value[: meta.cp_index + 1].mean(),
                     historical_data.value[: meta.cp_index + 1].std(),
                     meta.direction,
@@ -239,16 +314,16 @@ class CUSUMDetectorModel(DetectorModel):
         else:
             cur_mean = historical_data[scan_start_index:].value.mean()
 
-            if self.if_normal(cur_mean, change_directions):
+            if self._if_normal(cur_mean, change_directions):
                 self.number_of_normal_scan += 1
                 if self.number_of_normal_scan >= NORMAL_TOLERENCE:
-                    self.set_alert_off()
+                    self._set_alert_off()
             else:
                 self.number_of_normal_scan = 0
 
             current_time = int(data.time.max().value / 1e9)
             if current_time - self.cps[-1] > CHANGEPOINT_RETENTION:
-                self.set_alert_off()
+                self._set_alert_off()
 
     def _predict(
         self,
@@ -256,7 +331,7 @@ class CUSUMDetectorModel(DetectorModel):
         score_func: CusumScoreFunction = CusumScoreFunction.change,
     ) -> TimeSeriesData:
         """
-        data: the new data for the anoamly score calculation
+        data: the new data for the anoamly score calculation.
         """
         if self.alert_fired:
             cp = self.cps[-1]
@@ -283,7 +358,7 @@ class CUSUMDetectorModel(DetectorModel):
         else:
             return self._zeros_ts(data)
 
-    def _zeros_ts(self, data):
+    def _zeros_ts(self, data: TimeSeriesData) -> TimeSeriesData:
         return TimeSeriesData(
             time=data.time,
             value=pd.Series(
@@ -300,13 +375,19 @@ class CUSUMDetectorModel(DetectorModel):
         """
         This function combines fit and predict and return anomaly socre for data. It
         requires scan_window > step_window.
-        The definition of windows in each cusum run in the loop is shown as below:
-        |-----historical_window----|-step_window-|
-                             |----scan_window----|
-        scan_window: the window size in seconds to detect change point
-        historical_window: the window size in seconds to provide historical data
-        step_window: the window size in seconds to specify the step size between two
-            scans
+        The relationship between two consective cusum runs in the loop is shown as below:
+        |---historical_window---|---scan_window---|
+                                                  |-step_window-|
+                      |---historical_window---|---scan_window---|
+
+        Args:
+            scan_window: the window size in seconds to detect change point
+            historical_window: the window size in seconds to provide historical data
+            step_window: the window size in seconds to specify the step size between two
+                scans
+
+        Returns:
+            The anomaly response contains the anomaly socres.
         """
         # get parameters
         scan_window = self.scan_window
@@ -506,7 +587,7 @@ class CUSUMDetectorModel(DetectorModel):
             stat_sig_ts=None,
         )
 
-    def _time2idx(self, tsd: TimeSeriesData, time: datetime, direction: str):
+    def _time2idx(self, tsd: TimeSeriesData, time: datetime, direction: str) -> int:
         """
         This function get the index of the TimeSeries data given a datatime.
         left takes the index on the left of the time stamp (inclusive)
