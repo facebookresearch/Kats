@@ -46,6 +46,13 @@ INTERPOLATION_METHODS = {
 
 
 class TimeSeriesChangePoint:
+    """Object returned by detector classes.
+
+    Attributes:
+        start_time: Start time of the change.
+        end_time: End time of the change.
+        confidence: The confidence of the change point.
+    """
     def __init__(self, start_time, end_time, confidence: float) -> None:
         self._start_time = start_time
         self._end_time = end_time
