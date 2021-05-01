@@ -244,12 +244,20 @@ class SARIMAModel(m.Model):
         logging.info("Generated forecast data from SARIMA model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 
+        if fcst.predicted_mean.isna().sum() == steps:
+            msg = "SARIMA model fails to generate forecasts, i.e., all forecasts are NaNs."
+            logging.error(msg)
+            raise ValueError(msg)
+
         self.y_fcst = fcst.predicted_mean
         pred_interval = fcst.conf_int(alpha)
 
         if pred_interval.iloc[0, 0] < pred_interval.iloc[0, 1]:
             self.y_fcst_lower = np.array(pred_interval.iloc[:, 0])
             self.y_fcst_upper = np.array(pred_interval.iloc[:, 1])
+        else:
+            self.y_fcst_lower = np.array(pred_interval.iloc[:, 1])
+            self.y_fcst_upper = np.array(pred_interval.iloc[:, 0])
 
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
