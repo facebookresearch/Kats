@@ -33,7 +33,7 @@ class SimplePickleSerializer:
 
 def serialize_for_zippy(input):
     serializer = SimplePickleSerializer()
-    return serializer.serialize(input))
+    return serializer.serialize(input)
 
 def deserialize_from_zippy(input, use_case_id=None):
     serializer = SimplePickleSerializer()
