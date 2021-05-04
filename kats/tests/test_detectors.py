@@ -3606,6 +3606,78 @@ class TestChangepointEvaluator(TestCase):
         )
         self.assertEqual(eval_agg_6_df.shape[0], eg_df.shape[0] - 1)
 
+        # test the detectormodels
+
+        # test BOCPD
+        turing_7 = TuringEvaluator(detector=BocpdDetectorModel, is_detector_model=True)
+        eval_agg_7_df = turing_7.evaluate(data=eg_df, model_params=None)
+        self.assertEqual(eval_agg_7_df.shape[0], eg_df.shape[0])
+
+        # test Statsig
+        num_secs_in_month = 86400 * 30
+        statsig_model_params = {"n_control": 7 * num_secs_in_month,
+                                "n_test": 7 * num_secs_in_month,
+                                "time_unit": "sec"}
+
+        turing_8 = TuringEvaluator(detector=StatSigDetectorModel, is_detector_model=True)
+        eval_agg_8_df = turing_8.evaluate(data=eg_df, model_params=statsig_model_params,
+                                          alert_style_cp=False, threshold_low=-5.0,
+                                          threshold_high=5.0)
+
+        self.assertEqual(eval_agg_8_df.shape[0], eg_df.shape[0])
+
+        # test CUSUM
+        # since CUSUM needs daily data, constructing another eg_df
+        eg_start_unix_time = 1613764800
+        num_secs_in_day = 3600 * 24
+
+        date_range_daily = pd.date_range(start="2020-03-01", end="2020-03-31", freq="D")
+        date_range_start_daily = [x + timedelta(days=1) for x in date_range_daily]
+        y_m_d_str_daily = [datetime.strftime(x, "%Y-%m-%d") for x in date_range_start_daily]
+        int_daily = [(eg_start_unix_time + x * num_secs_in_day) for x in range(len(date_range_start_daily))]
+        int_str_daily = [str(x) for x in int_daily]
+
+        val_daily = np.random.randn(len(date_range_start_daily))
+
+        y_m_d_dict_daily = {k: v for k, v in zip(y_m_d_str_daily, val_daily)}
+        int_dict_daily = {k: v for k, v in zip(int_daily, val_daily)}
+        int_str_dict_daily = {k: v for k, v in zip(int_str_daily, val_daily)}
+
+        eg_df_daily = pd.DataFrame(
+            [
+                {
+                    "dataset_name": "eg_1",
+                    "time_series": str(y_m_d_dict_daily),
+                    "annotation": str(eg_anno),
+                },
+                {
+                    "dataset_name": "eg_3",
+                    "time_series": str(int_dict_daily),
+                    "annotation": str(eg_anno),
+                },
+                {
+                    "dataset_name": "eg_4",
+                    "time_series": str(int_str_dict_daily),
+                    "annotation": str(eg_anno),
+                },
+            ]
+        )
+
+        cusum_model_params = {"scan_window": 8 * num_secs_in_day,
+                              "historical_window": 8 * num_secs_in_day,
+                              "threshold": 0.01,
+                              "delta_std_ratio": 1.0,
+                              "change_directions": ["increase", "decrease"],
+                              "score_func": CusumScoreFunction.percentage_change,
+                              "remove_seasonality": False}
+
+        turing_9 = TuringEvaluator(detector=CUSUMDetectorModel, is_detector_model=True)
+        eval_agg_9_df = turing_9.evaluate(data=eg_df_daily, model_params=cusum_model_params,
+                                          alert_style_cp=True, threshold_low=-0.1,
+                                          threshold_high=0.1)
+
+        self.assertEqual(eval_agg_9_df.shape[0], eg_df_daily.shape[0])
+
 
 if __name__ == "__main__":
     unittest.main()
