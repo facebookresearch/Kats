@@ -12,6 +12,7 @@ from kats.detectors.detector import Detector
 from kats.detectors.bocpd import BOCPDMetadata
 from kats.detectors.cusum_detection import CUSUMMetadata
 from kats.detectors.robust_stat_detection import RobustStatMetadata
+from kats.detectors.detector_consts import AnomalyResponse
 from kats.utils.simulator import Simulator
 
 # defining some helper functions
@@ -30,6 +31,51 @@ def get_cp_index(changepoints: List[Tuple[TimeSeriesChangePoint, Any]],
         this_cp = tsd_row['time_index'].values[0]
         cp_list.append(this_cp)
     return cp_list
+
+
+def crossed_threshold(val, threshold_low, threshold_high):
+    if (val < threshold_low) or (val > threshold_high):
+        return True
+    else:
+        return False
+
+def get_cp_index_from_alert_score(score_val, threshold_low, threshold_high):
+    cp_list = []
+    alert_on = False
+    for i in range(score_val.shape[0]):
+        crossed_bool = crossed_threshold(score_val[i], threshold_low, threshold_high)
+
+        # alarm went off
+        if crossed_bool and (not alert_on):
+            cp_list.append(i)
+            alert_on=True
+
+        # return back to normal
+        if (not crossed_bool) and alert_on:
+            cp_list.append(i)
+            alert_on = False
+
+    return cp_list
+
+def get_cp_index_from_threshold_score(score_val, threshold_low, threshold_high):
+    higher = np.where(score_val > threshold_high)[0]
+    lower = np.where(score_val < threshold_low)[0]
+    cp_list = list(set(higher).union(set(lower)))
+
+    return cp_list
+
+
+def get_cp_index_from_detector_model(anom_obj: AnomalyResponse, alert_style_cp: bool,
+                                     threshold_low: float, threshold_high: float):
+
+    score_val = anom_obj.scores.value.values
+    if alert_style_cp:
+        cp_list = get_cp_index_from_alert_score(score_val, threshold_low, threshold_high)
+    else:
+        cp_list = get_cp_index_from_threshold_score(score_val, threshold_low, threshold_high)
+
+    return cp_list
+
 
 # copied from https://github.com/alan-turing-institute/TCPDBench/blob/master/analysis/scripts/metrics.py
 def true_positives(T: Set[int], X: Set[int], margin: int = 5):
@@ -208,20 +254,83 @@ class TuringEvaluator(BenchmarkEvaluator):
     >>> avg_precision = eval_agg.get_average_precision()
 
     """
-    def __init__(self, detector: Detector):
-        if detector.detector.__annotations__.get("return", "") not in (
-            List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]],
-            List[Tuple[TimeSeriesChangePoint, CUSUMMetadata]],
-            List[Tuple[TimeSeriesChangePoint, RobustStatMetadata]],
-        ):
-            raise ValueError(
-                "Cannot parse the output type of the detector, please use the unified detector"
-            )
+    def __init__(self, detector: Detector, is_detector_model: bool = False):
         super(TuringEvaluator, self).__init__(detector=detector)
         self.detector = detector
         self.eval_agg = None
+        self.is_detector_model = is_detector_model
+
 
     def evaluate(self, model_params: Dict[str, float] = None,
+                 data: pd.DataFrame = None,
+                 ignore_list: List[str] = None,
+                 alert_style_cp: bool = False,
+                 threshold_low: float = 0.0,
+                 threshold_high: float = 1.0) -> pd.DataFrame:
+
+        if self.is_detector_model:
+            return self._evaluate_detector_model(model_params=model_params,
+                                                 data=data,
+                                                 ignore_list=ignore_list,
+                                                 alert_style_cp=alert_style_cp,
+                                                 threshold_low=threshold_low,
+                                                 threshold_high=threshold_high)
+        else:
+            return self._evaluate_detector(model_params=model_params,
+                                                 data=data,
+                                                 ignore_list=ignore_list)
+
+
+    def _evaluate_detector_model(self, model_params: Dict[str, float] = None,
+                                 data: pd.DataFrame = None,
+                                 ignore_list: List[str] = None,
+                                 alert_style_cp: bool = False,
+                                 threshold_low: float = 0.0,
+                                 threshold_high: float = 1.0)-> pd.DataFrame:
+
+        if not ignore_list:
+            ignore_list = []
+
+        if model_params is None:
+            model_params = {}
+
+        if data is None:
+            self.ts_df = self.load_data()
+        else:
+            self.ts_df = data
+
+        eval_list = []
+
+        for _, row in self.ts_df.iterrows():
+            this_dataset = row['dataset_name']
+            if this_dataset in ignore_list:
+                continue
+            data_name, tsd, anno = self._parse_data(row)
+            detector = self.detector(**model_params)
+            anom_obj = detector.fit_predict(tsd)
+
+            cp_list = get_cp_index_from_detector_model(anom_obj, alert_style_cp,
+                                                      threshold_low,
+                                                      threshold_high)
+
+            eval_dict = f_measure(annotations=anno, predictions=cp_list)
+            eval_list.append(
+                Evaluation(
+                    dataset_name=data_name,
+                    precision=eval_dict['precision'],
+                    recall=eval_dict['recall'],
+                    f_score=eval_dict['f_score']
+                )
+            )
+            # break
+        self.eval_agg = EvalAggregate(eval_list)
+        eval_df = self.eval_agg.get_eval_dataframe()
+
+        return eval_df
+
+
+
+    def _evaluate_detector(self, model_params: Dict[str, float] = None,
                  data: pd.DataFrame = None,
                  ignore_list: List[str] = None) -> pd.DataFrame:
 
@@ -320,6 +429,7 @@ class TuringEvaluator(BenchmarkEvaluator):
         else:
             ts.time = pd.to_datetime(ts.time, unit="s")
 
-        tsd = TimeSeriesData(ts)
+        tsd = TimeSeriesData(ts, use_unix_time=True, unix_time_units='s',
+                             tz='US/Pacific', time_col_name='time')
 
         return this_dataset, tsd, this_anno_dict
