@@ -371,3 +371,79 @@ class TSfeaturesTest(TestCase):
             hive_transformed,
             TsFeature_transformed
         )
+
+        # test if the difference on cumulatively-summed time series works
+        metadata = {
+            'difference':True
+        }
+        line = {
+            'id':'182328635174555',
+            'values':'[13, 0, 1, 8, 0, 0, 0, 1, 0, 5, 2, 0, 0, 1, 6, 0, 7]'
+        }
+        line_cusum = {
+            'id':'182328635174556',
+            'values':'[13, 13, 14, 22, 22, 22, 22, 23, 23, 28, 30, 30, 30, 31, 37, 37, 44]'
+        }
+        hive_transformed = next(transform(metadata, line_cusum))
+        hive_transformed.pop('id')
+
+        values = json.loads(line['values'])
+        ts_obj = TimeSeriesData(pd.DataFrame(
+            {'time': list(range(len(values))), 'values': values})
+        )
+        TsFeature_transformed = TsFeatures().transform(ts_obj)
+        self.assertEqual(
+            hive_transformed,
+            TsFeature_transformed
+        )
+
+        # test if the treatment on flipped time series works
+        metadata = {
+            'reverse':True
+        }
+        line = {
+            'id':'182328635174555',
+            'values':'[13, 0, 1, 8, 0, 0, 0, 1, 0, 5, 2, 0, 0, 1, 6, 0, 7]'
+        }
+        line_flip = {
+            'id':'182328635174556',
+            'values':'[7, 0, 6, 1, 0, 0, 2, 5, 0, 1, 0, 0, 0, 8, 1, 0, 13]'
+        }
+        hive_transformed = next(transform(metadata, line_flip))
+        hive_transformed.pop('id')
+
+        values = json.loads(line['values'])
+        ts_obj = TimeSeriesData(pd.DataFrame(
+            {'time': list(range(len(values))), 'values': values})
+        )
+        TsFeature_transformed = TsFeatures().transform(ts_obj)
+        self.assertEqual(
+            hive_transformed,
+            TsFeature_transformed
+        )
+
+        # test if the treatment on flipped, and then cumulatively-summed time series works
+        metadata = {
+            'difference':True,
+            'reverse':True
+        }
+        line = {
+            'id':'182328635174555',
+            'values':'[13, 0, 1, 8, 0, 0, 0, 1, 0, 5, 2, 0, 0, 1, 6, 0, 7]'
+        }
+        line_diff_flip = {
+            'id':'182328635174556',
+            'values':'[7, 7, 13, 14, 14, 14, 16, 21, 21, 22, 22, 22, 22, 30, 31, 31, 44]'
+        }
+        hive_transformed = next(transform(metadata, line_diff_flip))
+        hive_transformed.pop('id')
+
+        values = json.loads(line['values'])
+        ts_obj = TimeSeriesData(pd.DataFrame(
+            {'time': list(range(len(values))), 'values': values})
+        )
+        TsFeature_transformed = TsFeatures().transform(ts_obj)
+        self.assertEqual(
+            hive_transformed,
+            TsFeature_transformed
+        )
