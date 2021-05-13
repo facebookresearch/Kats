@@ -93,6 +93,7 @@ class VARModel(m.Model):
         """Fit VAR model"""
 
         logging.debug("Call fit()")
+        # pyre-fixme[16]: `VARModel` has no attribute `params`.
         if self.params.maxlags is None:
             self.params.maxlags = int(12 * (len(self.data.time) / 100.0) ** (1.0 / 4))
 
@@ -101,19 +102,28 @@ class VARModel(m.Model):
         logging.info("Created VAR model.")
 
         # fit VAR model
+        # pyre-fixme[16]: `VARModel` has no attribute `model`.
         self.model = var.fit(
             maxlags=self.params.maxlags,
+            # pyre-fixme[16]: `Params` has no attribute `method`.
             method=self.params.method,
+            # pyre-fixme[16]: `Params` has no attribute `ic`.
             ic=self.params.ic,
+            # pyre-fixme[16]: `Params` has no attribute `verbose`.
             verbose=self.params.verbose,
+            # pyre-fixme[16]: `Params` has no attribute `trend`.
             trend=self.params.trend,
         )
         logging.info("Fitted VAR model.")
 
+        # pyre-fixme[16]: `VARModel` has no attribute `k_ar`.
         self.k_ar = self.model.k_ar
+        # pyre-fixme[16]: `VARModel` has no attribute `sigma_u`.
         self.sigma_u = self.model.sigma_u
+        # pyre-fixme[16]: `VARModel` has no attribute `resid`.
         self.resid = self.model.resid
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, **kwargs) -> Dict[str, TimeSeriesData]:
         """Predict with the fitted VAR model
 
@@ -133,9 +143,12 @@ class VARModel(m.Model):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
+        # pyre-fixme[16]: `VARModel` has no attribute `freq`.
         self.freq = kwargs.get("freq", "D")
+        # pyre-fixme[16]: `VARModel` has no attribute `alpha`.
         self.alpha = kwargs.get("alpha", 0.05)
 
+        # pyre-fixme[16]: `VARModel` has no attribute `model`.
         fcst = self.model.forecast_interval(
             y=self.model.y, steps=steps, alpha=self.alpha
         )
@@ -144,8 +157,10 @@ class VARModel(m.Model):
 
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
+        # pyre-fixme[16]: `VARModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
 
+        # pyre-fixme[16]: `VARModel` has no attribute `fcst_dict`.
         self.fcst_dict = {}
         ts_names = list(self.data.value.columns)
 
@@ -166,6 +181,9 @@ class VARModel(m.Model):
         ret = {k: TimeSeriesData(v) for k, v in self.fcst_dict.items()}
         return ret
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
+    #  defined in `m.Model`.
     def plot(self) -> None:
         """Plot forecasted results from VAR model"""
 
@@ -173,9 +191,11 @@ class VARModel(m.Model):
 
         fig, axes = plt.subplots(ncols=2, dpi=120, figsize=(10, 6))
         for i, ax in enumerate(axes.flatten()):
+            # pyre-fixme[16]: `VARModel` has no attribute `fcst_dict`.
             ts_name = list(self.fcst_dict.keys())[i]
             data = self.fcst_dict[ts_name]
             ax.plot(pd.to_datetime(self.data.time), self.data.value[ts_name], "k")
+            # pyre-fixme[16]: `VARModel` has no attribute `dates`.
             fcst_dates = self.dates.to_pydatetime()
             ax.plot(fcst_dates, data.fcst, ls="-", c="#4267B2")
 

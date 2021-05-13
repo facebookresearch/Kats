@@ -31,10 +31,8 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
-
 class MetaLearnModelSelect:
     """Meta-learner framework on forecasting model selection.
-
     This framework uses classification algorithms to recommend suitable forecasting models.
     For training, it uses time series features as inputs and the best forecasting models as labels.
     For prediction, it takes time series or time series features as inputs to predict the most suitable forecasting model.
@@ -67,11 +65,14 @@ class MetaLearnModelSelect:
         self, metadata: Optional[List] = None, load_model: bool = False
     ) -> None:
         if not load_model:
+            # pyre-fixme[6]: Expected `Sized` for 1st param but got
+            #  `Optional[List[typing.Any]]`.
             if len(metadata) <= 30:
                 msg = "Dataset is too small to train a meta learner!"
                 logging.error(msg)
                 raise ValueError(msg)
 
+            # pyre-fixme[16]: `Optional` has no attribute `__getitem__`.
             if "hpt_res" not in metadata[0]:
                 msg = "Missing best hyper-params, not able to train a meta learner!"
                 logging.error(msg)
@@ -171,7 +172,9 @@ class MetaLearnModelSelect:
 
         if scale:
             self.scale = True
+            # pyre-fixme[16]: `MetaLearnModelSelect` has no attribute `x_mean`.
             self.x_mean = np.average(self.metadataX.values, axis=0)
+            # pyre-fixme[16]: `MetaLearnModelSelect` has no attribute `x_std`.
             self.x_std = np.std(self.metadataX.values, axis=0)
 
             self.metadataX = (self.metadataX - self.x_mean) / self.x_std
@@ -195,6 +198,7 @@ class MetaLearnModelSelect:
             str(self.metadataY.iloc[i]) + " model",
             str(self.metadataY.iloc[j]) + " model",
         ]
+        # pyre-fixme[29]: `CachedAccessor` is not a function.
         combined.plot(kind="bar", figsize=(12, 6))
 
     def get_corr_mtx(self) -> pd.DataFrame:
@@ -288,7 +292,7 @@ class MetaLearnModelSelect:
         # evaluate method
         em = np.mean if eval_method == "mean" else np.median
 
-        # meta learning erros
+        # meta learning errors
         fit_error["meta-learn"] = em(
             [hpt_train.iloc[i][c][-1] for i, c in enumerate(y_fit)]
         )
@@ -329,7 +333,6 @@ class MetaLearnModelSelect:
         else:
             joblib.dump(self.__dict__, file_name)
             logging.info("Successfully saved the trained model!")
-
     def load_model(self, file_name: str) -> None:
         """Load a pre-trained model.
 
@@ -362,6 +365,8 @@ class MetaLearnModelSelect:
             A string or a list of strings of the names of forecasting models.
         """
 
+        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
+        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         ts = TimeSeriesData(source_ts.to_dataframe().copy())
         if self.clf is None:
             msg = "Haven't trained a model. Please train a model or load a model before predicting."
@@ -370,6 +375,7 @@ class MetaLearnModelSelect:
 
         if ts_scale:
             # scale time series to make ts features more stable
+            # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOp...
             ts.value /= ts.value.max()
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
             logging.info(msg)
@@ -394,7 +400,6 @@ class MetaLearnModelSelect:
         n_top: int = 1,
     ) -> np.ndarray:
         """Predict the best forecasting models given a list/dataframe of time series features
-
         Args:
             source_x: the time series features of the time series that one wants to predict, can be a np.ndarray, a list of np.ndarray or a pd.DataFrame.
             n_top: Optional; An integer for the number of top model names to return. Default is 1.
@@ -412,6 +417,8 @@ class MetaLearnModelSelect:
         else:
             x = source_x.copy()
         if self.scale:
+            # pyre-fixme[16]: `MetaLearnModelSelect` has no attribute `x_mean`.
+            # pyre-fixme[16]: `MetaLearnModelSelect` has no attribute `x_std`.
             x = (x - self.x_mean) / self.x_std
 
         if n_top == 1:
@@ -421,6 +428,7 @@ class MetaLearnModelSelect:
         classes = np.array(self.clf.classes_)
         return classes[order][:, :n_top]
 
+    # pyre-fixme[11]: Annotation `array` is not defined as a type.
     def _bootstrap(self, data: np.array, rep: int = 200) -> float:
         """Helper function for bootstrap test and returns the pvalue."""
 
@@ -450,14 +458,19 @@ class MetaLearnModelSelect:
             A dictionary of prediction results, including forecasting models, their probability of being th best forecasting models and the pvalues of bootstrap tests.
         """
 
+        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
+        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         ts = TimeSeriesData(source_ts.to_dataframe().copy())
         if ts_scale:
             # scale time series to make ts features more stable
+            # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOp...
             ts.value /= ts.value.max()
         new_features_vector = np.asarray(list(TsFeatures().transform(ts).values()))
         if self.scale:
             new_features_vector = (
+                # pyre-fixme[16]: `MetaLearnModelSelect` has no attribute `x_mean`.
                 new_features_vector - np.asarray(self.x_mean)
+            # pyre-fixme[16]: `MetaLearnModelSelect` has no attribute `x_std`.
             ) / np.asarray(self.x_std)
         test = new_features_vector.reshape([1, -1])
         m = len(self.clf.estimators_)

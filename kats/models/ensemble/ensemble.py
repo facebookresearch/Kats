@@ -145,6 +145,7 @@ class BaseEnsemble:
         """
 
         # get the model function call
+        # pyre-fixme[29]: `Model` is not a function.
         m = model_func(params=model_param, data=self.data)
         m.fit()
         return m
@@ -160,6 +161,7 @@ class BaseEnsemble:
         """
 
         predicted = {}
+        # pyre-fixme[16]: `BaseEnsemble` has no attribute `fitted`.
         for model_name, model_fitted in self.fitted.items():
             predicted[model_name] = model_fitted.predict(steps, **kwargs)
         return predicted

@@ -87,6 +87,8 @@ class KDEResidualTranslator:
 
         value = residual.value
         mask = value > value.quantile(self._ignore_below_frac)
+        # pyre-fixme[6]: Expected `DataFrame` for 1st param but got
+        #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         mask &= value < value.quantile(self._ignore_above_frac)
         value = value[mask]
 
@@ -102,6 +104,7 @@ class KDEResidualTranslator:
         best_params = search.fit(value.to_frame()).best_params_
         kde = KernelDensity(**best_params)
         kde.fit(value.to_frame())
+        # pyre-fixme[16]: `KDEResidualTranslator` has no attribute `_kde`.
         self._kde = kde
         return self
 
@@ -111,6 +114,7 @@ class KDEResidualTranslator:
         Returns:
             KernelDensity object fitted to the residuals.
         """
+        # pyre-fixme[16]: `KDEResidualTranslator` has no attribute `_kde`.
         return self._kde
 
     def predict_proba(
@@ -167,6 +171,8 @@ class KDEResidualTranslator:
 
         log_proba = pd.DataFrame(
             {
+                # pyre-fixme[16]: `KDEResidualTranslator` has no attribute `_kde`.
+                # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.series.S...
                 "value": self._kde.score_samples(residual.value.to_frame()),
                 "time": residual.time,
             }
@@ -193,6 +199,8 @@ class KDEResidualTranslator:
                     "Must supply either both yhat_lower and yhat_upper" "or neither"
                 )
             if yhat_lower is not None:
+                # pyre-fixme[58]: `-` is not supported for operand types
+                #  `Optional[TimeSeriesData]` and `TimeSeriesData`.
                 residual /= yhat_upper - yhat_lower
         elif residual is not None:
             if any(c is not None for c in [y, yhat, yhat_lower, yhat_upper]):

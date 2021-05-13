@@ -25,10 +25,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 
-
 class MetaLearnPredictability:
     """Meta-learner framework on predictability.
-
     This framework uses classification algorithms to predict whether a time series is predictable or not (
     we define the time series with error metrics less than a user defined threshold as predictable).
     For training, it uses time series features as inputs and whether the best forecasting models' errors less than the user-defined threshold as labels.
@@ -154,7 +152,9 @@ class MetaLearnPredictability:
         """
 
         self.rescale = True
+        # pyre-fixme[16]: `MetaLearnPredictability` has no attribute `features_mean`.
         self.features_mean = np.average(self.features.values, axis=0)
+        # pyre-fixme[16]: `MetaLearnPredictability` has no attribute `features_std`.
         self.features_std = np.std(self.features.values, axis=0)
 
         self.features_std[self.features_std == 0] = 1.0
@@ -229,7 +229,6 @@ class MetaLearnPredictability:
             kwargs["n_estimators"] = n_estimators
             kwargs["class_weight"] = kwargs.get("class_weight", "balanced_subsample")
             clf = RandomForestClassifier(**kwargs)
-
         clf.fit(x_train, y_train)
         pred_valid = clf.predict_proba(x_valid)[:, 1]
         p, r, threshold = precision_recall_curve(y_valid, pred_valid)
@@ -241,7 +240,6 @@ class MetaLearnPredictability:
             msg = f"Fail to get a proper threshold for recall {recall_threshold}, use 0.5 as threshold instead. Exception message is: {e}"
             logging.warning(msg)
             clf_threshold = 0.5
-
         if x_test is not None:
             pred_test = clf.predict_proba(x_test)[:, 1] > clf_threshold
             precision_test, recall_test, f1_test, _ = precision_recall_fscore_support(
@@ -259,7 +257,6 @@ class MetaLearnPredictability:
         self.clf = clf
         self._clf_threshold = clf_threshold
         return ans
-
     def pred(self, source_ts: TimeSeriesData, ts_rescale: bool = True) -> bool:
         """Predict whether a time series is predicable or not.
 
@@ -271,12 +268,15 @@ class MetaLearnPredictability:
             A boolean representing whether the time series is predictable or not.
         """
 
+        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
+        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         ts = TimeSeriesData(source_ts.to_dataframe().copy())
         if self.clf is None:
             msg = "No model trained yet, please train the model first."
             logging.error(msg)
             raise ValueError(msg)
         if ts_rescale:
+            # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOp...
             ts.value /= ts.value.max()
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
             logging.info(msg)
@@ -295,7 +295,6 @@ class MetaLearnPredictability:
         self, source_x: Union[np.ndarray, List[np.ndarray], pd.DataFrame]
     ) -> np.ndarray:
         """Predict whether a list of time series are predicable or not given their time series features.
-
         Args:
             source_x: the time series features of the time series that one wants to predict, can be a np.ndarray, a list of np.ndarray or a pd.DataFrame.
 
@@ -312,6 +311,9 @@ class MetaLearnPredictability:
         else:
             x = source_x.copy()
         if self.rescale:
+            # pyre-fixme[16]: `MetaLearnPredictability` has no attribute
+            #  `features_mean`.
+            # pyre-fixme[16]: `MetaLearnPredictability` has no attribute `features_std`.
             x = (x - self.features_mean) / self.features_std
         pred = (self.clf.predict_proba(x)[:, 1] < self._clf_threshold).astype(int)
         return pred

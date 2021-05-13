@@ -71,6 +71,17 @@ from kats.models.harmonic_regression import HarmonicRegressionModel
 from kats.models.var import VARParams
 from kats.utils.simulator import Simulator
 from scipy.special import expit  # @manual
+
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
 
@@ -95,7 +106,7 @@ TSData_empty = TimeSeriesData(pd.DataFrame([], columns=["time", "y"]))
 
 # Anomaly detection tests
 class OutlierDetectionTest(TestCase):
-    def test_new_freq_outliers(self):
+    def test_new_freq_outliers(self) -> None:
         def process_time(z):
             x0, x1 = z.split(" ")
             time = (
@@ -133,7 +144,7 @@ class OutlierDetectionTest(TestCase):
         m.detector()
         m.remover(interpolate=True)
 
-    def test_additive_overrides(self):
+    def test_additive_overrides(self) -> None:
         m = OutlierDetector(ts_data, "additive")
 
         m.detector()
@@ -146,7 +157,7 @@ class OutlierDetectionTest(TestCase):
 
         self.assertEqual(outliers.value.all(), outliers2.value.all())
 
-    def test_outlier_detection_additive(self):
+    def test_outlier_detection_additive(self) -> None:
         m = OutlierDetector(ts_data, "additive")
 
         m.detector()
@@ -160,7 +171,7 @@ class OutlierDetectionTest(TestCase):
         m3.detector()
         m3.remover(interpolate=True)
 
-    def test_outlier_detection_multiplicative(self):
+    def test_outlier_detection_multiplicative(self) -> None:
         m = OutlierDetector(ts_data, "multiplicative")
         m.detector()
         m.remover(interpolate=True)
@@ -173,7 +184,7 @@ class OutlierDetectionTest(TestCase):
         m3.detector()
         m3.remover(interpolate=True)
 
-    def test_outlier_detector_exception(self):
+    def test_outlier_detector_exception(self) -> None:
         data_new = pd.concat([data, data])
         ts_data_new = TimeSeriesData(data_new)
 
@@ -183,7 +194,7 @@ class OutlierDetectionTest(TestCase):
 
 
 class MultivariateVARDetectorTest(TestCase):
-    def test_var_detector(self):
+    def test_var_detector(self) -> None:
         np.random.seed(10)
 
         params = VARParams(maxlags=3)
@@ -198,12 +209,12 @@ class MultivariateVARDetectorTest(TestCase):
         anomalies = d.get_anomaly_timepoints(alpha)
         d.get_anomalous_metrics(anomalies[0], top_k=5)
 
-    def test_bayesian_detector(self):
+    def test_bayesian_detector(self) -> None:
         np.random.seed(10)
 
         params = BayesianVARParams(p=3)
         d = MultivariateAnomalyDetector(
-            TSData_multi[24:-2*24], # testing on shorter data
+            TSData_multi[24 : -2 * 24],  # testing on shorter data
             params,
             training_days=3,
             model_type=MultivariateAnomalyDetectorType.BAYESIAN_VAR,
@@ -218,7 +229,7 @@ class MultivariateVARDetectorTest(TestCase):
         anomalies = d.get_anomaly_timepoints(alpha)
         d.get_anomalous_metrics(anomalies[0], top_k=5)
 
-    def test_runtime_errors(self):
+    def test_runtime_errors(self) -> None:
         DATA_multi2 = pd.concat([DATA_multi, DATA_multi])
         TSData_multi2 = TimeSeriesData(DATA_multi2)
         params = VARParams(maxlags=3)
@@ -238,7 +249,7 @@ class MultivariateVARDetectorTest(TestCase):
 
 # Change point (aka regression) detection tests
 class CUSUMDetectorTest(TestCase):
-    def test_increasing_detection(self):
+    def test_increasing_detection(self) -> None:
         np.random.seed(10)
         df_increase = pd.DataFrame(
             {
@@ -263,6 +274,7 @@ class CUSUMDetectorTest(TestCase):
         self.assertLess(metadata.mu0, metadata.mu1)
         self.assertEqual(metadata.delta, metadata.mu1 - metadata.mu0)
         self.assertTrue(metadata.regression_detected)
+        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(metadata.p_value, 1 - chi2.cdf(metadata.llr, 2))
         self.assertTrue(np.isnan(metadata.p_value_int))
         self.assertEqual(metadata.llr_int, np.inf)
@@ -288,7 +300,7 @@ class CUSUMDetectorTest(TestCase):
 
         self.assertEqual(len(change_points), 1)
 
-    def test_decreasing_detection(self):
+    def test_decreasing_detection(self) -> None:
         np.random.seed(10)
         df_decrease = pd.DataFrame(
             {
@@ -312,7 +324,7 @@ class CUSUMDetectorTest(TestCase):
         self.assertLessEqual(abs(metadata.cp_index - 49), 1)
         self.assertEqual(metadata.direction, "decrease")
 
-    def test_noregression(self):
+    def test_noregression(self) -> None:
         np.random.seed(10)
         df_noregress = pd.DataFrame({"no_change": np.random.normal(1, 0.2, 60)})
 
@@ -325,44 +337,46 @@ class CUSUMDetectorTest(TestCase):
 
         self.assertEqual(len(change_points), 0)
 
-    def test_seasonality(self):
-        def simulate_seasonal_term(
-            periodicity, total_cycles, noise_std=1.0, harmonics=None
-        ):
-            duration = periodicity * total_cycles
-            assert duration == int(duration)
-            duration = int(duration)
-            harmonics = harmonics if harmonics else int(np.floor(periodicity / 2))
+    @staticmethod
+    def simulate_seasonal_term(
+        periodicity, total_cycles, noise_std=1.0, harmonics=None
+    ):
+        duration = periodicity * total_cycles
+        assert duration == int(duration)
+        duration = int(duration)
+        harmonics = harmonics if harmonics else int(np.floor(periodicity / 2))
 
-            lambda_p = 2 * np.pi / float(periodicity)
+        lambda_p = 2 * np.pi / float(periodicity)
 
-            gamma_jt = noise_std * np.random.randn((harmonics))
-            gamma_star_jt = noise_std * np.random.randn((harmonics))
+        gamma_jt = noise_std * np.random.randn((harmonics))
+        gamma_star_jt = noise_std * np.random.randn((harmonics))
 
-            total_timesteps = 100 * duration  # Pad for burn in
-            series = np.zeros(total_timesteps)
-            for t in range(total_timesteps):
-                gamma_jtp1 = np.zeros_like(gamma_jt)
-                gamma_star_jtp1 = np.zeros_like(gamma_star_jt)
-                for j in range(1, harmonics + 1):
-                    cos_j = np.cos(lambda_p * j)
-                    sin_j = np.sin(lambda_p * j)
-                    gamma_jtp1[j - 1] = (
-                        gamma_jt[j - 1] * cos_j
-                        + gamma_star_jt[j - 1] * sin_j
-                        + noise_std * np.random.randn()
-                    )
-                    gamma_star_jtp1[j - 1] = (
-                        -gamma_jt[j - 1] * sin_j
-                        + gamma_star_jt[j - 1] * cos_j
-                        + noise_std * np.random.randn()
-                    )
-                series[t] = np.sum(gamma_jtp1)
-                gamma_jt = gamma_jtp1
-                gamma_star_jt = gamma_star_jtp1
-            wanted_series = series[-duration:]  # Discard burn in
+        total_timesteps = 100 * duration  # Pad for burn in
+        series = np.zeros(total_timesteps)
+        for t in range(total_timesteps):
+            gamma_jtp1 = np.zeros_like(gamma_jt)
+            gamma_star_jtp1 = np.zeros_like(gamma_star_jt)
+            for j in range(1, harmonics + 1):
+                cos_j = np.cos(lambda_p * j)
+                sin_j = np.sin(lambda_p * j)
+                gamma_jtp1[j - 1] = (
+                    gamma_jt[j - 1] * cos_j
+                    + gamma_star_jt[j - 1] * sin_j
+                    + noise_std * np.random.randn()
+                )
+                gamma_star_jtp1[j - 1] = (
+                    -gamma_jt[j - 1] * sin_j
+                    + gamma_star_jt[j - 1] * cos_j
+                    + noise_std * np.random.randn()
+                )
+            series[t] = np.sum(gamma_jtp1)
+            gamma_jt = gamma_jtp1
+            gamma_star_jt = gamma_star_jtp1
+        wanted_series = series[-duration:]  # Discard burn in
 
-            return wanted_series
+        return wanted_series
+
+    def test_seasonality(self) -> None:
 
         np.random.seed(100)
         periodicity = 48
@@ -370,7 +384,7 @@ class CUSUMDetectorTest(TestCase):
         harmonics = 2
         noise_std = 3
 
-        seasonal_term = simulate_seasonal_term(
+        seasonal_term = CUSUMDetectorTest.simulate_seasonal_term(
             periodicity, total_cycles, noise_std=noise_std, harmonics=harmonics
         )
         seasonal_term = seasonal_term / seasonal_term.std() * 2
@@ -430,9 +444,10 @@ class CUSUMDetectorTest(TestCase):
         self.assertEqual(len(change_points), 1)
         change_meta = change_points[0][1]
         self.assertGreaterEqual(change_meta.cp_index, periodicity * (total_cycles - 1))
+        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(change_meta.p_value_int, 1 - chi2.cdf(change_meta.llr_int, 2))
 
-    def test_logging(self):
+    def test_logging(self) -> None:
         # test multivariate error
         np.random.seed(10)
         df_multi_var = pd.DataFrame(
@@ -463,7 +478,7 @@ class CUSUMDetectorTest(TestCase):
 
 
 class RobustStatTest(TestCase):
-    def test_no_change(self):
+    def test_no_change(self) -> None:
         np.random.seed(10)
         df_noregress = pd.DataFrame({"no_change": [math.sin(i) for i in range(60)]})
 
@@ -475,7 +490,7 @@ class RobustStatTest(TestCase):
 
         self.assertEqual(len(change_points), 0)
 
-    def test_increasing_detection(self):
+    def test_increasing_detection(self) -> None:
         np.random.seed(10)
         df_increase = pd.DataFrame(
             {
@@ -493,7 +508,7 @@ class RobustStatTest(TestCase):
 
         self.assertEqual(len(change_points), 1)
 
-    def test_decreasing_detection(self):
+    def test_decreasing_detection(self) -> None:
         np.random.seed(10)
         df_decrease = pd.DataFrame(
             {
@@ -511,7 +526,7 @@ class RobustStatTest(TestCase):
 
         self.assertEqual(len(change_points), 1)
 
-    def test_spike_change_pos(self):
+    def test_spike_change_pos(self) -> None:
         np.random.seed(10)
         df_slope_change = pd.DataFrame(
             {"spike": [math.sin(i) if i != 27 else 30 * math.sin(i) for i in range(60)]}
@@ -525,7 +540,7 @@ class RobustStatTest(TestCase):
 
         self.assertEqual(len(change_points), 2)
 
-    def test_spike_change_neg(self):
+    def test_spike_change_neg(self) -> None:
         np.random.seed(10)
         df_slope_change = pd.DataFrame(
             {
@@ -545,7 +560,7 @@ class RobustStatTest(TestCase):
 
 
 class MultiCUSUMDetectorTest(TestCase):
-    def test_gaussian_increase(self):
+    def test_gaussian_increase(self) -> None:
         D = 10
         random_state = 10
         np.random.seed(random_state)
@@ -576,12 +591,13 @@ class MultiCUSUMDetectorTest(TestCase):
         for d, diff in zip(metadata.delta, metadata.mu1 - metadata.mu0):
             self.assertEqual(d, diff)
         self.assertTrue(metadata.regression_detected)
+        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(metadata.p_value, 1 - chi2.cdf(metadata.llr, D + 1))
         self.assertTrue(np.isnan(metadata.p_value_int))
         self.assertEqual(metadata.llr_int, np.inf)
         self.assertTrue(metadata.stable_changepoint)
 
-    def test_gaussian_decrease(self):
+    def test_gaussian_decrease(self) -> None:
         D = 10
         random_state = 10
         np.random.seed(random_state)
@@ -612,12 +628,13 @@ class MultiCUSUMDetectorTest(TestCase):
         for d, diff in zip(metadata.delta, metadata.mu1 - metadata.mu0):
             self.assertEqual(d, diff)
         self.assertTrue(metadata.regression_detected)
+        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(metadata.p_value, 1 - chi2.cdf(metadata.llr, D + 1))
         self.assertTrue(np.isnan(metadata.p_value_int))
         self.assertEqual(metadata.llr_int, np.inf)
         self.assertTrue(metadata.stable_changepoint)
 
-    def test_no_changepoint(self):
+    def test_no_changepoint(self) -> None:
         D = 10
         random_state = 10
         np.random.seed(random_state)
@@ -651,7 +668,7 @@ class BOCPDTest(TestCase):
 
         self.level_arr = [1.35, 1.05, 1.35, 1.2]
 
-    def test_normal(self):
+    def test_normal(self) -> None:
 
         ts = self.sim.level_shift_sim(
             random_seed=100,
@@ -780,7 +797,7 @@ class BOCPDTest(TestCase):
                 continue
             self.assertIn(cp, cp_arr)
 
-    def test_normal_multivariate(self):
+    def test_normal_multivariate(self) -> None:
 
         ts = self.sim.level_shift_multivariate_indep_sim(
             cp_arr=self.cp_array_input,
@@ -794,6 +811,7 @@ class BOCPDTest(TestCase):
         bocpd_model = BOCPDetector(data=ts)
         cps = bocpd_model.detector(
             model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+            # pyre-fixme[6]: Expected `float` for 2nd param but got `ndarray`.
             changepoint_prior=np.array([0.01, 0.01, 1.0]),
             threshold=np.array([1.0, 0.5, 0.5]),
             choose_priors=False,
@@ -864,6 +882,7 @@ class BOCPDTest(TestCase):
         # check if multivariate detection works in detecting all changepoints
         cps5 = bocpd_model.detector(
             model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+            # pyre-fixme[6]: Expected `float` for 2nd param but got `ndarray`.
             changepoint_prior=np.array([0.01, 0.01, 0.01]),
             threshold=np.array([0.85, 0.85, 0.85]),
             choose_priors=False,
@@ -908,7 +927,7 @@ class BOCPDTest(TestCase):
         # Check we have all the time series.
         self.assertEqual(counter, Counter(value1=3, value2=3, value3=3))
 
-    def test_trend(self):
+    def test_trend(self) -> None:
         sim = Simulator(n=200, start="2018-01-01")
         ts = sim.trend_shift_sim(
             random_seed=15,
@@ -946,7 +965,7 @@ class BOCPDTest(TestCase):
             f"confidence should have been at least threshold {threshold}, but got {cps[0][0].confidence}",
         )
 
-    def test_poisson(self):
+    def test_poisson(self) -> None:
 
         ts = self.sim.level_shift_sim(
             random_seed=100,
@@ -1011,7 +1030,7 @@ class BocpdDetectorModelTest(TestCase):
 
         self.level_arr = [1.35, 1.05, 1.35, 1.2]
 
-    def test_no_history(self):
+    def test_no_history(self) -> None:
 
         level_ts = self.sim.level_shift_sim(
             random_seed=100,
@@ -1035,7 +1054,7 @@ class BocpdDetectorModelTest(TestCase):
         self.assertTrue(np.max(anom.scores.value.values[195:205]) > threshold)
         self.assertTrue(np.max(anom.scores.value.values[345:355]) > threshold)
 
-    def test_history(self):
+    def test_history(self) -> None:
         ts_length = 450
         ts_history_length = 100
 
@@ -1071,7 +1090,7 @@ class BocpdDetectorModelTest(TestCase):
         self.assertTrue(np.max(anom.scores.value.values[95:105]) > threshold)
         self.assertTrue(np.max(anom.scores.value.values[245:255]) > threshold)
 
-    def test_slow_drift(self):
+    def test_slow_drift(self) -> None:
         ts_length = 200
 
         sim = Simulator(n=ts_length, start="2018-01-01")
@@ -1095,7 +1114,7 @@ class BocpdDetectorModelTest(TestCase):
         # 5 time points before/after
         self.assertTrue(np.max(anom.scores.value.values[95:105]) > threshold)
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
 
         level_ts = self.sim.level_shift_sim(
             random_seed=100,
@@ -1119,7 +1138,7 @@ class BocpdDetectorModelTest(TestCase):
         anom = bocpd_detector2.fit_predict(data=level_ts)
         self.assertEqual(len(anom.scores), self.ts_length)
 
-    def test_missing_data(self):
+    def test_missing_data(self) -> None:
         # this data is in the same format as OneDetection
         # it also crosses the daylight savings time
         history_time_list = (
@@ -1175,14 +1194,14 @@ class BocpdDetectorModelTest(TestCase):
 
 # Other detection tests (seasonality, trend, etc)
 class ACFDetectorTest(TestCase):
-    def test_acf_detector(self):
+    def test_acf_detector(self) -> None:
         detector = ACFDetector(data=ts_data_daily)
         res = detector.detector(lags=None, diff=1, alpha=0.01)
         self.assertEqual(res["seasonality_presence"], True)
         detector.remover()
         detector.plot()
 
-    def test_no_seasonality(self):
+    def test_no_seasonality(self) -> None:
         np.random.seed(10)
         df_noregress = pd.DataFrame({"no_change": np.random.normal(1, 0.2, 60)})
         df_noregress["time"] = pd.Series(pd.date_range("2019-01-01", "2019-03-01"))
@@ -1193,7 +1212,7 @@ class ACFDetectorTest(TestCase):
         detector.remover()
         detector.plot()
 
-    def test_logging(self):
+    def test_logging(self) -> None:
         with self.assertRaises(ValueError):
             ACFDetector(data=TSData_multi)
 
@@ -1248,7 +1267,7 @@ class MKDetectorTest(TestCase):
 
         return TimeSeriesData(trend_data), t_change
 
-    def test_MKtest(self):
+    def test_MKtest(self) -> None:
         window_size = 20
         time = pd.Series(pd.date_range(start="2020-01-01", end="2020-06-20", freq="1D"))
 
@@ -1360,7 +1379,7 @@ class MKDetectorTest(TestCase):
             msg=f"The {window_size}-days downward trend at the anchor point not was detected.",
         )
 
-    def test_multivariate_MKtest(self, ndim=5):
+    def test_multivariate_MKtest(self, ndim=5) -> None:
         window_size = 20
         time = pd.Series(pd.date_range(start="2020-01-01", end="2020-06-20", freq="1D"))
 
@@ -1452,7 +1471,7 @@ class FFTDetectorTest(TestCase):
             pd.DataFrame({"time": self.series_times, "values": self.harms_sum})
         )
 
-    def test_detector(self):
+    def test_detector(self) -> None:
         detector = FFTDetector(data=self.data)
         result = detector.detector()
         detector.plot(time_unit="Hour")
@@ -1460,13 +1479,13 @@ class FFTDetectorTest(TestCase):
         self.assertTrue(result["seasonality_presence"])
         self.assertEqual(int(result["seasonalities"][0]), 24)
 
-    def test_logging(self):
+    def test_logging(self) -> None:
         with self.assertRaises(ValueError):
             FFTDetector(data=TSData_multi)
 
 
 class SingleSpikeTest(TestCase):
-    def test_spike(self):
+    def test_spike(self) -> None:
         spike_time_str = "2020-03-01"
         spike_time = datetime.strptime(spike_time_str, "%Y-%m-%d")
         spike = SingleSpike(time=spike_time, value=1.0, n_sigma=3.0)
@@ -1474,7 +1493,7 @@ class SingleSpikeTest(TestCase):
 
 
 class ChangePointIntervalTest(TestCase):
-    def test_changepoint(self):
+    def test_changepoint(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -1492,10 +1511,12 @@ class ChangePointIntervalTest(TestCase):
         # add a very large value to detect spikes
         current_values[0] = 100.0
 
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `previous`.
         self.previous = TimeSeriesData(
             pd.DataFrame({"time": previous_seq, "value": previous_values})
         )
 
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current`.
         self.current = TimeSeriesData(
             pd.DataFrame({"time": current_seq, "value": current_values})
         )
@@ -1504,10 +1525,14 @@ class ChangePointIntervalTest(TestCase):
             pd.DataFrame({"time": previous_seq[9:], "value": previous_values[9:]})
         )
 
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `prev_start`.
         self.prev_start = previous_seq[0]
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `prev_end`.
         self.prev_end = previous_seq[9]
 
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current_start`.
         self.current_start = current_seq[0]
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current_end`.
         self.current_end = current_seq[-1] + timedelta(days=1)
 
         previous_int = ChangePointInterval(
@@ -1556,7 +1581,7 @@ class ChangePointIntervalTest(TestCase):
 
 
 class PercentageChangeTest(TestCase):
-    def test_perc_change(self):
+    def test_perc_change(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -1571,18 +1596,24 @@ class PercentageChangeTest(TestCase):
         previous_values = 1.0 + 0.25 * np.random.randn(len(previous_seq))
         current_values = 10.0 + 0.25 * np.random.randn(len(current_seq))
 
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `previous`.
         self.previous = TimeSeriesData(
             pd.DataFrame({"time": previous_seq, "value": previous_values})
         )
 
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current`.
         self.current = TimeSeriesData(
             pd.DataFrame({"time": current_seq, "value": current_values})
         )
 
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_start`.
         self.prev_start = previous_seq[0]
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_end`.
         self.prev_end = previous_seq[9]
 
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_start`.
         self.current_start = current_seq[0]
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
         previous_int = ChangePointInterval(
@@ -1643,7 +1674,7 @@ class PercentageChangeTest(TestCase):
 
 
 class MultiChangePointIntervalTest(TestCase):
-    def test_multichangepoint(self):
+    def test_multichangepoint(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -1665,6 +1696,7 @@ class MultiChangePointIntervalTest(TestCase):
         for i in range(num_seq):
             current_values[i][0] = 100 * (i + 1)
 
+        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `previous`.
         self.previous = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1674,6 +1706,7 @@ class MultiChangePointIntervalTest(TestCase):
             )
         )
 
+        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `current`.
         self.current = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1692,10 +1725,15 @@ class MultiChangePointIntervalTest(TestCase):
             )
         )
 
+        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `prev_start`.
         self.prev_start = previous_seq[0]
+        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `prev_end`.
         self.prev_end = previous_seq[9]
 
+        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute
+        #  `current_start`.
         self.current_start = current_seq[0]
+        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
         previous_int = MultiChangePointInterval(
@@ -1757,7 +1795,7 @@ class MultiChangePointIntervalTest(TestCase):
 
 
 class MultiPercentageChangeTest(TestCase):
-    def test_multi_perc_change(self):
+    def test_multi_perc_change(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -1779,6 +1817,7 @@ class MultiPercentageChangeTest(TestCase):
             [10.0 + 0.0001 * np.random.randn(len(current_seq)) for _ in range(num_seq)]
         )
 
+        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `previous`.
         self.previous = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1788,6 +1827,7 @@ class MultiPercentageChangeTest(TestCase):
             )
         )
 
+        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current`.
         self.current = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1797,10 +1837,14 @@ class MultiPercentageChangeTest(TestCase):
             )
         )
 
+        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `prev_start`.
         self.prev_start = previous_seq[0]
+        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `prev_end`.
         self.prev_end = previous_seq[9]
 
+        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_start`.
         self.current_start = current_seq[0]
+        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
         previous_int = MultiChangePointInterval(
@@ -1912,7 +1956,7 @@ class MultiPercentageChangeTest(TestCase):
 
 
 class TestAnomalyResponse(TestCase):
-    def test_response(self):
+    def test_response(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -2026,7 +2070,7 @@ class TestAnomalyResponse(TestCase):
 
 
 class TestMultiAnomalyResponse(TestCase):
-    def test_multi_response(self):
+    def test_multi_response(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -2209,6 +2253,7 @@ class TestMultiAnomalyResponse(TestCase):
                 response.response_objects[response.key_mapping[i]].scores.value.iloc[
                     -1
                 ],
+                # pyre-fixme[16]: `float` has no attribute `__getitem__`.
                 common_val[i],
             )
             self.assertEqual(
@@ -2265,7 +2310,7 @@ class TestMultiAnomalyResponse(TestCase):
 
 
 class TestStatSigDetector(TestCase):
-    def test_detector(self):
+    def test_detector(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -2288,7 +2333,7 @@ class TestStatSigDetector(TestCase):
         # prediction returns scores of same length
         self.assertEqual(len(pred_later.scores), len(ts_later))
 
-    def test_pmm_use_case(self):
+    def test_pmm_use_case(self) -> None:
         random.seed(100)
         time_unit = 86400
         hist_data_time = [x * time_unit for x in range(0, 28)]
@@ -2325,7 +2370,7 @@ class TestStatSigDetector(TestCase):
         pred_later3 = ss_detect3.fit_predict(data=hist_ts)
         self.assertEqual(len(pred_later3.scores), len(hist_ts))
 
-    def test_no_historical_data(self):
+    def test_no_historical_data(self) -> None:
         n = 35
         control_time = pd.date_range(start="2018-01-01", freq="D", periods=n)
         control_val = [random.normalvariate(100, 10) for _ in range(n)]
@@ -2345,7 +2390,7 @@ class TestStatSigDetector(TestCase):
 
         self.assertNotEqual(anom.scores.value.iloc[n_control + n_test - 1], 0.0)
 
-    def test_not_enough_historical_data(self):
+    def test_not_enough_historical_data(self) -> None:
         n_control = 12
         n_test = 8
         num_control = 8
@@ -2373,7 +2418,7 @@ class TestStatSigDetector(TestCase):
 
         self.assertNotEqual(anom.scores.value.iloc[-1], 0.0)
 
-    def test_logging(self):
+    def test_logging(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -2408,7 +2453,7 @@ class TestStatSigDetector(TestCase):
 
 
 class TestMultiStatSigDetector(TestCase):
-    def test_multi_detector(self):
+    def test_multi_detector(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -2471,7 +2516,7 @@ class TestMultiStatSigDetector(TestCase):
         # prediction returns scores of same length
         self.assertEqual(len(pred_later.scores), len(ts_later_renamed))
 
-    def test_no_historical_data(self):
+    def test_no_historical_data(self) -> None:
         n = 35
         num_seq = 3
         control_time = pd.date_range(start="2018-01-01", freq="D", periods=n)
@@ -2505,7 +2550,7 @@ class TestMultiStatSigDetector(TestCase):
         for j in range(anom.scores.value.shape[1]):
             self.assertNotEqual(anom.scores.value.iloc[n_control + n_test - 1, j], 0.0)
 
-    def test_not_enough_historical_data(self):
+    def test_not_enough_historical_data(self) -> None:
         n_control = 12
         n_test = 8
         num_control = 8
@@ -2558,7 +2603,7 @@ class TestMultiStatSigDetector(TestCase):
         for j in range(anom.scores.value.shape[1]):
             self.assertNotEqual(anom.scores.value.iloc[-1, j], 0.0)
 
-    def test_logging(self):
+    def test_logging(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -2602,9 +2647,11 @@ class HourlyRatioDectorTest(TestCase):
         df["time"] = time
         if drop:
             df = df.sample(frac=frac, replace=False)
+        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
+        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         return TimeSeriesData(df)
 
-    def test_detector(self):
+    def test_detector(self) -> None:
         # test hourly data without missing vlaues
         ts = self.data_generation(drop=False)
         hr = HourlyRatioDetector(ts)
@@ -2626,7 +2673,7 @@ class HourlyRatioDectorTest(TestCase):
         hr.detector()
         hr.plot()
 
-    def test_other(self):
+    def test_other(self) -> None:
         self.assertRaises(ValueError, HourlyRatioDetector, TSData_multi)
 
         self.assertRaises(ValueError, HourlyRatioDetector, ts_data_daily)
@@ -2645,7 +2692,7 @@ class HourlyRatioDectorTest(TestCase):
 
 
 class TestMultipleWindowSloDetector(TestCase):
-    def test_multi_detector_data(self):
+    def test_multi_detector_data(self) -> None:
         date_start_str = "2020-08-01"
         date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
         num_seq = 2
@@ -2717,7 +2764,7 @@ class TestMultipleWindowSloDetector(TestCase):
         self.assertTrue(pred.scores.value.iloc[0])
         self.assertFalse(pred.scores.value.iloc[1])
 
-    def test_multi_detector_data_2(self):
+    def test_multi_detector_data_2(self) -> None:
         date_start_str = "2020-08-16"
         date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
         num_seq = 2
@@ -2786,7 +2833,7 @@ class TestMultipleWindowSloDetector(TestCase):
         self.assertFalse(pred.scores.value.iloc[0])
         self.assertTrue(pred.scores.value.iloc[1])
 
-    def test_multi_detector_data_Long(self):
+    def test_multi_detector_data_Long(self) -> None:
         date_start_str = "2020-08-16"
         date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
         num_seq = 2
@@ -2840,7 +2887,7 @@ class TestMultipleWindowSloDetector(TestCase):
         self.assertTrue(pred.scores.value.iloc[0])
         self.assertTrue(pred.scores.value.iloc[1])
 
-    def test_multi_detector_none_historical_data(self):
+    def test_multi_detector_none_historical_data(self) -> None:
         date_start_str = "2020-08-16"
         date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
         num_seq = 2
@@ -2876,7 +2923,7 @@ class TestMultipleWindowSloDetector(TestCase):
         self.assertEqual(len(pred.scores), len(data))
         self.assertEqual(len(pred.anomaly_magnitude_ts), len(data))
 
-    def test_choose_model_parameters(self):
+    def test_choose_model_parameters(self) -> None:
         sli_error_budget = 0.01
         error_budget = (1.0 * sli_error_budget, 0.1 * sli_error_budget)
 
@@ -2912,7 +2959,7 @@ class TestMultipleWindowSloDetector(TestCase):
 
 
 class TestSingleWindowSloDetector(TestCase):
-    def test_multi_detector_data(self):
+    def test_multi_detector_data(self) -> None:
         date_start_str = "2020-08-01"
         date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
         num_seq = 2
@@ -2961,7 +3008,7 @@ class TestSingleWindowSloDetector(TestCase):
 
 
 class TestCUSUMDetectorModel(TestCase):
-    def test_increase(self):
+    def test_increase(self) -> None:
         np.random.seed(100)
         scan_window = 24 * 60 * 60  # in seconds
         historical_window = 3 * 24 * 60 * 60  # in seconds
@@ -3013,7 +3060,7 @@ class TestCUSUMDetectorModel(TestCase):
             ),
         )
 
-    def test_decrease(self):
+    def test_decrease(self) -> None:
         np.random.seed(100)
         scan_window = 24 * 60 * 60  # in seconds
         historical_window = 3 * 24 * 60 * 60  # in seconds
@@ -3054,7 +3101,7 @@ class TestCUSUMDetectorModel(TestCase):
         # the regression is detected
         self.assertEqual((score_tsd.value < 0).sum(), test_data_window)
 
-    def test_adhoc(self):
+    def test_adhoc(self) -> None:
         np.random.seed(100)
         historical_window = 48 * 60 * 60  # in seconds
         scan_window = 11 * 60 * 60 + 50  # in seconds
@@ -3080,6 +3127,7 @@ class TestCUSUMDetectorModel(TestCase):
         score_tsd = model.fit_predict(data=tsd).scores
         self.assertEqual(len(score_tsd), len(tsd))
         # the regression is went away
+        # pyre-fixme[29]: `Series` is not a function.
         self.assertEqual(score_tsd.value[-6:].sum(), 0)
         # the increase regression is detected
         self.assertEqual((score_tsd.value > 0.5).sum(), 24)
@@ -3101,7 +3149,7 @@ class TestCUSUMDetectorModel(TestCase):
         self.assertEqual(len(score_tsd), len(tsd[-8:]))
         self.assertEqual(score_tsd.value.sum(), 0)
 
-    def test_missing_data(self):
+    def test_missing_data(self) -> None:
         df = pd.DataFrame(
             {
                 "ts_value": [0] * 8,
@@ -3130,7 +3178,7 @@ class TestCUSUMDetectorModel(TestCase):
         self.assertEqual(len(score_tsd), len(tsd))
         self.assertTrue((score_tsd.time.values == tsd.time.values).all())
 
-    def test_streaming(self):
+    def test_streaming(self) -> None:
         np.random.seed(100)
         historical_window = 48 * 60 * 60  # in seconds
         scan_window = 12 * 60 * 60  # in seconds
@@ -3172,7 +3220,7 @@ class TestCUSUMDetectorModel(TestCase):
         self.assertEqual(len(anomaly_score), n - 48)
         self.assertTrue(8 <= (anomaly_score.value > 0).sum() <= 12)
 
-    def test_decomposing_seasonality(self):
+    def test_decomposing_seasonality(self) -> None:
         np.random.seed(100)
         historical_window = 10 * 24 * 60 * 60  # in seconds
         scan_window = 12 * 60 * 60  # in seconds
@@ -3202,6 +3250,7 @@ class TestCUSUMDetectorModel(TestCase):
 
         self.assertEqual(len(score_tsd), len(tsd))
         # the scores set to zero after about 7 days
+        # pyre-fixme[29]: `Series` is not a function.
         self.assertEqual(score_tsd.value[-72:].sum(), 0)
         # the increase regression is detected and is on for about 7 days
         self.assertEqual((score_tsd.value > 0.01).sum(), 162)
@@ -3210,7 +3259,7 @@ class TestCUSUMDetectorModel(TestCase):
         # make sure the time series name are the same
         self.assertTrue(score_tsd.value.name == tsd.value.name)
 
-    def test_raise(self):
+    def test_raise(self) -> None:
         np.random.seed(100)
         historical_window = 48 * 60 * 60  # in seconds
         scan_window = 24 * 60 * 60  # in seconds
@@ -3308,7 +3357,7 @@ class TestProphetDetector(TestCase):
         for i in range(0, length):
             ts.value.iloc[start_index + i] += anomaly_ts.value[i]
 
-    def test_no_anomaly(self):
+    def test_no_anomaly(self) -> None:
         # Prophet should not find any anomalies on a well formed synthetic time series
         for i in range(0, 5):
             ts = self.create_random_ts(i, 100, 10, 2)
@@ -3326,7 +3375,7 @@ class TestProphetDetector(TestCase):
             anomaly_found = res.scores.min < -0.3 or res.scores.max > 0.3
             self.assertFalse(anomaly_found)
 
-    def test_anomaly(self):
+    def test_anomaly(self) -> None:
         # Prophet should find anomalies
         for i in range(0, 5):
             ts = self.create_random_ts(i, 100, 10, 2)
@@ -3345,7 +3394,7 @@ class TestProphetDetector(TestCase):
             anomaly_found = res.scores.min < -0.3 or res.scores.max > 0.3
             self.assertTrue(anomaly_found)
 
-    def test_fit_predict(self):
+    def test_fit_predict(self) -> None:
         ts = self.create_random_ts(0, 100, 10, 2)
         self.add_smooth_anomaly(ts, 0, 90, 10, 10)
 
@@ -3388,7 +3437,7 @@ class TestSlowDriftDetector(TestCase):
             unix_time_units="s",
         )
 
-    def test_time_series_data_to_data_points(self):
+    def test_time_series_data_to_data_points(self) -> None:
         ts = TimeSeriesData(
             df=pd.DataFrame.from_dict(
                 {
@@ -3407,7 +3456,7 @@ class TestSlowDriftDetector(TestCase):
         self.assertEqual(result[1].timestamp, 1)
         self.assertEqual(result[1].value, 3.0)
 
-    def test_constructor(self):
+    def test_constructor(self) -> None:
         model = SlowDriftDetectorModel(
             slow_drift_window=100,
             algorithm_version=2,
@@ -3423,7 +3472,7 @@ class TestSlowDriftDetector(TestCase):
         self.assertEquals(esp.seasonalityNumPoints, 12)
         self.assertIsNone(slow_drift_model.get_ongoing_anomaly())
 
-    def test_holt_winters(self):
+    def test_holt_winters(self) -> None:
         model = SlowDriftDetectorModel(
             slow_drift_window=28 * 86400,
             algorithm_version=3,
@@ -3458,7 +3507,7 @@ class TestSlowDriftDetector(TestCase):
             seasonality[5].value, 0.9 * seasonality[0].value, delta=0.001
         )
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         model = SlowDriftDetectorModel(
             slow_drift_window=28 * 86400,
             algorithm_version=3,
@@ -3482,7 +3531,7 @@ class TestSlowDriftDetector(TestCase):
 
 
 class TestChangepointEvaluator(TestCase):
-    def test_eval_agg(self):
+    def test_eval_agg(self) -> None:
         eval_1 = Evaluation(dataset_name="eg_1", precision=0.3, recall=0.5, f_score=0.6)
 
         eval_2 = Evaluation(dataset_name="eg_2", precision=0.3, recall=0.5, f_score=0.7)
@@ -3499,7 +3548,7 @@ class TestChangepointEvaluator(TestCase):
         avg_recall = eval_agg_2.get_avg_recall()
         self.assertAlmostEqual(avg_recall, 0.5, places=4)
 
-    def test_f_measure(self):
+    def test_f_measure(self) -> None:
         """
         tests the correctness of f-measure, by comparing results with
         https://arxiv.org/pdf/2003.06222.pdf and TCPDBench github
@@ -3525,7 +3574,7 @@ class TestChangepointEvaluator(TestCase):
         self.assertAlmostEqual(f_brent_spot["precision"], 0.2857142857142857, places=3)
         self.assertAlmostEqual(f_brent_spot["recall"], 0.21999999999999997, places=3)
 
-    def test_evaluator(self):
+    def test_evaluator(self) -> None:
         date_range = pd.date_range(start="2010-02-01", end="2020-03-31", freq="M")
         date_range_start = [x + timedelta(days=1) for x in date_range]
         y_m_d_str = [datetime.strftime(x, "%Y-%m-%d") for x in date_range_start]
@@ -3569,16 +3618,21 @@ class TestChangepointEvaluator(TestCase):
         model_params = {"p_value_cutoff": 5e-3, "comparison_window": 2}
 
         # Test RobustStatDetector
+        # pyre-fixme[6]: Expected `Detector` for 1st param but got
+        #  `Type[RobustStatDetector]`.
         turing_2 = TuringEvaluator(detector=RobustStatDetector)
         eval_agg_2_df = turing_2.evaluate(data=eg_df, model_params=model_params)
         self.assertEqual(eval_agg_2_df.shape[0], eg_df.shape[0])
 
         # Test CUSUMDetector
+        # pyre-fixme[6]: Expected `Detector` for 1st param but got
+        #  `Type[CUSUMDetector]`.
         turing_3 = TuringEvaluator(detector=CUSUMDetector)
         eval_agg_3_df = turing_3.evaluate(data=eg_df)
         self.assertEqual(eval_agg_3_df.shape[0], eg_df.shape[0])
 
         # Test BOCPDDetector
+        # pyre-fixme[6]: Expected `Detector` for 1st param but got `Type[BOCPDetector]`.
         turing_4 = TuringEvaluator(detector=BOCPDetector)
         eval_agg_4_df = turing_4.evaluate(data=eg_df)
         self.assertEqual(eval_agg_4_df.shape[0], eg_df.shape[0])
@@ -3595,11 +3649,16 @@ class TestChangepointEvaluator(TestCase):
         self.assertTrue(0.0 <= avg_f_score <= 1.0)
 
         # test load data
+        # pyre-fixme[6]: Expected `Detector` for 1st param but got
+        #  `Type[RobustStatDetector]`.
         turing_5 = TuringEvaluator(detector=RobustStatDetector)
+        # pyre-fixme[6]: Expected `DataFrame` for 1st param but got `None`.
         eval_agg_5_df = turing_5.evaluate(data=None, model_params=model_params)
         self.assertTrue(eval_agg_5_df.shape[0] > 0)
 
         # test ignore list
+        # pyre-fixme[6]: Expected `Detector` for 1st param but got
+        #  `Type[RobustStatDetector]`.
         turing_6 = TuringEvaluator(detector=RobustStatDetector)
         eval_agg_6_df = turing_6.evaluate(
             data=eg_df, model_params=model_params, ignore_list=["eg_2"]
@@ -3609,7 +3668,10 @@ class TestChangepointEvaluator(TestCase):
         # test the detectormodels
 
         # test BOCPD
+        # pyre-fixme[6]: Expected `Detector` for 1st param but got
+        #  `Type[BocpdDetectorModel]`.
         turing_7 = TuringEvaluator(detector=BocpdDetectorModel, is_detector_model=True)
+        # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
         eval_agg_7_df = turing_7.evaluate(data=eg_df, model_params=None)
         self.assertEqual(eval_agg_7_df.shape[0], eg_df.shape[0])
 
@@ -3619,7 +3681,11 @@ class TestChangepointEvaluator(TestCase):
                                 "n_test": 7 * num_secs_in_month,
                                 "time_unit": "sec"}
 
+        # pyre-fixme[6]: Expected `Detector` for 1st param but got
+        #  `Type[StatSigDetectorModel]`.
         turing_8 = TuringEvaluator(detector=StatSigDetectorModel, is_detector_model=True)
+        # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
+        #  `Dict[str, typing.Union[int, str]]`.
         eval_agg_8_df = turing_8.evaluate(data=eg_df, model_params=statsig_model_params,
                                           alert_style_cp=False, threshold_low=-5.0,
                                           threshold_high=5.0)
@@ -3671,7 +3737,11 @@ class TestChangepointEvaluator(TestCase):
                               "score_func": CusumScoreFunction.percentage_change,
                               "remove_seasonality": False}
 
+        # pyre-fixme[6]: Expected `Detector` for 1st param but got
+        #  `Type[CUSUMDetectorModel]`.
         turing_9 = TuringEvaluator(detector=CUSUMDetectorModel, is_detector_model=True)
+        # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
+        #  `Dict[str, typing.Union[typing.List[str], CusumScoreFunction, float]]`.
         eval_agg_9_df = turing_9.evaluate(data=eg_df_daily, model_params=cusum_model_params,
                                           alert_style_cp=True, threshold_low=-0.1,
                                           threshold_high=0.1)

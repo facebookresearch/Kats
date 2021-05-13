@@ -70,6 +70,7 @@ class SlowDriftDetectorModel(DetectorModel):
             model_data: ModelData = utils._deserialize_model_data(serialized_model)
             self.model = Model(model_data)
         else:
+            # pyre-fixme[6]: Expected `str` for 1st param but got `None`.
             self.model = Model.new_model(None, slow_drift_window, algorithm_version)
             self.model.set_parameters(
                 ExponentialSmoothingParameters(
@@ -84,6 +85,7 @@ class SlowDriftDetectorModel(DetectorModel):
     def serialize(self) -> bytes:
         return utils._serialize_model_data(self.model.get_model_data())
 
+    # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.
     def fit(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
     ) -> None:
@@ -98,6 +100,8 @@ class SlowDriftDetectorModel(DetectorModel):
         )
         self.model = evaluate_op.train()
 
+    # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
+    #  inconsistently.
     def predict(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
     ) -> AnomalyResponse:
@@ -129,6 +133,8 @@ class SlowDriftDetectorModel(DetectorModel):
             stat_sig_ts=TimeSeriesData(time=data.time, value=pd.Series(zeros)),
         )
 
+    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
+    #  inconsistently.
     def fit_predict(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
     ) -> AnomalyResponse:

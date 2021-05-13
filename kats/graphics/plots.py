@@ -101,13 +101,21 @@ def make_fourier_plot(
                     name="Outlier Threshold",
                 ),
                 go.Scatter(
+                    # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got
+                    #  `str`.
                     x=orig_peaks["freq"],
+                    # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got
+                    #  `str`.
                     y=orig_peaks["ampl"],
                     mode="markers",
                     name="Original peaks",
                 ),
                 go.Scatter(
+                    # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got
+                    #  `str`.
                     x=peaks["freq"],
+                    # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got
+                    #  `str`.
                     y=peaks["ampl"],
                     mode="markers",
                     name="Selected peaks",

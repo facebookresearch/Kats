@@ -19,7 +19,7 @@ from multiprocessing.pool import ThreadPool
 from typing import Any, Callable, Dict, Tuple
 
 import kats.models.model as m
-import kats.parameter_tuning.time_series_parameter_tuning as tpt
+import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
 import pandas as pd
 from kats.consts import Params, SearchMethodEnum, TimeSeriesData
@@ -84,7 +84,15 @@ class GetMetaData:
     def __init__(
         self,
         data: TimeSeriesData,
+        # pyre-fixme[9]: all_models has type `Dict[str, m.Model]`; used as
+        #  `Dict[str, typing.Type[typing.Union[arima.ARIMAModel,
+        #  holtwinters.HoltWintersModel, prophet.ProphetModel, sarima.SARIMAModel,
+        #  stlf.STLFModel, theta.ThetaModel]]]`.
         all_models: Dict[str, m.Model] = candidate_models,
+        # pyre-fixme[9]: all_params has type `Dict[str, Params]`; used as `Dict[str,
+        #  typing.Type[typing.Union[arima.ARIMAParams, holtwinters.HoltWintersParams,
+        #  prophet.ProphetParams, sarima.SARIMAParams, stlf.STLFParams,
+        #  theta.ThetaParams]]]`.
         all_params: Dict[str, Params] = candidate_params,
         min_length: int = 30,
         scale: bool = True,
@@ -98,6 +106,8 @@ class GetMetaData:
         if not isinstance(data, TimeSeriesData):
             msg = "Input data should be TimeSeriesData"
             raise ValueError(msg)
+        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
+        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         self.data = TimeSeriesData(data.to_dataframe().copy())
         self.all_models = all_models
         self.all_params = all_params
@@ -182,6 +192,7 @@ class GetMetaData:
             raise ValueError("It's constant time series!")
 
         # check if the time series contains NAN, inf or -inf
+        # pyre-fixme[16]: `None` has no attribute `isna`.
         if self.data.value.replace([np.inf, -np.inf], np.nan).isna().any():
             raise ValueError("Time series contains NAN or infinity value(s)!")
 
@@ -205,6 +216,7 @@ class GetMetaData:
     def _scale(self) -> None:
         """Rescale time series."""
 
+        # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOpsMix...
         self.data.value /= self.data.value.max()
         msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
         logging.info(msg)
@@ -241,6 +253,8 @@ class GetMetaData:
 
         # Create search method object
         parameter_tuner = tpt.SearchMethodFactory.create_search_method(
+            # pyre-fixme[16]: Anonymous callable has no attribute
+            #  `get_parameter_search_space`.
             parameters=single_model.get_parameter_search_space(),
             selected_search_method=self.method,
         )
@@ -333,6 +347,7 @@ class GetMetaData:
 
     def _calc_mape(
         self,
+        # pyre-fixme[11]: Annotation `array` is not defined as a type.
         training_inputs: np.array,
         predictions: np.array,
         truth: np.array,

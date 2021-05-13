@@ -50,13 +50,18 @@ ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
 class testBaseEnsemble(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = EnsembleParams(
             [
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `HoltWintersParams`.
                 BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
                 BaseModelParams(
                     "sarima",
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                    #  `SARIMAParams`.
                     sarima.SARIMAParams(
                         p=2,
                         d=1,
@@ -67,8 +72,13 @@ class testBaseEnsemble(TestCase):
                         enforce_stationarity=False,
                     ),
                 ),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ProphetParams`.
                 BaseModelParams("prophet", prophet.ProphetParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `LinearModelParams`.
                 BaseModelParams("linear", linear_model.LinearModelParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `QuadraticModelParams`.
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
             ]
         )
@@ -91,17 +101,23 @@ class testBaseEnsemble(TestCase):
         # test __str__ method
         self.assertEqual(m.__str__(), "Ensemble")
 
-    def test_others(self):
+    def test_others(self) -> None:
         # test validate_param in base params
+        # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
         base_param = BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1))
         base_param.validate_params()
 
         params = EnsembleParams(
             [
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `HoltWintersParams`.
                 BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
                 BaseModelParams(
                     "sarima",
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                    #  `SARIMAParams`.
                     sarima.SARIMAParams(
                         p=2,
                         d=1,
@@ -112,8 +128,13 @@ class testBaseEnsemble(TestCase):
                         enforce_stationarity=False,
                     ),
                 ),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ProphetParams`.
                 BaseModelParams("prophet", prophet.ProphetParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `LinearModelParams`.
                 BaseModelParams("linear", linear_model.LinearModelParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `QuadraticModelParams`.
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
             ]
         )
@@ -128,7 +149,10 @@ class testBaseEnsemble(TestCase):
         # validate params in EnsembleParams
         params = EnsembleParams(
             [
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
                 BaseModelParams("random_model_name", arima.ARIMAParams(p=1, d=1, q=1)),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `HoltWintersParams`.
                 BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
             ]
         )
@@ -142,13 +166,18 @@ class testBaseEnsemble(TestCase):
 
 
 class testMedianEnsemble(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = EnsembleParams(
             [
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `HoltWintersParams`.
                 BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
                 BaseModelParams(
                     "sarima",
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                    #  `SARIMAParams`.
                     sarima.SARIMAParams(
                         p=2,
                         d=1,
@@ -159,8 +188,13 @@ class testMedianEnsemble(TestCase):
                         enforce_stationarity=False,
                     ),
                 ),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ProphetParams`.
                 BaseModelParams("prophet", prophet.ProphetParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `LinearModelParams`.
                 BaseModelParams("linear", linear_model.LinearModelParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `QuadraticModelParams`.
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
             ]
         )
@@ -182,11 +216,14 @@ class testMedianEnsemble(TestCase):
         # test __str__ method
         self.assertEqual(m_daily.__str__(), "Median Ensemble")
 
-    def test_others(self):
+    def test_others(self) -> None:
         # validate params in EnsembleParams
         params = EnsembleParams(
             [
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `HoltWintersParams`.
                 BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
             ]
         )
@@ -200,13 +237,18 @@ class testMedianEnsemble(TestCase):
 
 
 class testWeightedAvgEnsemble(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = EnsembleParams(
             [
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `HoltWintersParams`.
                 BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
                 BaseModelParams(
                     "sarima",
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                    #  `SARIMAParams`.
                     sarima.SARIMAParams(
                         p=2,
                         d=1,
@@ -218,9 +260,15 @@ class testWeightedAvgEnsemble(TestCase):
                     ),
                 ),
                 BaseModelParams(
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                    #  `ProphetParams`.
                     "prophet", prophet.ProphetParams(seasonality_mode="multiplicative")
                 ),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `LinearModelParams`.
                 BaseModelParams("linear", linear_model.LinearModelParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `QuadraticModelParams`.
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
             ]
         )
@@ -242,11 +290,14 @@ class testWeightedAvgEnsemble(TestCase):
         # test __str__ method
         self.assertEqual(m.__str__(), "Weighted Average Ensemble")
 
-    def test_others(self):
+    def test_others(self) -> None:
         # validate params in EnsembleParams
         params = EnsembleParams(
             [
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `HoltWintersParams`.
                 BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
             ]
         )
@@ -260,12 +311,15 @@ class testWeightedAvgEnsemble(TestCase):
 
 
 class testKatsEnsemble(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         model_params = EnsembleParams(
             [
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
                 BaseModelParams(
                     "sarima",
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                    #  `SARIMAParams`.
                     sarima.SARIMAParams(
                         p=2,
                         d=1,
@@ -276,9 +330,15 @@ class testKatsEnsemble(TestCase):
                         enforce_stationarity=False,
                     ),
                 ),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ProphetParams`.
                 BaseModelParams("prophet", prophet.ProphetParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `LinearModelParams`.
                 BaseModelParams("linear", linear_model.LinearModelParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `QuadraticModelParams`.
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ThetaParams`.
                 BaseModelParams("theta", theta.ThetaParams(m=12)),
             ]
         )
@@ -312,12 +372,15 @@ class testKatsEnsemble(TestCase):
                 m.aggregate()
                 m.plot()
 
-    def test_others(self):
+    def test_others(self) -> None:
         model_params = EnsembleParams(
             [
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
                 BaseModelParams(
                     "sarima",
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                    #  `SARIMAParams`.
                     sarima.SARIMAParams(
                         p=2,
                         d=1,
@@ -328,9 +391,15 @@ class testKatsEnsemble(TestCase):
                         enforce_stationarity=False,
                     ),
                 ),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ProphetParams`.
                 BaseModelParams("prophet", prophet.ProphetParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `LinearModelParams`.
                 BaseModelParams("linear", linear_model.LinearModelParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                #  `QuadraticModelParams`.
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
+                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ThetaParams`.
                 BaseModelParams("theta", theta.ThetaParams(m=12)),
             ]
         )

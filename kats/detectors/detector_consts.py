@@ -50,7 +50,9 @@ class ChangePointInterval(object):
         all_data_df = data.to_dataframe()
         all_data_df['time'] = pd.to_datetime(all_data_df['time'])
         self.data_df = all_data_df[
+            # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_start`.
             (all_data_df.time >= self.cp_start)
+            # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_end`.
             & (all_data_df.time < self.cp_end)
         ]
         self.data_df.columns = ['time', 'value']
@@ -86,7 +88,9 @@ class ChangePointInterval(object):
 
         self.data_df = pd.concat([self.data_df, new_data_df])
         self.data_df = self.data_df[
+            # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_start`.
             (self.data_df.time >= self.cp_start)
+            # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_end`.
             & (self.data_df.time < self.cp_end)
         ]
 
@@ -97,6 +101,7 @@ class ChangePointInterval(object):
 
     @start_time.setter
     def start_time(self, cp_start: datetime):
+        # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_start`.
         self.cp_start = cp_start
 
     @property
@@ -105,6 +110,7 @@ class ChangePointInterval(object):
 
     @end_time.setter
     def end_time(self, cp_end: datetime):
+        # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_end`.
         self.cp_end = cp_end
 
     @property
@@ -369,7 +375,9 @@ class MultiChangePointInterval(ChangePointInterval):
         self.num_series = len(self.ts_cols)
         all_data_df['time'] = pd.to_datetime(all_data_df['time'])
         self.data_df = all_data_df[
+            # pyre-fixme[16]: `MultiChangePointInterval` has no attribute `cp_start`.
             (all_data_df.time >= self.cp_start)
+            # pyre-fixme[16]: `MultiChangePointInterval` has no attribute `cp_end`.
             & (all_data_df.time <= self.cp_end)
         ]
         self.data_df.columns = ['time']  + self.ts_cols
@@ -402,7 +410,9 @@ class MultiChangePointInterval(ChangePointInterval):
 
         self.data_df = pd.concat([self.data_df, new_data_df])
         self.data_df = self.data_df[
+            # pyre-fixme[16]: `MultiChangePointInterval` has no attribute `cp_start`.
             (self.data_df.time >= self.cp_start)
+            # pyre-fixme[16]: `MultiChangePointInterval` has no attribute `cp_end`.
             & (self.data_df.time <= self.cp_end)
         ]
 
@@ -573,6 +583,7 @@ class MultiAnomalyResponse(object):
                 stat_sig_ts=TimeSeriesData(pd.DataFrame({"time": stat_sig_ts.time, "value": stat_sig_ts.value[key]})),
             )
 
+    # pyre-fixme[11]: Annotation `array` is not defined as a type.
     def update(self, time: datetime, score: np.array, ci_upper: np.array,
                ci_lower: np.array, pred: np.array, anom_mag: np.array, stat_sig: np.array):
         """

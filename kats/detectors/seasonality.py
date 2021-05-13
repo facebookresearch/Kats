@@ -169,6 +169,8 @@ class FFTDetector(Detector):
             logging.error(msg)
             raise ValueError(msg)
 
+    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self, sample_spacing: float = 1.0, mad_threshold: float = 6.0) -> Dict:
         """Detect seasonality with FFT
 
@@ -186,9 +188,14 @@ class FFTDetector(Detector):
 
         fft = self.get_fft(sample_spacing)
         _, orig_peaks, peaks = self.get_fft_peaks(fft, mad_threshold)
+        # pyre-fixme[6]: Expected `Sized` for 1st param but got
+        #  `BoundMethod[typing.Callable(list.index)[[Named(self, List[float]), float,
+        #  int, default, int, default], int], List[float]]`.
         seasonality_presence = len(peaks.index) > 0
         selected_seasonalities = []
         if seasonality_presence:
+            # pyre-fixme[16]: `float` has no attribute `transform`.
+            # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got `str`.
             selected_seasonalities = peaks["freq"].transform(lambda x: 1 / x).tolist()
 
         return {
@@ -196,6 +203,7 @@ class FFTDetector(Detector):
             "seasonalities": selected_seasonalities,
         }
 
+    # pyre-fixme[15]: `plot` overrides method defined in `Detector` inconsistently.
     def plot(
         self,
         time_unit: str,

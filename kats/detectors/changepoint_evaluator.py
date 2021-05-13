@@ -261,8 +261,11 @@ class TuringEvaluator(BenchmarkEvaluator):
         self.is_detector_model = is_detector_model
 
 
+    # pyre-fixme[9]: model_params has type `Dict[str, float]`; used as `None`.
     def evaluate(self, model_params: Dict[str, float] = None,
+                 # pyre-fixme[9]: data has type `DataFrame`; used as `None`.
                  data: pd.DataFrame = None,
+                 # pyre-fixme[9]: ignore_list has type `List[str]`; used as `None`.
                  ignore_list: List[str] = None,
                  alert_style_cp: bool = False,
                  threshold_low: float = 0.0,
@@ -281,8 +284,13 @@ class TuringEvaluator(BenchmarkEvaluator):
                                                  ignore_list=ignore_list)
 
 
+    # pyre-fixme[9]: model_params has type `Dict[str, float]`; used as `None`.
     def _evaluate_detector_model(self, model_params: Dict[str, float] = None,
+                                 # pyre-fixme[9]: data has type `DataFrame`; used as
+                                 #  `None`.
                                  data: pd.DataFrame = None,
+                                 # pyre-fixme[9]: ignore_list has type `List[str]`;
+                                 #  used as `None`.
                                  ignore_list: List[str] = None,
                                  alert_style_cp: bool = False,
                                  threshold_low: float = 0.0,
@@ -295,6 +303,7 @@ class TuringEvaluator(BenchmarkEvaluator):
             model_params = {}
 
         if data is None:
+            # pyre-fixme[16]: `TuringEvaluator` has no attribute `ts_df`.
             self.ts_df = self.load_data()
         else:
             self.ts_df = data
@@ -306,6 +315,7 @@ class TuringEvaluator(BenchmarkEvaluator):
             if this_dataset in ignore_list:
                 continue
             data_name, tsd, anno = self._parse_data(row)
+            # pyre-fixme[29]: `Detector` is not a function.
             detector = self.detector(**model_params)
             anom_obj = detector.fit_predict(tsd)
 
@@ -330,8 +340,11 @@ class TuringEvaluator(BenchmarkEvaluator):
 
 
 
+    # pyre-fixme[9]: model_params has type `Dict[str, float]`; used as `None`.
     def _evaluate_detector(self, model_params: Dict[str, float] = None,
+                 # pyre-fixme[9]: data has type `DataFrame`; used as `None`.
                  data: pd.DataFrame = None,
+                 # pyre-fixme[9]: ignore_list has type `List[str]`; used as `None`.
                  ignore_list: List[str] = None) -> pd.DataFrame:
 
         # this is to avoid a mutable default parameter
@@ -342,6 +355,7 @@ class TuringEvaluator(BenchmarkEvaluator):
             model_params = {}
 
         if data is None:
+            # pyre-fixme[16]: `TuringEvaluator` has no attribute `ts_df`.
             self.ts_df = self.load_data()
         else:
             self.ts_df = data
@@ -353,6 +367,7 @@ class TuringEvaluator(BenchmarkEvaluator):
             if this_dataset in ignore_list:
                 continue
             data_name, tsd, anno = self._parse_data(row)
+            # pyre-fixme[29]: `Detector` is not a function.
             detector = self.detector(tsd)
             change_points = detector.detector(**model_params)
             cp_list = get_cp_index(change_points, tsd)
@@ -423,6 +438,7 @@ class TuringEvaluator(BenchmarkEvaluator):
         ts.columns = ["time", "y"]
         first_time_val = ts.time.values[0]
         if re.match(r'\d{4}-\d{2}-\d{2}', first_time_val):
+            # pyre-fixme[16]: `DataFrame` has no attribute `time`.
             ts.time = pd.to_datetime(ts.time, format='%Y-%m-%d')
         elif re.match(r'\d{4}-\d{2}', first_time_val):
             ts.time = pd.to_datetime(ts.time, format='%Y-%m')

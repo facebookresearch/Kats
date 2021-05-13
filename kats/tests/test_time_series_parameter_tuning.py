@@ -5,27 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 
 import unittest
-from typing import Dict, Tuple
 from unittest import TestCase
 
-import kats.parameter_tuning.time_series_parameter_tuning as tpt
+import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
 import pandas as pd
 from ax.core.parameter import ChoiceParameter, FixedParameter, ParameterType
 from ax.models.random.sobol import SobolGenerator
 from ax.models.random.uniform import UniformGenerator
-from kats.consts import SearchMethodEnum, TimeSeriesData
-from kats.models.arima import ARIMAModel, ARIMAParams
+from kats.consts import SearchMethodEnum
+from kats.models.arima import ARIMAModel
 from kats.models.prophet import ProphetModel
-from kats.models.quadratic_model import (
-    QuadraticModel,
-    QuadraticModelParams,
-)
-from sklearn.metrics import max_error
 
 
 class GridSearchTest(TestCase):
-    def test_time_series_parameter_tuning_arima(self):
+    def test_time_series_parameter_tuning_arima(self) -> None:
         random_state = np.random.RandomState(seed=0)
 
         def arima_evaluation_function(params):
@@ -47,7 +41,7 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
         self.assertEqual(len(parameter_values_with_scores.index), 50)
 
-    def test_time_series_parameter_tuning_prophet(self):
+    def test_time_series_parameter_tuning_prophet(self) -> None:
         random_state = np.random.RandomState(seed=0)
 
         def prophet_evaluation_function(params):
@@ -69,7 +63,7 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
         self.assertEqual(len(parameter_values_with_scores.index), 25600)
 
-    def test_grid_search_arm_count(self):
+    def test_grid_search_arm_count(self) -> None:
         random_state = np.random.RandomState(seed=0)
 
         def evaluation_function(params):
@@ -117,7 +111,7 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
         self.assertEqual(len(parameter_values_with_scores.index), 10000)
 
-    def test_validate_parameters_format(self):
+    def test_validate_parameters_format(self) -> None:
         parameters = [
             {"name": "test_param1", "type": "range", "bounds": [0.0, 1.0]},
             {"name": "test_param2", "type": "choice", "values": [1, 2, 3]},
@@ -141,7 +135,7 @@ class GridSearchTest(TestCase):
             [{"key": "value"}, {}],
         )
 
-    def test_custom_parameter_search_space(self):
+    def test_custom_parameter_search_space(self) -> None:
         parameters = [
             {
                 "name": "test_param1",
@@ -185,7 +179,7 @@ class GridSearchTest(TestCase):
         )
         self.assertEqual(time_series_parameter_tuning.parameters[2].value, 4)
 
-    def test_time_series_parameter_tuning_arima_uniform_random_search(self):
+    def test_time_series_parameter_tuning_arima_uniform_random_search(self) -> None:
         random_state = np.random.RandomState(seed=0)
 
         def arima_evaluation_function(params):
@@ -198,6 +192,8 @@ class GridSearchTest(TestCase):
             selected_search_method=SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
         )
         self.assertIsInstance(
+            # pyre-fixme[16]: `TimeSeriesParameterTuning` has no attribute
+            #  `_random_strategy_model`.
             time_series_parameter_tuner._random_strategy_model.model, UniformGenerator
         )
         for _ in range(3):
@@ -211,7 +207,7 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
         self.assertEqual(len(parameter_values_with_scores.index), 12)
 
-    def test_time_series_parameter_tuning_prophet_sobol_random_search(self):
+    def test_time_series_parameter_tuning_prophet_sobol_random_search(self) -> None:
         random_state = np.random.RandomState(seed=0)
 
         def prophet_evaluation_function(params):
@@ -224,6 +220,8 @@ class GridSearchTest(TestCase):
             selected_search_method=SearchMethodEnum.RANDOM_SEARCH_SOBOL,
         )
         self.assertIsInstance(
+            # pyre-fixme[16]: `TimeSeriesParameterTuning` has no attribute
+            #  `_random_strategy_model`.
             time_series_parameter_tuner._random_strategy_model.model, SobolGenerator
         )
         for _ in range(4):
@@ -237,7 +235,7 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
         self.assertEqual(len(parameter_values_with_scores.index), 20)
 
-    def test_time_series_parameter_tuning_prophet_bayes_opt(self):
+    def test_time_series_parameter_tuning_prophet_bayes_opt(self) -> None:
         random_state = np.random.RandomState(seed=0)
 
         def prophet_evaluation_function(params):
@@ -269,7 +267,7 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
         self.assertEqual(len(parameter_values_with_scores.index), 10)
 
-    # def test_outcome_constraint_without_filter(self):
+    # def test_outcome_constraint_without_filter(self) -> None:
     #     def run_model(x):
     #         precision = x
     #         recall = -x + 1
@@ -313,7 +311,7 @@ class GridSearchTest(TestCase):
     #         (parameter_values_with_scores["mean_precision"] >= 0.7).sum(), 3
     #     )
 
-    # def test_outcome_constraint_with_filter(self):
+    # def test_outcome_constraint_with_filter(self) -> None:
     #     def run_model(x):
     #         precision = x
     #         recall = -x + 1
@@ -424,7 +422,7 @@ class TestSearchForMultipleSpaces(TestCase):
             ],
         }
 
-    def test_constructor(self):
+    def test_constructor(self) -> None:
         search_for_multiple_spaces = tpt.SearchForMultipleSpaces(
             parameters=self.parameters,
             search_method=SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
@@ -440,7 +438,7 @@ class TestSearchForMultipleSpaces(TestCase):
             search_for_multiple_spaces.search_agent_dict["space2"], tpt.RandomSearch
         )
 
-    def test_generate_evaluate_new_parameter_values(self):
+    def test_generate_evaluate_new_parameter_values(self) -> None:
         search_for_multiple_spaces = tpt.SearchForMultipleSpaces(
             parameters=self.parameters,
             search_method=SearchMethodEnum.RANDOM_SEARCH_UNIFORM,

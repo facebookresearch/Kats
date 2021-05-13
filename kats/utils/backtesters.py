@@ -167,6 +167,10 @@ class BackTesterParent(ABC):
             for error_type in self.error_methods:
                 # Weighting the errors by the relative fold length if
                 # predictions are of different sizes
+                # pyre-fixme[7]: Expected `float` but got implicit return value of
+                #  `None`.
+                # pyre-fixme[7]: Expected `float` but got implicit return value of
+                #  `None`.
                 self.errors[error_type] = (
                     self.errors[error_type]
                     + (
@@ -180,6 +184,7 @@ class BackTesterParent(ABC):
 
     def _calc_mape(
         self,
+        # pyre-fixme[11]: Annotation `array` is not defined as a type.
         training_inputs: np.array,
         predictions: np.array,
         truth: np.array,
@@ -330,6 +335,7 @@ class BackTesterParent(ABC):
             raise ValueError("Not enough testing data")
 
         logging.info("Training model")
+        # pyre-fixme[29]: `mm` is not a function.
         train_model = self.model_class(data=training_data, params=self.params)
         train_model.fit()
 
@@ -346,6 +352,8 @@ class BackTesterParent(ABC):
         if not self.multi:
             self.results.append((train_data_only, truth, train_model, predictions))
         else:
+            # pyre-fixme[7]: Expected `Tuple[np.ndarray, np.ndarray, mm,
+            #  np.ndarray]` but got implicit return value of `None`.
             return (train_data_only, truth, train_model, predictions)
 
     def _build_and_train_models(

@@ -127,25 +127,39 @@ class ARIMAModel(m.Model):
         """
 
         logging.debug("Call fit() method")
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `start_params`.
         self.start_params = start_params
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `transparams`.
         self.transparams = transparams
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `method`.
         self.method = method
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `trend`.
         self.trend = trend
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `solver`.
         self.solver = solver
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `maxiter`.
         self.maxiter = maxiter
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `full_output`.
         self.full_output = full_output
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `disp`.
         self.disp = disp
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `callback`.
         self.callback = callback
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `start_ar_lags`.
         self.start_ar_lags = start_ar_lags
 
         arima = ARIMA(
             self.data.value,
+            # pyre-fixme[16]: `ARIMAModel` has no attribute `params`.
             order=(self.params.p, self.params.d, self.params.q),
+            # pyre-fixme[16]: `Params` has no attribute `exog`.
             exog=self.params.exog,
             dates=self.data.time,
+            # pyre-fixme[16]: `Params` has no attribute `freq`.
             freq=self.params.freq,
         )
         logging.info("Created arima model.")
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `model`.
         self.model = arima.fit(
             start_params=self.start_params,
             transparams=self.transparams,
@@ -160,6 +174,7 @@ class ARIMAModel(m.Model):
         )
         logging.info("Fitted arima.")
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, **kwargs) -> pd.DataFrame:
         """Predict with fitted ARIMA model
 
@@ -174,22 +189,32 @@ class ARIMAModel(m.Model):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `exog`.
         self.exog = kwargs.get("exog", None)
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `alpha`.
         self.alpha = kwargs.get("alpha", 0.05)
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `freq`.
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `data`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `model`.
         fcst = self.model.forecast(steps, exog=self.exog, alpha=self.alpha)
         logging.info("Generated forecast data from arima model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `y_fcst`.
         self.y_fcst = fcst[0]
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `y_fcst_lower`.
         self.y_fcst_lower = np.array([x[0] for x in fcst[2]])
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `y_fcst_upper`.
         self.y_fcst_upper = np.array([x[1] for x in fcst[2]])
 
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
 
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
 
+        # pyre-fixme[16]: `ARIMAModel` has no attribute `fcst_df`.
         self.fcst_df = pd.DataFrame(
             {
                 "time": self.dates,
