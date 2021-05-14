@@ -179,10 +179,13 @@ class EmpConfidenceInt:
             The dataframe of forecasted values with prediction intervals
         """
 
+        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `freq`.
+        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `freq`.
         self.freq = kwargs.get("freq", "D")
         # get dates
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
+        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
 
         self.run_cv()
@@ -191,14 +194,18 @@ class EmpConfidenceInt:
         # run model with all data
         m = self.model_class(self.data, self.params)
         m.fit()
+        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `predicted`.
         self.predicted = m.predict(steps, freq=self.freq)
 
         # get margin of error
         horizons = np.array([x + 1 for x in range(steps)])
         me = stats.norm.ppf(self.confidence_level) * (
+            # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `df`.
+            # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `coefs`.
             horizons * self.coefs[0] + self.coefs[1]
         )
 
+        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `df`.
         self.df = pd.DataFrame(
             {
                 "time": self.predicted.time,

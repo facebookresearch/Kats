@@ -91,6 +91,7 @@ class LSTMForecast(nn.Module):
             prediction: A torch tensor contains the output prediction from the output Linear layer
         """
 
+        # pyre-fixme[16]: `LSTMForecast` has no attribute `hidden_cell`.
         lstm_out, self.hidden_cell = self.lstm(input_seq.view(len(input_seq), 1, -1), self.hidden_cell)
         predictions = self.linear(lstm_out.view(len(input_seq), -1))
         return predictions[-1]
@@ -133,14 +134,18 @@ class LSTMModel(mm.Model):
         train_data = self.data.value.values.astype(float)
 
         #scaling using MinMaxScaler
+        # pyre-fixme[16]: `LSTMModel` has no attribute `scaler`.
+        # pyre-fixme[16]: Module `sklearn` has no attribute `preprocessing`.
         self.scaler = MinMaxScaler(feature_range=(-1, 1))
         train_data_scaled = self.scaler.fit_transform(train_data.reshape(-1, 1))
         #converting to Tensor
+        # pyre-fixme[16]: `LSTMModel` has no attribute `train_data_normalized`.
         self.train_data_normalized = torch.FloatTensor(train_data_scaled).view(-1)
 
         #generating sequence
         inout_seq = []
 
+        # pyre-fixme[16]: `LSTMModel` has no attribute `params`.
         for i in range(len(self.train_data_normalized) - self.params.time_window):
             train_seq = self.train_data_normalized[i:i + self.params.time_window]
             train_label = self.train_data_normalized[i + self.params.time_window : i + self.params.time_window + 1]
@@ -162,9 +167,13 @@ class LSTMModel(mm.Model):
         f"kwargs:{kwargs}")
 
         # learning rate
+        # pyre-fixme[16]: `LSTMModel` has no attribute `lr`.
         self.lr = kwargs.get("lr", 0.001)
 
         # supports univariate time series, multivariate support in the future
+        # pyre-fixme[16]: `LSTMModel` has no attribute `model`.
+        # pyre-fixme[16]: `LSTMModel` has no attribute `params`.
+        # pyre-fixme[6]: Expected `LSTMParams` for 1st param but got `Params`.
         self.model = LSTMForecast(params=self.params, input_size=1, output_size=1)
 
         # loss function
@@ -176,9 +185,11 @@ class LSTMModel(mm.Model):
         #inout_seq
         train_inout_seq = self.__setup_data()
 
+        # pyre-fixme[16]: `Params` has no attribute `num_epochs`.
         for i in range(self.params.num_epochs):
             for seq, labels in train_inout_seq:
                 optimizer.zero_grad()
+                # pyre-fixme[16]: `Params` has no attribute `hidden_size`.
                 self.model.hidden_cell = (torch.zeros(1, 1, self.params.hidden_size),
                                     torch.zeros(1, 1, self.params.hidden_size))
                 # prediction using input data
@@ -191,8 +202,10 @@ class LSTMModel(mm.Model):
             if i % 25 == 1:
                 logging.info(f'epoch: {i:3} loss: {single_loss.item():10.8f}')
 
+        # pyre-fixme[7]: Expected `None` but got `LSTMModel`.
         return self
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, **kwargs) -> pd.DataFrame:
         """Prediction function for a multi-step forecast
 
@@ -207,32 +220,44 @@ class LSTMModel(mm.Model):
             "Call predict() with parameters. "
             f"steps:{steps}, kwargs:{kwargs}"
         )
+        # pyre-fixme[16]: `LSTMModel` has no attribute `freq`.
+        # pyre-fixme[16]: `LSTMModel` has no attribute `data`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
 
+        # pyre-fixme[16]: `LSTMModel` has no attribute `model`.
         self.model.eval()
 
         # get last train input sequence
+        # pyre-fixme[16]: `LSTMModel` has no attribute `train_data_normalized`.
+        # pyre-fixme[16]: `LSTMModel` has no attribute `params`.
         test_inputs = self.train_data_normalized[-self.params.time_window:].tolist()
 
         for _ in range(steps):
             seq = torch.FloatTensor(test_inputs[-self.params.time_window:])
             with torch.no_grad():
+                # pyre-fixme[16]: `Params` has no attribute `hidden_size`.
                 self.model.hidden = (torch.zeros(1, 1, self.params.hidden_size),
                                 torch.zeros(1, 1, self.params.hidden_size))
                 test_inputs.append(self.model(seq).item())
 
         # inverse transform
+        # pyre-fixme[16]: `LSTMModel` has no attribute `scaler`.
         fcst_denormalized = self.scaler.inverse_transform(np.array(test_inputs[self.params.time_window:]).reshape(-1, 1)).flatten()
         logging.info("Generated forecast data from LSTM model.")
         logging.debug(f"Forecast data: {fcst_denormalized}")
 
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
+        # pyre-fixme[16]: `LSTMModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
+        # pyre-fixme[16]: `LSTMModel` has no attribute `y_fcst`.
         self.y_fcst = fcst_denormalized
+        # pyre-fixme[16]: `LSTMModel` has no attribute `y_fcst_lower`.
         self.y_fcst_lower = fcst_denormalized * 0.95
+        # pyre-fixme[16]: `LSTMModel` has no attribute `y_fcst_upper`.
         self.y_fcst_upper = fcst_denormalized * 1.05
 
+        # pyre-fixme[16]: `LSTMModel` has no attribute `fcst_df`.
         self.fcst_df = pd.DataFrame(
             {
                 "time": self.dates,

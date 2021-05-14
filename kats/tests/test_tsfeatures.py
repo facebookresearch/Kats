@@ -21,7 +21,7 @@ TSData_mini = TimeSeriesData(DATA.iloc[:2, :])
 
 
 class TSfeaturesTest(TestCase):
-    def test_tsfeatures(self):
+    def test_tsfeatures(self) -> None:
         feature_vector = TsFeatures().transform(TSData)
 
         feature_vector_round = {key: round(feature_vector[key], 6) for key in feature_vector}
@@ -85,7 +85,7 @@ class TSfeaturesTest(TestCase):
             }
         )
 
-    def test_feature_selections(self):
+    def test_feature_selections(self) -> None:
         # test disabling functions
         disable_features = {
             'unitroot_kpss': False,
@@ -93,6 +93,7 @@ class TSfeaturesTest(TestCase):
             'diff2y_pacf5': False,
             'firstmin_ac': False,
         }
+        # pyre-fixme[6]: Expected `str` for 1st param but got `bool`.
         feature_vector = TsFeatures(**disable_features).transform(TSData)
         feature_vector_round = {key: round(feature_vector[key], 6) for key in feature_vector}
 
@@ -155,6 +156,8 @@ class TSfeaturesTest(TestCase):
             'hw_gamma',
             'level_shift_idx'
         ]
+        # pyre-fixme[6]: Expected `Optional[typing.Any]` for 1st param but got
+        #  `List[str]`.
         feature_vector = TsFeatures(selected_features = features).transform(TSData)
         feature_vector_round = {key: round(feature_vector[key], 6) for key in feature_vector}
 
@@ -209,6 +212,8 @@ class TSfeaturesTest(TestCase):
             "trend_mag",
             "residual_std",
         ]
+        # pyre-fixme[6]: Expected `Optional[typing.Any]` for 1st param but got
+        #  `List[str]`.
         feature_vector = TsFeatures(selected_features = extension_features).transform(TSData)
         feature_vector_round = {key: round(feature_vector[key], 6) for key in feature_vector}
 
@@ -254,7 +259,7 @@ class TSfeaturesTest(TestCase):
         )
 
 
-    def test_others(self):
+    def test_others(self) -> None:
         # test there is nan in feature vector because the length of TS is too short
         feature_vector = TsFeatures().transform(TSData_short)
 
@@ -263,7 +268,7 @@ class TSfeaturesTest(TestCase):
             True,
         )
 
-    def test_errors(self):
+    def test_errors(self) -> None:
         # test input error (time series is too short)
         self.assertRaises(
             ValueError,
@@ -271,16 +276,19 @@ class TSfeaturesTest(TestCase):
             TSData_mini,
         )
 
-    def test_IntegerArrays(self):
+    def test_IntegerArrays(self) -> None:
         df = pd.DataFrame(
             {
                 'time':range(15),
                 'value':[1, 4, 9, 4, 5, 5, 7, 2, 5, 1, 6, 3, 6, 5, 5]
             }
         )
+        # pyre-fixme[16]: `DataFrame` has no attribute `value`.
         df.value = df.value.astype(dtype = pd.Int64Dtype())
         ts = TimeSeriesData(df)
 
+        # pyre-fixme[6]: Expected `Optional[typing.Any]` for 1st param but got
+        #  `List[str]`.
         ts_features = TsFeatures(selected_features = [
             'length',
             'mean',
@@ -305,7 +313,7 @@ class TSfeaturesTest(TestCase):
             }
         )
 
-    def test_transformer(self):
+    def test_transformer(self) -> None:
         # single timeseries data for testing
         metadata = {}
         line = {
@@ -345,6 +353,8 @@ class TSfeaturesTest(TestCase):
         hive_transformed.pop('id')
 
         TsFeature_transformed = TsFeatures(
+            # pyre-fixme[6]: Expected `Optional[typing.Any]` for 1st param but got
+            #  `List[str]`.
             selected_features=selected_features
         ).transform(ts_obj)
         self.assertEqual(
@@ -365,6 +375,8 @@ class TSfeaturesTest(TestCase):
         hive_transformed.pop('id')
 
         TsFeature_transformed = TsFeatures(
+            # pyre-fixme[6]: Expected `Optional[typing.Any]` for 1st param but got
+            #  `List[str]`.
             selected_features=selected_groups
         ).transform(ts_obj)
         self.assertEqual(

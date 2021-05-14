@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData, TimeSeriesChangePoint
 from kats.detectors.detector import Detector
+# pyre-fixme[21]: Could not find name `zscore` in `scipy.stats`.
 from scipy.stats import norm, zscore  # @manual
 
 from typing import List, Tuple
@@ -32,6 +33,7 @@ def compute_zscore(df: pd.DataFrame, method: str = "standard") -> np.ndarray:
     """
     # TODO: Merge this z-score computation with changepoint computation.
     if method == "standard":
+        # pyre-fixme[16]: Module `stats` has no attribute `zscore`.
         z_scores = zscore(df)
     elif method == "robust":
         med = np.median(df, axis=0)
@@ -77,6 +79,8 @@ class RobustStatDetector(Detector):
             logging.error(msg)
             raise ValueError(msg)
 
+    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self,
                 p_value_cutoff: float = 1e-2,
                 smoothing_window_size: int = 5,

@@ -47,7 +47,9 @@ class HoltWintersParams(Params):
         self,
         trend: str = "add",
         damped: bool = False,
+        # pyre-fixme[9]: seasonal has type `str`; used as `None`.
         seasonal: str = None,
+        # pyre-fixme[9]: seasonal_periods has type `int`; used as `None`.
         seasonal_periods: int = None,
     ) -> None:
         super().__init__()
@@ -120,14 +122,20 @@ class HoltWintersModel(m.Model):
         logging.debug("Call fit() with parameters:{kwargs}".format(kwargs=kwargs))
         holtwinters = HoltWinters(
             self.data.value,
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `params`.
             trend=self.params.trend,
+            # pyre-fixme[16]: `Params` has no attribute `damped`.
             damped=self.params.damped,
+            # pyre-fixme[16]: `Params` has no attribute `seasonal`.
             seasonal=self.params.seasonal,
+            # pyre-fixme[16]: `Params` has no attribute `seasonal_periods`.
             seasonal_periods=self.params.seasonal_periods,
         )
+        # pyre-fixme[16]: `HoltWintersModel` has no attribute `model`.
         self.model = holtwinters.fit()
         logging.info("Fitted HoltWinters.")
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, include_history: bool = False, **kwargs) -> pd.DataFrame:
         """Predict with fitted HoltWinters model
 
@@ -145,15 +153,20 @@ class HoltWintersModel(m.Model):
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
         if "freq" not in kwargs:
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `freq`.
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `data`.
             self.freq = pd.infer_freq(self.data.time)
         else:
             self.freq = kwargs["freq"]
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
+        # pyre-fixme[16]: `HoltWintersModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
+        # pyre-fixme[16]: `HoltWintersModel` has no attribute `include_history`.
         self.include_history = include_history
 
         if "alpha" in kwargs:
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `alpha`.
             self.alpha = kwargs["alpha"]
             # build empirical CI
             error_methods = kwargs.get("error_methods", ["mape"])
@@ -177,8 +190,10 @@ class HoltWintersModel(m.Model):
                     test_percentage = {test_percentage}, sliding_steps = {sliding_steps}, confidence_level = {1-self.alpha}, multi={multi}."""
             )
             fcst = eci.get_eci(steps=steps)
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `y_fcst`.
             self.y_fcst = fcst["fcst"]
         else:
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `model`.
             fcst = self.model.forecast(steps)
             self.y_fcst = fcst
             fcst = pd.DataFrame({"time": self.dates, "fcst": fcst})
@@ -187,6 +202,7 @@ class HoltWintersModel(m.Model):
 
         if include_history:
             history_fcst = self.model.predict(start=0, end=len(self.data.time))
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `fcst_df`.
             self.fcst_df = pd.concat(
                 [
                     pd.DataFrame(

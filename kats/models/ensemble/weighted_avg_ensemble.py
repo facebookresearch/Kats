@@ -23,7 +23,6 @@ from kats.models.ensemble import ensemble
 from kats.models.ensemble.ensemble import BASE_MODELS, EnsembleParams
 from kats.utils.backtesters import BackTesterSimple
 
-
 class WeightedAvgEnsemble(ensemble.BaseEnsemble):
     """Weighted average ensemble model class
 
@@ -97,11 +96,13 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
             )
         pool.close()
         pool.join()
+        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `errors`.
         self.errors = {model: res.get() for model, res in backtesters.items()}
         original_weights = {
             model: 1 / (err + sys.float_info.epsilon)
             for model, err in self.errors.items()
         }
+        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `weights`.
         self.weights = {
             model: err / sum(original_weights.values())
             for model, err in original_weights.items()
@@ -118,6 +119,7 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
             forecasting results as in pd.DataFrame
         """
 
+        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `freq`.
         self.freq = kwargs.get("freq", "D")
         err_method = kwargs.get("err_method", "mape")
         # calculate the weights
@@ -130,15 +132,20 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
             [x.fcst.reset_index(drop=True) for x in pred_dict.values()], axis=1
         )
         fcst_all.columns = pred_dict.keys()
+        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `fcst_weighted`.
+        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `weights`.
         self.fcst_weighted = fcst_all.dot(np.array(list(self.weights.values())))
 
         # create future dates
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
         dates = dates[dates != last_date]
+        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `fcst_dates`.
         self.fcst_dates = dates.to_pydatetime()
+        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `dates`.
         self.dates = dates[dates != last_date]
 
+        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `fcst_df`.
         self.fcst_df = pd.DataFrame({"time": self.dates, "fcst": self.fcst_weighted})
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))

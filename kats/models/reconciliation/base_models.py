@@ -32,16 +32,12 @@ BASE_MODELS = {
     "quadratic": quadratic_model.QuadraticModel,
     "theta": theta.ThetaModel,
 }
-
 import logging
-
 import numpy as np
 import pandas as pd
 
-
 def calc_mape(predictions: np.ndarray, truth: np.ndarray) -> float:
     """Calculate mape.
-
     MAPE = average(abs((truth-predictions)/truth))
 
     Args:
@@ -141,6 +137,8 @@ class GetAggregateTS:
             logging.error(msg)
             raise ValueError(msg)
 
+        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
+        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         self.data = TimeSeriesData(data.to_dataframe().copy())
 
     def _aggregate_single(self, ts, k):

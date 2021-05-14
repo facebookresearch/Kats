@@ -87,6 +87,7 @@ class StatSigDetectorModel(DetectorModel):
         n_control: Optional[int] = None,
         n_test: Optional[int] = None,
         serialized_model: Optional[bytes] = None,
+        # pyre-fixme[9]: time_unit has type `str`; used as `None`.
         time_unit: str = None,
     ) -> None:
 
@@ -129,6 +130,8 @@ class StatSigDetectorModel(DetectorModel):
 
         return json.dumps(model_dict).encode("utf-8")
 
+    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
+    #  inconsistently.
     def fit_predict(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
     ) -> AnomalyResponse:
@@ -148,6 +151,8 @@ class StatSigDetectorModel(DetectorModel):
             logging.error(msg)
             raise ValueError(msg)
 
+        # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
+        #  `Optional[TimeSeriesData]`.
         self._set_time_unit(data=data, historical_data=historical_data)
 
         self.last_N = len(data)
@@ -164,8 +169,11 @@ class StatSigDetectorModel(DetectorModel):
         # handle cases where there is either no historical  data, or
         # not enough historical data
         data, historical_data = self._handle_not_enough_history(
+            # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
+            #  `Optional[TimeSeriesData]`.
             data=data, historical_data=historical_data
         )
+        # pyre-fixme[16]: `StatSigDetectorModel` has no attribute `data`.
         self.data = data
 
         # first initialize this with the historical data
@@ -273,6 +281,8 @@ class StatSigDetectorModel(DetectorModel):
 
         # if we are not upating, we should not do anything
         if not self._should_update(data=data, historical_data=historical_data):
+            # pyre-fixme[7]: Expected `TimeSeriesData` but got
+            #  `Tuple[TimeSeriesData, TimeSeriesData]`.
             return data, historical_data
 
         num_hist_points = self.n_control + self.n_test - 1
@@ -286,6 +296,8 @@ class StatSigDetectorModel(DetectorModel):
             )
 
             if history_last >= min_history_last:
+                # pyre-fixme[7]: Expected `TimeSeriesData` but got
+                #  `Tuple[TimeSeriesData, TimeSeriesData]`.
                 return data, historical_data
 
         # when no historical data, divide the data into historical and not
@@ -309,8 +321,11 @@ class StatSigDetectorModel(DetectorModel):
             value=total_data.value[total_data.time >= last_dt],
         )
 
+        # pyre-fixme[7]: Expected `TimeSeriesData` but got `Tuple[TimeSeriesData,
+        #  TimeSeriesData]`.
         return data, historical_data
 
+    # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.
     def fit(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
     ) -> None:
@@ -437,10 +452,15 @@ class StatSigDetectorModel(DetectorModel):
         """
 
         self.data_history = TimeSeriesData(
+            # pyre-fixme[6]: Expected `Union[None,
+            #  pd.core.indexes.datetimes.DatetimeIndex, pd.core.series.Series]` for 1st
+            #  param but got `DataFrame`.
             time=pd.concat([self.data_history.time, data.time]),
             value=pd.concat([self.data_history.value, data.value]),
         )
 
+    # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
+    #  inconsistently.
     def predict(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
     ) -> AnomalyResponse:
@@ -520,6 +540,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         n_control: Optional[int] = None,
         n_test: Optional[int] = None,
         serialized_model: Optional[bytes] = None,
+        # pyre-fixme[9]: time_unit has type `str`; used as `None`.
         time_unit: str = None,
         method: str = "fdr_bh",
     ) -> None:
@@ -548,6 +569,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             logging.error(msg)
             raise ValueError(msg)
 
+        # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
+        #  `Optional[TimeSeriesData]`.
         self._set_time_unit(data=data, historical_data=historical_data)
 
         self.last_N = len(data)
@@ -564,8 +587,11 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         # handle cases where there is either no historical  data, or
         # not enough historical data
         data, historical_data = self._handle_not_enough_history(
+            # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
+            #  `Optional[TimeSeriesData]`.
             data=data, historical_data=historical_data
         )
+        # pyre-fixme[16]: `MultiStatSigDetectorModel` has no attribute `data`.
         self.data = data
 
         # first initialize this with the historical data
@@ -620,6 +646,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             stat_sig_ts=zeros_ts,
         )
 
+    # pyre-fixme[14]: `_update_response` overrides method defined in
+    #  `StatSigDetectorModel` inconsistently.
     def _update_response(self, date: datetime):
         """
         updates the current response with data from date

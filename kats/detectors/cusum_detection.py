@@ -45,6 +45,7 @@ from kats.consts import (
     TimeSeriesData,
 )
 from kats.detectors.detector import Detector
+# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
 from scipy.stats import chi2  # @manual
 
 
@@ -189,6 +190,7 @@ class CUSUMDetector(Detector):
         """
         Find change point in the timeseries
         """
+        # pyre-fixme[16]: `CUSUMDetector` has no attribute `interest_window`.
         interest_window = self.interest_window
         # locate the change point using cusum method
         if change_direction == "increase":
@@ -235,6 +237,7 @@ class CUSUMDetector(Detector):
             llr_int = self._get_llr(
                 ts_int, {"mu0": mu0, "mu1": mu1, "changepoint": changepoint}
             )
+            # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
             pval_int = 1 - chi2.cdf(llr_int, 2)
             delta_int = mu1 - mu0
         else:
@@ -267,7 +270,11 @@ class CUSUMDetector(Detector):
         changepoint = change_meta["changepoint"]
         scale = np.sqrt(
             (
+                # pyre-fixme[58]: `+` is not supported for operand types `Dict[str,
+                #  typing.Any]` and `int`.
                 np.sum((ts[: (changepoint + 1)] - mu0) ** 2)
+                # pyre-fixme[58]: `+` is not supported for operand types `Dict[str,
+                #  typing.Any]` and `int`.
                 + np.sum((ts[(changepoint + 1) :] - mu1) ** 2)
             )
             / (len(ts) - 2)
@@ -278,7 +285,15 @@ class CUSUMDetector(Detector):
             scale = sigma_tilde
 
         llr = -2 * (
+            # pyre-fixme[58]: `+` is not supported for operand types `Dict[str,
+            #  typing.Any]` and `int`.
+            # pyre-fixme[6]: Expected `float` for 4th param but got `Dict[str,
+            #  typing.Any]`.
             self._log_llr(ts[: (changepoint + 1)], mu_tilde, sigma_tilde, mu0, scale)
+            # pyre-fixme[58]: `+` is not supported for operand types `Dict[str,
+            #  typing.Any]` and `int`.
+            # pyre-fixme[6]: Expected `float` for 4th param but got `Dict[str,
+            #  typing.Any]`.
             + self._log_llr(ts[(changepoint + 1) :], mu_tilde, sigma_tilde, mu1, scale)
         )
         return llr
@@ -312,6 +327,7 @@ class CUSUMDetector(Detector):
         Compare daily magnitude to avoid daily seasonality false positives
         """
         time = self.data.time
+        # pyre-fixme[16]: `CUSUMDetector` has no attribute `interest_window`.
         interest_window = self.interest_window
 
         # get number of days in historical window
@@ -331,6 +347,7 @@ class CUSUMDetector(Detector):
             end_idx = time[time == end_time].index[0]
 
             hist_int = self._get_time_series_magnitude(ts[start_idx:end_idx])
+            # pyre-fixme[16]: `CUSUMDetector` has no attribute `magnitude_ratio`.
             if mag_int / hist_int >= self.magnitude_ratio:
                 comparable_mag += 1
 
@@ -340,9 +357,12 @@ class CUSUMDetector(Detector):
         """
         Calcualte the magnitude of a time series
         """
+        # pyre-fixme[16]: `CUSUMDetector` has no attribute `magnitude_quantile`.
         magnitude = np.quantile(ts, self.magnitude_quantile, interpolation="nearest")
         return magnitude
 
+    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self, **kwargs) -> List[Tuple[TimeSeriesChangePoint, CUSUMMetadata]]:
         """
         Find the change point and calculate related statistics
@@ -399,8 +419,11 @@ class CUSUMDetector(Detector):
             "return_all_changepoints", CUSUM_DEFAULT_ARGS["return_all_changepoints"]
         )
 
+        # pyre-fixme[16]: `CUSUMDetector` has no attribute `interest_window`.
         self.interest_window = interest_window
+        # pyre-fixme[16]: `CUSUMDetector` has no attribute `magnitude_quantile`.
         self.magnitude_quantile = magnitude_quantile
+        # pyre-fixme[16]: `CUSUMDetector` has no attribute `magnitude_ratio`.
         self.magnitude_ratio = magnitude_ratio
 
         # Use array to store the data
@@ -422,6 +445,9 @@ class CUSUMDetector(Detector):
                 change_direction=change_direction,
             )
             change_meta["llr"] = self._get_llr(ts, change_meta)
+            # pyre-fixme[6]: Expected `Dict[str, typing.Any]` for 2nd param but got
+            #  `int`.
+            # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
             change_meta["p_value"] = 1 - chi2.cdf(change_meta["llr"], 2)
 
             # compare magnitude on interest_window and historical_window
@@ -445,11 +471,23 @@ class CUSUMDetector(Detector):
             else:
                 mag_change = True
 
+            # pyre-fixme[58]: `>` is not supported for operand types `Dict[str,
+            #  typing.Any]` and `Any`.
+            # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
             if_significant = change_meta["llr"] > chi2.ppf(1 - threshold, 2)
+            # pyre-fixme[58]: `>` is not supported for operand types `Dict[str,
+            #  typing.Any]` and `Any`.
+            # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
             if_significant_int = change_meta["llr_int"] > chi2.ppf(1 - threshold, 2)
             larger_than_min_abs_change = (
+                # pyre-fixme[58]: `+` is not supported for operand types `Dict[str,
+                #  typing.Any]` and `Any`.
                 change_meta["mu0"] + min_abs_change < change_meta["mu1"]
                 if change_direction == "increase"
+                # pyre-fixme[58]: `>` is not supported for operand types `Dict[str,
+                #  typing.Any]` and `Any`.
+                # pyre-fixme[58]: `+` is not supported for operand types `Dict[str,
+                #  typing.Any]` and `Any`.
                 else change_meta["mu0"] > change_meta["mu1"] + min_abs_change
             )
             larger_than_std = (
@@ -466,6 +504,7 @@ class CUSUMDetector(Detector):
             )
             changes_meta[change_direction] = change_meta
 
+        # pyre-fixme[16]: `CUSUMDetector` has no attribute `changes_meta`.
         self.changes_meta = changes_meta
 
         return self._convert_cusum_changepoints(changes_meta, return_all_changepoints)
@@ -533,6 +572,7 @@ class CUSUMDetector(Detector):
             if change[1].regression_detected:
                 plt.axvline(x=change[0].start_time, color="red")
 
+        # pyre-fixme[16]: `CUSUMDetector` has no attribute `interest_window`.
         if self.interest_window:
             plt.axvspan(
                 pd.to_datetime(self.data.time)[self.interest_window[0]],
@@ -595,8 +635,14 @@ class MultiCUSUMDetector(CUSUMDetector):
                 start_point=start_point,
             )
             change_meta["llr"] = self._get_llr(ts, change_meta)
+            # pyre-fixme[6]: Expected `Dict[str, typing.Any]` for 2nd param but got
+            #  `int`.
+            # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
             change_meta["p_value"] = 1 - chi2.cdf(change_meta["llr"], ts.shape[1] + 1)
 
+            # pyre-fixme[58]: `>` is not supported for operand types `Dict[str,
+            #  typing.Any]` and `Any`.
+            # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
             if_significant = change_meta["llr"] > chi2.ppf(
                 1 - threshold, ts.shape[1] + 1
             )
@@ -604,6 +650,7 @@ class MultiCUSUMDetector(CUSUMDetector):
             change_meta["regression_detected"] = if_significant
             changes_meta[change_direction] = change_meta
 
+        # pyre-fixme[16]: `MultiCUSUMDetector` has no attribute `changes_meta`.
         self.changes_meta = changes_meta
 
         return self._convert_cusum_changepoints(changes_meta, return_all_changepoints)
@@ -619,9 +666,17 @@ class MultiCUSUMDetector(CUSUMDetector):
         sigma_pooled = np.cov(ts, rowvar=False)
         llr = -2 * (
             self._log_llr_multi(
+                # pyre-fixme[58]: `+` is not supported for operand types `Dict[str,
+                #  typing.Any]` and `int`.
+                # pyre-fixme[6]: Expected `ndarray` for 4th param but got `Dict[str,
+                #  typing.Any]`.
                 ts[: (changepoint + 1)], mu_tilde, sigma_pooled, mu0, sigma0
             )
             - self._log_llr_multi(
+                # pyre-fixme[58]: `+` is not supported for operand types `Dict[str,
+                #  typing.Any]` and `int`.
+                # pyre-fixme[6]: Expected `ndarray` for 4th param but got `Dict[str,
+                #  typing.Any]`.
                 ts[(changepoint + 1) :], mu_tilde, sigma_pooled, mu1, sigma1
             )
         )
@@ -631,6 +686,7 @@ class MultiCUSUMDetector(CUSUMDetector):
         self,
         x: np.ndarray,
         mu0: np.ndarray,
+        # pyre-fixme[11]: Annotation `matrix` is not defined as a type.
         sigma0: np.matrix,
         mu1: np.ndarray,
         sigma1: np.matrix,
@@ -651,6 +707,8 @@ class MultiCUSUMDetector(CUSUMDetector):
             for i in range(len(x))
         )
 
+    # pyre-fixme[14]: `_get_change_point` overrides method defined in
+    #  `CUSUMDetector` inconsistently.
     def _get_change_point(
         self, ts: np.ndarray, max_iter: int, start_point: int
     ) -> Dict[str, Dict[str, Any]]:

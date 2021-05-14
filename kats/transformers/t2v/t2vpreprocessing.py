@@ -46,10 +46,12 @@ class T2VPreprocessing:
 
         self.dummy_label = dummy_label
         self.label = label
+        # pyre-fixme[16]: `NamedTuple` has no attribute `mode`.
         self.mode = param.mode
         self.output_size = (
             (np.max(label) + 1)
             if ((label is not None) & (self.mode == "classification"))
+            # pyre-fixme[16]: `NamedTuple` has no attribute `training_output_size`.
             else param.training_output_size
         )  # if label is provided and it's we train it in a classification
         # fashion, then output_size is determined by the max of the labels,
@@ -64,6 +66,7 @@ class T2VPreprocessing:
         This internal function turns each array into [window_size, 1] vector
         for Pytorch. Currently only support univariate time series data.
         """
+        # pyre-fixme[16]: `T2VPreprocessing` has no attribute `window`.
         sequence = [seq.reshape([self.window, 1]) for seq in sequence]
 
         logging.info("vector reshaping completed.")
@@ -81,6 +84,7 @@ class T2VPreprocessing:
                 )
                 logging.error(msg)
                 raise ValueError(msg)
+            # pyre-fixme[16]: `Optional` has no attribute `__iter__`.
             for label in self.label:
                 if (type(label) != int) & (type(label) != np.int64):
                     msg = "Float cannot be used as label for classification training."
@@ -93,8 +97,10 @@ class T2VPreprocessing:
         if self.label is None and not self.dummy_label:
             end -= self.output_size  # when data is unlabeled, using last
             # element as label for training embedding
+        # pyre-fixme[16]: `T2VPreprocessing` has no attribute `window`.
         self.window = end
 
+        # pyre-fixme[16]: `NamedTuple` has no attribute `normalizer`.
         if self.param.normalizer is not None:
             seq = [
                 self.param.normalizer(ts.value.values[:end]) for ts in self.data
@@ -132,11 +138,18 @@ class T2VPreprocessing:
         # data sequences.
 
         seq = self._reshaping(seq)
+        # pyre-fixme[41]: Cannot reassign final attribute `seq`.
         T2VPreprocessed.seq = seq
+        # pyre-fixme[41]: Cannot reassign final attribute `label`.
         T2VPreprocessed.label = label
+        # pyre-fixme[41]: Cannot reassign final attribute `output_size`.
         T2VPreprocessed.output_size = self.output_size
+        # pyre-fixme[41]: Cannot reassign final attribute `window`.
         T2VPreprocessed.window = self.window  # currently only supporting feeding
         # the entire time series data, segmentaion will come later.
+        # pyre-fixme[41]: Cannot reassign final attribute `batched`.
         T2VPreprocessed.batched = False  # for downstream functions
 
+        # pyre-fixme[7]: Expected `NamedTuple` but got
+        #  `Type[T2VPreprocessing.transform.T2VPreprocessed]`.
         return T2VPreprocessed

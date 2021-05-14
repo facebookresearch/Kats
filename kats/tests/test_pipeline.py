@@ -19,7 +19,7 @@ TSData = TimeSeriesData(DATA)
 
 
 class cupikTest(TestCase):
-    def test_mkdetector(self):
+    def test_mkdetector(self) -> None:
 
         # We will be using 2 different scenarios to test if the results
         # are the same between a directly called MKDetector and one that
@@ -55,10 +55,11 @@ class cupikTest(TestCase):
             len(MKDetector(data=TSData).detector()),
         )
 
-    def test_thetamodel(self):
+    def test_thetamodel(self) -> None:
         pipe = Pipeline([("theta_model", ThetaModel(params = ThetaParams()))])
         fitted = pipe.fit(TSData)
         bools = (
+            # pyre-fixme[16]: `None` has no attribute `fitted_values`.
             ThetaModel(TSData, ThetaParams()).fit().fitted_values.values
             == fitted.fitted_values.values
         )

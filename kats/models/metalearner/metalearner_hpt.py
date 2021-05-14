@@ -24,7 +24,6 @@ from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
 from sklearn.model_selection import train_test_split
 
-
 default_model_params = {
     "holtwinters": {
         "categorical_idx": ["trend", "damped", "seasonal", "seasonal_periods"],
@@ -353,8 +352,11 @@ class MetaLearnHPT:
         # Add input dim before n_hidden_shared.
         # Add output dim at the end of n_hidden_cat_combo.
         # Add output dim at the end of n_hidden_num.
+        # pyre-fixme[16]: `MetaLearnHPT` has no attribute `n_hidden_shared`.
         self.n_hidden_shared = n_hidden_shared
+        # pyre-fixme[16]: `MetaLearnHPT` has no attribute `n_hidden_cat_combo`.
         self.n_hidden_cat_combo = n_hidden_cat_combo
+        # pyre-fixme[16]: `MetaLearnHPT` has no attribute `n_hidden_num`.
         self.n_hidden_num = n_hidden_num
 
         self.model = MultitaskNet(
@@ -410,6 +412,10 @@ class MetaLearnHPT:
             else None
         )
 
+        # pyre-fixme[7]: Expected `Tuple[torch.Tensor, torch.Tensor, torch.Tensor,
+        #  torch.Tensor, torch.Tensor, torch.Tensor]` but got `Tuple[torch.FloatTensor,
+        #  Optional[torch.LongTensor], Optional[torch.FloatTensor], torch.FloatTensor,
+        #  Optional[torch.LongTensor], Optional[torch.FloatTensor]]`.
         return x_fs, y_cat, y_num, x_fs_val, y_cat_val, y_num_val
 
     def _loss_function(
@@ -427,7 +433,9 @@ class MetaLearnHPT:
         # Loss of classification.
         if o1 is not None:
             batch_y1 = y_cat
+            # pyre-fixme[16]: `Optional` has no attribute `shape`.
             for col in range(batch_y1.shape[1]):
+                # pyre-fixme[16]: `Optional` has no attribute `__getitem__`.
                 loss_cat_train += loss_func_cat(o1[col], batch_y1[:, col])
 
         # Loss of regression.
@@ -545,6 +553,8 @@ class MetaLearnHPT:
                 epochs_no_improve += 1
 
             # check early stopping condition
+            # pyre-fixme[58]: `>=` is not supported for operand types `int` and
+            #  `Union[float, int]`.
             if epoch > 20 and epochs_no_improve >= n_epochs_stop:
                 logging.info(f"Early stopping! Stop at epoch {epoch + 1}.")
                 break
@@ -560,6 +570,8 @@ class MetaLearnHPT:
             A pd.DataFrame storing the recommended hyper-parameters.
         """
 
+        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
+        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         ts = TimeSeriesData(source_ts.to_dataframe().copy())
 
         if self.model is None:
@@ -569,6 +581,7 @@ class MetaLearnHPT:
 
         if ts_scale:
             # scale time series to make ts features more stable
+            # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOp...
             ts.value /= ts.value.max()
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
             logging.info(msg)

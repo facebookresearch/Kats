@@ -57,10 +57,14 @@ class HarmonicRegressionModel(Model):
         """ Fits harmonic regression to the time series.
             See fit_harmonics for details.
         """
+        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.
+        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
+        # pyre-fixme[8]: Attribute has type `Params`; used as `ndarray`.
         self.params, self.harms = self.fit_harmonics(
             self.regression_params.period, self.regression_params.fourier_order
         )
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, dates: pd.Series) -> pd.DataFrame:
         """Predicts with harmonic regression values.
          Call fit before calling this function.
@@ -72,6 +76,8 @@ class HarmonicRegressionModel(Model):
         Pandas DataFrame with the dates (time) and the
         forecast values (fcst)
         """
+        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.
+        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
         if self.params is None or self.harms is None:
             msg = "Call fit before predict."
             logging.error(msg)
@@ -82,6 +88,10 @@ class HarmonicRegressionModel(Model):
         result = np.sum(self.params * harmonics, axis=1)
         return pd.DataFrame({"time": dates, "fcst": result.tolist()})
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[15]: `plot` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
+    #  defined in `Model`.
     def plot(self) -> go.Figure:
         """Demeans the time series, fits the harmonics,
             returns the plot and error metrics.
@@ -92,6 +102,8 @@ class HarmonicRegressionModel(Model):
             Dataframe with mean square error and absolute error
         """
 
+        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.
+        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
         if self.params is None or self.harms is None:
             msg = "Call fit before plot."
             logging.error(msg)
@@ -106,6 +118,8 @@ class HarmonicRegressionModel(Model):
         )
 
         fig = plot_fitted_harmonics(self.data.time, self.data.value, fitted_harmonics)
+        # pyre-fixme[7]: Expected `Figure` but got `Tuple[typing.Any,
+        #  pd.core.frame.DataFrame]`.
         return fig, err_table
 
     @staticmethod

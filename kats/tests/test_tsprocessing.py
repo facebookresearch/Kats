@@ -15,6 +15,16 @@ from kats.consts import TimeSeriesData
 from kats.detectors.residual_translation import KDEResidualTranslator
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
 from scipy.stats import ks_2samp  # @manual
 
 data = pd.read_csv("kats/kats/data/air_passengers.csv")
@@ -38,12 +48,12 @@ TSData_multi = TimeSeriesData(DATA_multi)
 
 
 class DecompositionTest(TestCase):
-    def test_asserts(self):
+    def test_asserts(self) -> None:
         with self.assertRaises(ValueError):
             timeseries = TimeSeriesData(DATA_multi)
             TimeSeriesDecomposition(timeseries, "additive")
 
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         m1 = TimeSeriesDecomposition(ts_data, "additive")
         output1 = m1.decomposer()
 
@@ -65,10 +75,11 @@ class DecompositionTest(TestCase):
         )
         self.assertEqual(output1["rem"].value.all(), output3["rem"].value.all())
 
-    def test_nonstandard_time_col_name(self):
+    def test_nonstandard_time_col_name(self) -> None:
         m = TimeSeriesDecomposition(ts_data_nonstandard_name, "multiplicative")
         m.decomposer()
         self.assertEqual(
+            # pyre-fixme[16]: `TimeSeriesDecomposition` has no attribute `results`.
             m.results["trend"].time_col_name, ts_data_nonstandard_name.time_col_name
         )
         self.assertEqual(
@@ -78,7 +89,7 @@ class DecompositionTest(TestCase):
             m.results["rem"].time_col_name, ts_data_nonstandard_name.time_col_name
         )
 
-    def test_decomposition_additive(self):
+    def test_decomposition_additive(self) -> None:
         m = TimeSeriesDecomposition(ts_data, "additive")
         output = m.decomposer()
 
@@ -175,7 +186,7 @@ class DecompositionTest(TestCase):
             np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2), 0, 5
         )
 
-    def test_decomposition_multiplicative(self):
+    def test_decomposition_multiplicative(self) -> None:
         m = TimeSeriesDecomposition(ts_data, "multiplicative")
         output = m.decomposer()
 
@@ -273,13 +284,13 @@ class DecompositionTest(TestCase):
             np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2), 0, 5
         )
 
-    def test_plot(self):
+    def test_plot(self) -> None:
         m = TimeSeriesDecomposition(ts_data, "multiplicative")
         m.decomposer()
 
         m.plot()
 
-    def test_multiplicative_assert(self):
+    def test_multiplicative_assert(self) -> None:
         data_new = data.copy()
         data_new["y"] = -1.0 * data_new["y"]
         ts_data_new = TimeSeriesData(data_new)
@@ -288,7 +299,7 @@ class DecompositionTest(TestCase):
             m = TimeSeriesDecomposition(ts_data_new, "multiplicative")
             m.decomposer()
 
-    def test_new_freq(self):
+    def test_new_freq(self) -> None:
         def process_time(z):
             x0, x1 = z.split(" ")
             time = (
@@ -380,7 +391,7 @@ class DecompositionTest(TestCase):
 
 
 class SimulatorTest(TestCase):
-    def test_arima_sim(self):
+    def test_arima_sim(self) -> None:
         sim = Simulator(n=10, freq="MS", start=pd.to_datetime("2011-01-01 00:00:00"))
 
         np.random.seed(100)
@@ -403,7 +414,7 @@ class SimulatorTest(TestCase):
         self.assertEqual(True, (ts.value - expected_value).all())
         self.assertEqual(len(ts.time), 10)
 
-    def test_stl_sim_additive(self):
+    def test_stl_sim_additive(self) -> None:
         # Create a STL-based simulated object
         sim = Simulator(n=100, freq="1D", start=pd.to_datetime("2011-01-01"))
         np.random.seed(614)
@@ -425,7 +436,7 @@ class SimulatorTest(TestCase):
         self.assertEqual(True, (gen_ts_series.value == sim_ts.value).all())
         self.assertEqual(True, (gen_ts_series.time == sim_ts.time).all())
 
-    def test_stl_sim_multiplicative(self):
+    def test_stl_sim_multiplicative(self) -> None:
         # Create a STL-based simulated object
         sim = Simulator(n=100, freq="1D", start=pd.to_datetime("2011-01-01"))
         np.random.seed(614)
@@ -447,7 +458,7 @@ class SimulatorTest(TestCase):
         self.assertEqual(True, (gen_ts_series.value == sim_ts.value).all())
         self.assertEqual(True, (gen_ts_series.time == sim_ts.time).all())
 
-    def test_level_shift(self):
+    def test_level_shift(self) -> None:
         sim = Simulator(n=450, start="2018-01-01")
         ts = sim.level_shift_sim()
 
@@ -479,7 +490,7 @@ class SimulatorTest(TestCase):
 
         self.assertEqual(len(ts3), 450)
 
-    def test_level_shift_mvn_indep(self):
+    def test_level_shift_mvn_indep(self) -> None:
 
         sim = Simulator(n=450, start="2018-01-01")
         ts = sim.level_shift_multivariate_indep_sim()
@@ -502,7 +513,7 @@ class SimulatorTest(TestCase):
         ts2_df = ts2.to_dataframe()
         self.assertEqual(ts2_df.shape[1], 4)  # time + n_dim
 
-    def test_trend_shift(self):
+    def test_trend_shift(self) -> None:
         sim = Simulator(n=450, start="2018-01-01")
         ts = sim.trend_shift_sim()
         self.assertEqual(len(ts), 450)

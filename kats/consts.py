@@ -152,6 +152,7 @@ class TimeSeriesData:
         time: Union[pd.Series, pd.DatetimeIndex, None] = None,
         value: Union[pd.Series, pd.DataFrame, None] = None,
         time_col_name: str = DEFAULT_TIME_NAME,
+        # pyre-fixme[9]: date_format has type `str`; used as `None`.
         date_format: str = None,
         use_unix_time: bool = False,
         unix_time_units: str = "ns",
@@ -208,6 +209,8 @@ class TimeSeriesData:
                         + "'sort_by_time' as True."
                     )
                 self.time = df[self.time_col_name]
+                # pyre-fixme[6]: Expected `Optional[typing.Hashable]` for 1st param
+                #  but got `List[typing.Any]`.
                 self.value = df[[x for x in df.columns if x != self.time_col_name]]
                 self._set_univariate_values_to_series()
 
@@ -242,6 +245,8 @@ class TimeSeriesData:
             if time.name:
                 self.time_col_name = time.name
             # Resetting indices
+            # pyre-fixme[8]: Attribute has type `Series`; used as
+            #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
             self.time = self.time.reset_index(drop=True)
             self.value = self.value.reset_index(drop=True)
             # Checking for emptiness
@@ -262,6 +267,8 @@ class TimeSeriesData:
                 raise ValueError("One of time or value is empty while the other is not")
             # If time values are passed then standardizing format
             else:
+                # pyre-fixme[8]: Attribute has type `Series`; used as
+                #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
                 self.time = self._set_time_format(
                     self.time,
                     date_format=date_format,
@@ -315,6 +322,7 @@ class TimeSeriesData:
           A pandas.Series representing the time values of the time series.
         """
 
+        # pyre-fixme[16]: `TimeSeriesData` has no attribute `_time`.
         return self._time
 
     @time.setter
@@ -342,6 +350,7 @@ class TimeSeriesData:
           time series.
         """
 
+        # pyre-fixme[16]: `TimeSeriesData` has no attribute `_value`.
         return self._value
 
     @value.setter
@@ -372,10 +381,12 @@ class TimeSeriesData:
           time series.
         """
 
+        # pyre-fixme[16]: `TimeSeriesData` has no attribute `_min`.
         return self._min
 
     @property
     def max(self) -> Union[pd.Series, float]:
+        # pyre-fixme[16]: `TimeSeriesData` has no attribute `_max`.
         return self._max
         """Returns the max value(s) of the series.
 
@@ -470,6 +481,7 @@ class TimeSeriesData:
         return self.to_dataframe().__repr__()
 
     def _repr_html_(self) -> str:
+        # pyre-fixme[29]: `Series` is not a function.
         return self.to_dataframe()._repr_html_()
 
     def _set_univariate_values_to_series(self):
@@ -572,6 +584,8 @@ class TimeSeriesData:
         if not isinstance(other, TimeSeriesData):
             raise TypeError("extend must take another TimeSeriesData object")
         # Concatenate times
+        # pyre-fixme[8]: Attribute has type `Series`; used as
+        #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         self.time = pd.concat([self.time, other.time], ignore_index=True).reset_index(
             drop=True
         )
@@ -583,6 +597,9 @@ class TimeSeriesData:
         if isinstance(other.value, pd.Series):
             other_value = pd.DataFrame(other_value)
         # Concatenate values
+        # pyre-fixme[6]: Expected `Union[typing.Iterable[pd.core.frame.DataFrame],
+        #  typing.Mapping[Optional[typing.Hashable], pd.core.frame.DataFrame]]` for 1st
+        #  param but got `List[Union[pd.core.frame.DataFrame, pd.core.series.Series]]`.
         self.value = pd.concat([cur_value, other_value], ignore_index=True).reset_index(
             drop=True
         )
@@ -731,6 +748,7 @@ class TimeSeriesData:
             else:
                 output_df[DEFAULT_VALUE_NAME] = self.value
         elif isinstance(self.value, pd.DataFrame):
+            # pyre-fixme[6]: Expected `Union[typing.Iterable[pd.core.frame.DataFrame]...
             output_df = pd.concat([output_df, self.value], axis=1).reset_index(
                 drop=True
             )
@@ -769,6 +787,7 @@ class TimeSeriesData:
 
         if not isinstance(other, TimeSeriesData):
             raise TypeError("Binary op must take another TimeSeriesData object")
+        # pyre-fixme[22]: The cast is redundant.
         other = cast(TimeSeriesData, other)
         if not self.time.equals(other.time):
             raise ValueError("BBinary op must take a TimeSeriesData with same time")
@@ -853,6 +872,7 @@ class TimeSeriesData:
         return frequency
 
     def interpolate(
+        # pyre-fixme[9]: freq has type `str`; used as `None`.
         self, freq: str = None, method: str = "linear", remove_duplicate_time=False
     ) -> "TimeSeriesData":
         """
@@ -878,6 +898,7 @@ class TimeSeriesData:
         """
 
         if not freq:
+            # pyre-fixme[9]: freq has type `str`; used as `Timedelta`.
             freq = self.infer_freq_robust()
 
         # convert to pandas.DataFrame so that we can leverage the built-in methods
@@ -947,6 +968,7 @@ class TimeSeriesData:
             )
         ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)
         fig.tight_layout()
+        # pyre-fixme[29]: `CachedAccessor` is not a function.
         self.to_dataframe().plot(x=self.time_col_name, y=cols, ax=ax)
 
 
@@ -976,6 +998,16 @@ class TimeSeriesIterator:
 
 
 class TSIterator:
+    """Iterates through the values of a single timeseries.
+
+    Produces a timeseries with a single point, in case of an
+    univariate time series, or a timeseries with an array indicating
+    the values at the given location, for a multivariate time series.
+
+    Attributes:
+        ts: input timeseries.
+    """
+
     def __init__(self, ts: TimeSeriesData) -> None:
         self.ts = ts
         self.curr = 0
