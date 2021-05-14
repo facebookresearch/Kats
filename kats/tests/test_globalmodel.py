@@ -40,7 +40,7 @@ def get_ts(n, start_time, freq="D", has_nans=True):
 
 
 class TestGMParam(TestCase):
-    def test_daily(self):
+    def test_daily(self) -> None:
         GMParam(
             freq="d",
             input_window=45,
@@ -52,7 +52,7 @@ class TestGMParam(TestCase):
 
 
 class LSTM2CellTest(TestCase):
-    def test_cell(self):
+    def test_cell(self) -> None:
         cell = LSTM2Cell(30, 2, 5)
         input_t = torch.randn(5, 30)
         prev_h = torch.randn(5, 2)
@@ -64,7 +64,7 @@ class LSTM2CellTest(TestCase):
 
 
 class S2CellTest(TestCase):
-    def test_cell(self):
+    def test_cell(self) -> None:
         cell = S2Cell(20, 2, 5)
         input_t = torch.randn(5, 20)
         prev_h = torch.randn(5, 2)
@@ -77,7 +77,7 @@ class S2CellTest(TestCase):
 
 
 class DilatedRNNStackTest(TestCase):
-    def test_rnn(self):
+    def test_rnn(self) -> None:
         # test LSTM
         input_t = torch.randn(5, 20)
         rnn = DilatedRNNStack([[1, 2], [1, 2, 3]], "LSTM", 20, 50, 10)
@@ -92,14 +92,14 @@ class DilatedRNNStackTest(TestCase):
         for _ in range(6):
             rnn(input_t)
 
-    def test_others(self):
+    def test_others(self) -> None:
         self.assertRaises(ValueError, DilatedRNNStack, [], "randomcell", 20, 20, 10)
         self.assertRaises(ValueError, DilatedRNNStack, [], "LSTM2Cell", 20, 20, 10)
         self.assertRaises(ValueError, DilatedRNNStack, [], "LSTM2Cell", 20, 20, 10, 20)
 
 
 class PinballLossTest(TestCase):
-    def test_pinballloss(self):
+    def test_pinballloss(self) -> None:
         quantile = torch.tensor([0.5, 0.05, 0.95, 0.85])
         rnn = DilatedRNNStack(
             [[1, 2], [2, 2, 4]],
@@ -130,7 +130,7 @@ class PinballLossTest(TestCase):
         # test auto_grad
         sum_loss.backward()
 
-    def test_other(self):
+    def test_other(self) -> None:
         self.assertRaises(ValueError, PinballLoss, quantile=torch.tensor([]))
         self.assertRaises(ValueError, PinballLoss, quantile=torch.tensor([[]]))
         self.assertRaises(ValueError, PinballLoss, quantile=torch.tensor([[0.5]]))
@@ -163,7 +163,7 @@ dl_dataset_dict = {names[i]: dl_dataset[i] for i in range(10)}
 
 
 class GMFeatureTest(TestCase):
-    def test_gmfeature(self):
+    def test_gmfeature(self) -> None:
         TSs = [get_ts(30, "2020-05-06")]
         x = np.row_stack([np.abs(ts.value.values) for ts in TSs])
         time = np.row_stack([ts.time.values for ts in TSs])
@@ -190,7 +190,7 @@ class GMFeatureTest(TestCase):
 
 
 class GMDataLoaderTest(TestCase):
-    def test_dataloader(self):
+    def test_dataloader(self) -> None:
 
         gmdl = GMDataLoader(dl_dataset)
         collects = []
@@ -212,7 +212,7 @@ class GMDataLoaderTest(TestCase):
             collects.extend(batch)
         self.assertEqual(set(collects) == set(dl_dataset_dict.keys()), True)
 
-    def test_others(self):
+    def test_others(self) -> None:
         self.assertRaises(ValueError, GMDataLoader, [])
         gmdl = GMDataLoader(dl_dataset)
         self.assertRaises(ValueError, gmdl.get_batch, 0.5)
@@ -220,7 +220,7 @@ class GMDataLoaderTest(TestCase):
 
 
 class GMBatchTest(TestCase):
-    def test_batch(self):
+    def test_batch(self) -> None:
         train_ts = {
             str(i): get_ts(n * 3, "2020-05-06") for i, n in enumerate([10, 12, 15])
         }
@@ -333,7 +333,7 @@ class GMBatchTest(TestCase):
 
 
 class AdjustedPinballLossTest(TestCase):
-    def test_adjustedpinballloss(self):
+    def test_adjustedpinballloss(self) -> None:
         quantile = torch.tensor([0.5, 0.05, 0.95, 0.9])
         rnn = DilatedRNNStack(
             [[1, 2], [2, 2, 4]], "LSTM", input_size=20, state_size=50, output_size=4 * 3
@@ -360,7 +360,7 @@ class AdjustedPinballLossTest(TestCase):
         # test auto_grad
         sum_loss.backward()
 
-    def test_other(self):
+    def test_other(self) -> None:
         self.assertRaises(ValueError, AdjustedPinballLoss, quantile=torch.tensor([]))
         self.assertRaises(ValueError, AdjustedPinballLoss, quantile=torch.tensor([[]]))
         self.assertRaises(
@@ -382,7 +382,7 @@ class AdjustedPinballLossTest(TestCase):
 
 
 class GMModelTest(TestCase):
-    def test_model(self):
+    def test_model(self) -> None:
         train_ts = {
             str(i): get_ts(n * 3, "2020-05-06") for i, n in enumerate(range(20, 40))
         }
@@ -415,6 +415,7 @@ class GMModelTest(TestCase):
         _ = gmmodel.evaluate([train_ts["0"]], [valid_ts["0"]])
         # check whether forecasts starting timestamps are correct
         self.assertTrue(
+            # pyre-fixme[16]: `List` has no attribute `time`.
             pred["0"].time.iloc[0] == (train_ts["0"].time.iloc[-1] + gmparam.freq),
             "The first timestamp of forecasts is not equal to the last timestamp of training timestamp+frequency.",
         )
@@ -425,7 +426,7 @@ class GMModelTest(TestCase):
 
 
 class GMParamConversionTest(TestCase):
-    def test_conversion(self):
+    def test_conversion(self) -> None:
         origin_gmparam = GMParam(
             freq="d", input_window=10, fcst_window=7, gmfeature=["simple_date"]
         )
@@ -439,7 +440,7 @@ class GMParamConversionTest(TestCase):
 
 
 class GMBacktesterTest(TestCase):
-    def test_gmbacktester(self):
+    def test_gmbacktester(self) -> None:
 
         TSs = {str(i): get_ts(n * 3, "2019-05-06") for i, n in enumerate(range(20, 40))}
 
@@ -479,7 +480,7 @@ class GMBacktesterTest(TestCase):
 
 
 class GMEnsembleTest(TestCase):
-    def test_gmensemble(self):
+    def test_gmensemble(self) -> None:
 
         TSs = {str(i): get_ts(n * 3, "2019-05-06") for i, n in enumerate(range(20, 40))}
         ts = get_ts(20, "2019-05-06")

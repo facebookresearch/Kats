@@ -4,6 +4,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+"""
+This module contains classes and functions used for implementing
+the Bayesian Online Changepoint Detection algorithm.
+"""
+
 import logging
 import math
 from dataclasses import dataclass, field
@@ -19,8 +24,10 @@ from kats.consts import (
     TimeSeriesData,
     SearchMethodEnum
 )
-import kats.parameter_tuning.time_series_parameter_tuning as tpt
+import kats.utils.time_series_parameter_tuning as tpt
 from kats.detectors.detector import Detector
+# pyre-fixme[21]: Could not find name `invgamma` in `scipy.stats`.
+# pyre-fixme[21]: Could not find name `nbinom` in `scipy.stats`.
 from scipy.stats import invgamma, linregress, norm, nbinom  # @manual
 from scipy.special import logsumexp  # @manual
 
@@ -29,12 +36,31 @@ _LOG_SQRT2PI = 0.5 * np.log(2 * np.pi)
 
 
 class BOCPDModelType(Enum):
+    """Bayesian Online Change Point Detection model type.
+
+    Describes the type of predictive model used by the
+    BOCPD algorithm.
+    """
+
     NORMAL_KNOWN_MODEL = 1
     TREND_CHANGE_MODEL = 2
     POISSON_PROCESS_MODEL = 3
 
 
 class BOCPDMetadata:
+    """Metadata for the BOCPD model.
+
+    This gives information about
+    the type of detector, the name of the time series and
+    the model used for detection.
+
+    Attributes:
+        model: The kind of predictive model used.
+        ts_name: string, name of the time series for which the detector is
+        is being run.
+    """
+
+    # pyre-fixme[9]: ts_name has type `str`; used as `None`.
     def __init__(self, model: BOCPDModelType, ts_name: str = None):
         self._detector_type = BOCPDetector
         self._model = model
@@ -55,6 +81,19 @@ class BOCPDMetadata:
 
 @dataclass
 class BOCPDModelParameters(ABC):
+    """Data class containing data for predictive models used in BOCPD.
+
+    Particular predictive models derive from this class.
+
+    Attributes:
+        prior_choice: list of changepoint probability priors
+            over which we will search hyperparameters
+        cp_prior: default prior for probability of changepoint.
+        search_method: string, representing the search method
+            for the hyperparameter tuning library. Allowed values
+            are 'random' and 'gridsearch'.
+    """
+
     prior_choice: Dict[str, List[float]] = field(
         default_factory=lambda: {'cp_prior': [0.001, 0.002, 0.005, 0.01, 0.02]}
     )
@@ -63,15 +102,47 @@ class BOCPDModelParameters(ABC):
     search_method: str = 'random'
 
     def set_prior(self, param_dict: Dict[str, float]):
+        """Setter method, which sets the value of the parameters.
+
+        Currently, this sets the value of the prior probability of changepoint.
+
+        Args:
+            param_dict: dictionary of the form {param_name: param_value}.
+
+        Returns:
+            None.
+        """
+
         if 'cp_prior' in param_dict:
             self.cp_prior = param_dict['cp_prior']
 
 
 @dataclass
 class NormalKnownParameters(BOCPDModelParameters):
+    """Data class containing the parameters for Normal  predictive model.
+
+    This assumes that the data comes from a normal distribution with known
+    precision.
+
+    Attributes:
+        empirical: Boolean, should we derive the prior empirically. When
+            this is true, the mean_prior, mean_prec_prior and known_prec
+            are derived from the data, and don't need to be specified.
+        mean_prior: float, mean of the prior normal distribution.
+        mean_prec_prior: float, precision of the prior normal distribution.
+        known_prec: float, known precision of the data.
+        known_prec_multiplier: float, a multiplier of the known precision.
+            This is a variable, that is used in the hyperparameter search,
+            to multiply with the known_prec value.
+        prior_choice: List of parameters to search, for hyperparameter tuning.
+    """
+
     empirical: bool = True
+    # pyre-fixme[8]: Attribute has type `float`; used as `None`.
     mean_prior: float = None
+    # pyre-fixme[8]: Attribute has type `float`; used as `None`.
     mean_prec_prior: float = None
+    # pyre-fixme[8]: Attribute has type `float`; used as `None`.
     known_prec: float = None
     known_prec_multiplier: float = 1.
 
@@ -83,10 +154,19 @@ class NormalKnownParameters(BOCPDModelParameters):
     )
 
     def set_prior(self, param_dict: Dict[str, float]):
+        """Sets priors
+
+        Sets the value of the prior based on the
+        parameter dictionary passed.
+
+        Args:
+            param_dict: Dictionary of parameters required for
+                setting the prior value.
+
+        Returns:
+            None.
         """
-        sets the value of the prior based on the
-        parameter dictionary passed
-        """
+
         if 'known_prec_multiplier' in param_dict:
             self.known_prec_multiplier = param_dict['known_prec_multiplier']
         if 'cp_prior' in param_dict:
@@ -95,6 +175,23 @@ class NormalKnownParameters(BOCPDModelParameters):
 
 @dataclass
 class TrendChangeParameters(BOCPDModelParameters):
+    """Parameters for the trend change predictive model.
+
+    This model assumes that the data is generated from a Bayesian
+    linear model.
+
+    Attributes:
+        mu_prior: array, mean of the normal priors on the slope and intercept
+        num_likelihood_samples: int, number of samples generated, to calculate
+            the posterior.
+        num_points_prior: int,
+        readjust_sigma_prior: Boolean, whether we should readjust the Inv. Gamma
+        prior for the variance, based on the data.
+        plot_regression_prior: Boolean, plot prior. set as False, unless trying to
+            debug.
+    """
+
+    # pyre-fixme[8]: Attribute has type `ndarray`; used as `None`.
     mu_prior: np.ndarray = None
     num_likelihood_samples: int = 100
     num_points_prior: int = _MIN_POINTS
@@ -104,20 +201,57 @@ class TrendChangeParameters(BOCPDModelParameters):
 
 @dataclass
 class PoissonModelParameters(BOCPDModelParameters):
+    """Parameters for the Poisson predictive model.
+
+    Here, the data is generated from a Poisson distribution.
+
+    Attributes:
+        alpha_prior: prior value of the alpha value of the Gamma prior.
+        beta_prior: prior value of the beta value of the Gamma prior.
+    """
+
     alpha_prior: float = 1.0
     beta_prior: float = 0.05
 
 
-# TODO: currently have to pass in data twice -- can we change that? (especially for the Thrift service)
 class BOCPDetector(Detector):
+    """Bayesian Online Changepoint Detection.
+
+    Given an univariate time series, this class
+    performs changepoint detection, i.e. it tells
+    us when the time series shows a change. This is online,
+    which means it gives the best estimate based on a
+    lookehead number of time steps (which is the lag).
+
+    This faithfully implements the algorithm in
+    Adams & McKay, 2007. "Bayesian Online Changepoint Detection"
+    https://arxiv.org/abs/0710.3742
+
+    The basic idea is to see whether the new values are
+    improbable, when compared to a bayesian predictive model,
+    built from the previous observations.
+
+    Attrbutes:
+        data: TimeSeriesData, data on which we will run the BOCPD
+            algorithm.
+    """
+
     def __init__(self, data: TimeSeriesData) -> None:
         self.data = data
 
+        # pyre-fixme[8]: Attribute has type `Dict[BOCPDModelType,
+        #  _PredictiveModel]`; used as `Dict[BOCPDModelType,
+        #  typing.Type[Union[_BayesianLinReg, _NormalKnownPrec,
+        #  _PoissonProcessModel]]]`.
         self.models: Dict[BOCPDModelType, _PredictiveModel] = {
             BOCPDModelType.NORMAL_KNOWN_MODEL: _NormalKnownPrec,
             BOCPDModelType.TREND_CHANGE_MODEL: _BayesianLinReg,
             BOCPDModelType.POISSON_PROCESS_MODEL: _PoissonProcessModel,
         }
+        # pyre-fixme[8]: Attribute has type `Dict[BOCPDModelType,
+        #  BOCPDModelParameters]`; used as `Dict[BOCPDModelType,
+        #  typing.Type[Union[NormalKnownParameters, PoissonModelParameters,
+        #  TrendChangeParameters]]]`.
         self.parameter_type: Dict[BOCPDModelType, BOCPDModelParameters] = {
             BOCPDModelType.NORMAL_KNOWN_MODEL: NormalKnownParameters,
             BOCPDModelType.TREND_CHANGE_MODEL: TrendChangeParameters,
@@ -133,6 +267,8 @@ class BOCPDetector(Detector):
             self.models.keys() == self.parameter_type.keys()
         ), f"Expected equivalent models in .models and .parameter_types, but got {self.models.keys()} and {self.parameter_type.keys()}"
 
+    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
         self,
         model: BOCPDModelType = BOCPDModelType.NORMAL_KNOWN_MODEL,
@@ -146,7 +282,12 @@ class BOCPDetector(Detector):
         debug: bool = False,
         agg_cp: bool = True,
     ) -> List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]:
-        """
+        """The main detector method.
+
+        This function runs the BOCPD detector
+        and returns the list of changepoints, along with some metadata
+
+        Args:
         model: This specifies the probabilistic model, that generates
                the data within each segment. The user can input several
                model types depending on the behavior of the time series.
@@ -192,19 +333,32 @@ class BOCPDetector(Detector):
                 detection. When setting this parameter as True, posterior
                 will be the aggregation of run-length posterior by fetching
                 maximum values diagonally.
+
+        Returns:
+             List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]: Each element in this
+             list is a changepoint, an object of TimeSeriesChangepoint class. The start_time
+             gives the time that the change was detected. The metadata contains data about
+             the name of the time series (useful when multiple time series are run simultaneously),
+             and the predictive model used.
         """
+
         assert (
             model in self.available_models
         ), f"Requested model {model} not currently supported. Please choose one from: {self.available_models}"
 
         if model_parameters is None:
+            # pyre-fixme[29]: `BOCPDModelParameters` is not a function.
             model_parameters = self.parameter_type[model]()
 
         assert isinstance(
+            # pyre-fixme[6]: Expected `Union[typing.Type[typing.Any],
+            #  typing.Tuple[typing.Type[typing.Any], ...]]` for 2nd param but got
+            #  `BOCPDModelParameters`.
             model_parameters, self.parameter_type[model]
         ), f"Expected parameter type {self.parameter_type[model]}, but got {model_parameters}"
 
         if choose_priors:
+            # pyre-fixme[23]: Unable to unpack `BOCPDModelParameters` into 2 values.
             changepoint_prior, model_parameters = self._choose_priors(model, model_parameters)
 
         if (
@@ -223,6 +377,7 @@ class BOCPDetector(Detector):
             raise ValueError(msg)
 
         # parameters_dict = dataclasses.asdict(model_parameters)
+        # pyre-fixme[29]: `_PredictiveModel` is not a function.
         underlying_model = self.models[model](data=self.data, parameters=model_parameters)
         underlying_model.setup()
 
@@ -268,13 +423,28 @@ class BOCPDetector(Detector):
     def plot(
         self,
         change_points: List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]],
+        # pyre-fixme[9]: ts_names has type `List[str]`; used as `None`.
         ts_names: List[str] = None
     ) -> None:
+        """Plots the change points, along with the time series.
+
+        Use this function to visualize the results of the changepoint detection.
+
+        Args:
+            change_points: List of changepoints, which are the return value of the detector() function.
+            ts_names: List of names of the time series, useful in case multiple time series are used.
+
+        Returns:
+            None.
+        """
+
         # TODO note: Once  D23226664 lands, replace this with self.data.time_col_name
         time_col_name = 'time'
 
         # Group changepoints together
         change_points_per_ts = self.group_changepoints_by_timeseries(change_points)
+        # pyre-fixme[9]: ts_names has type `List[str]`; used as `Union[List[str],
+        #  typing.KeysView[str]]`.
         ts_names = ts_names or change_points_per_ts.keys()
 
         data_df = self.data.to_dataframe()
@@ -295,12 +465,22 @@ class BOCPDetector(Detector):
 
     def _choose_priors(self, model: BOCPDModelType,
                        params: BOCPDModelParameters) -> BOCPDModelParameters:
-        """
+        """Chooses priors which are defined by the model parameters.
+
         Chooses priors which are defined by the model parameters.
         All BOCPDModelParameters classes have a changepoint prior to iterate on.
         Other parameters can be added to specific models.
         This function runs a parameter search using the hyperparameter tuning library
-        to get the best hyperparameters
+        to get the best hyperparameters.
+
+        Args:
+            model: Type of predictive model.
+            params: Parameters class, containing list of values of the parameters
+            on which to run hyperparameter tuning.
+
+        Returns:
+            best_cp_prior: best value of the prior on the changepoint probabilities.
+            params: parameter dictionary, where the selected values are set.
         """
         # test these changepoint_priors
         param_dict = params.prior_choice
@@ -354,6 +534,8 @@ class BOCPDetector(Detector):
 
         best_cp_prior = best_params['cp_prior']
 
+        # pyre-fixme[7]: Expected `BOCPDModelParameters` but got `Tuple[typing.Any,
+        #  BOCPDModelParameters]`.
         return best_cp_prior, params
 
     def _get_eval_function(self, model: BOCPDModelType,
@@ -368,6 +550,7 @@ class BOCPDetector(Detector):
             model_parameters.set_prior(params_to_eval)
             logging.debug(model_parameters)
             logging.debug(params_to_eval)
+            # pyre-fixme[29]: `_PredictiveModel` is not a function.
             underlying_model = self.models[model](data=self.data, parameters=model_parameters)
             change_point = _BayesOnlineChangePoint(data=self.data, lag=3, debug=False)
             change_point.detector(model=underlying_model,
@@ -383,10 +566,20 @@ class BOCPDetector(Detector):
         self,
         change_points: List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]
     ) -> Dict[str, List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]]:
-        """ For multivariate inputs, all changepoints are output in
-            a list and the time series they correspond to is referenced
-            in the metadata. This function is a helper function to
-            group these changepoints by time series. """
+        """Helper function to group changepoints by time series.
+
+        For multivariate inputs, all changepoints are output in
+        a list and the time series they correspond to is referenced
+        in the metadata. This function is a helper function to
+        group these changepoints by time series.
+
+        Args:
+            change_points: List of changepoints, with metadata containing the time
+                series names. This is the return value of the detector() method.
+
+        Returns:
+            Dictionary, with time series names, and their corresponding changepoints.
+        """
 
         if self.data.is_univariate():
             data_df = self.data.to_dataframe()
@@ -404,35 +597,45 @@ class BOCPDetector(Detector):
         return dict(change_points_per_ts)
 
     def get_change_prob(self) -> Dict[str, np.ndarray]:
+        """Returns the probability of being a changepoint.
+
+        Args:
+            None.
+
+        Returns:
+            For every point in the time series. The return
+            type is a dict, with the name of the timeseries
+            as the key, and the value is an array of probabilities
+            of the same length as the timeseries data.
         """
-        returns the probability of being a changepoint,
-        for every point in the time series. The return
-        type is a dict, with the name of the timeseries
-        as the key, and the value is an array of probabilities
-        of the same length as the timeseries data
-        """
+
         if not self.detected_flag:
             raise ValueError('detector needs to be run before getting prob')
         return self.change_prob
 
     def get_run_length_matrix(self) -> Dict[str, np.ndarray]:
+        """Returns the entire run-time posterior.
+        Args:
+            None.
+
+        Returns:
+            The return type is a dict, with the name of the timeseries
+            as the key, and the value is an array of probabilities
+            of the same length as the timeseries data.
         """
-        returns the entire run-time posterior,The return
-        type is a dict, with the name of the timeseries
-        as the key, and the value is an array of probabilities
-        of the same length as the timeseries data
-        """
+
         if not self.detected_flag:
             raise ValueError('detector needs to be run before getting prob')
+
         return self._run_length_prob
 
 
-# NOTE: all of the below was copied from the previous BOCPD detector
-# to prevent the deprecation of that class from impacting this one
-
-
 class _BayesOnlineChangePoint(Detector):
-    """
+    """The underlying implementation of the BOCPD algorithm.
+
+    This is called by the class BayesianOnlineChangepoint. The user should
+    call the top level class, and not this one.
+
     Given an univariate time series, this class
     performs changepoint detection, i.e. it tells
     us when the time series shows a change. This is online,
@@ -447,23 +650,33 @@ class _BayesOnlineChangePoint(Detector):
     improbable, when compared to a bayesian predictive model,
     built from the previous observations.
 
-    The parameters are:
+    Attributes::
     data: This is univariate time series data. We require more
-    than 10 points, otherwise it is not very meaningful to define
-    changepoints.
+        than 10 points, otherwise it is not very meaningful to define
+        changepoints.
+
+    T: number of values in the time series data.
 
     lag: This specifies, how many time steps we will look ahead to
-    determine the change. There is a tradeoff in setting this parameter.
-    A small lag means we can detect a change really fast, which is important
-    in many applications. However, this also means we will make more
-    mistakes/have lower confidence since we might mistake a spike for change.
+        determine the change. There is a tradeoff in setting this parameter.
+        A small lag means we can detect a change really fast, which is important
+        in many applications. However, this also means we will make more
+        mistakes/have lower confidence since we might mistake a spike for change.
+
+    threshold: Threshold between 0 and 1. Probability values above this threshold
+        will be denoted as changepoint.
 
     debug: This is a boolean. If set to true, this shows additional plots.
-    Currently, it shows a plot of the predicted mean and variance, after
-    lag steps, and the predictive probability of the next point. If the
-    results are unusual, the user should set it to true in order to
-    debug.
+        Currently, it shows a plot of the predicted mean and variance, after
+        lag steps, and the predictive probability of the next point. If the
+        results are unusual, the user should set it to true in order to
+        debug.
 
+    agg_cp: It is tested and believed that by aggregating run-length
+        posterior, we may have a stronger signal for changepoint
+        detection. When setting this parameter as True, posterior
+        will be the aggregation of run-length posterior by fetching
+        maximum values diagonally.
     """
 
     def __init__(self, data: TimeSeriesData, lag: int = 10, debug: bool = False, agg_cp: bool = False):
@@ -494,25 +707,50 @@ class _BayesOnlineChangePoint(Detector):
         self._posterior_shape = (self.T, self.T, self.P)
         self._message_shape = (self.T, self.P)
 
+    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
         self,
         model: Any,
         threshold: Union[float, np.ndarray] = 0.5,
         changepoint_prior: Union[float, np.ndarray] = 0.01
     ) -> Dict[str, Any]:
+        """Runs the actual BOCPD detection algorithm.
+
+        Args:
+            model: Predictive Model for BOCPD
+            threshold: values between 0 and 1, array since this can be specified
+                separately for each time series.
+            changepoint_prior: array, each element between 0 and 1. Each element
+                specifies the prior probability of observing a changepoint
+                in each time series.
+
+        Returns:
+            Dictionary, with key as the name of the time series, and value containing
+            list of change points and their probabilities.
+        """
+
         self.threshold = threshold
         if isinstance(self.threshold, float):
             self.threshold = np.repeat(threshold, self.P)
         if isinstance(changepoint_prior, float):
             changepoint_prior = np.repeat(changepoint_prior, self.P)
+        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `rt_posterior`.
         self.rt_posterior = self._find_posterior(model, changepoint_prior)
         return self._construct_output(self.threshold, lag=self.lag)
 
     def get_posterior_predictive(self):
-        """
-        returns the posterior predictive.
+        """Returns the posterior predictive.
+
         This is  sum_{t=1}^T P(x_{t+1}|x_{1:t})
+
+        Args:
+            None.
+
+        Returns:
+            Array of predicted log probabilities for the next point.
         """
+
         return self.posterior_predictive
 
     def _find_posterior(self, model: Any, changepoint_prior: np.ndarray) -> np.ndarray:
@@ -521,6 +759,7 @@ class _BayesOnlineChangePoint(Detector):
         The steps here are the same as the algorithm described in
         Adams & McKay, 2007. https://arxiv.org/abs/0710.3742
         """
+
         # P(r_t|x_t)
         rt_posterior = np.zeros(self._posterior_shape)
 
@@ -536,8 +775,11 @@ class _BayesOnlineChangePoint(Detector):
         m_ptr = -1
 
         # set up arrays for debugging
+        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `pred_mean_arr`.
         self.pred_mean_arr = np.zeros(self._posterior_shape)
+        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `pred_std_arr`.
         self.pred_std_arr = np.zeros(self._posterior_shape)
+        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `next_pred_prob`.
         self.next_pred_prob = np.zeros(self._posterior_shape)
 
         # Calculate the log priors once outside the for-loop.
@@ -637,7 +879,22 @@ class _BayesOnlineChangePoint(Detector):
 
         return rt_posterior
 
+    # pyre-fixme[9]: threshold has type `float`; used as `None`.
+    # pyre-fixme[9]: lag has type `int`; used as `None`.
+    # pyre-fixme[9]: ts_names has type `List[str]`; used as `None`.
     def plot(self, threshold: float = None, lag: int = None, ts_names: List[str] = None):
+        """Plots the changepoints along with the timeseries.
+
+        Args:
+            threshold: between 0 and 1. probability values above the threshold will be
+                determined to be changepoints.
+            ts_names: list of names of the time series. Useful when there are multiple
+                time series.
+
+        Returns:
+            None.
+        """
+
         if threshold is None:
             threshold = self.threshold
 
@@ -678,9 +935,13 @@ class _BayesOnlineChangePoint(Detector):
             # if in debugging mode, plot the mean and variance as well
             if self.debug:
                 x_debug = list(range(lag + 1, self.T))
+                # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute
+                #  `pred_mean_arr`.
                 y_debug_mean = self.pred_mean_arr[lag + 1 : self.T, lag, ts_ix]
                 y_debug_uv = (
                     self.pred_mean_arr[lag + 1 : self.T, lag, ts_ix]
+                    # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute
+                    #  `pred_std_arr`.
                     + self.pred_std_arr[lag + 1 : self.T, lag, ts_ix]
                 )
 
@@ -696,6 +957,7 @@ class _BayesOnlineChangePoint(Detector):
             ax2 = plt.subplot(212, sharex=ax1)
 
             cp_plot_x = list(range(0, self.T - lag))
+            # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `rt_posterior`.
             cp_plot_y = np.copy(self.rt_posterior[lag : self.T, lag, ts_ix])
             # handle the fact that first point is not a changepoint
             cp_plot_y[0] = 0.0
@@ -709,6 +971,8 @@ class _BayesOnlineChangePoint(Detector):
                 plt.figure(figsize=(10, 4))
                 plt.plot(
                     list(range(lag + 1, self.T)),
+                    # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute
+                    #  `next_pred_prob`.
                     self.next_pred_prob[lag + 1 : self.T, lag, ts_ix],
                     "k-",
                 )
@@ -717,6 +981,7 @@ class _BayesOnlineChangePoint(Detector):
                 plt.title("Debugging: Predicted Probabilities")
 
     def _calc_agg_cppprob(self, t: int) -> np.ndarray:
+        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `rt_posterior`.
         run_length_pos = self.rt_posterior[:,:,t]
         np.fill_diagonal(run_length_pos, 0.0)
         change_prob = np.zeros(self.T)
@@ -724,12 +989,15 @@ class _BayesOnlineChangePoint(Detector):
             change_prob[i] = np.max(run_length_pos[i:,:(self.T-i)].diagonal())
         return change_prob
 
+    # pyre-fixme[11]: Annotation `array` is not defined as a type.
     def _construct_output(self, threshold: np.array, lag: int) -> Dict[str, Any]:
         output = {}
 
         for t, t_name in enumerate(self._ts_names):
             if not self.agg_cp:
                 # till lag, prob = 0, so prepend array with zeros
+                # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute
+                #  `rt_posterior`.
                 change_prob = np.hstack((self.rt_posterior[lag : self.T, lag, t], np.zeros(lag)))
                 # handle the fact that the first point is not a changepoint
                 change_prob[0] = 0.
@@ -746,12 +1014,22 @@ class _BayesOnlineChangePoint(Detector):
         return output
 
     def adjust_parameters(self, threshold: float, lag: int) -> Dict[str, Any]:
-        """
-        if the preset parameters are not giving the desired result,
+        """Adjust the parameters.
+
+        If the preset parameters are not giving the desired result,
         the user can adjust the parameters. Since the algorithm
         calculates changepoints for all lags, we can see how
-        changepoints look like for other lag/threshold
+        changepoints look like for other lag/threshold.
+
+        Args:
+            threshold: between 0 and 1. Probabilities above threshold are
+                considered to be changepoints.
+            lag: lag at which changepoints are calculated.
+
+        Returns:
+            cp_output: Dictionary with changepoint list and probabilities.
         """
+
         cp_output = self._construct_output(threshold=threshold, lag=lag)
         self.plot(threshold=threshold, lag=lag)
 
@@ -759,6 +1037,18 @@ class _BayesOnlineChangePoint(Detector):
 
 
 def check_data(data: TimeSeriesData):
+    """Small helper function to check if the data is in the appropriate format.
+
+    Currently, this only checks if we have enough data points to run the
+    algorithm meaningfully.
+
+    Args:
+        data: TimeSeriesData object, on which to run the algorithm.
+
+    Returns:
+        None.
+    """
+
     if data.value.shape[0] < _MIN_POINTS:
         raise ValueError(
             f"""
@@ -769,6 +1059,16 @@ def check_data(data: TimeSeriesData):
 
 
 class _PredictiveModel(ABC):
+    """Abstract class for BOCPD Predictive models.
+
+    This is an abstract class. All Predictive models
+    for BOCPD derive from this class.
+
+    Attributes:
+        data: TimeSeriesdata object we are modeling.
+        parameters: Parameter class, which contains BOCPD model parameters.
+    """
+
     @abstractmethod
     def __init__(self, data: TimeSeriesData, parameters: BOCPDModelParameters) -> None:
         pass
@@ -800,15 +1100,25 @@ class _PredictiveModel(ABC):
 
 
 class _NormalKnownPrec(_PredictiveModel):
+    """Predictive model where data comes from a Normal distribution.
+
+    This model is the Normal-Normal model, with known precision
+    It is specified in terms of precision for convenience.
+    It assumes that the data is generated from a normal distribution with
+    known precision.
+    The prior on the mean of the normal, is a normal distribution.
+
+    Attributes:
+        data: The Timeseriesdata object, for which the algorithm is run.
+        parameters: Parameters specifying the prior.
+    """
+
     def __init__(
         self,
         data: TimeSeriesData,
         parameters: NormalKnownParameters
     ):
-        """
-        This model is the Normal-Normal model, with known precision
-        It is specified in terms of precision for convenience.
-        """
+
         # \mu \sim N(\mu0, \frac{1}{\lambda0})
         # x \sim N(\mu,\frac{1}{\lambda})
 
@@ -921,14 +1231,21 @@ class _NormalKnownPrec(_PredictiveModel):
         return -np.log(std) - _LOG_SQRT2PI - 0.5 * ((x - mean) / std)**2
 
     def pred_prob(self, t: int, x: float) -> np.ndarray:
-        """
-        t is the time, x is the new data point
+        """Returns log predictive probabilities.
+
         We will give log predictive probabilities for
-        changepoints that started at times from 0 to t
+        changepoints that started at times from 0 to t.
 
         This posterior predictive is from
         https://www.cs.ubc.ca/~murphyk/Papers/bayesGauss.pdf
-        equation 36
+        equation 36.
+
+        Args:
+            t is the time,
+            x is the new data point
+
+        Returns:
+            pred_arr: Array with predicted log probabilities for each starting point.
         """
 
         pred_arr = self._norm_logpdf(
@@ -944,13 +1261,22 @@ class _NormalKnownPrec(_PredictiveModel):
     def pred_std(self, t: int, x: float) -> np.ndarray:
         return self._std_arr[self._maxT + self._ptr : self._maxT + self._ptr + t]
 
-    def update_sufficient_stats(self, x: float):
-        """
-        We will store the sufficient stats for
-        a streak starting at times 0, 1, ....t
+    def update_sufficient_stats(self, x: float) -> None:
+        """Updates sufficient statistics with new data.
 
-        This is eqn 29 and 30 in Kevin Murphy's note
+        We will store the sufficient stats for
+        a streak starting at times 0, 1, ....t.
+
+        This is eqn 29 and 30 in Kevin Murphy's note:
+                https://www.cs.ubc.ca/~murphyk/Papers/bayesGauss.pdf
+
+        Args:
+            x: The new data point.
+
+        Returns:
+            None.
         """
+
         # \lambda = \lambda_0 + n * \lambda
         # hence, online, at each step: lambda[i] = lambda[i-1] + 1* lambda
 
@@ -993,6 +1319,22 @@ class _NormalKnownPrec(_PredictiveModel):
 
 
 class _BayesianLinReg(_PredictiveModel):
+    """Predictive model for BOCPD where data comes from linear model.
+
+    Defines the predictive model, where we assume that the data points
+    come from a Bayesian Linear model, where the values are regressed
+    against time.
+    We use a conjugate prior, where we impose an Inverse gamma prior on
+    sigma^2 and normal prior on the conditional distribution of beta
+    p(beta|sigma^2)
+    See https://en.wikipedia.org/wiki/Bayesian_linear_regression
+    for the calculations.
+
+    Attributes:
+        data: TimeSeriesData object, on which algorithm is run
+        parameters: Specifying all the priors.
+    """
+
     def __init__(
         self,
         data: TimeSeriesData,
@@ -1034,7 +1376,16 @@ class _BayesianLinReg(_PredictiveModel):
         self._mean_arr = {}
         self._std_arr = {}
 
-    def setup(self):
+    def setup(self) -> None:
+        """Sets up the regression, by calculating the priors.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+
         data = self.data
         mu_prior = self.parameters.mu_prior
         num_points_prior = self.parameters.num_points_prior
@@ -1044,6 +1395,8 @@ class _BayesianLinReg(_PredictiveModel):
         # Set up linear regression prior
         if mu_prior is None:
             if data is not None:
+                # pyre-fixme[16]: `_BayesianLinReg` has no attribute
+                #  `prior_regression_numpoints`.
                 self.prior_regression_numpoints = num_points_prior
 
                 time = self.all_time[: self.prior_regression_numpoints]
@@ -1053,6 +1406,7 @@ class _BayesianLinReg(_PredictiveModel):
 
                 # Compute basic linear regression
                 slope, intercept, r_value, p_value, std_err = linregress(time, vals)
+                # pyre-fixme[16]: `_BayesianLinReg` has no attribute `mu_prior`.
                 self.mu_prior = np.array([intercept, slope])  # Set up mu_prior
 
                 if readjust_sigma_prior:
@@ -1144,7 +1498,17 @@ class _BayesianLinReg(_PredictiveModel):
 
         return bayesian_likelihoods, prediction, sample_sigma_squared
 
-    def pred_prob(self, t, x):
+    def pred_prob(self, t, x) -> np.ndarray:
+        """Predictive probability of a new data point
+
+        Args:
+            t: time
+            x: the new data point
+
+        Returns:
+            pred_arr: Array with log predictive probabilities for each starting point.
+        """
+
         # TODO: use better priors
         def log_post_pred(y, t, rl):
             N = self._x.shape[0]
@@ -1213,15 +1577,52 @@ class _BayesianLinReg(_PredictiveModel):
 
         pred_arr = [log_post_pred(y=x, t=t, rl=rl) for rl in range(t)]
 
+        # pyre-fixme[7]: Expected `ndarray` but got `List[typing.Any]`.
         return pred_arr
 
-    def pred_mean(self, t, x):
+    # pyre-fixme[15]: `pred_mean` overrides method defined in `_PredictiveModel`
+    #  inconsistently.
+    def pred_mean(self, t: int, x: float) -> float:
+        """Predicted mean at the next time point.
+
+        Args:
+            t: time.
+            x: the new data point.
+
+        Returns:
+            meant_arr[t]: mean value predicted at the next data point.
+        """
+
         return self._mean_arr[t]
 
-    def pred_std(self, t, x):
+    # pyre-fixme[15]: `pred_std` overrides method defined in `_PredictiveModel`
+    #  inconsistently.
+    def pred_std(self, t: int, x: float) -> float:
+        """
+        predicted standard deviation at the next time point.
+        Args:
+            t: time.
+            x: the new data point.
+
+        Returns:
+            std_arr[t]: predicted std. dev at the next point.
+        """
+
         return self._std_arr[t]
 
-    def update_sufficient_stats(self, x):
+    def update_sufficient_stats(self, x: float) -> None:
+        """Updates sufficient statistics.
+
+        Updates the sufficient statistics for posterior calculation,
+        based on the new data point.
+
+        Args:
+            x: the new data point.
+
+        Returns:
+            None.
+        """
+
         current_t = self.t
 
         if self._x is None:
@@ -1245,6 +1646,17 @@ class _BayesianLinReg(_PredictiveModel):
 
 
 class _PoissonProcessModel(_PredictiveModel):
+    """BOCPD Predictive model, where data comes from Poisson.
+
+    Predictive model, which assumes that the data
+    comes from a Poisson distribution. We use a
+    gamma distribution as a prior on the poisson rate parameter.
+
+    Attributes:
+        data: TimeSeriesData object, on which algorithm is run.
+        parameters: Specifying all the priors.
+    """
+
     def __init__(
         self,
         data: TimeSeriesData,
@@ -1270,16 +1682,58 @@ class _PoissonProcessModel(_PredictiveModel):
         pass
 
     def pred_prob(self, t, x):  # predict the probability that time t, we have value x
+        """Predictive log probability of a new data point.
+
+        Args:
+            t: time.
+            x: the new data point.
+
+        Returns:
+            probs: array of log probabilities, for each starting point.
+        """
+
         probs = nbinom.logpmf(x, self._n[t], self._p[t])
         return probs
 
     def pred_mean(self, t, x):
+        """Predicted mean at the next time point.
+
+        Args:
+            t: time.
+            x: the new data point.
+
+        Returns:
+            mean_arr[t]: mean predicted value at the next point.
+        """
+
         return self._mean_arr[t]
 
     def pred_std(self, t, x):
+        """Predicted std dev  at the next time point.
+
+        Args:
+            t: time.
+            x: the new data point.
+
+        Returns:
+            std_arr[t]: std. deviation of the prediction at the next point.
+        """
+
         return self._std_arr[t]
 
     def update_sufficient_stats(self, x):
+        """Updates sufficient statistics.
+
+        Updates the sufficient statistics for posterior calculation,
+        based on the new data point.
+
+        Args:
+            x: the new data point.
+
+        Returns:
+            None.
+        """
+
         new_n = []
         new_p = []
         new_mean_arr = []

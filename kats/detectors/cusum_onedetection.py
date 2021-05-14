@@ -183,6 +183,10 @@ class CUSUMDetectorModel(DetectorModel):
             You must either provide serialized model or values for scan_window and historical_window.
             """
             )
+        # pyre-fixme[58]: `>=` is not supported for operand types `int` and
+        #  `Optional[int]`.
+        # pyre-fixme[58]: `>=` is not supported for operand types `int` and
+        #  `Optional[int]`.
         if step_window is not None and step_window >= scan_window:
             raise ValueError(
                 "Step window should smaller than scan window to ensure we have overlap for scan windows."
@@ -307,13 +311,16 @@ class CUSUMDetectorModel(DetectorModel):
                     self.cps.pop(0)
 
                 self._set_alert_on(
+                    # pyre-fixme[29]: `Series` is not a function.
                     historical_data.value[: meta.cp_index + 1].mean(),
+                    # pyre-fixme[29]: `Series` is not a function.
                     historical_data.value[: meta.cp_index + 1].std(),
                     meta.direction,
                 )
         else:
             cur_mean = historical_data[scan_start_index:].value.mean()
 
+            # pyre-fixme[6]: Expected `str` for 2nd param but got `List[str]`.
             if self._if_normal(cur_mean, change_directions):
                 self.number_of_normal_scan += 1
                 if self.number_of_normal_scan >= NORMAL_TOLERENCE:
@@ -367,6 +374,8 @@ class CUSUMDetectorModel(DetectorModel):
             ),
         )
 
+    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
+    #  inconsistently.
     def fit_predict(
         self,
         data: TimeSeriesData,
@@ -452,6 +461,7 @@ class CUSUMDetectorModel(DetectorModel):
                 name=historical_data.value.name,
             )
 
+        # pyre-fixme[16]: `Timedelta` has no attribute `total_seconds`.
         smooth_window = int(scan_window.total_seconds() / frequency.total_seconds())
         if smooth_window > 1:
             smooth_historical_value = pd.Series(
@@ -474,6 +484,7 @@ class CUSUMDetectorModel(DetectorModel):
             # if len(all data) is smaller than historical window return zero score
             return AnomalyResponse(
                 scores=self._predict(smooth_historical_data[-len(data) :], score_func),
+                # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
                 confidence_band=None,
                 predicted_ts=None,
                 anomaly_magnitude_ts=self._zeros_ts(data),
@@ -490,6 +501,7 @@ class CUSUMDetectorModel(DetectorModel):
             # if len(all data) is smaller than scan data return zero score
             return AnomalyResponse(
                 scores=self._predict(smooth_historical_data[-len(data) :], score_func),
+                # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
                 confidence_band=None,
                 predicted_ts=None,
                 anomaly_magnitude_ts=self._zeros_ts(data),
@@ -500,6 +512,8 @@ class CUSUMDetectorModel(DetectorModel):
             # if step window is not provide use the time range of data or
             # half of the scan_window.
             step_window = min(
+                # pyre-fixme[58]: `/` is not supported for operand types `Timedelta`
+                #  and `int`.
                 scan_window / 2,
                 (data.time.iloc[-1] - data.time.iloc[0])
                 + frequency,  # to include the last data point
@@ -534,6 +548,7 @@ class CUSUMDetectorModel(DetectorModel):
             self._fit(
                 in_data,
                 in_hist,
+                # pyre-fixme[6]: Expected `int` for 3rd param but got `Timedelta`.
                 scan_window=scan_window,
                 threshold=threshold,
                 delta_std_ratio=delta_std_ratio,
@@ -564,6 +579,8 @@ class CUSUMDetectorModel(DetectorModel):
             self._fit(
                 in_data,
                 in_hist,
+                # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
+                # pyre-fixme[6]: Expected `int` for 3rd param but got `Timedelta`.
                 scan_window=scan_window,
                 threshold=threshold,
                 delta_std_ratio=delta_std_ratio,
@@ -581,6 +598,7 @@ class CUSUMDetectorModel(DetectorModel):
 
         return AnomalyResponse(
             scores=score_tsd,
+            # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
             confidence_band=None,
             predicted_ts=None,
             anomaly_magnitude_ts=self._zeros_ts(data),
@@ -600,6 +618,7 @@ class CUSUMDetectorModel(DetectorModel):
         else:
             raise ValueError("direction can only be right or left")
 
+    # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.
     def fit(
         self,
         data: TimeSeriesData,
@@ -607,6 +626,8 @@ class CUSUMDetectorModel(DetectorModel):
     ) -> None:
         self.fit_predict(data, historical_data)
 
+    # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
+    #  inconsistently.
     def predict(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
     ) -> AnomalyResponse:

@@ -79,8 +79,10 @@ class HourlyRatioDetector(Detector):
 
         lower_granularity = ["T", "S", "L", "U", "N"]
         if self.freq is None:
+            # pyre-fixme[8]: Attribute has type `Optional[str]`; used as `Timedelta`.
             self.freq = self.data.infer_freq_robust()
         if self.freq == "H" or (
+            # pyre-fixme[16]: `Optional` has no attribute `value`.
             isinstance(self.freq, pd.Timedelta) and self.freq.value == 3600000000000
         ):
             msg = "Input data is hourly data."
@@ -88,6 +90,8 @@ class HourlyRatioDetector(Detector):
             return
         if isinstance(self.freq, str):
             for level in lower_granularity:
+                # pyre-fixme[58]: `in` is not supported for right operand type
+                #  `Optional[str]`.
                 if level in self.freq:
                     msg = "Input data granularity is {} and we can continue processing using aggregation function.".format(
                         self.freq
@@ -154,6 +158,7 @@ class HourlyRatioDetector(Detector):
         return
 
     def _mahalanobis_test(
+        # pyre-fixme[11]: Annotation `array` is not defined as a type.
         self, obs: np.array, median: np.array, cov: np.array, alpha: float = 0.01
     ) -> Tuple[np.array, np.array]:
         """mahalanobis test function.
@@ -171,10 +176,13 @@ class HourlyRatioDetector(Detector):
 
         diff = obs - median
         scores = np.sum(diff * np.linalg.solve(cov, diff.T).T, axis=1)
+        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
         pvalue = 1.0 - scipy.stats.chi2(df=diff.shape[1]).cdf(scores)
         lab = pvalue <= alpha
         return (lab, pvalue)
 
+    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self, support_fraction=0.9) -> List[TimeSeriesChangePoint]:
         """Run detection algorithm.
 

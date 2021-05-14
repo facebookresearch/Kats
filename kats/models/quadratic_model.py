@@ -22,12 +22,10 @@ from kats.consts import Params, TimeSeriesData
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 from typing import List, Dict
 
-
 class QuadraticModelParams(Params):
     """Parameter class for Quadratic model.
 
     This is the parameter class for the quadratic model.
-
     Attributes:
         alpha: The alpha level for the confidence interval. The default alpha = 0.05 returns a 95% confidence interval
     """
@@ -65,7 +63,6 @@ class QuadraticModel(m.Model):
             )
             logging.error(msg)
             raise ValueError(msg)
-
     def fit(self) -> None:
         """fit Quadratic Model.
 
@@ -77,10 +74,13 @@ class QuadraticModel(m.Model):
         """
         logging.debug(
             "Call fit() with parameters: "
+            # pyre-fixme[16]: `QuadraticModel` has no attribute `params`.
             "alpha:{alpha}".format(alpha=self.params.alpha)
         )
 
         # prepare Xs and y for linear model
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `past_length`.
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `data`.
         self.past_length = len(self.data.time)
         _X = list(range(self.past_length))
         _X_quad = np.column_stack([_X, np.power(_X, 2)])
@@ -89,8 +89,10 @@ class QuadraticModel(m.Model):
         y = self.data.value
         quad_model = sm.OLS(y, X_quad)
 
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `model`.
         self.model = quad_model.fit()
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, include_history=False, **kwargs) -> pd.DataFrame:
         """predict with fitted quadratic model.
 
@@ -107,20 +109,30 @@ class QuadraticModel(m.Model):
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
 
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `freq`.
         self.freq = kwargs.get("freq", 'D')
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `include_history`.
         self.include_history = include_history
 
         if include_history:
+            # pyre-fixme[16]: `QuadraticModel` has no attribute `_X_future`.
+            # pyre-fixme[16]: `QuadraticModel` has no attribute `past_length`.
             self._X_future = list(range(0, self.past_length + steps))
         else:
             self._X_future = list(range(self.past_length, self.past_length + steps))
         _X_fcst = np.column_stack([self._X_future, np.power(self._X_future, 2)])
         X_fcst = sm.add_constant(_X_fcst)
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `model`.
         y_fcst = self.model.predict(X_fcst)
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `sdev`.
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `y_fcst_lower`.
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `y_fcst_upper`.
+        # pyre-fixme[16]: Module `statsmodels` has no attribute `sandbox`.
         self.sdev, self.y_fcst_lower, self.y_fcst_upper = wls_prediction_std(
+            # pyre-fixme[16]: `QuadraticModel` has no attribute `params`.
             self.model, exog=X_fcst, alpha=self.params.alpha
         )
-
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `y_fcst`.
         self.y_fcst = pd.Series(y_fcst)
         self.y_fcst_lower = pd.Series(self.y_fcst_lower)
         self.y_fcst_upper = pd.Series(self.y_fcst_upper)
@@ -128,11 +140,13 @@ class QuadraticModel(m.Model):
         # create future dates
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]
 
         if include_history:
             self.dates = np.concatenate((pd.to_datetime(self.data.time), self.dates))
 
+        # pyre-fixme[16]: `QuadraticModel` has no attribute `fcst_df`.
         self.fcst_df = pd.DataFrame(
             {
                 "time": self.dates,

@@ -79,6 +79,7 @@ class BayesianVAR(m.Model):
         self.start_date = copy_data.time[0]
         if isinstance(self.start_date, str):
             self.start_date = datetime.strptime(self.start_date, "%Y-%m-%d")
+        # pyre-fixme[16]: `DataFrame` has no attribute `time`.
         copy_data.time = pd.RangeIndex(0, len(copy_data))
         copy_data = TimeSeriesData(copy_data)
 
@@ -159,6 +160,7 @@ class BayesianVAR(m.Model):
     def fit(self) -> None:
         """Fit Bayesian VAR model"""
 
+        # pyre-fixme[16]: `BayesianVAR` has no attribute `sigma_ols`.
         self.sigma_ols = self._compute_sigma_ols()
 
         mu_prior = np.zeros((self.m, self.N))
@@ -196,6 +198,7 @@ class BayesianVAR(m.Model):
             Z_sig_Z_sum += z_sum_term
             Z_sig_y_sum += y_sum_term
 
+        # pyre-fixme[16]: `BayesianVAR` has no attribute `v_posterior`.
         self.v_posterior = inv(
             inv(v_prior) + Z_sig_Z_sum
         )  # shape: [m * (m * p + r + 1)] x [m * (m * p + r + 1)]
@@ -204,6 +207,7 @@ class BayesianVAR(m.Model):
             self.num_mu_coefficients,
         ) == self.v_posterior.shape, f"Expected {(self.num_mu_coefficients, self.num_mu_coefficients)}, got {self.v_posterior.shape}"
 
+        # pyre-fixme[16]: `BayesianVAR` has no attribute `mu_posterior`.
         self.mu_posterior = self.v_posterior @ (
             inv(v_prior) @ mu_prior + Z_sig_y_sum
         )  # shape: [m * (m * p + r + 1)] x 1
@@ -212,6 +216,7 @@ class BayesianVAR(m.Model):
         ) == self.mu_posterior.shape, (
             f"Expected {(self.num_mu_coefficients,)}, got {self.mu_posterior.shape}"
         )
+        # pyre-fixme[16]: `BayesianVAR` has no attribute `resid`.
         self.resid = self._get_training_residuals()
         self.fitted = True
 
@@ -321,6 +326,7 @@ class BayesianVAR(m.Model):
         assert t >= self.p, f"Need t={t} > p={self.p}."
 
         Z_t = self._construct_Zt(X_new, Y_new, t)
+        # pyre-fixme[16]: `BayesianVAR` has no attribute `mu_posterior`.
         point_prediction = Z_t @ self.mu_posterior  # shape [m x 1]
 
         assert (self.m,) == point_prediction.shape
@@ -334,12 +340,14 @@ class BayesianVAR(m.Model):
         t_ahead = X_ahead.shape[1] - 1  # -1 for 0-indexed array
 
         Z_t = self._construct_Zt(X_ahead, Y_curr, t_ahead)
+        # pyre-fixme[16]: `BayesianVAR` has no attribute `mu_posterior`.
         look_ahead_pred = Z_t @ self.mu_posterior  # shape [m x 1]
 
         assert (self.m,) == look_ahead_pred.shape
 
         return look_ahead_pred
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history=False, verbose=False
     ) -> Dict[str, TimeSeriesData]:
@@ -422,11 +430,16 @@ class BayesianVAR(m.Model):
             )
             indiv_forecasts[c] = TimeSeriesData(c_forecast)
 
+        # pyre-fixme[16]: `BayesianVAR` has no attribute `forecast`.
         self.forecast = indiv_forecasts
+        # pyre-fixme[16]: `BayesianVAR` has no attribute `forecast_max_time`.
         self.forecast_max_time = max(times_new)
 
         return self.forecast
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
+    #  defined in `m.Model`.
     def plot(self) -> None:
         """Plot forecasted results from Bayesian VAR model"""
 
@@ -438,11 +451,13 @@ class BayesianVAR(m.Model):
         for i, c in enumerate(self.data.value.columns):
             color = f"C{i}"
             plt.plot(self.data.time, self.data.value[c], c=color)
+            # pyre-fixme[16]: `BayesianVAR` has no attribute `forecast`.
             plt.plot(self.forecast[c].time, self.forecast[c].value, "--", c=color)
 
     @property
     def sigma_u(self) -> pd.DataFrame:
         return pd.DataFrame(
+            # pyre-fixme[16]: `BayesianVAR` has no attribute `sigma_ols`.
             self.sigma_ols,
             index=self.data.value.columns,
             columns=self.data.value.columns,

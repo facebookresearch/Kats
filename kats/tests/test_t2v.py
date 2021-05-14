@@ -18,10 +18,11 @@ from kats.transformers.t2v.utils import Normalize, Standardize
 
 
 class test_preprocessing(TestCase):
-    def test_regression(self):
+    def test_regression(self) -> None:
         # Create dummy time series
         ts = pd.DataFrame([np.arange(12), np.arange(12)]).transpose()
         ts.columns = ["time", "value"]
+        # pyre-fixme[16]: `test_preprocessing` has no attribute `ts`.
         self.ts = [TimeSeriesData(ts)]
 
         # Test Normalize normalization function
@@ -32,13 +33,17 @@ class test_preprocessing(TestCase):
             data=self.ts,
         )
         preprocessed = preprocessor.transform()
+        # pyre-fixme[16]: `NamedTuple` has no attribute `label`.
         self.assertTrue(preprocessed.label == [11])
         self.assertTrue(
             np.array_equal(
+                # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
                 preprocessed.seq[0], ((np.arange(11)) / 10).reshape([11, 1])
             )
         )
+        # pyre-fixme[16]: `NamedTuple` has no attribute `output_size`.
         self.assertTrue(preprocessed.output_size == 1)
+        # pyre-fixme[16]: `NamedTuple` has no attribute `window`.
         self.assertTrue(preprocessed.window == 11)
 
         # Test Standardize normalization function
@@ -57,6 +62,7 @@ class test_preprocessing(TestCase):
                 ).reshape([11, 1]),
             )
         )
+        # pyre-fixme[16]: `NamedTuple` has no attribute `batched`.
         self.assertFalse(preprocessed.batched)
 
         # Test regression with user defined label
@@ -79,10 +85,11 @@ class test_preprocessing(TestCase):
         preprocessor = T2VPreprocessing(param=param, data=self.ts, label=[1, 2])
         self.assertRaises(ValueError, preprocessor.transform)
 
-    def test_classification(self):
+    def test_classification(self) -> None:
         # Create dummy time series
         ts = pd.DataFrame([np.arange(12), np.arange(12)]).transpose()
         ts.columns = ["time", "value"]
+        # pyre-fixme[16]: `test_preprocessing` has no attribute `ts`.
         self.ts = [TimeSeriesData(ts)]
 
         # Test feeding float number as class label, should raise ValueError
@@ -96,12 +103,15 @@ class test_preprocessing(TestCase):
 
         preprocessor = T2VPreprocessing(param=param, data=self.ts, label=[2])
         preprocessed = preprocessor.transform()
+        # pyre-fixme[16]: `NamedTuple` has no attribute `label`.
         self.assertTrue(preprocessed.label == [2])
         self.assertTrue(
             np.array_equal(
+                # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
                 preprocessed.seq[0], ((np.arange(12)) / 11).reshape([12, 1])
             )
         )
+        # pyre-fixme[16]: `NamedTuple` has no attribute `output_size`.
         self.assertTrue(preprocessed.output_size == 3)
 
         # Test classification mode with Standardize
@@ -131,7 +141,7 @@ class test_preprocessing(TestCase):
 
 
 class test_batch(TestCase):
-    def test_case_1(self):
+    def test_case_1(self) -> None:
         # simulate dummy time series data
         TS = []
         for _ in range(100):
@@ -157,14 +167,20 @@ class test_batch(TestCase):
 
         batched = T2VBatch(preprocessed, param).transform()
         logging.info("Time series data batched.")
+        # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
         self.assertTrue(len(batched.seq) == 100)
+        # pyre-fixme[16]: `NamedTuple` has no attribute `batched_tensors`.
         self.assertTrue(len(batched.batched_tensors[0]) == 32)
         self.assertTrue(len(batched.batched_tensors[-1]) == 4)
+        # pyre-fixme[16]: `NamedTuple` has no attribute `batch_size`.
         self.assertTrue(batched.batch_size == 32)
         # testing if T2VBatched inherited all attributes from T2VProcessed
+        # pyre-fixme[16]: `NamedTuple` has no attribute `label`.
         self.assertTrue(np.array_equal(batched.label, preprocessed.label))
         self.assertTrue(np.array_equal(batched.seq, preprocessed.seq))
+        # pyre-fixme[16]: `NamedTuple` has no attribute `window`.
         self.assertTrue(batched.window == preprocessed.window)
+        # pyre-fixme[16]: `NamedTuple` has no attribute `batched`.
         self.assertTrue(batched.batched)
         self.assertFalse(preprocessed.batched)
         # test if the value matches
@@ -193,7 +209,7 @@ class test_batch(TestCase):
             batched.batched_tensors[-1][-1][1].item() == preprocessed.label[-1]
         )
 
-    def test_case_2(self):
+    def test_case_2(self) -> None:
         # simulate dummy time series data
         TS = []
         for _ in range(160):
@@ -220,11 +236,14 @@ class test_batch(TestCase):
         batched = T2VBatch(preprocessed, param).transform()
         logging.info("Time series data batched.")
 
+        # pyre-fixme[16]: `NamedTuple` has no attribute `batched_tensors`.
         self.assertTrue(len(batched.batched_tensors[-1]) == 16)
         self.assertTrue(len(batched.batched_tensors) == 10)
         self.assertTrue(
             np.array_equal(
                 batched.batched_tensors[0][-1][0].numpy(),
+                # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
+                # pyre-fixme[16]: `NamedTuple` has no attribute `window`.
                 preprocessed.seq[15].reshape([batched.window, 1]),
             )
         )
@@ -243,7 +262,7 @@ class test_batch(TestCase):
 
 class test_t2vnn(TestCase):
 
-    def test_regression(self):
+    def test_regression(self) -> None:
         # data simulation and initialization
         TS = []
         for _ in range(64):
@@ -303,7 +322,7 @@ class test_t2vnn(TestCase):
         test_embeddings = t2vnn.translate(test_preprocessed)
         self.assertTrue(len(test_embeddings[0]) == 16)
 
-    def test_classification(self):
+    def test_classification(self) -> None:
         # data simulation and initialization
         TS = []
         for _ in range(32):
@@ -360,6 +379,7 @@ class test_t2vnn(TestCase):
         t2vnn = T2VNN(batched, param)
         train_translated = t2vnn.train(translate=True)
         self.assertTrue(
+            # pyre-fixme[16]: `NamedTuple` has no attribute `batched_tensors`.
             train_translated["labels"][0] == batched.batched_tensors[0][0][1].item()
         )
 

@@ -166,40 +166,70 @@ class SARIMAModel(m.Model):
         """
 
         logging.debug("Call fit() method")
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `start_params`.
         self.start_params = start_params
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `transformed`.
         self.transformed = transformed
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `includes_fixed`.
         self.includes_fixed = includes_fixed
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `cov_type`.
         self.cov_type = cov_type
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `cov_kwds`.
         self.cov_kwds = cov_kwds
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `method`.
         self.method = method
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `maxiter`.
         self.maxiter = maxiter
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `full_output`.
         self.full_output = full_output
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `disp`.
         self.disp = disp
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `callback`.
         self.callback = callback
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `return_params`.
         self.return_params = return_params
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `optim_score`.
         self.optim_score = optim_score
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `optim_complex_step`.
         self.optim_complex_step = optim_complex_step
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `optim_hessian`.
         self.optim_hessian = optim_hessian
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `low_memory`.
         self.low_memory = low_memory
 
         logging.info("Created SARIMA model.")
         sarima = SARIMAX(
             self.data.value,
+            # pyre-fixme[16]: `SARIMAModel` has no attribute `params`.
             order=(self.params.p, self.params.d, self.params.q),
+            # pyre-fixme[16]: `Params` has no attribute `exog`.
             exog=self.params.exog,
+            # pyre-fixme[16]: `Params` has no attribute `seasonal_order`.
             seasonal_order=self.params.seasonal_order,
+            # pyre-fixme[16]: `Params` has no attribute `trend`.
             trend=self.params.trend,
+            # pyre-fixme[16]: `Params` has no attribute `measurement_error`.
             measurement_error=self.params.measurement_error,
+            # pyre-fixme[16]: `Params` has no attribute `time_varying_regression`.
             time_varying_regression=self.params.time_varying_regression,
+            # pyre-fixme[16]: `Params` has no attribute `mle_regression`.
             mle_regression=self.params.mle_regression,
+            # pyre-fixme[16]: `Params` has no attribute `simple_differencing`.
             simple_differencing=self.params.simple_differencing,
+            # pyre-fixme[16]: `Params` has no attribute `enforce_stationarity`.
             enforce_stationarity=self.params.enforce_stationarity,
+            # pyre-fixme[16]: `Params` has no attribute `enforce_invertibility`.
             enforce_invertibility=self.params.enforce_invertibility,
+            # pyre-fixme[16]: `Params` has no attribute `hamilton_representation`.
             hamilton_representation=self.params.hamilton_representation,
+            # pyre-fixme[16]: `Params` has no attribute `concentrate_scale`.
             concentrate_scale=self.params.concentrate_scale,
+            # pyre-fixme[16]: `Params` has no attribute `trend_offset`.
             trend_offset=self.params.trend_offset,
+            # pyre-fixme[16]: `Params` has no attribute `use_exact_diffuse`.
             use_exact_diffuse=self.params.use_exact_diffuse,
         )
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `model`.
         self.model = sarima.fit(
             start_params=self.start_params,
             transformed=self.transformed,
@@ -219,6 +249,7 @@ class SARIMAModel(m.Model):
         )
         logging.info("Fitted SARIMA.")
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history: bool = False, alpha: float = 0.05, **kwargs
     ) -> pd.DataFrame:
@@ -236,9 +267,14 @@ class SARIMAModel(m.Model):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `include_history`.
         self.include_history = include_history
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `freq`.
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `data`.
         self.freq = kwargs.get("freq", self.data.infer_freq_robust())
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `alpha`.
         self.alpha = alpha
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `model`.
         fcst = self.model.get_forecast(steps)
 
         logging.info("Generated forecast data from SARIMA model.")
@@ -249,11 +285,14 @@ class SARIMAModel(m.Model):
             logging.error(msg)
             raise ValueError(msg)
 
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst`.
         self.y_fcst = fcst.predicted_mean
         pred_interval = fcst.conf_int(alpha)
 
         if pred_interval.iloc[0, 0] < pred_interval.iloc[0, 1]:
+            # pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst_lower`.
             self.y_fcst_lower = np.array(pred_interval.iloc[:, 0])
+            # pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst_upper`.
             self.y_fcst_upper = np.array(pred_interval.iloc[:, 1])
         else:
             self.y_fcst_lower = np.array(pred_interval.iloc[:, 1])
@@ -262,6 +301,7 @@ class SARIMAModel(m.Model):
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
 
+        # pyre-fixme[16]: `SARIMAModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
 
         if include_history:
@@ -281,6 +321,7 @@ class SARIMAModel(m.Model):
                 )
                 logging.error(msg)
                 raise ValueError(msg)
+            # pyre-fixme[16]: `SARIMAModel` has no attribute `fcst_df`.
             self.fcst_df = pd.DataFrame(
                 {
                     "time": np.concatenate(
@@ -300,7 +341,9 @@ class SARIMAModel(m.Model):
             # thus we need to assign np.nan to avoid confusion
             # k = max(p, d, q) + max(P, D, Q) * seasonal_order + 1
             k = (
+                # pyre-fixme[16]: `SARIMAModel` has no attribute `params`.
                 max(self.params.p, self.params.d, self.params.q)
+                # pyre-fixme[16]: `Params` has no attribute `seasonal_order`.
                 + max(self.params.seasonal_order[0:3]) * self.params.seasonal_order[3]
                 + 1
             )
@@ -336,4 +379,6 @@ class SARIMAModel(m.Model):
         Returns:
             A dictionary representing the default SARIMA parameter search space.
         """
+        # pyre-fixme[7]: Expected `List[Dict[str, object]]` but got `List[Dict[str,
+        #  typing.Union[List[typing.Any], bool, str]]]`.
         return get_default_sarima_parameter_search_space()

@@ -29,12 +29,17 @@ class T2VBatch:
         preprocessed: NamedTuple,
         param: NamedTuple,
     ):
+        # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
         self.seq = preprocessed.seq
+        # pyre-fixme[16]: `NamedTuple` has no attribute `label`.
         self.label = preprocessed.label
+        # pyre-fixme[16]: `NamedTuple` has no attribute `output_size`.
         self.output_size = preprocessed.output_size
+        # pyre-fixme[16]: `NamedTuple` has no attribute `window`.
         self.window = preprocessed.window
         logging.info("all attributes inherited from T2VProcessed.")
 
+        # pyre-fixme[16]: `NamedTuple` has no attribute `batch_size`.
         self.batch_size = param.batch_size
 
     def transform(
@@ -77,14 +82,23 @@ class T2VBatch:
             ],
         )
 
+        # pyre-fixme[41]: Cannot reassign final attribute `seq`.
+        # pyre-fixme[41]: Cannot reassign final attribute `label`.
+        # pyre-fixme[41]: Cannot reassign final attribute `window`.
+        # pyre-fixme[41]: Cannot reassign final attribute `output_size`.
         T2VBatched.seq, T2VBatched.label, T2VBatched.window, T2VBatched.output_size = (
             self.seq,
             self.label,
             self.window,
             self.output_size,
         )
+        # pyre-fixme[41]: Cannot reassign final attribute `batched_tensors`.
         T2VBatched.batched_tensors = tensors  # batched tensors
+        # pyre-fixme[41]: Cannot reassign final attribute `batch_size`.
         T2VBatched.batch_size = self.batch_size
+        # pyre-fixme[41]: Cannot reassign final attribute `batched`.
         T2VBatched.batched = True  # setting batched to True for downstream functions
 
+        # pyre-fixme[7]: Expected `NamedTuple` but got
+        #  `Type[T2VBatch.transform.T2VBatched]`.
         return T2VBatched

@@ -36,20 +36,20 @@ bm5 = BaseTHModel(level=5, fcsts=np.random.randn(5), residuals=np.random.randn(l
 
 
 class testHelperFunctions(TestCase):
-    def test_calc_mape(self):
+    def test_calc_mape(self) -> None:
         pred = np.array([0, 1, 1])
         truth = np.array([0, 1, 2])
 
         self.assertEqual(0.25, calc_mape(pred, truth))
 
-    def test_calc_mae(self):
+    def test_calc_mae(self) -> None:
         pred = np.array([0, 1, 1])
         truth = np.array([0, 1, 4])
         self.assertEqual(1.0, calc_mae(pred, truth))
 
 
 class testBaseTHModel(TestCase):
-    def test_initialization(self):
+    def test_initialization(self) -> None:
 
         BaseTHModel(2, model_name="prophet", model_params=prophet.ProphetParams())
         BaseTHModel(1, residuals=np.random.randn(4), fcsts=np.random.randn(4))
@@ -63,7 +63,7 @@ class testBaseTHModel(TestCase):
 
 
 class testGetAggregateTS(TestCase):
-    def test(self):
+    def test(self) -> None:
         gat1 = GetAggregateTS(ts)
         agg_res1 = gat1.aggregate([1, 5, 10])
         # Aggregated TS for level 1 should be equal to original TS.
@@ -85,7 +85,7 @@ class testGetAggregateTS(TestCase):
 
 
 class testTemporalHierarchicalModel(TestCase):
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         self.assertRaises(
             ValueError, TemporalHierarchicalModel, ts, [prophet.Prophet()]
         )
@@ -105,7 +105,7 @@ class testTemporalHierarchicalModel(TestCase):
             ],
         )
 
-    def test_model(self):
+    def test_model(self) -> None:
         thm = TemporalHierarchicalModel(ts, [bm1, bm2, bm5])
         # should fit model first.
         self.assertRaises(ValueError, thm.predict, steps=30)

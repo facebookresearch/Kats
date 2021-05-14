@@ -46,9 +46,12 @@ class Detector(ABC):
         """
         df = []
         self.detector()
+        # pyre-fixme[16]: `Detector` has no attribute `iter`.
+        # pyre-fixme[16]: `Detector` has no attribute `iter`.
         self.iter = TimeSeriesIterator(self.data)
         i = 0
         for ts in self.iter:
+            # pyre-fixme[16]: `Detector` has no attribute `outliers`.
             ts.loc[self.outliers[i], "y"] = np.nan
             df.append(ts)
             i = i + 1

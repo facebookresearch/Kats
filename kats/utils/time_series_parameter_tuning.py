@@ -171,6 +171,10 @@ class TimeSeriesEvaluationMetric(Metric):
             "sem": evaluation_result[1],
         }
 
+    # pyre-fixme[14]: `fetch_trial_data` overrides method defined in `Metric`
+    #  inconsistently.
+    # pyre-fixme[14]: `fetch_trial_data` overrides method defined in `Metric`
+    #  inconsistently.
     def fetch_trial_data(self, trial) -> Data:
         """Calls evaluation of every arm in a trial.
 
@@ -212,9 +216,16 @@ class TimeSeriesParameterTuning(ABC):
 
     def __init__(
         self,
+        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
+        # pyre-fixme[9]: parameters has type `List[Dict[typing.Any, typing.Any]]`;
+        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
+        #  used as `None`.
         parameters: List[Dict] = None,
+        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
         experiment_name: str = None,
+        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
         objective_name: str = None,
+        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
         outcome_constraints: List[str] = None,
         multiprocessing: bool = False,
     ) -> None:
@@ -316,6 +327,8 @@ class TimeSeriesParameterTuning(ABC):
             generator_run: Generator_run object that is used to populate new arms
         """
 
+        # pyre-fixme[16]: `TimeSeriesParameterTuning` has no attribute
+        #  `evaluation_function`.
         self.evaluation_function = evaluation_function
         if self.outcome_constraints:
             # Convert dummy base Metrics to TimeseriesEvaluationMetrics
@@ -346,9 +359,13 @@ class TimeSeriesParameterTuning(ABC):
             outcome_constraints=self.outcome_constraints,
         )
 
+        # pyre-fixme[6]: Expected `Optional[GeneratorRun]` for 1st param but got
+        #  `DiscreteModelBridge`.
         self._exp.new_batch_trial(generator_run=generator_run)
         # We run the most recent batch trial as we only run candidate trials
         self._exp.trials[max(self._exp.trials)].run()
+        # pyre-fixme[6]: Expected `Iterable[ax.core.data.Data]` for 1st param but
+        #  got `Iterable[ax.core.abstract_data.AbstractDataFrameData]`.
         self._trial_data = Data.from_multiple_data([self._trial_data, self._exp.fetch_trials_data(trial_indices=[max(self._exp.trials)])])
 
     @abstractmethod
@@ -389,6 +406,8 @@ class TimeSeriesParameterTuning(ABC):
         ]
         transform.drop(columns="parameters", level=0, inplace=True)
         new_cols = new_cols.drop(labels=filter(lambda x: "parameters" in x, new_cols))
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
+        # pyre-fixme[16]: `Series` has no attribute `columns`.
         transform.columns = ["trial_index", "arm_name"] + [
             "_".join(tpl) for tpl in new_cols[2:]
         ]
@@ -431,6 +450,7 @@ class TimeSeriesParameterTuning(ABC):
         )
         if self.outcome_constraints:
             # Deduplicate entries for which there are outcome constraints
+            # pyre-fixme[16]: `None` has no attribute `index`.
             armscore_df = armscore_df.loc[armscore_df.astype(str).drop_duplicates().index]
             if legit_arms_only:
 
@@ -459,6 +479,8 @@ class TimeSeriesParameterTuning(ABC):
 
                 filtered_arms = filter_violating_arms(
                     list(self._exp.arms_by_name.values()),
+                    # pyre-fixme[6]: Expected `Data` for 2nd param but got
+                    #  `AbstractDataFrameData`.
                     self._exp.fetch_data(),
                     self._exp.optimization_config,
                 )
@@ -469,9 +491,6 @@ class TimeSeriesParameterTuning(ABC):
         return armscore_df
 
 
-# This class is prohibited to be derived nor instantiated. It is static, a
-# factory-class to create search method objects such as GridSearch, or
-# RandomSearch. Those objects are not meant to be initialized directly.
 class SearchMethodFactory(metaclass=Final):
     """Generates and returns  search strategy object.
     """
@@ -486,12 +505,19 @@ class SearchMethodFactory(metaclass=Final):
     def create_search_method(
         parameters: List[Dict],
         selected_search_method: SearchMethodEnum = SearchMethodEnum.GRID_SEARCH,
+        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
         experiment_name: str = None,
+        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
         objective_name: str = None,
+        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
         outcome_constraints: List[str] = None,
+        # pyre-fixme[9]: seed has type `int`; used as `None`.
         seed: int = None,
         bootstrap_size: int = 5,
+        # pyre-fixme[9]: evaluation_function has type `(...) -> Any`; used as `None`.
         evaluation_function: Callable = None,
+        # pyre-fixme[9]: bootstrap_arms_for_bayes_opt has type
+        #  `List[Dict[typing.Any, typing.Any]]`; used as `None`.
         bootstrap_arms_for_bayes_opt: List[dict] = None,
         multiprocessing: bool = False,
     ) -> TimeSeriesParameterTuning:
@@ -592,8 +618,11 @@ class GridSearch(TimeSeriesParameterTuning):
     def __init__(
         self,
         parameters: List[Dict],
+        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
         experiment_name: str = None,
+        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
         objective_name: str = None,
+        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
         outcome_constraints: List[str] = None,
         multiprocessing: bool = False,
         **kwargs,
@@ -661,10 +690,14 @@ class RandomSearch(TimeSeriesParameterTuning):
     def __init__(
         self,
         parameters: List[Dict],
+        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
         experiment_name: str = None,
+        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
         objective_name: str = None,
+        # pyre-fixme[9]: seed has type `int`; used as `None`.
         seed: int = None,
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
+        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
         outcome_constraints: List[str] = None,
         multiprocessing: bool = False,
         **kwargs,
@@ -755,11 +788,15 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         self,
         parameters: List[Dict],
         evaluation_function: Callable,
+        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
         experiment_name: str = None,
+        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
         objective_name: str = None,
         bootstrap_size: int = 5,
+        # pyre-fixme[9]: seed has type `int`; used as `None`.
         seed: int = None,
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
+        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
         outcome_constraints: List[str] = None,
         multiprocessing: bool = False,
         **kwargs,
@@ -825,6 +862,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         scenarios. We re-initiate BOTORCH model on each call.
         """
 
+        # pyre-fixme[16]: `BayesianOptSearch` has no attribute `_bayes_opt_model`.
         self._bayes_opt_model = Models.BOTORCH(
             experiment=self._exp,
             data=self._trial_data,
@@ -840,8 +878,11 @@ class SearchForMultipleSpaces:
         self,
         parameters: Dict[str, List[Dict]],
         search_method: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
+        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
         experiment_name: str = None,
+        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
         objective_name: str = None,
+        # pyre-fixme[9]: seed has type `int`; used as `None`.
         seed: int = None,
     ) -> None:
         """Search class that runs search for multiple search spaces.
@@ -896,6 +937,7 @@ class SearchForMultipleSpaces:
         )
 
     def list_parameter_value_scores(
+        # pyre-fixme[9]: selected_model has type `str`; used as `None`.
         self, selected_model: str = None
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         """Calls list_parameter_value_scores() for the model that the name is given

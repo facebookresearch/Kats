@@ -63,18 +63,25 @@ class OutlierDetector(Detector):
         Returns: List of detected outlier timepoints in each metric
         """
 
+        # pyre-fixme[16]: `DataFrame` has no attribute `index`.
         original.index = pd.to_datetime(original.index)
 
         if pd.infer_freq(original.index) is None:
+            # pyre-fixme[9]: original has type `DataFrame`; used as
+            #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
             original = original.asfreq("D")
             logging.info("Setting frequency to Daily since it cannot be inferred")
 
+        # pyre-fixme[9]: original has type `DataFrame`; used as `Union[None,
+        #  pd.core.frame.DataFrame, pd.core.series.Series]`.
         original = original.interpolate(
             method="polynomial", limit_direction="both", order=3
         )
 
         # This is a hack since polynomial interpolation is not working here
         if sum((np.isnan(x) for x in original["y"])):
+            # pyre-fixme[9]: original has type `DataFrame`; used as `Union[None,
+            #  pd.core.frame.DataFrame, pd.core.series.Series]`.
             original = original.interpolate(method="linear", limit_direction="both")
 
         # Once our own decomposition is ready, we can directly use it here
@@ -91,6 +98,7 @@ class OutlierDetector(Detector):
         limits = resid_q + (self.iqr_mult * iqr * np.array([-1, 1]))
 
         outliers = resid[(resid >= limits[1]) | (resid <= limits[0])]
+        # pyre-fixme[16]: `OutlierDetector` has no attribute `outliers_index`.
         self.outliers_index = list(outliers.index)
         return list(outliers.index)
 
@@ -152,6 +160,7 @@ class MultivariateAnomalyDetector(Detector):
         params.validate_params()
         self.params = params
 
+        # pyre-fixme[16]: `Optional` has no attribute `diff`.
         time_diff = data.time.sort_values().diff().dropna()
         if len(time_diff.unique()) == 1:  # check constant frequenccy
             freq = time_diff.unique()[0].astype("int")
@@ -178,6 +187,7 @@ class MultivariateAnomalyDetector(Detector):
         """
 
         z_score_threshold = 3
+        # pyre-fixme[16]: Module `stats` has no attribute `zscore`.
         zscore_df = stats.zscore(df)
         non_outlier_flag = zscore_df < z_score_threshold
         df_clean = df.where(non_outlier_flag, np.nan)
@@ -220,7 +230,9 @@ class MultivariateAnomalyDetector(Detector):
         model.fit()
         lag_order = model.k_ar
         logging.info(f"Fitted VAR model of order {lag_order}")
+        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute `resid`.
         self.resid = model.resid
+        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute `sigma_u`.
         self.sigma_u = model.sigma_u
         if ~(self._is_pos_def(self.sigma_u)):
             msg = f"Fitted Covariance matrix at time {t} is not positive definite"
@@ -251,10 +263,12 @@ class MultivariateAnomalyDetector(Detector):
         """
 
         # individual anomaly scores
+        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute `sigma_u`.
         cov = self.sigma_u
         residual_score = {}
         rt = pred_df["est"] - pred_df["actual"]
         for col in cov.columns:
+            # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute `resid`.
             residual_mean = self.resid[col].mean()
             residual_var = self.resid[col].var()
             residual_score[col] = np.abs((rt[col] - residual_mean)) / np.sqrt(residual_var)
@@ -267,10 +281,13 @@ class MultivariateAnomalyDetector(Detector):
         residual_score["overall_anomaly_score"] = overall_anomaly_score
         # calculate p-values
         dof = len(self.df.columns)
+        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
         residual_score['p_value']= stats.chi2.sf(overall_anomaly_score, df=dof)
 
         return residual_score
 
+    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self) -> pd.DataFrame:
         """
         Fit the detection model and return the results
@@ -292,6 +309,8 @@ class MultivariateAnomalyDetector(Detector):
             anomaly_scores_t = pd.DataFrame(anomaly_scores_t, index=[fcstTime])
             anomaly_score_df = anomaly_score_df.append(anomaly_scores_t)
 
+        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute
+        #  `anomaly_score_df`.
         self.anomaly_score_df = anomaly_score_df
         return anomaly_score_df
 
@@ -307,6 +326,8 @@ class MultivariateAnomalyDetector(Detector):
             List of time instants when the system of metrics show anomalous behavior
         """
 
+        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute
+        #  `anomaly_score_df`.
         flag = self.anomaly_score_df.p_value < alpha
         anomaly_ts = self.anomaly_score_df[flag].index
 
@@ -324,6 +345,8 @@ class MultivariateAnomalyDetector(Detector):
             DataFrame with metrics and their corresponding anomaly score
         """
 
+        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute
+        #  `anomaly_score_df`.
         residual_scores = self.anomaly_score_df.drop(columns="overall_anomaly_score")
         residual_scores_t = (
             residual_scores.loc[t, :].sort_values(ascending=False).reset_index()

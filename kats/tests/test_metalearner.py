@@ -6,8 +6,6 @@
 
 import collections
 import logging
-from datetime import timedelta
-from io import BytesIO
 from unittest import TestCase
 
 import numpy as np
@@ -30,23 +28,15 @@ from kats.models.sarima import SARIMAModel
 from kats.models.stlf import STLFModel
 from kats.models.theta import ThetaModel
 from kats.tsfeatures.tsfeatures import TsFeatures
-from manifold.clients.python import ManifoldClient
 
-# import time series data
-BUCKET = "kats_dev_ds_no_pii"
-FILE_PATH = "flat/air"
-FILE_PATH_MULTI = "flat/cdn"
-try:
-    DATA = pd.read_csv("kats/data/air_passengers.csv")
-except FileNotFoundError:
-    with ManifoldClient.get_client(BUCKET) as client:
-        stream = BytesIO()
-        client.sync_get(FILE_PATH, stream, timeout=timedelta(minutes=5))
-        stream.seek(0)
-        DATA = pd.read_csv(stream, encoding="utf-8")
 
-DATA.columns = ["time", "y"]
-TSData = TimeSeriesData(DATA.iloc[:60, :])
+DATA = pd.DataFrame(
+    {
+        "time": pd.date_range("2020-05-06", periods=60, freq="D"),
+        "y": np.arange(1, 61),
+    }
+)
+TSData = TimeSeriesData(DATA)
 
 # TS which is too short
 TSData_short = TimeSeriesData(DATA.iloc[:8, :])
@@ -54,32 +44,39 @@ TSData_short = TimeSeriesData(DATA.iloc[:8, :])
 # TS which has constant values only
 DATA_const = DATA.copy()
 DATA_const["y"] = 1
+# pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param but got
+#  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
 TSData_const = TimeSeriesData(DATA_const)
 
 # TS which has NAN values
 DATA_nan = DATA.copy()
 DATA_nan.iloc[10, 1] = np.nan
+# pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param but got
+#  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
 TSData_nan = TimeSeriesData(DATA_nan)
 
 # TS which has INF values
 DATA_inf = DATA.copy()
 DATA_inf.iloc[10, 1] = np.inf
+# pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param but got
+#  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
 TSData_inf = TimeSeriesData(DATA_inf)
 
 # TS which doesn't have constant frequency
 DATA_gap = DATA.copy()
 DATA_gap = DATA_gap.drop([3, 4])
+# pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param but got
+#  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
 TSData_gap = TimeSeriesData(DATA_gap)
 
 # TS which is not univariate
-try:
-    DATA_multi = pd.read_csv("kats/kats/data/cdn_working_set.csv")
-except FileNotFoundError:
-    with ManifoldClient.get_client(BUCKET) as client:
-        stream = BytesIO()
-        client.sync_get(FILE_PATH_MULTI, stream, timeout=timedelta(minutes=5))
-        stream.seek(0)
-        DATA_multi = pd.read_csv(stream, encoding="utf-8")
+DATA_multi = pd.DataFrame(
+    {
+        "time": pd.date_range("2020-05-06", periods=60, freq="D"),
+        "y": np.arange(1, 61),
+        "z": np.random.randn(60),
+    }
+)
 TSData_multi = TimeSeriesData(DATA_multi)
 
 # Base Models
@@ -170,7 +167,7 @@ def equals(v1, v2):
 
 
 class testMetaLearner(TestCase):
-    def test_get_meta_data(self):
+    def test_get_meta_data(self) -> None:
         # test GetMetaData using a simple case
         metadata = GetMetaData(data=TSData, num_trials=2, num_arms=1)
         res = metadata.get_meta_data()
@@ -187,7 +184,7 @@ class testMetaLearner(TestCase):
             ["arima", "holtwinters", "prophet", "theta", "stlf", "sarima"],
         )
 
-    def test_inputdata_errors(self):
+    def test_inputdata_errors(self) -> None:
         # test input data error (time series' type is not TimeSeriesData)
         self.assertRaises(ValueError, GetMetaData, DATA)
 
@@ -211,7 +208,7 @@ class testMetaLearner(TestCase):
 
 
 class MetaLearnModelSelectTest(TestCase):
-    def test_initialize(self):
+    def test_initialize(self) -> None:
 
         self.assertRaises(ValueError, MetaLearnModelSelect, [])
 
@@ -231,7 +228,7 @@ class MetaLearnModelSelectTest(TestCase):
             [{"hpt_res": [1.0], "features": {"f": 1.0}, "best_model": "best"}] * 40,
         )
 
-    def test_model(self):
+    def test_model(self) -> None:
         samples = generate_meta_data(n=35)
         mlms = MetaLearnModelSelect(samples)
 
@@ -296,14 +293,14 @@ class MetaLearnModelSelectTest(TestCase):
 
 
 class MetaLearnPredictabilityTest(TestCase):
-    def test_initialize(self):
+    def test_initialize(self) -> None:
         self.assertRaises(ValueError, MetaLearnPredictability)
 
         self.assertRaises(ValueError, MetaLearnPredictability, metadata=[])
 
         MetaLearnPredictability(load_model=True)
 
-    def test_model(self):
+    def test_model(self) -> None:
         # Train a model
         data = generate_meta_data(40)
         mlp = MetaLearnPredictability(data)
@@ -329,7 +326,7 @@ class MetaLearnPredictabilityTest(TestCase):
 
 
 class MetaLearnHPTTest(TestCase):
-    def test_default_models(self):
+    def test_default_models(self) -> None:
         t1, t2 = generate_test_ts()
         t2_df = t2.to_dataframe().copy()
         feature1 = np.random.randn(3 * 40).reshape(3, -1)
@@ -384,7 +381,7 @@ class MetaLearnHPTTest(TestCase):
         equals(feature2, feature2_copy)
         equals(feature3, feature3_copy)
 
-    def test_initialize(self):
+    def test_initialize(self) -> None:
         x, y = generate_meta_data_by_model("arima", 150, 40)
         self.assertRaises(ValueError, MetaLearnHPT, x, y)
         # Test load model method
@@ -397,12 +394,14 @@ class MetaLearnHPTTest(TestCase):
             ValueError, MetaLearnHPT, x, y, categorical_idx=["p"], default_model="arima"
         )
 
-    def test_customized_models(self):
+    def test_customized_models(self) -> None:
         t1, t2 = generate_test_ts()
         x, y = generate_meta_data_by_model("arima", 150, 40)
         # Test customized model
         mlhpt = MetaLearnHPT(x, y, ["p"], ["d", "q"])
         self.assertRaises(ValueError, mlhpt.build_network)
+        # pyre-fixme[6]: Expected `Optional[typing.List[int]]` for 2nd param but got
+        #  `List[typing.List[int]]`.
         mlhpt.build_network([40], [[5]], [10, 20])
         mlhpt.train()
         mlhpt.pred(t2)
