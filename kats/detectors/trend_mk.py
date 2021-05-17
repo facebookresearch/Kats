@@ -7,7 +7,7 @@
 import datetime
 import logging
 from datetime import timedelta
-from typing import Dict, List, NewType, Tuple
+from typing import Dict, List, NewType, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -41,7 +41,7 @@ class MKMetadata:
        a Dict in the multivarite case
     """
 
-    def __init__(self, is_multivariate: bool, trend_direction: str, Tau: float or Dict):
+    def __init__(self, is_multivariate: bool, trend_direction: str, Tau: Union[float, Dict]):
         self._detector_type = MKDetector
         self._is_multivariate = is_multivariate
         self._trend_direction = trend_direction
@@ -108,6 +108,7 @@ class MKDetector(Detector):
 
     def __init__(
         self,
+        # pyre-fixme[9]: data has type `TimeSeriesData`; used as `None`.
         data: TimeSeriesData = None,
         threshold: float = 0.8,
         alpha: float = 0.05,
@@ -133,6 +134,7 @@ class MKDetector(Detector):
                     "Your data is univariate. A univariate MK test will be performed."
                 )
 
+    # pyre-fixme[9]: freq has type `str`; used as `None`.
     def _remove_seasonality(self, ts: pd.DataFrame, freq: str = None) -> pd.DataFrame:
         """ Remove seasonality in the time series using moving average. """
 
@@ -140,6 +142,7 @@ class MKDetector(Detector):
             return ts  # no seasonality
         else:
             map = {"weekly": 7, "monthly": 30, "yearly": 365}
+            # pyre-fixme[29]: `Series` is not a function.
             ts = ts.rolling(window=map[freq]).mean()
         return ts
 
@@ -154,12 +157,14 @@ class MKDetector(Detector):
                     model = SimpleExpSmoothing(ts_c)
                     _fit = model.fit(smoothing_level=0.2, optimized=False)
                     smoothed_ts_tmp = _fit.predict(
+                        # pyre-fixme[16]: Optional type has no attribute `index`.
                         start=ts_c.index[0], end=ts_c.index[-1]
                     )
                     smoothed_ts = pd.concat(
                         [smoothed_ts, smoothed_ts_tmp.rename(c)], axis=1
                     )
                 except FloatingPointError:
+                    # pyre-fixme[6]: Expected `Union[typing.Iterable[pd.core.frame.Da...
                     smoothed_ts = pd.concat([smoothed_ts, ts_c], axis=1)
                     logging.debug(
                         "Your data does not have noise. No need for smoothing"
@@ -167,11 +172,13 @@ class MKDetector(Detector):
 
         return smoothed_ts
 
+    # pyre-fixme[11]: Annotation `array` is not defined as a type.
     def _preprocessing(self, ts: pd.DataFrame) -> Tuple[np.array, int]:
         """Check and convert the dataframe ts to an numpy array of length n.
         ts is a time series dataframe with time as index."""
 
         # takes only window_size days
+        # pyre-fixme[16]: `MKDetector` has no attribute `window_size`.
         x = np.asarray(ts[-self.window_size :])
         dim = x.ndim
 
@@ -291,11 +298,15 @@ class MKDetector(Detector):
 
         return {"ds": anchor_date, "trend_direction": trend, "p": p, "Tau": Tau}
 
+    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
         self,
         window_size: int = 20,
+        # pyre-fixme[9]: training_days has type `int`; used as `None`.
         training_days: int = None,
         direction: str = "both",
+        # pyre-fixme[9]: freq has type `str`; used as `None`.
         freq: str = None,
     ) -> List[Tuple[TimeSeriesChangePoint, MKMetadata]]:
         """
@@ -318,14 +329,20 @@ class MKDetector(Detector):
                 choose from {'weekly','monthly','yearly'} (None by default)
         """
 
+        # pyre-fixme[16]: `MKDetector` has no attribute `window_size`.
         self.window_size = window_size
+        # pyre-fixme[16]: `MKDetector` has no attribute `training_days`.
         self.training_days = training_days
+        # pyre-fixme[16]: `MKDetector` has no attribute `direction`.
         self.direction = direction
+        # pyre-fixme[16]: `MKDetector` has no attribute `freq`.
         self.freq = freq
 
         ts = self.data.to_dataframe().set_index("time")
         ts = ts.dropna(axis=1)
+        # pyre-fixme[16]: `DataFrame` has no attribute `index`.
         ts.index = pd.DatetimeIndex(ts.index.values, freq=ts.index.inferred_freq)
+        # pyre-fixme[16]: `MKDetector` has no attribute `ts`.
         self.ts = ts
 
         if self.training_days is None:
@@ -386,6 +403,7 @@ class MKDetector(Detector):
                     self.runDetector(ts=ts_tmp), ignore_index=True
                 )
 
+        # pyre-fixme[16]: `MKDetector` has no attribute `MK_statistics`.
         self.MK_statistics = MK_statistics
 
         # take the subset for detection with specified trend_direction
@@ -457,8 +475,10 @@ class MKDetector(Detector):
         This function obtains dataframe MK_statistics.
         """
 
+        # pyre-fixme[16]: `MKDetector` has no attribute `MK_statistics`.
         return self.MK_statistics
 
+    # pyre-fixme[9]: top_k has type `int`; used as `None`.
     def get_top_k_metrics(self, time_point: dt, top_k: int = None) -> pd.DataFrame:
         """
         This function obtains k metrics that shows the most significant trend at a time point.
@@ -476,6 +496,7 @@ class MKDetector(Detector):
             id_vars=["ds"], var_name="metric", value_name="trend_direction"
         )
 
+        # pyre-fixme[16]: `MKDetector` has no attribute `training_days`.
         if self.training_days is not None:
             time_point = self.data.time.iloc[-1]
             # time_point default to the only anchor date for real-time detection
@@ -486,8 +507,10 @@ class MKDetector(Detector):
         MK_statistics_tp = pd.merge(Tau_df_tp, trend_df_tp)
 
         # sort the metrics according to their Tau
+        # pyre-fixme[16]: `MKDetector` has no attribute `direction`.
         if self.direction == "down":
             top_metrics = MK_statistics_tp.reindex(
+                # pyre-fixme[16]: Optional type has no attribute `index`.
                 MK_statistics_tp.Tau.sort_values(axis=0).index
             )
         elif self.direction == "up":
@@ -496,6 +519,7 @@ class MKDetector(Detector):
             )
         elif self.direction == "both":
             top_metrics = MK_statistics_tp.reindex(
+                # pyre-fixme[20]: Argument `by` expected.
                 MK_statistics_tp.Tau.abs().sort_values(axis=0, ascending=False).index
             )
 
@@ -517,7 +541,9 @@ class MKDetector(Detector):
         Tau_df, _ = self._metrics_analysis()
         Tau_df = Tau_df.set_index("ds")
 
+        # pyre-fixme[16]: Module `go` has no attribute `Figure`.
         fig = go.Figure(
+            # pyre-fixme[16]: Module `go` has no attribute `Heatmap`.
             data=go.Heatmap(
                 z=Tau_df.T.values,
                 x=Tau_df.index,
@@ -542,6 +568,7 @@ class MKDetector(Detector):
             raise ValueError("Your data is not multivariate.")
 
         # obtain the Tau for all metrics at all time points
+        # pyre-fixme[16]: `MKDetector` has no attribute `MK_statistics`.
         Tau_df = pd.DataFrame.from_dict(list(self.MK_statistics.Tau))
         Tau_df["ds"] = self.MK_statistics.ds
         Tau_df = Tau_df.drop(["overall"], axis=1)  # remove overall score
@@ -550,6 +577,8 @@ class MKDetector(Detector):
         trend_df["ds"] = self.MK_statistics.ds
         trend_df = trend_df.drop(["overall"], axis=1)  # remove overall trend
 
+        # pyre-fixme[7]: Expected `DataFrame` but got
+        #  `Tuple[pd.core.frame.DataFrame, pd.core.frame.DataFrame]`.
         return Tau_df, trend_df
 
     def plot(
@@ -561,6 +590,7 @@ class MKDetector(Detector):
 
         plt.figure(figsize=(14, 5))
 
+        # pyre-fixme[16]: `MKDetector` has no attribute `ts`.
         plt.plot(self.ts.index, self.ts.values)
 
         if len(detected_time_points) == 0:
