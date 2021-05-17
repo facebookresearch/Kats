@@ -62,10 +62,8 @@ SMODELS = {
     # "sarima": sarima.SARIMAModel,
 }
 
-
 class KatsEnsemble:
     """Decomposition based ensemble model in Kats
-
     This is the holistic ensembling class based on decomposition when seasonality presents
     We specifically provide following methods:
         seasonality_detector : detect seasonalities with ACF detector in Kats
@@ -158,6 +156,7 @@ class KatsEnsemble:
 
         detector = ACFDetector(data)
         detector.detector()
+        # pyre-fixme[16]: `ACFDetector` has no attribute `seasonality_detected`.
         seasonality = detector.seasonality_detected
         return seasonality
 
@@ -280,6 +279,7 @@ class KatsEnsemble:
             data : TimeSeriesData,
             models : EnsembleParams,
             should_auto_backtest: bool = False,
+    # pyre-fixme[31]: Expression `Dict[(str, float)])` is not a valid type.
     ) -> (Dict[str, Model], Dict[str, float]):
         """callable forecast executor
 
@@ -301,6 +301,7 @@ class KatsEnsemble:
 
         # Fit individual model with given data
         num_process = min(len(MODELS), (cpu_count() - 1) // 2)
+        # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
         pool = multiprocessing.Manager().Pool(processes=(num_process), maxtasksperchild=1000)
 
         fitted_models = {}
@@ -332,6 +333,7 @@ class KatsEnsemble:
             None
         """
 
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `seasonality`.
         self.seasonality = KatsEnsemble.seasonality_detector(self.data)
 
         # check if self.params["seasonality_length"] is given
@@ -350,8 +352,12 @@ class KatsEnsemble:
 
         if self.seasonality:
             # STL decomposition
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `sea_data`.
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `desea_data`.
             self.sea_data, self.desea_data = KatsEnsemble.deseasonalize(
                 self.data,
+                # pyre-fixme[16]: `KatsEnsemble` has no attribute
+                #  `decomposition_method`.
                 self.decomposition_method
             )
 
@@ -363,7 +369,11 @@ class KatsEnsemble:
                     tmp.model_name = m.model_name + "_smodel"
                     given_models.append(tmp)
 
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `model_params`.
+            # pyre-fixme[16]: Module `kats` has no attribute `models`.
             self.model_params = EnsembleParams(given_models)
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `fitted`.
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `weights`.
             self.fitted, self.weights = fitExecutor(
                 data=self.desea_data,
                 models=self.model_params,
@@ -377,6 +387,7 @@ class KatsEnsemble:
                 models=self.model_params,
                 should_auto_backtest=auto_backtesting,
             )
+        # pyre-fixme[7]: Expected `None` but got `KatsEnsemble`.
         return self
 
     def predict(self, steps: int) -> None:
@@ -389,9 +400,12 @@ class KatsEnsemble:
             None
         """
 
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `steps`.
         self.steps = steps
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `seasonality`.
         if self.seasonality:
             # we should pred two types of model
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `fitted`.
             desea_fitted = {k: v for k, v in self.fitted.items() if "_smodel" not in k}
             desea_predict = {
                 k: v.predict(self.steps).set_index("time")
@@ -400,8 +414,11 @@ class KatsEnsemble:
 
             # re-seasonalize
             predicted = KatsEnsemble.reseasonalize(
+                # pyre-fixme[16]: `KatsEnsemble` has no attribute `sea_data`.
                 sea_data=self.sea_data,
                 desea_predict=desea_predict,
+                # pyre-fixme[16]: `KatsEnsemble` has no attribute
+                #  `decomposition_method`.
                 decomposition_method=self.decomposition_method,
                 seasonality_length=self.params["seasonality_length"],
                 steps=self.steps,
@@ -415,6 +432,7 @@ class KatsEnsemble:
             }
 
             predicted.update(extra_predict)
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `predicted`.
             self.predicted = predicted
         else:
             predicted = {
@@ -434,6 +452,7 @@ class KatsEnsemble:
                     tmp_v["fcst_upper"] = np.nan
                     predicted[k] = tmp_v
             self.predicted = predicted
+        # pyre-fixme[7]: Expected `None` but got `KatsEnsemble`.
         return self
 
     def forecast(self, steps: int) -> Tuple[Dict[str, pd.DataFrame], Dict[str, float]]:
@@ -449,7 +468,9 @@ class KatsEnsemble:
         Returns:
             Tuple of predicted values and weights
         """
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `steps`.
         self.steps = steps
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `seasonality`.
         self.seasonality = KatsEnsemble.seasonality_detector(self.data)
 
         # check if self.params["seasonality_length"] is given
@@ -464,8 +485,12 @@ class KatsEnsemble:
 
         if self.seasonality:
             # call forecastExecutor and move to next steps
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `sea_data`.
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `desea_data`.
             self.sea_data, self.desea_data = KatsEnsemble.deseasonalize(
                 self.data,
+                # pyre-fixme[16]: `KatsEnsemble` has no attribute
+                #  `decomposition_method`.
                 self.decomposition_method
             )
 
@@ -506,10 +531,12 @@ class KatsEnsemble:
 
             # combine with predict
             predicted.update(extra_predict)
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `predicted`.
             self.predicted = predicted
 
             if self.params["aggregation"] == "weightedavg":
                 desea_err.update(extra_error)
+                # pyre-fixme[16]: `KatsEnsemble` has no attribute `err`.
                 self.err = desea_err
         else:
             # no seasonality detected
@@ -541,6 +568,7 @@ class KatsEnsemble:
                 model: 1 / (err + sys.float_info.epsilon)
                 for model, err in self.err.items()
             }
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `weights`.
             self.weights = {
                 model: err / sum(original_weights.values())
                 for model, err in original_weights.items()
@@ -554,6 +582,8 @@ class KatsEnsemble:
                          models : EnsembleParams,
                          steps: int,
                          should_auto_backtest: bool = False,
+                         # pyre-fixme[31]: Expression `Dict[(str, float)])` is not a
+                         #  valid type.
                          ) -> (Dict[str, pd.DataFrame], Dict[str, float]):
         """Forecast Executor
 
@@ -574,6 +604,7 @@ class KatsEnsemble:
 
         # Fit individual model with given data
         num_process = min(len(MODELS), (cpu_count() - 1) // 2)
+        # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
         pool = multiprocessing.Manager().Pool(processes=(num_process), maxtasksperchild=1000)
 
         fitted_models = {}
@@ -595,6 +626,7 @@ class KatsEnsemble:
             predicted[model_name] = model_fitted.predict(steps).set_index("time")
 
         # if auto back testing
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `model_params`.
         self.model_params = models  # used by _backtester_all
         if should_auto_backtest:
             weights, errors = self._backtester_all()
@@ -615,14 +647,18 @@ class KatsEnsemble:
 
         # create future dates
         last_date = self.data.time.max()
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `steps`.
         dates = pd.date_range(start=last_date, periods=self.steps + 1, freq=self.freq)
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `dates`.
         self.dates = dates[dates != last_date]
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `fcst_dates`.
         self.fcst_dates = self.dates.to_pydatetime()
 
         # collect the fcst, fcst_lower, and fcst_upper into dataframes
         fcsts = {}
         for col in ["fcst", "fcst_lower", "fcst_upper"]:
             fcsts[col] = pd.concat(
+                # pyre-fixme[16]: `KatsEnsemble` has no attribute `predicted`.
                 [x[col].reset_index(drop=True) for x in self.predicted.values()], axis=1
             )
             fcsts[col].columns = self.predicted.keys()
@@ -630,10 +666,14 @@ class KatsEnsemble:
         if self.params["aggregation"].lower() == "median":
             # clean up dataframes with C.I as np.nan or zero
             fcsts = self.clean_dummy_CI(fcsts, use_zero=False)
+            # pyre-fixme[16]: `KatsEnsemble` has no attribute `fcst_df`.
             self.fcst_df = pd.DataFrame({
                 "time": self.dates,
+                # pyre-fixme[29]: `Series` is not a function.
                 "fcst": fcsts["fcst"].median(axis=1),
+                # pyre-fixme[29]: `Series` is not a function.
                 "fcst_lower": fcsts["fcst_lower"].median(axis=1),
+                # pyre-fixme[29]: `Series` is not a function.
                 "fcst_upper": fcsts["fcst_upper"].median(axis=1),
             })
         else:
@@ -644,6 +684,7 @@ class KatsEnsemble:
                 raise ValueError(msg)
             self.fcst_df = pd.DataFrame({
                 "time": self.dates,
+                # pyre-fixme[16]: `KatsEnsemble` has no attribute `weights`.
                 "fcst": fcsts["fcst"].dot(np.array(list(self.weights.values()))),
                 "fcst_lower": fcsts["fcst_lower"]
                 .dot(np.array(list(self.weights.values()))),
@@ -690,6 +731,7 @@ class KatsEnsemble:
         """
 
         weights, errors = self._backtester_all()
+        # pyre-fixme[7]: Expected `Dict[str, float]` but got `str`.
         return weights
 
     def _fit_single(self,
@@ -761,8 +803,10 @@ class KatsEnsemble:
         """
 
         num_process = min(len(MODELS.keys()), (cpu_count() - 1) // 2)
+        # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
         pool = multiprocessing.Manager().Pool(processes=(num_process), maxtasksperchild=1000)
         backtesters = {}
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `model_params`.
         for model in self.model_params.models:
             backtesters[model.model_name] = pool.apply_async(
                 self._backtester_single,
@@ -774,6 +818,7 @@ class KatsEnsemble:
             )
         pool.close()
         pool.join()
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `errors`.
         self.errors = {model: res.get() for model, res in backtesters.items()}
         original_weights = {
             model: 1 / (err + sys.float_info.epsilon)
@@ -795,4 +840,6 @@ class KatsEnsemble:
             None
         """
         logging.info("Generating chart for forecast result from Ensemble model.")
+        # pyre-fixme[16]: Module `kats` has no attribute `models`.
+        # pyre-fixme[16]: `KatsEnsemble` has no attribute `fcst_df`.
         mm.Model.plot(self.data, self.fcst_df)

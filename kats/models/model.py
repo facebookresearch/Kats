@@ -6,16 +6,15 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from kats.consts import TimeSeriesData, Params
 import logging
-from matplotlib import pyplot as plt
+
 import pandas as pd
+from kats.consts import TimeSeriesData, Params
+from matplotlib import pyplot as plt
 
 
 class Model:
-    __slots__ = [
-        "data"
-    ]
+    __slots__ = ["data"]
 
     """Base forecasting model
 
@@ -27,6 +26,7 @@ class Model:
         validate_frequency: validate the frequency of time series, default as False
         validate_dimension: validate the dimension of time series, default as False
     """
+
     def __init__(
         self,
         data: TimeSeriesData,
@@ -36,7 +36,7 @@ class Model:
     ) -> None:
         self.data = data
         self.params = params
-        self.__type__ = 'model'
+        self.__type__ = "model"
         if data is not None:
             self.data.validate_data(validate_frequency, validate_dimension)
 
@@ -61,7 +61,7 @@ class Model:
         """
         pass
 
-    def predict(self):
+    def predict(self, *_args, **_kwargs):
         """abstract method to predict
 
         This is a declaration for predict method
@@ -70,10 +70,10 @@ class Model:
 
     @staticmethod
     def plot(
-            data: TimeSeriesData,
-            fcst: pd.DataFrame,
-            include_history=False,
-        ) -> None:
+        data: TimeSeriesData,
+        fcst: pd.DataFrame,
+        include_history=False,
+    ) -> None:
         """plot method for forecasting models
 
         This method provides the plotting functionality for all forecasting models
@@ -105,14 +105,22 @@ class Model:
 
             if ("fcst_lower" in fcst.columns) and ("fcst_upper" in fcst.columns):
                 ax.fill_between(
-                    fcst.time, fcst.fcst_lower, fcst.fcst_upper, color="#4267B2", alpha=0.2
+                    fcst.time,
+                    fcst.fcst_lower,
+                    fcst.fcst_upper,
+                    color="#4267B2",
+                    alpha=0.2,
                 )
         else:
             ax.plot(fcst_dates, fcst.fcst, ls="-", c="#4267B2")
 
             if ("fcst_lower" in fcst.columns) and ("fcst_upper" in fcst.columns):
                 ax.fill_between(
-                    fcst_dates, fcst.fcst_lower, fcst.fcst_upper, color="#4267B2", alpha=0.2
+                    fcst_dates,
+                    fcst.fcst_lower,
+                    fcst.fcst_upper,
+                    color="#4267B2",
+                    alpha=0.2,
                 )
 
         ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)

@@ -125,11 +125,27 @@ class TemporalHierarchicalModel:
                 residuals[bm.level] = bm.residuals
                 fcsts[bm.level] = bm.fcsts
             else:
+                # pyre-fixme[6]: Expected `str` for 1st param but got `Optional[str]`.
                 m = BASE_MODELS[bm.model_name](
+                    # pyre-fixme[6]: Expected `ARIMAParams` for 2nd param but got
+                    #  `Optional[object]`.
+                    # pyre-fixme[6]: Expected `HoltWintersParams` for 2nd param but
+                    #  got `Optional[object]`.
+                    # pyre-fixme[6]: Expected `LinearModelParams` for 2nd param but
+                    #  got `Optional[object]`.
+                    # pyre-fixme[6]: Expected `ProphetParams` for 2nd param but got
+                    #  `Optional[object]`.
+                    # pyre-fixme[6]: Expected `QuadraticModelParams` for 2nd param
+                    #  but got `Optional[object]`.
+                    # pyre-fixme[6]: Expected `SARIMAParams` for 2nd param but got
+                    #  `Optional[object]`.
+                    # pyre-fixme[6]: Expected `ThetaParams` for 2nd param but got
+                    #  `Optional[object]`.
                     data=TSs[bm.level], params=bm.model_params
                 )
                 m.fit()
                 models[bm.level] = m
+        # pyre-fixme[16]: `TemporalHierarchicalModel` has no attribute `models`.
         self.models = models
         self.info_fcsts = fcsts
         self.info_residuals = residuals
@@ -173,10 +189,13 @@ class TemporalHierarchicalModel:
             A np.ndarray of residuals.
         """
         try:
+            # pyre-fixme[16]: Anonymous callable has no attribute `model`.
             resid = model.model.resid.values
             return resid
         except Exception:
+            # pyre-fixme[16]: Anonymous callable has no attribute `predict`.
             fcst = model.predict(steps=1, freq="D", include_history=True)
+            # pyre-fixme[16]: Anonymous callable has no attribute `data`.
             merge = fcst.merge(model.data.to_dataframe(), on="time")
             for col in merge.columns:
                 if col != "time" and ("fcst" not in col):
@@ -194,6 +213,7 @@ class TemporalHierarchicalModel:
         # if residuals have not been calculated yet
         if not hasattr(self, "residuals"):
             levels = self.levels
+            # pyre-fixme[16]: `TemporalHierarchicalModel` has no attribute `models`.
             models = self.models
             residuals = {}
             for k in levels:
@@ -208,6 +228,7 @@ class TemporalHierarchicalModel:
                     residuals[k] = vals
                 else:
                     residuals[k] = self.info_residuals[k]
+            # pyre-fixme[16]: `TemporalHierarchicalModel` has no attribute `residuals`.
             self.residuals = residuals
         return self.residuals
 
@@ -228,6 +249,7 @@ class TemporalHierarchicalModel:
                 n = h * freq[k]
                 res_matrix.append(residuals[k][-n:].reshape(h, -1).T)
             res_matrix = np.row_stack(res_matrix)
+            # pyre-fixme[16]: `TemporalHierarchicalModel` has no attribute `res_matrix`.
             self.res_matrix = res_matrix
         return self.res_matrix
 
@@ -311,6 +333,7 @@ class TemporalHierarchicalModel:
         # generate forecasts for each level
         for k in levels:
             num = int(freq[k] * h)
+            # pyre-fixme[16]: `TemporalHierarchicalModel` has no attribute `models`.
             if self.models[k] is not None:
                 orig_fcst[k] = (
                     self.models[k].predict(steps=num, freq="D")["fcst"].values
@@ -454,7 +477,11 @@ class TemporalHierarchicalModel:
             for k in fcsts[elm]:
                 fcst_num = len(fcsts[elm][k])
                 time = pd.date_range(
+                    # pyre-fixme[58]: `*` is not supported for operand types
+                    #  `Union[pd._libs.tslibs.timedeltas.Timedelta, str]` and `int`.
                     last_timestamp + freq * k,
+                    # pyre-fixme[58]: `*` is not supported for operand types
+                    #  `Union[pd._libs.tslibs.timedeltas.Timedelta, str]` and `int`.
                     last_timestamp + freq * k * fcst_num,
                     periods=fcst_num,
                 )

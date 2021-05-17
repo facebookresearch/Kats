@@ -14,8 +14,6 @@ from kats.consts import Params, TimeSeriesData
 from kats.utils.parameter_tuning_utils import (
     get_default_prophet_parameter_search_space,
 )
-
-
 class ProphetParams(Params):
     """Parameter class for Prophet model
 
@@ -201,7 +199,6 @@ class ProphetModel(m.Model):
             )
             logging.error(msg)
             raise ValueError(msg)
-
     def fit(self, **kwargs) -> None:
         """fit Prophet model
 
@@ -233,23 +230,75 @@ class ProphetModel(m.Model):
             "cap:{cap},"
             "floor:{floor},"
             "custom_seasonalities:{custom_seasonalities}".format(
+                # pyre-fixme[16]: `ProphetModel` has no attribute `params`.
                 growth=self.params.growth,
+                # pyre-fixme[16]: `Params` has no attribute `changepoints`.
                 changepoints=self.params.changepoints,
+                # pyre-fixme[16]: `Params` has no attribute `n_changepoints`.
                 n_changepoints=self.params.n_changepoints,
+                # pyre-fixme[16]: `Params` has no attribute `changepoint_range`.
                 changepoint_range=self.params.changepoint_range,
+                # pyre-fixme[16]: `Params` has no attribute `yearly_seasonality`.
                 yearly_seasonality=self.params.yearly_seasonality,
+                # pyre-fixme[16]: `Params` has no attribute `weekly_seasonality`.
                 weekly_seasonality=self.params.weekly_seasonality,
+                # pyre-fixme[16]: `Params` has no attribute `changepoints`.
+                # pyre-fixme[16]: `Params` has no attribute `daily_seasonality`.
+                # pyre-fixme[16]: `Params` has no attribute `changepoints`.
+                # pyre-fixme[16]: `Params` has no attribute `n_changepoints`.
+                # pyre-fixme[16]: `Params` has no attribute `n_changepoints`.
                 daily_seasonality=self.params.daily_seasonality,
+                # pyre-fixme[16]: `Params` has no attribute `changepoint_range`.
+                # pyre-fixme[16]: `Params` has no attribute `changepoint_range`.
+                # pyre-fixme[16]: `Params` has no attribute `yearly_seasonality`.
+                # pyre-fixme[16]: `Params` has no attribute `holidays`.
+                # pyre-fixme[16]: `Params` has no attribute `weekly_seasonality`.
+                # pyre-fixme[16]: `Params` has no attribute `yearly_seasonality`.
+                # pyre-fixme[16]: `Params` has no attribute `daily_seasonality`.
                 holidays=self.params.holidays,
+                # pyre-fixme[16]: `Params` has no attribute `holidays`.
+                # pyre-fixme[16]: `Params` has no attribute `weekly_seasonality`.
+                # pyre-fixme[16]: `Params` has no attribute `seasonality_mode`.
+                # pyre-fixme[16]: `Params` has no attribute `seasonality_mode`.
+                # pyre-fixme[16]: `Params` has no attribute `seasonality_prior_scale`.
+                # pyre-fixme[16]: `Params` has no attribute `daily_seasonality`.
+                # pyre-fixme[16]: `Params` has no attribute `holidays_prior_scale`.
                 seasonality_mode=self.params.seasonality_mode,
+                # pyre-fixme[16]: `Params` has no attribute `changepoint_prior_scale`.
+                # pyre-fixme[16]: `Params` has no attribute `holidays`.
+                # pyre-fixme[16]: `Params` has no attribute `mcmc_samples`.
+                # pyre-fixme[16]: `Params` has no attribute `seasonality_prior_scale`.
+                # pyre-fixme[16]: `Params` has no attribute `interval_width`.
+                # pyre-fixme[16]: `Params` has no attribute `seasonality_mode`.
+                # pyre-fixme[16]: `Params` has no attribute `uncertainty_samples`.
                 seasonality_prior_scale=self.params.seasonality_prior_scale,
+                # pyre-fixme[16]: `Params` has no attribute `cap`.
+                # pyre-fixme[16]: `Params` has no attribute `seasonality_prior_scale`.
+                # pyre-fixme[16]: `Params` has no attribute `floor`.
+                # pyre-fixme[16]: `Params` has no attribute `holidays_prior_scale`.
+                # pyre-fixme[16]: `Params` has no attribute `custom_seasonalities`.
+                # pyre-fixme[16]: `Params` has no attribute `holidays_prior_scale`.
                 holidays_prior_scale=self.params.holidays_prior_scale,
+                # pyre-fixme[16]: `Params` has no attribute `changepoint_prior_scale`.
+                # pyre-fixme[16]: `Params` has no attribute `changepoint_prior_scale`.
+                # pyre-fixme[16]: `Params` has no attribute `mcmc_samples`.
                 changepoint_prior_scale=self.params.changepoint_prior_scale,
+                # pyre-fixme[16]: `Params` has no attribute `interval_width`.
+                # pyre-fixme[16]: `Params` has no attribute `mcmc_samples`.
+                # pyre-fixme[16]: `Params` has no attribute `uncertainty_samples`.
                 mcmc_samples=self.params.mcmc_samples,
+                # pyre-fixme[16]: `Params` has no attribute `cap`.
+                # pyre-fixme[16]: `Params` has no attribute `interval_width`.
+                # pyre-fixme[16]: `Params` has no attribute `floor`.
                 interval_width=self.params.interval_width,
+                # pyre-fixme[16]: `Params` has no attribute `custom_seasonalities`.
+                # pyre-fixme[16]: `Params` has no attribute `uncertainty_samples`.
                 uncertainty_samples=self.params.uncertainty_samples,
+                # pyre-fixme[16]: `Params` has no attribute `cap`.
                 cap=self.params.cap,
+                # pyre-fixme[16]: `Params` has no attribute `floor`.
                 floor=self.params.floor,
+                # pyre-fixme[16]: `Params` has no attribute `custom_seasonalities`.
                 custom_seasonalities=self.params.custom_seasonalities,
             )
         )
@@ -284,9 +333,11 @@ class ProphetModel(m.Model):
         for custom_seasonality in self.params.custom_seasonalities:
             prophet.add_seasonality(**custom_seasonality)
 
+        # pyre-fixme[16]: `ProphetModel` has no attribute `model`.
         self.model = prophet.fit(df=df)
         logging.info("Fitted Prophet model. ")
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps, include_history=False, **kwargs) -> pd.DataFrame:
         """predict with fitted Prophet model
 
@@ -302,19 +353,27 @@ class ProphetModel(m.Model):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
+        # pyre-fixme[16]: `ProphetModel` has no attribute `freq`.
+        # pyre-fixme[16]: `ProphetModel` has no attribute `data`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
+        # pyre-fixme[16]: `ProphetModel` has no attribute `include_history`.
         self.include_history = include_history
         # prepare future for Prophet.predict
         future = kwargs.get("future")
         raw = kwargs.get("raw", False)
         if future is None:
+            # pyre-fixme[16]: `ProphetModel` has no attribute `model`.
+            # pyre-fixme[16]: `Params` has no attribute `cap`.
             future = self.model.make_future_dataframe(
                 periods=steps,
                 freq=self.freq,
                 include_history=self.include_history)
+            # pyre-fixme[16]: `ProphetModel` has no attribute `params`.
             if self.params.growth == "logistic":
                 # assign cap to a new col as Prophet required
+                # pyre-fixme[16]: `Params` has no attribute `cap`.
                 future["cap"] = self.params.cap
+            # pyre-fixme[16]: `Params` has no attribute `floor`.
             if self.params.floor is not None:
                 future["floor"] = self.params.floor
 
@@ -327,6 +386,7 @@ class ProphetModel(m.Model):
         logging.info("Generated forecast data from Prophet model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 
+        # pyre-fixme[16]: `ProphetModel` has no attribute `fcst_df`.
         self.fcst_df = pd.DataFrame(
             {
                 "time": fcst.ds,
@@ -352,4 +412,6 @@ class ProphetModel(m.Model):
     def get_parameter_search_space() -> List[Dict[str, object]]:
         """get default parameter search space for Prophet model
         """
+        # pyre-fixme[7]: Expected `List[Dict[str, object]]` but got `List[Dict[str,
+        #  typing.Union[List[typing.Any], bool, str]]]`.
         return get_default_prophet_parameter_search_space()

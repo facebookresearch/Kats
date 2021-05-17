@@ -29,22 +29,37 @@ class T2VNN:
         data: NamedTuple,
         param: NamedTuple,
     ):
+        # pyre-fixme[16]: `NamedTuple` has no attribute `mode`.
         self.mode = param.mode
+        # pyre-fixme[16]: `NamedTuple` has no attribute `epochs`.
         self.epochs = param.epochs
+        # pyre-fixme[16]: `NamedTuple` has no attribute `vector_length`.
         self.vector_length = param.vector_length
+        # pyre-fixme[16]: `NamedTuple` has no attribute `output_size`.
         self.output_size = data.output_size
+        # pyre-fixme[16]: `NamedTuple` has no attribute `window`.
         self.window = data.window
+        # pyre-fixme[16]: `NamedTuple` has no attribute `hidden`.
         self.hidden = param.hidden
+        # pyre-fixme[16]: `NamedTuple` has no attribute `dropout`.
         self.dropout = param.dropout
+        # pyre-fixme[16]: `NamedTuple` has no attribute `learning_rate`.
         self.learning_rate = param.learning_rate
+        # pyre-fixme[16]: `NamedTuple` has no attribute `loss_function`.
         self.loss_function = param.loss_function
+        # pyre-fixme[16]: `NamedTuple` has no attribute `optimizer`.
         self.optimizer = param.optimizer
+        # pyre-fixme[16]: `NamedTuple` has no attribute `batched`.
         self.batched = data.batched
+        # pyre-fixme[16]: `NamedTuple` has no attribute `validator`.
         self.validator = param.validator
 
         if self.batched:
+            # pyre-fixme[16]: `NamedTuple` has no attribute `batched_tensors`.
             self.data = data.batched_tensors
         elif not self.batched:
+            # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
+            # pyre-fixme[16]: `NamedTuple` has no attribute `label`.
             self.data = zip(data.seq, data.label)
 
     def _translate(
@@ -52,6 +67,7 @@ class T2VNN:
         sequences,
     ) -> Tuple[List, List]:
         # internal function for performing translations
+        # pyre-fixme[16]: `T2VNN` has no attribute `model`.
         self.model.eval()
         start_time = time.time()
         embeddings = []
@@ -113,6 +129,7 @@ class T2VNN:
         elapsed_time = time.time() - start_time
         logging.info(f"Embedding training time: {elapsed_time}")
         logging.info("Training has concluded")
+        # pyre-fixme[16]: `T2VNN` has no attribute `model`.
         self.model = model
 
     def _train_classification(
@@ -158,6 +175,7 @@ class T2VNN:
         elapsed_time = time.time() - start_time
         logging.info(f"Embedding training time: {elapsed_time}")
         logging.info("Training has concluded")
+        # pyre-fixme[16]: `T2VNN` has no attribute `model`.
         self.model = model
 
     def train(self, translate=False) -> Dict[str, List]:
@@ -201,6 +219,8 @@ class T2VNN:
 
             train_translated, _ = self._translate(seq_2_translate)
 
+            # pyre-fixme[7]: Expected `Dict[str, List[typing.Any]]` but got implicit
+            #  return value of `None`.
             return {"translated_sequences": train_translated, "labels": labels}
 
     def val(
@@ -210,13 +230,19 @@ class T2VNN:
         # validating the trained T2V module using the original label of the sequences
         # checking on how accurate can T2V module predict the original labels
         seq_2_translate, labels = [], []
+        # pyre-fixme[16]: `NamedTuple` has no attribute `batched`.
         if val_data.batched:  # when data is of type t2vbatched
+            # pyre-fixme[16]: `NamedTuple` has no attribute `batched_tensors`.
             val_data = val_data.batched_tensors
             for b in val_data:
                 for seq, label in b:
                     seq_2_translate.append(seq.view([1, seq.shape[0], 1]))
                     labels.append(label)
         elif not val_data.batched:  # when data is of type t2vprocessed
+            # pyre-fixme[9]: val_data has type `NamedTuple`; used as
+            #  `Iterator[Tuple[Variable[_T1], Variable[_T2]]]`.
+            # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
+            # pyre-fixme[16]: `NamedTuple` has no attribute `label`.
             val_data = zip(val_data.seq, val_data.label)
             for seq, label in val_data:
                 seq_2_translate.append(torch.from_numpy(seq).view([1, seq.shape[0], 1]))
@@ -231,6 +257,8 @@ class T2VNN:
         elif (
             self.mode == "classification"
         ):  # currently only support accuracy for classification
+            # pyre-fixme[7]: Expected `Dict[typing.Any, typing.Any]` but got
+            #  implicit return value of `None`.
             return {"accuracy": acc}
 
     def translate(
@@ -239,12 +267,15 @@ class T2VNN:
     ) -> List:  # translate sequences only
         # turning time series sequences into embedding using trained T2V module
         seq_2_translate = []
+        # pyre-fixme[16]: `NamedTuple` has no attribute `batched`.
         if test_data.batched:  # when data type is of t2vbatched
+            # pyre-fixme[16]: `NamedTuple` has no attribute `batched_tensors`.
             test_data = test_data.batched_tensors
             for b in test_data:
                 for seq, _ in b:
                     seq_2_translate.append(seq.view([1, seq.shape[0], 1]))
         elif not test_data.batched:  # when data type is of t2vprocessed
+            # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
             for seq in test_data.seq:
                 seq_2_translate.append(torch.from_numpy(seq).view([1, seq.shape[0], 1]))
 

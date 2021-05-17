@@ -18,7 +18,6 @@ from kats.consts import TimeSeriesData
 from kats.models.ensemble import ensemble
 from kats.models.ensemble.ensemble import EnsembleParams
 
-
 class MedianEnsembleModel(ensemble.BaseEnsemble):
     """Median ensemble model class
 
@@ -51,6 +50,7 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
+        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `freq`.
         self.freq = kwargs.get("freq", "D")
         pred_dict = self._predict_all(steps, **kwargs)
 
@@ -58,15 +58,20 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
             [x.fcst.reset_index(drop=True) for x in pred_dict.values()], axis=1
         )
         fcst_all.columns = pred_dict.keys()
+        # pyre-fixme[29]: `Series` is not a function.
+        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `fcst`.
         self.fcst = fcst_all.median(axis=1)
 
         # create future dates
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
         dates = dates[dates != last_date]
+        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `fcst_dates`.
         self.fcst_dates = dates.to_pydatetime()
+        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]
 
+        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `fcst_df`.
         self.fcst_df = pd.DataFrame({"time": self.dates, "fcst": self.fcst})
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))

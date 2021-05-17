@@ -10,7 +10,11 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm #@manual
 from libfb.py.testutil import is_devserver
+# pyre-fixme[21]: Could not find module `kats.internal.client.kats_client`.
+# pyre-fixme[21]: Could not find module `kats.internal.client.kats_client`.
+# pyre-fixme[21]: Could not find module `kats.internal.client.kats_cli`.
 from kats.internal.client.kats_client import bocpd_detection
+# pyre-fixme[21]: Could not find module `kats.internal.client.kats_cli`.
 from kats.internal.client.kats_cli import bocp #@manual
 
 
@@ -39,13 +43,14 @@ def make_level_ts():
 
 
 class testBOCPD(TestCase):
-    def test_kats_client(self):
+    def test_kats_client(self) -> None:
         level_ts_df = make_level_ts()
+        # pyre-fixme[16]: Module `internal` has no attribute `client`.
         result_df = bocpd_detection(level_ts_df, "%Y-%m-%d", {})
         self.assertTrue(result_df.shape[0] > 0)
 
     @DEVSERVER_TEST
-    def test_kats_cli(self):
+    def test_kats_cli(self) -> None:
         config = {
             "job_type" : "bocp",
             "history_query" : """
@@ -62,4 +67,5 @@ class testBOCPD(TestCase):
             "column_types" : ['INT', 'DOUBLE'],
             "retention" : 5
         }
+        # pyre-fixme[16]: Module `internal` has no attribute `client`.
         bocp(config)

@@ -83,7 +83,9 @@ class ARNet(m.Model):
 
     def fit(self, **kwargs) -> None:
         series = pd.DataFrame(self.data.value)
+        # pyre-fixme[16]: `ARNet` has no attribute `n_metric`.
         self.n_metric = series.shape[1]
+        # pyre-fixme[16]: `ARNet` has no attribute `params`.
         dimensions = self.params.input_size * self.n_metric
 
         (
@@ -95,11 +97,13 @@ class ARNet(m.Model):
             series.values,
             test=0.2,
             sample_inp_size=self.params.input_size,
+            # pyre-fixme[16]: `Params` has no attribute `output_size`.
             sample_out_size=self.params.output_size,
             verbose=False,
         )
 
         (
+            # pyre-fixme[16]: `ARNet` has no attribute `model`.
             self.model,
             predicted,
             actual,
@@ -113,6 +117,7 @@ class ARNet(m.Model):
             dataset_test,
             dimensions,
             self.n_metric * self.params.output_size,
+            # pyre-fixme[16]: `Params` has no attribute `batch_size`.
             self.params.batch_size,
             self.params.input_size,
         )
@@ -234,4 +239,6 @@ class ARNet(m.Model):
              A list of dictionaties representing ar net parameters and their
              search space.
         """
+        # pyre-fixme[7]: Expected `List[Dict[str, object]]` but got `List[Dict[str,
+        #  typing.Union[List[typing.Any], bool, str]]]`.
         return get_default_arnet_parameter_search_space()

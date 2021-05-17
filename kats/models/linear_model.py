@@ -76,15 +76,19 @@ class LinearModel(m.Model):
         """
         logging.debug(
             "Call fit() with parameters: "
+            # pyre-fixme[16]: `LinearModel` has no attribute `params`.
             "alpha:{alpha}".format(alpha=self.params.alpha)
         )
 
         # prepare X and y for linear model
+        # pyre-fixme[16]: `LinearModel` has no attribute `past_length`.
+        # pyre-fixme[16]: `LinearModel` has no attribute `data`.
         self.past_length = len(self.data.time)
         _X = list(range(self.past_length))
         X = sm.add_constant(_X)
         y = self.data.value
         lm = sm.OLS(y, X)
+        # pyre-fixme[16]: `LinearModel` has no attribute `model`.
         self.model = lm.fit()
 
     def predict(self, steps, include_history=False, **kwargs):

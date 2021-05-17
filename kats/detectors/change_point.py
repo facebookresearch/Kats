@@ -61,10 +61,13 @@ class BayesOnlineChangePoint(Detector):
         self.threshold = None
         self.debug = debug
 
+    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self, model: Any, threshold: float = 0.5,
                  changepoint_prior: float = 0.01) -> Dict[str, Any]:
 
         self.threshold = threshold
+        # pyre-fixme[16]: `BayesOnlineChangePoint` has no attribute `rt_posterior`.
         self.rt_posterior = self._find_posterior(model, changepoint_prior)
         return self._construct_output(self.threshold, lag=self.lag)
 
@@ -89,8 +92,11 @@ class BayesOnlineChangePoint(Detector):
         m_ptr = -1
 
         # set up arrays for debugging
+        # pyre-fixme[16]: `BayesOnlineChangePoint` has no attribute `pred_mean_arr`.
         self.pred_mean_arr = np.zeros((self.T, self.T))
+        # pyre-fixme[16]: `BayesOnlineChangePoint` has no attribute `pred_var_arr`.
         self.pred_var_arr = np.zeros((self.T, self.T))
+        # pyre-fixme[16]: `BayesOnlineChangePoint` has no attribute `next_pred_prob`.
         self.next_pred_prob = np.zeros((self.T, self.T))
 
         # Calculate the log priors once outside the for-loop.
@@ -180,6 +186,8 @@ class BayesOnlineChangePoint(Detector):
 
         return rt_posterior
 
+    # pyre-fixme[9]: threshold has type `float`; used as `None`.
+    # pyre-fixme[9]: lag has type `int`; used as `None`.
     def plot(self, threshold: float = None, lag: int = None):
 
         if threshold is None:
@@ -211,8 +219,11 @@ class BayesOnlineChangePoint(Detector):
         # if in debugging mode, plot the mean and variance as well
         if self.debug:
             x_debug = list(range(1, self.T - self.lag))
+            # pyre-fixme[16]: `BayesOnlineChangePoint` has no attribute `pred_mean_arr`.
             y_debug_mean = self.pred_mean_arr[lag + 1:self.T, lag]
             y_debug_uv = (self.pred_mean_arr[lag + 1:self.T, lag]
+                          # pyre-fixme[16]: `BayesOnlineChangePoint` has no
+                          #  attribute `pred_var_arr`.
                           + self.pred_var_arr[lag + 1:self.T, lag])
 
             y_debug_lv = (self.pred_mean_arr[lag + 1:self.T, lag]
@@ -225,6 +236,7 @@ class BayesOnlineChangePoint(Detector):
         ax2 = plt.subplot(212, sharex=ax1)
 
         cp_plot_x = list(range(0, self.T - self.lag))
+        # pyre-fixme[16]: `BayesOnlineChangePoint` has no attribute `rt_posterior`.
         cp_plot_y = np.copy(self.rt_posterior[self.lag:self.T, self.lag])
         # handle the fact that first point is not a changepoint
         cp_plot_y[0] = 0.
@@ -238,6 +250,8 @@ class BayesOnlineChangePoint(Detector):
             plt.figure(figsize=(10, 4))
             plt.plot(
                 list(range(1, self.T - self.lag)),
+                # pyre-fixme[16]: `BayesOnlineChangePoint` has no attribute
+                #  `next_pred_prob`.
                 self.next_pred_prob[lag + 1:self.T, lag],
                 'k-'
             )
@@ -248,6 +262,7 @@ class BayesOnlineChangePoint(Detector):
     def _construct_output(self, threshold: float, lag: int) -> Dict[str, Any]:
         # till lag, prob = 0, so prepend array with zeros
         change_prob = np.hstack(
+            # pyre-fixme[16]: `BayesOnlineChangePoint` has no attribute `rt_posterior`.
             (self.rt_posterior[self.lag:self.T, self.lag],
              np.zeros(self.lag))
         )
@@ -280,6 +295,7 @@ def check_data(data: TimeSeriesData):
     if data.value.shape[0] < MIN_POINTS:
         raise ValueError(f"""
             Data must have {MIN_POINTS} points,
+            # pyre-fixme[16]: `TimeSeriesData` has no attribute `shape`.
             it only has {data.shape[0]} points
             """)
 
@@ -293,8 +309,12 @@ def check_data(data: TimeSeriesData):
 
 class NormalKnownPrec(object):
 
+    # pyre-fixme[9]: data has type `TimeSeriesData`; used as `None`.
     def __init__(self, data: TimeSeriesData = None, empirical: bool = True,
+                 # pyre-fixme[9]: mean_prior has type `float`; used as `None`.
+                 # pyre-fixme[9]: mean_prec_prior has type `float`; used as `None`.
                  mean_prior: float = None, mean_prec_prior: float = None,
+                 # pyre-fixme[9]: known_prec has type `float`; used as `None`.
                  known_prec: float = None):
         """
         This model is the Normal-Normal model, with known precision

@@ -20,6 +20,7 @@ def T2VParam(
     vector_length: int = 16,
     learning_rate: float = 0.001,
     epochs: int = 64,
+    # pyre-fixme[9]: hidden has type `List[int]`; used as `None`.
     hidden: List[int] = None,
     dropout: float = 0.2,
     optimizer: Any = torch.optim.Adam,
@@ -92,17 +93,29 @@ def T2VParam(
         ],
     )
 
+    # pyre-fixme[41]: Cannot reassign final attribute `mode`.
     T2VParam.mode = mode
+    # pyre-fixme[41]: Cannot reassign final attribute `normalizer`.
     T2VParam.normalizer = normalizer
+    # pyre-fixme[41]: Cannot reassign final attribute `training_output_size`.
     T2VParam.training_output_size = training_output_size
+    # pyre-fixme[41]: Cannot reassign final attribute `batch_size`.
     T2VParam.batch_size = batch_size
+    # pyre-fixme[41]: Cannot reassign final attribute `vector_length`.
     T2VParam.vector_length = vector_length
+    # pyre-fixme[41]: Cannot reassign final attribute `epochs`.
     T2VParam.epochs = epochs
+    # pyre-fixme[41]: Cannot reassign final attribute `learning_rate`.
     T2VParam.learning_rate = learning_rate
+    # pyre-fixme[41]: Cannot reassign final attribute `loss_function`.
     T2VParam.loss_function = loss_function
+    # pyre-fixme[41]: Cannot reassign final attribute `hidden`.
     T2VParam.hidden = hidden
+    # pyre-fixme[41]: Cannot reassign final attribute `dropout`.
     T2VParam.dropout = dropout
+    # pyre-fixme[41]: Cannot reassign final attribute `optimizer`.
     T2VParam.optimizer = optimizer
+    # pyre-fixme[41]: Cannot reassign final attribute `validator`.
     T2VParam.validator = validator
 
     return T2VParam

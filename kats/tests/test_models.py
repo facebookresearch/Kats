@@ -36,7 +36,7 @@ from kats.models.sarima import SARIMAModel, SARIMAParams
 from kats.models.stlf import STLFModel, STLFParams
 from kats.models.theta import ThetaModel, ThetaParams
 from kats.models.var import VARModel, VARParams
-from kats.parameter_tuning.time_series_parameter_tuning import (
+from kats.utils.time_series_parameter_tuning import (
     TimeSeriesParameterTuning,
 )
 from kats.utils.emp_confidence_int import EmpConfidenceInt
@@ -56,7 +56,7 @@ ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
 class DataValidationTest(TestCase):
-    def test_data_validation(self):
+    def test_data_validation(self) -> None:
         # add the extra data point to break the frequency.
         extra_point = pd.DataFrame(
             [["1900-01-01", 2], ["2020-01-01", 2]], columns=["time", "y"]
@@ -82,7 +82,7 @@ class DataValidationTest(TestCase):
 
 
 class ARIMAModelTest(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = ARIMAParams(p=1, d=1, q=1)
         m = ARIMAModel(data=TSData, params=params)
         m.fit(
@@ -92,6 +92,7 @@ class ARIMAModelTest(TestCase):
             trend="c",
             solver="lbfgs",
             maxiter=500,
+            # pyre-fixme[6]: Expected `bool` for 7th param but got `int`.
             full_output=1,
             disp=False,
             callback=None,
@@ -105,7 +106,7 @@ class ARIMAModelTest(TestCase):
         m_daily.predict(steps=30)
         m.plot()
 
-    def test_others(self):
+    def test_others(self) -> None:
         params = ARIMAParams(p=1, d=1, q=1)
         params.validate_params()
         m = ARIMAModel(data=TSData, params=params)
@@ -151,7 +152,7 @@ class ARIMAModelTest(TestCase):
 
 
 class ThetaModelTest(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = ThetaParams(m=12)
         m = ThetaModel(TSData, params)
         m.fit()
@@ -176,7 +177,7 @@ class ThetaModelTest(TestCase):
         m_daily.predict(steps=30, include_history=True)
         m.plot()
 
-    def test_others(self):
+    def test_others(self) -> None:
         params = ThetaParams(m=12)
         params.validate_params()
 
@@ -194,8 +195,9 @@ class ThetaModelTest(TestCase):
 
 
 class HoltWintersModelTest(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = HoltWintersParams(
+            # pyre-fixme[6]: Expected `str` for 1st param but got `None`.
             trend=None,
             damped=False,
             seasonal=None,
@@ -221,7 +223,7 @@ class HoltWintersModelTest(TestCase):
         )
         m.plot()
 
-    def test_others(self):
+    def test_others(self) -> None:
         # test param validation
         self.assertRaises(
             ValueError,
@@ -283,7 +285,7 @@ class HoltWintersModelTest(TestCase):
 
 
 class LinearModelTest(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = LinearModelParams(alpha=0.05)
         params.validate_params()
         m = LinearModel(TSData, params)
@@ -302,7 +304,7 @@ class LinearModelTest(TestCase):
         m_daily.predict(steps=30, freq="D", include_history=True)
         m.plot()
 
-    def test_others(self):
+    def test_others(self) -> None:
         params = LinearModelParams()
         params.validate_params()
         self.assertRaises(
@@ -333,7 +335,7 @@ class LinearModelTest(TestCase):
 
 
 class QuadraticModelTest(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = QuadraticModelParams()
         m = QuadraticModel(TSData, params)
         m.fit()
@@ -351,7 +353,7 @@ class QuadraticModelTest(TestCase):
         m_daily.predict(steps=30, freq="D", include_history=True)
         m.plot()
 
-    def test_others(self):
+    def test_others(self) -> None:
         params = QuadraticModelParams()
         params.validate_params()
         self.assertRaises(
@@ -382,7 +384,7 @@ class QuadraticModelTest(TestCase):
 
 
 class LSTMModelTest(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         # use smaller time window and epochs for testing to reduce testing time
         params = LSTMParams(hidden_size=10, time_window=4, num_epochs=5)
         m = LSTMModel(data=TSData, params=params)
@@ -397,7 +399,7 @@ class LSTMModelTest(TestCase):
 
 
 class SARIMAModelTest(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = SARIMAParams(
             p=2,
             d=1,
@@ -411,6 +413,7 @@ class SARIMAModelTest(TestCase):
         m = SARIMAModel(TSData, params)
         m.fit(
             start_params=None,
+            # pyre-fixme[6]: Expected `bool` for 2nd param but got `None`.
             transformed=None,
             includes_fixed=None,
             cov_type=None,
@@ -434,7 +437,7 @@ class SARIMAModelTest(TestCase):
         m_daily.predict(steps=30, freq="D")
         m.plot()
 
-    def test_others(self):
+    def test_others(self) -> None:
         params = SARIMAParams(
             p=2,
             d=1,
@@ -510,7 +513,7 @@ class SARIMAModelTest(TestCase):
 
 
 class ProphetModelTest(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = ProphetParams()
         m = ProphetModel(TSData, params)
         m.fit()
@@ -587,7 +590,7 @@ class ProphetModelTest(TestCase):
 
 
 class testVARModel(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = VARParams()
         m = VARModel(TSData_multi, params)
         m.fit()
@@ -595,7 +598,7 @@ class testVARModel(TestCase):
 
 
 class testBayesianVARModel(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         params = BayesianVARParams(p=3)
         m = BayesianVAR(TSData_multi, params)
         m.fit()
@@ -604,16 +607,17 @@ class testBayesianVARModel(TestCase):
 
 
 class testEmpConfidenceInt(TestCase):
-    def test_empConfInt_Prophet(self):
+    def test_empConfInt_Prophet(self) -> None:
         params = ProphetParams(seasonality_mode="multiplicative")
         ci = EmpConfidenceInt(
+            # pyre-fixme[6]: Expected `int` for 6th param but got `float`.
             ALL_ERRORS, TSData, params, 50, 25, 12.5, ProphetModel, confidence_level=0.9
         )
         ci.get_eci(steps=100, freq="MS")
 
 
 class testSTLFModel(TestCase):
-    def test_fit_forecast(self):
+    def test_fit_forecast(self) -> None:
         for method in ["theta", "prophet", "linear", "quadratic"]:
             params = STLFParams(m=12, method=method)
             m = STLFModel(TSData, params)
@@ -639,7 +643,7 @@ class testSTLFModel(TestCase):
             params,
         )
 
-    def test_others(self):
+    def test_others(self) -> None:
         # test param value error
         self.assertRaises(
             ValueError,
@@ -665,31 +669,31 @@ class testSTLFModel(TestCase):
 
 
 class testNowcasting(TestCase):
-    def test_LAG(self):
+    def test_LAG(self) -> None:
         self.assertEqual(
             list(LAG(pd.DataFrame(list(range(5)), columns=["y"]), 1)["LAG_1"])[1:],
             [0, 1, 2, 3],
         )
 
-    def test_MOM(self):
+    def test_MOM(self) -> None:
         self.assertEqual(
             list(MOM(pd.DataFrame(list(range(5)), columns=["y"]), 1)["MOM_1"][1:]),
             [1, 1, 1, 1],
         )
 
-    def test_MA(self):
+    def test_MA(self) -> None:
         self.assertEqual(
             list(MA(pd.DataFrame(list(range(5)), columns=["y"]), 1)["MA_1"]),
             [0, 1, 2, 3, 4],
         )
 
-    def test_ROC(self):
+    def test_ROC(self) -> None:
         self.assertEqual(
             list(ROC(pd.DataFrame(list(range(5)), columns=["y"]), 1)["ROC_1"])[1:],
             [0, 0, 0, 0],
         )
 
-    def test_MACD(self):
+    def test_MACD(self) -> None:
         error_threshold = 0.0001
         target = np.array(
             [7.770436585431938, 7.913716315475984, 8.048858332839053, 8.176225524209826]
@@ -749,49 +753,52 @@ class testHarmonicRegression(TestCase):
 
         self.params = HarmonicRegressionParams(24, 3)
 
-    def test_fit_and_predict(self):
+    def test_fit_and_predict(self) -> None:
         hrm = HarmonicRegressionModel(self.data, self.params)
         hrm.fit()
         self.assertIsNotNone(hrm.params)
+        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
         self.assertIsNotNone(hrm.harms)
 
+        # pyre-fixme[6]: Expected `Series` for 1st param but got
+        #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         preds = hrm.predict(self.series_times.head(1))
         self.assertAlmostEqual(preds["fcst"][0], self.harms_sum[0], delta=0.0001)
 
 
 class TestParameterTuningDefaultSearchSpace(TestCase):
-    def test_parameter_tuning_default_search_space_arima(self):
+    def test_parameter_tuning_default_search_space_arima(self) -> None:
         search_space = ARIMAModel.get_parameter_search_space()
         TimeSeriesParameterTuning.validate_parameters_format(search_space)
 
-    def test_parameter_tuning_default_search_space_prophet(self):
+    def test_parameter_tuning_default_search_space_prophet(self) -> None:
         search_space = ProphetModel.get_parameter_search_space()
         TimeSeriesParameterTuning.validate_parameters_format(search_space)
 
-    def test_parameter_tuning_default_search_space_linear_model(self):
+    def test_parameter_tuning_default_search_space_linear_model(self) -> None:
         search_space = LinearModel.get_parameter_search_space()
         TimeSeriesParameterTuning.validate_parameters_format(search_space)
 
-    def test_parameter_tuning_default_search_space_quadratic_model(self):
+    def test_parameter_tuning_default_search_space_quadratic_model(self) -> None:
         search_space = QuadraticModel.get_parameter_search_space()
         TimeSeriesParameterTuning.validate_parameters_format(search_space)
 
-    def test_parameter_tuning_default_search_space_sarima_model(self):
+    def test_parameter_tuning_default_search_space_sarima_model(self) -> None:
         search_space = SARIMAModel.get_parameter_search_space()
         TimeSeriesParameterTuning.validate_parameters_format(search_space)
 
-    def test_parameter_tuning_default_search_space_holtwinters_model(self):
+    def test_parameter_tuning_default_search_space_holtwinters_model(self) -> None:
         search_space = HoltWintersModel.get_parameter_search_space()
         TimeSeriesParameterTuning.validate_parameters_format(search_space)
 
-    def test_parameter_tuning_default_search_space_var_model(self):
+    def test_parameter_tuning_default_search_space_var_model(self) -> None:
         self.assertRaises(NotImplementedError, VARModel.get_parameter_search_space)
 
-    def test_parameter_tuning_default_search_space_theta_model(self):
+    def test_parameter_tuning_default_search_space_theta_model(self) -> None:
         search_space = ThetaModel.get_parameter_search_space()
         TimeSeriesParameterTuning.validate_parameters_format(search_space)
 
-    def test_parameter_tuning_default_search_space_arnet_model(self):
+    def test_parameter_tuning_default_search_space_arnet_model(self) -> None:
         search_space = ARNet.get_parameter_search_space()
         TimeSeriesParameterTuning.validate_parameters_format(search_space)
 
