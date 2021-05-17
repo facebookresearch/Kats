@@ -22,7 +22,7 @@ from kats.detectors.bocpd import (
     PoissonModelParameters,
     TrendChangeParameters,
 )
-from kats.detectors.bocpd_onedetection import BocpdDetectorModel
+from kats.detectors.bocpd_model import BocpdDetectorModel
 from kats.detectors.changepoint_evaluator import (
     TuringEvaluator,
     Evaluation,
