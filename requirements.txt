@@ -2,7 +2,7 @@ LunarCalendar>=0.0.9
 ax-platform
 convertdate>=2.1.2
 fbprophet==0.7
-gpytorch>=1.4.1
+gpytorch
 holidays>=0.10.2
 matplotlib>=2.0.0
 numpy>=1.15.4
