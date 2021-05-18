@@ -8,50 +8,12 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from kats.consts import TimeSeriesData, TimeSeriesChangePoint
 from kats.detectors.detector import Detector
 # pyre-fixme[21]: Could not find name `zscore` in `scipy.stats`.
 from scipy.stats import norm, zscore  # @manual
 
 from typing import List, Tuple
-
-
-def compute_zscore(df: pd.DataFrame, method: str = "standard") -> np.ndarray:
-    """
-    A helper function to compute the zscores of each metric independently
-
-    Parameters
-        df - Dataframe with columns being metric names
-        method - "standard" indicates that zscores are calculated using mean
-                and std dev whereas "robust" uses robust metrics like median.
-                "robust" is useful in the presence of multiple extreme outliers.
-
-    Output
-        Arrays of pvalues and zscores that represent the correlation with
-        target_column_idx
-    """
-    # TODO: Merge this z-score computation with changepoint computation.
-    if method == "standard":
-        # pyre-fixme[16]: Module `stats` has no attribute `zscore`.
-        z_scores = zscore(df)
-    elif method == "robust":
-        med = np.median(df, axis=0)
-        mean = np.mean(df.values, axis=0)
-        medad = np.median(np.abs(df - med), axis=0)
-        meanad = np.mean(np.abs(df - mean), axis=0).values
-        # use meanad if medad is zero
-        # constants used to express denominator in std dev units,
-        # assuming gaussian distribution
-        denom = [
-            x * 1.486 if x != 0 else meanad[i] * 1.253314 for i, x in enumerate(medad)
-            # TODO: T68490799
-        ]
-        z_scores = (df.values - med) / denom
-    else:
-        logging.error('method must be either "standard" or "robust" ')
-        raise ValueError('method must be either "standard" or "robust" ')
-    return z_scores
 
 
 class RobustStatMetadata:
@@ -102,7 +64,8 @@ class RobustStatDetector(Detector):
             .fillna(0)
         )
 
-        y_zscores = compute_zscore(df_)
+        # pyre-fixme[16]: Module `stats` has no attribute `zscore`.
+        y_zscores = zscore(df_)
         p_values = norm.sf(np.abs(y_zscores))
         ind = np.where(p_values < p_value_cutoff)[0]
 

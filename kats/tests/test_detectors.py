@@ -73,15 +73,6 @@ from kats.utils.simulator import Simulator
 from scipy.special import expit  # @manual
 
 # pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
 
@@ -489,6 +480,7 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 0)
+        detector.plot(change_points)
 
     def test_increasing_detection(self) -> None:
         np.random.seed(10)
@@ -507,6 +499,7 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 1)
+        detector.plot(change_points)
 
     def test_decreasing_detection(self) -> None:
         np.random.seed(10)
@@ -525,6 +518,7 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 1)
+        detector.plot(change_points)
 
     def test_spike_change_pos(self) -> None:
         np.random.seed(10)
@@ -539,6 +533,7 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 2)
+        detector.plot(change_points)
 
     def test_spike_change_neg(self) -> None:
         np.random.seed(10)
@@ -557,6 +552,29 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 2)
+
+    def test_rasie_error(self) -> None:
+        D = 10
+        random_state = 10
+        np.random.seed(random_state)
+        mean1 = np.ones(D)
+        mean2 = mean1 * 2
+        sigma = make_spd_matrix(D, random_state=random_state)
+
+        df_increase = pd.DataFrame(
+            np.concatenate(
+                [
+                    np.random.multivariate_normal(mean1, sigma, 60),
+                    np.random.multivariate_normal(mean2, sigma, 30),
+                ]
+            )
+        )
+
+        df_increase["time"] = pd.Series(pd.date_range("2019-01-01", "2019-04-01"))
+
+        timeseries_multi = TimeSeriesData(df_increase)
+        with self.assertRaises(ValueError):
+            RobustStatDetector(timeseries_multi)
 
 
 class MultiCUSUMDetectorTest(TestCase):
@@ -1285,6 +1303,12 @@ class MKDetectorTest(TestCase):
         d = MKDetector(data=trend_data)
         detected_time_points = d.detector()
         d.plot(detected_time_points)
+        metadata = detected_time_points[0][1]
+        self.assertIsInstance(d, metadata.detector_type)
+        self.assertFalse(metadata.is_multivariate)
+        self.assertEqual(metadata.trend_direction, "increasing")
+        self.assertIsInstance(metadata.Tau, float)
+        print(metadata)
 
         results = d.get_MK_statistics()
         up_trend_detected = d.get_MK_results(results, direction="up")["ds"]
@@ -1385,9 +1409,10 @@ class MKDetectorTest(TestCase):
 
         # Check with no trend data
         no_trend_data = self.gen_no_trend_data_ndim(time=time, ndim=ndim)
-        d = MKDetector(data=no_trend_data, multivariate=True)
+        d = MKDetector(data=no_trend_data)
         detected_time_points = d.detector(window_size=window_size)
         d.plot(detected_time_points)
+        d.plot_heat_map()
         self.assertEqual(len(detected_time_points), 0)
 
         # Check with multivariate trend data
