@@ -33,7 +33,7 @@ from kats.detectors.cusum_detection import (
     CUSUMDetector,
     MultiCUSUMDetector,
 )
-from kats.detectors.cusum_onedetection import (
+from kats.detectors.cusum_model import (
     CUSUMDetectorModel,
     CusumScoreFunction,
 )
