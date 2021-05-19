@@ -4,6 +4,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import unittest
 from datetime import datetime, timedelta
 from unittest import TestCase
@@ -27,7 +28,36 @@ from kats.utils.simulator import Simulator
 # pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
 from scipy.stats import ks_2samp  # @manual
 
-data = pd.read_csv("kats/kats/data/air_passengers.csv")
+if "kats/tests" in os.getcwd():
+    data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/air_passengers.csv"
+            )
+        )
+
+    daily_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/peyton_manning.csv"
+            )
+        )
+
+    multi_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/cdn_working_set.csv"
+            )
+        )
+else:
+    data_path = "kats/kats/data/air_passengers.csv"
+    daily_data_path = "kats/kats/data/peyton_manning.csv"
+    multi_data_path = "kats/kats/data/cdn_working_set.csv"
+
+data = pd.read_csv(data_path)
 data.columns = ["time", "y"]
 ts_data = TimeSeriesData(data)
 # generate multiple series
@@ -39,11 +69,11 @@ data_nonstandard_name = data.copy()
 data_nonstandard_name.columns = ["ds", "y"]
 ts_data_nonstandard_name = TimeSeriesData(df=data_nonstandard_name, time_col_name="ds")
 
-daily_data = pd.read_csv("kats/kats/data/peyton_manning.csv")
+daily_data = pd.read_csv(daily_data_path)
 daily_data.columns = ["time", "y"]
 ts_data_daily = TimeSeriesData(daily_data)
 
-DATA_multi = pd.read_csv("kats/kats/data/cdn_working_set.csv")
+DATA_multi = pd.read_csv(multi_data_path)
 TSData_multi = TimeSeriesData(DATA_multi)
 
 

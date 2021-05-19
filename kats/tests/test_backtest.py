@@ -3,6 +3,7 @@
 #
 # This file defines tests for the Backtester classes
 
+import os
 import statistics
 import unittest
 import unittest.mock as mock
@@ -42,7 +43,16 @@ FIXED_WINDOW_TRAIN_PERCENTAGE = 50  # Fixed window ahead training percentage
 FIXED_WINDOW_PERCENTAGE = 25  # Fixed window ahead window percentage
 FLOAT_ROUNDING_PARAM = 3  # Number of decimal places to round low floats to 0
 CV_NUM_FOLDS = 3  # Number of folds for cross validation
-DATA_FILE = "kats/kats/data/air_passengers.csv"  # Path to data
+if "kats/tests" in os.getcwd():
+    DATA_FILE = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/air_passengers.csv"
+            )
+            )
+else:
+    DATA_FILE = "kats/kats/data/air_passengers.csv"
 
 # Read Data File
 DATA = pd.read_csv(DATA_FILE)

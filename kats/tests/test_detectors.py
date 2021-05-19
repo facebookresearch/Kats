@@ -4,6 +4,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import math
 import random
 import time
@@ -76,7 +77,36 @@ from scipy.special import expit  # @manual
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
 
-data = pd.read_csv("kats/kats/data/air_passengers.csv")
+if "kats/tests" in os.getcwd():
+    data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/air_passengers.csv"
+            )
+        )
+
+    daily_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/peyton_manning.csv"
+            )
+        )
+
+    multi_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/cdn_working_set.csv"
+            )
+        )
+else:
+    data_path = "kats/kats/data/air_passengers.csv"
+    daily_data_path = "kats/kats/data/peyton_manning.csv"
+    multi_data_path = "kats/kats/data/cdn_working_set.csv"
+
+data = pd.read_csv(data_path)
 data.columns = ["time", "y"]
 ts_data = TimeSeriesData(data)
 # generate muliple series
@@ -85,11 +115,11 @@ data_2["y_2"] = data_2["y"]
 ts_data_2 = TimeSeriesData(data_2)
 
 
-daily_data = pd.read_csv("kats/kats/data/peyton_manning.csv")
+daily_data = pd.read_csv(daily_data_path)
 daily_data.columns = ["time", "y"]
 ts_data_daily = TimeSeriesData(daily_data)
 
-DATA_multi = pd.read_csv("kats/kats/data/cdn_working_set.csv")
+DATA_multi = pd.read_csv(multi_data_path)
 TSData_multi = TimeSeriesData(DATA_multi)
 
 TSData_empty = TimeSeriesData(pd.DataFrame([], columns=["time", "y"]))
