@@ -4,6 +4,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 from unittest import TestCase
 
 import json
@@ -13,7 +14,18 @@ from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
 from kats.tsfeatures.transformer import transform
 
-DATA = pd.read_csv("kats/kats/data/air_passengers.csv")
+if "kats/tests" in os.getcwd():
+    DATA_FILE = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/air_passengers.csv"
+            )
+        )
+else:
+    DATA_FILE = "kats/kats/data/air_passengers.csv"
+
+DATA = pd.read_csv(DATA_FILE)
 DATA.columns = ["time", "y"]
 TSData = TimeSeriesData(DATA)
 TSData_short = TimeSeriesData(DATA.iloc[:8, :])
