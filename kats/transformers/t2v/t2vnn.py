@@ -1,10 +1,12 @@
 import logging
 import time
-from typing import Dict, List, Tuple, NamedTuple
+from typing import Dict, List, Tuple, NamedTuple, Union
 
 import numpy as np
 import torch
-from kats.transformers.t2v.consts import LSTM
+from kats.transformers.t2v.consts import LSTM, T2VParam
+from kats.transformers.t2v.t2vbatch import T2VBatched
+from kats.transformers.t2v.t2vpreprocessing import T2VPreprocessed
 
 
 class T2VNN:
@@ -26,40 +28,26 @@ class T2VNN:
 
     def __init__(
         self,
-        data: NamedTuple,
-        param: NamedTuple,
+        data: Union[T2VBatched, T2VPreprocessed],
+        param: T2VParam,
     ):
-        # pyre-fixme[16]: `NamedTuple` has no attribute `mode`.
         self.mode = param.mode
-        # pyre-fixme[16]: `NamedTuple` has no attribute `epochs`.
         self.epochs = param.epochs
-        # pyre-fixme[16]: `NamedTuple` has no attribute `vector_length`.
         self.vector_length = param.vector_length
-        # pyre-fixme[16]: `NamedTuple` has no attribute `output_size`.
         self.output_size = data.output_size
-        # pyre-fixme[16]: `NamedTuple` has no attribute `window`.
         self.window = data.window
-        # pyre-fixme[16]: `NamedTuple` has no attribute `hidden`.
         self.hidden = param.hidden
-        # pyre-fixme[16]: `NamedTuple` has no attribute `dropout`.
         self.dropout = param.dropout
-        # pyre-fixme[16]: `NamedTuple` has no attribute `learning_rate`.
         self.learning_rate = param.learning_rate
-        # pyre-fixme[16]: `NamedTuple` has no attribute `loss_function`.
         self.loss_function = param.loss_function
-        # pyre-fixme[16]: `NamedTuple` has no attribute `optimizer`.
         self.optimizer = param.optimizer
-        # pyre-fixme[16]: `NamedTuple` has no attribute `batched`.
         self.batched = data.batched
-        # pyre-fixme[16]: `NamedTuple` has no attribute `validator`.
         self.validator = param.validator
 
         if self.batched:
-            # pyre-fixme[16]: `NamedTuple` has no attribute `batched_tensors`.
+            # pyre-ignore[16]: `T2VPreprocessed` has no attribute `batched_tensors`.
             self.data = data.batched_tensors
         elif not self.batched:
-            # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
-            # pyre-fixme[16]: `NamedTuple` has no attribute `label`.
             self.data = zip(data.seq, data.label)
 
     def _translate(
@@ -178,7 +166,7 @@ class T2VNN:
         # pyre-fixme[16]: `T2VNN` has no attribute `model`.
         self.model = model
 
-    def train(self, translate=False) -> Dict[str, List]:
+    def train(self, translate: bool = False) -> Dict[str, List]:
         # function for training deep NN for embedding translation
         model = LSTM(
             vector_length=self.vector_length,
@@ -225,25 +213,23 @@ class T2VNN:
 
     def val(
         self,
-        val_data: NamedTuple,
+        val_data: Union[T2VBatched, T2VPreprocessed],
     ) -> Dict:  # for validation only
         # validating the trained T2V module using the original label of the sequences
         # checking on how accurate can T2V module predict the original labels
         seq_2_translate, labels = [], []
-        # pyre-fixme[16]: `NamedTuple` has no attribute `batched`.
         if val_data.batched:  # when data is of type t2vbatched
-            # pyre-fixme[16]: `NamedTuple` has no attribute `batched_tensors`.
+            # pyre-ignore[16]: `T2VPreprocessed` has no attribute `batched_tensors`.
             val_data = val_data.batched_tensors
             for b in val_data:
                 for seq, label in b:
                     seq_2_translate.append(seq.view([1, seq.shape[0], 1]))
                     labels.append(label)
         elif not val_data.batched:  # when data is of type t2vprocessed
-            # pyre-fixme[9]: val_data has type `NamedTuple`; used as
-            #  `Iterator[Tuple[Variable[_T1], Variable[_T2]]]`.
-            # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
-            # pyre-fixme[16]: `NamedTuple` has no attribute `label`.
+            # pyre-fixme[9]: val_data is declared to have type `T2VPreprocessed` but is used as
+            # type `typing.Iterator[Tuple[np.ndarray, typing.Any]]`.
             val_data = zip(val_data.seq, val_data.label)
+            # pyre-fixme[16]: `T2VPreprocessed` has no attribute `__iter__`.
             for seq, label in val_data:
                 seq_2_translate.append(torch.from_numpy(seq).view([1, seq.shape[0], 1]))
                 labels.append(label)
@@ -263,19 +249,16 @@ class T2VNN:
 
     def translate(
         self,
-        test_data: NamedTuple,
+        test_data: Union[T2VBatched, T2VPreprocessed]
     ) -> List:  # translate sequences only
         # turning time series sequences into embedding using trained T2V module
         seq_2_translate = []
-        # pyre-fixme[16]: `NamedTuple` has no attribute `batched`.
         if test_data.batched:  # when data type is of t2vbatched
-            # pyre-fixme[16]: `NamedTuple` has no attribute `batched_tensors`.
-            test_data = test_data.batched_tensors
-            for b in test_data:
+            # pyre-ignore[16]: `T2VPreprocessed` has no attribute `batched_tensors`.
+            for b in test_data.batched_tensors:
                 for seq, _ in b:
                     seq_2_translate.append(seq.view([1, seq.shape[0], 1]))
         elif not test_data.batched:  # when data type is of t2vprocessed
-            # pyre-fixme[16]: `NamedTuple` has no attribute `seq`.
             for seq in test_data.seq:
                 seq_2_translate.append(torch.from_numpy(seq).view([1, seq.shape[0], 1]))
 

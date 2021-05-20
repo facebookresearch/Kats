@@ -13,7 +13,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from abc import ABC, abstractmethod
 
 import matplotlib.pyplot as plt
@@ -138,12 +138,9 @@ class NormalKnownParameters(BOCPDModelParameters):
     """
 
     empirical: bool = True
-    # pyre-fixme[8]: Attribute has type `float`; used as `None`.
-    mean_prior: float = None
-    # pyre-fixme[8]: Attribute has type `float`; used as `None`.
-    mean_prec_prior: float = None
-    # pyre-fixme[8]: Attribute has type `float`; used as `None`.
-    known_prec: float = None
+    mean_prior: Optional[float] = None
+    mean_prec_prior: Optional[float] = None
+    known_prec: Optional[float] = None
     known_prec_multiplier: float = 1.
 
     prior_choice: Dict[str, List[float]] = field(

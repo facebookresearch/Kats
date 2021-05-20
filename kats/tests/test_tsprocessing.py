@@ -17,15 +17,6 @@ from kats.detectors.residual_translation import KDEResidualTranslator
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
 # pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
 from scipy.stats import ks_2samp  # @manual
 
 if "kats/tests" in os.getcwd():

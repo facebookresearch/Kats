@@ -199,8 +199,8 @@ class KDEResidualTranslator:
                     "Must supply either both yhat_lower and yhat_upper" "or neither"
                 )
             if yhat_lower is not None:
-                # pyre-fixme[58]: `-` is not supported for operand types
-                #  `Optional[TimeSeriesData]` and `TimeSeriesData`.
+                assert yhat_upper is not None
+                assert yhat_lower is not None
                 residual /= yhat_upper - yhat_lower
         elif residual is not None:
             if any(c is not None for c in [y, yhat, yhat_lower, yhat_upper]):

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-from typing import Dict, Any
+from typing import Any, Dict, Optional
 
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import Detector
@@ -186,9 +186,7 @@ class BayesOnlineChangePoint(Detector):
 
         return rt_posterior
 
-    # pyre-fixme[9]: threshold has type `float`; used as `None`.
-    # pyre-fixme[9]: lag has type `int`; used as `None`.
-    def plot(self, threshold: float = None, lag: int = None):
+    def plot(self, threshold: Optional[float] = None, lag: Optional[int] = None):
 
         if threshold is None:
             threshold = self.threshold
