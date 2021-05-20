@@ -20,6 +20,9 @@ from pandas.util.testing import (
 
 from kats.consts import DEFAULT_TIME_NAME, DEFAULT_VALUE_NAME, TimeSeriesData, TSIterator
 
+# tentative, for test purpose
+print(os.getcwd())
+
 # Constant values to reuse across test cases
 if "kats/tests" in os.getcwd():
     DATA_FILE = os.path.abspath(
