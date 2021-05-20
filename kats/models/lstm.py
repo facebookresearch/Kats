@@ -145,7 +145,6 @@ class LSTMModel(mm.Model):
         #generating sequence
         inout_seq = []
 
-        # pyre-fixme[16]: `LSTMModel` has no attribute `params`.
         for i in range(len(self.train_data_normalized) - self.params.time_window):
             train_seq = self.train_data_normalized[i:i + self.params.time_window]
             train_label = self.train_data_normalized[i + self.params.time_window : i + self.params.time_window + 1]
@@ -173,7 +172,6 @@ class LSTMModel(mm.Model):
         # supports univariate time series, multivariate support in the future
         # pyre-fixme[16]: `LSTMModel` has no attribute `model`.
         # pyre-fixme[16]: `LSTMModel` has no attribute `params`.
-        # pyre-fixme[6]: Expected `LSTMParams` for 1st param but got `Params`.
         self.model = LSTMForecast(params=self.params, input_size=1, output_size=1)
 
         # loss function
@@ -185,11 +183,9 @@ class LSTMModel(mm.Model):
         #inout_seq
         train_inout_seq = self.__setup_data()
 
-        # pyre-fixme[16]: `Params` has no attribute `num_epochs`.
         for i in range(self.params.num_epochs):
             for seq, labels in train_inout_seq:
                 optimizer.zero_grad()
-                # pyre-fixme[16]: `Params` has no attribute `hidden_size`.
                 self.model.hidden_cell = (torch.zeros(1, 1, self.params.hidden_size),
                                     torch.zeros(1, 1, self.params.hidden_size))
                 # prediction using input data
@@ -235,7 +231,6 @@ class LSTMModel(mm.Model):
         for _ in range(steps):
             seq = torch.FloatTensor(test_inputs[-self.params.time_window:])
             with torch.no_grad():
-                # pyre-fixme[16]: `Params` has no attribute `hidden_size`.
                 self.model.hidden = (torch.zeros(1, 1, self.params.hidden_size),
                                 torch.zeros(1, 1, self.params.hidden_size))
                 test_inputs.append(self.model(seq).item())

@@ -230,75 +230,23 @@ class ProphetModel(m.Model):
             "cap:{cap},"
             "floor:{floor},"
             "custom_seasonalities:{custom_seasonalities}".format(
-                # pyre-fixme[16]: `ProphetModel` has no attribute `params`.
                 growth=self.params.growth,
-                # pyre-fixme[16]: `Params` has no attribute `changepoints`.
                 changepoints=self.params.changepoints,
-                # pyre-fixme[16]: `Params` has no attribute `n_changepoints`.
                 n_changepoints=self.params.n_changepoints,
-                # pyre-fixme[16]: `Params` has no attribute `changepoint_range`.
                 changepoint_range=self.params.changepoint_range,
-                # pyre-fixme[16]: `Params` has no attribute `yearly_seasonality`.
                 yearly_seasonality=self.params.yearly_seasonality,
-                # pyre-fixme[16]: `Params` has no attribute `weekly_seasonality`.
                 weekly_seasonality=self.params.weekly_seasonality,
-                # pyre-fixme[16]: `Params` has no attribute `changepoints`.
-                # pyre-fixme[16]: `Params` has no attribute `daily_seasonality`.
-                # pyre-fixme[16]: `Params` has no attribute `changepoints`.
-                # pyre-fixme[16]: `Params` has no attribute `n_changepoints`.
-                # pyre-fixme[16]: `Params` has no attribute `n_changepoints`.
                 daily_seasonality=self.params.daily_seasonality,
-                # pyre-fixme[16]: `Params` has no attribute `changepoint_range`.
-                # pyre-fixme[16]: `Params` has no attribute `changepoint_range`.
-                # pyre-fixme[16]: `Params` has no attribute `yearly_seasonality`.
-                # pyre-fixme[16]: `Params` has no attribute `holidays`.
-                # pyre-fixme[16]: `Params` has no attribute `weekly_seasonality`.
-                # pyre-fixme[16]: `Params` has no attribute `yearly_seasonality`.
-                # pyre-fixme[16]: `Params` has no attribute `daily_seasonality`.
                 holidays=self.params.holidays,
-                # pyre-fixme[16]: `Params` has no attribute `holidays`.
-                # pyre-fixme[16]: `Params` has no attribute `weekly_seasonality`.
-                # pyre-fixme[16]: `Params` has no attribute `seasonality_mode`.
-                # pyre-fixme[16]: `Params` has no attribute `seasonality_mode`.
-                # pyre-fixme[16]: `Params` has no attribute `seasonality_prior_scale`.
-                # pyre-fixme[16]: `Params` has no attribute `daily_seasonality`.
-                # pyre-fixme[16]: `Params` has no attribute `holidays_prior_scale`.
                 seasonality_mode=self.params.seasonality_mode,
-                # pyre-fixme[16]: `Params` has no attribute `changepoint_prior_scale`.
-                # pyre-fixme[16]: `Params` has no attribute `holidays`.
-                # pyre-fixme[16]: `Params` has no attribute `mcmc_samples`.
-                # pyre-fixme[16]: `Params` has no attribute `seasonality_prior_scale`.
-                # pyre-fixme[16]: `Params` has no attribute `interval_width`.
-                # pyre-fixme[16]: `Params` has no attribute `seasonality_mode`.
-                # pyre-fixme[16]: `Params` has no attribute `uncertainty_samples`.
                 seasonality_prior_scale=self.params.seasonality_prior_scale,
-                # pyre-fixme[16]: `Params` has no attribute `cap`.
-                # pyre-fixme[16]: `Params` has no attribute `seasonality_prior_scale`.
-                # pyre-fixme[16]: `Params` has no attribute `floor`.
-                # pyre-fixme[16]: `Params` has no attribute `holidays_prior_scale`.
-                # pyre-fixme[16]: `Params` has no attribute `custom_seasonalities`.
-                # pyre-fixme[16]: `Params` has no attribute `holidays_prior_scale`.
                 holidays_prior_scale=self.params.holidays_prior_scale,
-                # pyre-fixme[16]: `Params` has no attribute `changepoint_prior_scale`.
-                # pyre-fixme[16]: `Params` has no attribute `changepoint_prior_scale`.
-                # pyre-fixme[16]: `Params` has no attribute `mcmc_samples`.
                 changepoint_prior_scale=self.params.changepoint_prior_scale,
-                # pyre-fixme[16]: `Params` has no attribute `interval_width`.
-                # pyre-fixme[16]: `Params` has no attribute `mcmc_samples`.
-                # pyre-fixme[16]: `Params` has no attribute `uncertainty_samples`.
                 mcmc_samples=self.params.mcmc_samples,
-                # pyre-fixme[16]: `Params` has no attribute `cap`.
-                # pyre-fixme[16]: `Params` has no attribute `interval_width`.
-                # pyre-fixme[16]: `Params` has no attribute `floor`.
                 interval_width=self.params.interval_width,
-                # pyre-fixme[16]: `Params` has no attribute `custom_seasonalities`.
-                # pyre-fixme[16]: `Params` has no attribute `uncertainty_samples`.
                 uncertainty_samples=self.params.uncertainty_samples,
-                # pyre-fixme[16]: `Params` has no attribute `cap`.
                 cap=self.params.cap,
-                # pyre-fixme[16]: `Params` has no attribute `floor`.
                 floor=self.params.floor,
-                # pyre-fixme[16]: `Params` has no attribute `custom_seasonalities`.
                 custom_seasonalities=self.params.custom_seasonalities,
             )
         )
@@ -368,12 +316,9 @@ class ProphetModel(m.Model):
                 periods=steps,
                 freq=self.freq,
                 include_history=self.include_history)
-            # pyre-fixme[16]: `ProphetModel` has no attribute `params`.
             if self.params.growth == "logistic":
                 # assign cap to a new col as Prophet required
-                # pyre-fixme[16]: `Params` has no attribute `cap`.
                 future["cap"] = self.params.cap
-            # pyre-fixme[16]: `Params` has no attribute `floor`.
             if self.params.floor is not None:
                 future["floor"] = self.params.floor
 

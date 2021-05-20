@@ -88,7 +88,6 @@ class STLFModel(m.Model):
             raise ValueError(msg)
         self.n = self.data.value.shape[0]
 
-        # pyre-fixme[16]: `STLFModel` has no attribute `params`.
         if self.params.m > self.n:
             msg = "The seasonality length m must be smaller than the length of time series"
             logging.error(msg)
@@ -132,7 +131,6 @@ class STLFModel(m.Model):
             kwargs=kwargs
         ))
         self.deseasonalize()
-        # pyre-fixme[16]: `STLFModel` has no attribute `params`.
         if self.params.method == "prophet":
             params = prophet.ProphetParams()
             model = prophet.ProphetModel(
@@ -197,7 +195,6 @@ class STLFModel(m.Model):
         fcst = self.model.predict(steps=steps, include_history=include_history)
 
         # re-seasonalize
-        # pyre-fixme[16]: `STLFModel` has no attribute `params`.
         m = self.params.m
         rep = math.trunc(1 + fcst.shape[0] / m)
 

@@ -74,7 +74,6 @@ class QuadraticModel(m.Model):
         """
         logging.debug(
             "Call fit() with parameters: "
-            # pyre-fixme[16]: `QuadraticModel` has no attribute `params`.
             "alpha:{alpha}".format(alpha=self.params.alpha)
         )
 
@@ -129,7 +128,6 @@ class QuadraticModel(m.Model):
         # pyre-fixme[16]: `QuadraticModel` has no attribute `y_fcst_upper`.
         # pyre-fixme[16]: Module `statsmodels` has no attribute `sandbox`.
         self.sdev, self.y_fcst_lower, self.y_fcst_upper = wls_prediction_std(
-            # pyre-fixme[16]: `QuadraticModel` has no attribute `params`.
             self.model, exog=X_fcst, alpha=self.params.alpha
         )
         # pyre-fixme[16]: `QuadraticModel` has no attribute `y_fcst`.

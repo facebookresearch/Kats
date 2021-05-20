@@ -122,13 +122,9 @@ class HoltWintersModel(m.Model):
         logging.debug("Call fit() with parameters:{kwargs}".format(kwargs=kwargs))
         holtwinters = HoltWinters(
             self.data.value,
-            # pyre-fixme[16]: `HoltWintersModel` has no attribute `params`.
             trend=self.params.trend,
-            # pyre-fixme[16]: `Params` has no attribute `damped`.
             damped=self.params.damped,
-            # pyre-fixme[16]: `Params` has no attribute `seasonal`.
             seasonal=self.params.seasonal,
-            # pyre-fixme[16]: `Params` has no attribute `seasonal_periods`.
             seasonal_periods=self.params.seasonal_periods,
         )
         # pyre-fixme[16]: `HoltWintersModel` has no attribute `model`.
