@@ -200,33 +200,19 @@ class SARIMAModel(m.Model):
         logging.info("Created SARIMA model.")
         sarima = SARIMAX(
             self.data.value,
-            # pyre-fixme[16]: `SARIMAModel` has no attribute `params`.
             order=(self.params.p, self.params.d, self.params.q),
-            # pyre-fixme[16]: `Params` has no attribute `exog`.
             exog=self.params.exog,
-            # pyre-fixme[16]: `Params` has no attribute `seasonal_order`.
             seasonal_order=self.params.seasonal_order,
-            # pyre-fixme[16]: `Params` has no attribute `trend`.
             trend=self.params.trend,
-            # pyre-fixme[16]: `Params` has no attribute `measurement_error`.
             measurement_error=self.params.measurement_error,
-            # pyre-fixme[16]: `Params` has no attribute `time_varying_regression`.
             time_varying_regression=self.params.time_varying_regression,
-            # pyre-fixme[16]: `Params` has no attribute `mle_regression`.
             mle_regression=self.params.mle_regression,
-            # pyre-fixme[16]: `Params` has no attribute `simple_differencing`.
             simple_differencing=self.params.simple_differencing,
-            # pyre-fixme[16]: `Params` has no attribute `enforce_stationarity`.
             enforce_stationarity=self.params.enforce_stationarity,
-            # pyre-fixme[16]: `Params` has no attribute `enforce_invertibility`.
             enforce_invertibility=self.params.enforce_invertibility,
-            # pyre-fixme[16]: `Params` has no attribute `hamilton_representation`.
             hamilton_representation=self.params.hamilton_representation,
-            # pyre-fixme[16]: `Params` has no attribute `concentrate_scale`.
             concentrate_scale=self.params.concentrate_scale,
-            # pyre-fixme[16]: `Params` has no attribute `trend_offset`.
             trend_offset=self.params.trend_offset,
-            # pyre-fixme[16]: `Params` has no attribute `use_exact_diffuse`.
             use_exact_diffuse=self.params.use_exact_diffuse,
         )
         # pyre-fixme[16]: `SARIMAModel` has no attribute `model`.
@@ -341,9 +327,7 @@ class SARIMAModel(m.Model):
             # thus we need to assign np.nan to avoid confusion
             # k = max(p, d, q) + max(P, D, Q) * seasonal_order + 1
             k = (
-                # pyre-fixme[16]: `SARIMAModel` has no attribute `params`.
                 max(self.params.p, self.params.d, self.params.q)
-                # pyre-fixme[16]: `Params` has no attribute `seasonal_order`.
                 + max(self.params.seasonal_order[0:3]) * self.params.seasonal_order[3]
                 + 1
             )

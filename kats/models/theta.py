@@ -81,7 +81,6 @@ class ThetaModel(m.Model):
         """Determine if the metirc to be forecasted is seasonal or not"""
 
         y = self.data.value
-        # pyre-fixme[16]: `ThetaModel` has no attribute `params`.
         m = self.params.m
         if (m > 1) and (y.nunique() > 1) and (self.n > 2 * m):
             r = acf(y, nlags=m)
@@ -177,7 +176,6 @@ class ThetaModel(m.Model):
         # reseasonalize
         # pyre-fixme[16]: `ThetaModel` has no attribute `seasonal`.
         if self.seasonal:
-            # pyre-fixme[16]: `ThetaModel` has no attribute `params`.
             m = self.params.m
             rep = math.trunc(1 + steps / m)
             # pyre-fixme[16]: `ThetaModel` has no attribute `decomp`.
