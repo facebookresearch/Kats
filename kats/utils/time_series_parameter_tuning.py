@@ -23,7 +23,7 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from multiprocessing.pool import Pool
 from numbers import Number
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from ax import Arm, ComparisonOp, Data, OptimizationConfig, SearchSpace
@@ -216,17 +216,11 @@ class TimeSeriesParameterTuning(ABC):
 
     def __init__(
         self,
-        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
         # pyre-fixme[9]: parameters has type `List[Dict[typing.Any, typing.Any]]`;
-        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
-        #  used as `None`.
         parameters: List[Dict] = None,
-        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
-        experiment_name: str = None,
-        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
-        objective_name: str = None,
-        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
-        outcome_constraints: List[str] = None,
+        experiment_name: Optional[str] = None,
+        objective_name: Optional[str] = None,
+        outcome_constraints: Optional[List[str]] = None,
         multiprocessing: bool = False,
     ) -> None:
         self.logger = logging.getLogger(__name__)
@@ -694,8 +688,7 @@ class RandomSearch(TimeSeriesParameterTuning):
         experiment_name: str = None,
         # pyre-fixme[9]: objective_name has type `str`; used as `None`.
         objective_name: str = None,
-        # pyre-fixme[9]: seed has type `int`; used as `None`.
-        seed: int = None,
+        seed: Optional[int] = None,
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
         # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
         outcome_constraints: List[str] = None,
@@ -793,8 +786,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         # pyre-fixme[9]: objective_name has type `str`; used as `None`.
         objective_name: str = None,
         bootstrap_size: int = 5,
-        # pyre-fixme[9]: seed has type `int`; used as `None`.
-        seed: int = None,
+        seed: Optional[int] = None,
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
         # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
         outcome_constraints: List[str] = None,

@@ -5,10 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+from dataclasses import dataclass
 from typing import List, Optional, NamedTuple
 
 import numpy as np
 from kats.consts import TimeSeriesData
+from kats.transformers.t2v.consts import T2VParam
+
+
+@dataclass
+class T2VPreprocessed:
+    seq: List[np.ndarray]
+    label: List
+    output_size: int
+    window: int
+    batched: bool
 
 
 class T2VPreprocessing:
@@ -36,7 +47,7 @@ class T2VPreprocessing:
 
     def __init__(
         self,
-        param: NamedTuple,  # TO-DO: Add segmented transformation (21Q2)
+        param: T2VParam,  # TO-DO: Add segmented transformation (21Q2)
         data: List[TimeSeriesData],
         label: Optional[List] = None,
         dummy_label: bool = False,
@@ -46,12 +57,10 @@ class T2VPreprocessing:
 
         self.dummy_label = dummy_label
         self.label = label
-        # pyre-fixme[16]: `NamedTuple` has no attribute `mode`.
         self.mode = param.mode
         self.output_size = (
             (np.max(label) + 1)
             if ((label is not None) & (self.mode == "classification"))
-            # pyre-fixme[16]: `NamedTuple` has no attribute `training_output_size`.
             else param.training_output_size
         )  # if label is provided and it's we train it in a classification
         # fashion, then output_size is determined by the max of the labels,
@@ -74,7 +83,7 @@ class T2VPreprocessing:
 
     def transform(
         self,
-    ) -> NamedTuple:
+    ) -> T2VPreprocessed:
 
         # sanity check
         if self.mode == "classification" and not self.dummy_label:
@@ -100,7 +109,6 @@ class T2VPreprocessing:
         # pyre-fixme[16]: `T2VPreprocessing` has no attribute `window`.
         self.window = end
 
-        # pyre-fixme[16]: `NamedTuple` has no attribute `normalizer`.
         if self.param.normalizer is not None:
             seq = [
                 self.param.normalizer(ts.value.values[:end]) for ts in self.data
@@ -125,31 +133,14 @@ class T2VPreprocessing:
             logging.error(msg)
             raise ValueError(msg)
 
-        T2VPreprocessed = NamedTuple(
-            "T2VPreprocessed",
-            [
-                ("seq", List[np.ndarray]),
-                ("label", List),
-                ("output_size", int),
-                ("window", int),
-                ("batched", bool),
-            ],
-        )  # A named tuple for storing relevant content of processed timeseries
-        # data sequences.
-
         seq = self._reshaping(seq)
-        # pyre-fixme[41]: Cannot reassign final attribute `seq`.
-        T2VPreprocessed.seq = seq
-        # pyre-fixme[41]: Cannot reassign final attribute `label`.
-        T2VPreprocessed.label = label
-        # pyre-fixme[41]: Cannot reassign final attribute `output_size`.
-        T2VPreprocessed.output_size = self.output_size
-        # pyre-fixme[41]: Cannot reassign final attribute `window`.
-        T2VPreprocessed.window = self.window  # currently only supporting feeding
-        # the entire time series data, segmentaion will come later.
-        # pyre-fixme[41]: Cannot reassign final attribute `batched`.
-        T2VPreprocessed.batched = False  # for downstream functions
+        t2vpreproc = T2VPreprocessed(
+            seq = seq,
+            label = label,
+            output_size = self.output_size,
+            window = self.window,  # currently only supporting feeding
+            # the entire time series data, segmentaion will come later.
+            batched = False,  # for downstream functions
+        )
 
-        # pyre-fixme[7]: Expected `NamedTuple` but got
-        #  `Type[T2VPreprocessing.transform.T2VPreprocessed]`.
-        return T2VPreprocessed
+        return t2vpreproc

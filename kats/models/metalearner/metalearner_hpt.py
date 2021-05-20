@@ -432,10 +432,9 @@ class MetaLearnHPT:
         loss_cat_train = torch.tensor([0.0])
         # Loss of classification.
         if o1 is not None:
+            assert y_cat is not None
             batch_y1 = y_cat
-            # pyre-fixme[16]: `Optional` has no attribute `shape`.
             for col in range(batch_y1.shape[1]):
-                # pyre-fixme[16]: `Optional` has no attribute `__getitem__`.
                 loss_cat_train += loss_func_cat(o1[col], batch_y1[:, col])
 
         # Loss of regression.
