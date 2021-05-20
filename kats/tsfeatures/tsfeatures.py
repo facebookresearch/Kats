@@ -600,7 +600,7 @@ class TsFeatures:
         psd_norm = psd / np.sum(psd)
         entropy = np.nansum(psd_norm * np.log2(psd_norm))
 
-        return entropy / np.log2(psd_norm.size)
+        return -(entropy / np.log2(psd_norm.size))
 
     # lumpiness
     @staticmethod
