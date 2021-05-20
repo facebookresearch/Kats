@@ -40,13 +40,13 @@ if "kats/tests" in os.getcwd():
         os.path.join(
             os.path.dirname("__file__"),
             "../",
-            "data/cdn_working_set.csv"
+            "data/multivariate_anomaly_simulated_data.csv"
             )
         )
 else:
     data_path = "kats/kats/data/air_passengers.csv"
     daily_data_path = "kats/kats/data/peyton_manning.csv"
-    multi_data_path = "kats/kats/data/cdn_working_set.csv"
+    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
 
 data = pd.read_csv(data_path)
 data.columns = ["time", "y"]
@@ -321,38 +321,12 @@ class DecompositionTest(TestCase):
             m.decomposer()
 
     def test_new_freq(self) -> None:
-        def process_time(z):
-            x0, x1 = z.split(" ")
-            time = (
-                "-".join(y.rjust(2, "0") for y in x0.split("/"))
-                + "20 "
-                + ":".join(y.rjust(2, "0") for y in x1.split(":"))
-                + ":00"
-            )
+        df_15_min = DATA_multi[["time", "1"]]
+        df_15_min["time"] = list(pd.date_range(end='2020-02-01', periods=df_15_min.shape[0], freq='25T'))
+        df_15_min["time"] = df_15_min["time"].astype('str')
+        df_15_min.columns = ["time", "y"]
 
-            return datetime.strptime(time, "%m-%d-%Y %H:%M:%S")
-
-        df_15_min = DATA_multi
-
-        df_15_min["ts"] = df_15_min["time"].apply(process_time)
-
-        df_15_min_dict = {}
-
-        for i in range(0, 4):
-
-            df_15_min_temp = df_15_min.copy()
-            df_15_min_temp["ts"] = [
-                x + timedelta(minutes=15 * i) for x in df_15_min_temp["ts"]
-            ]
-            df_15_min_dict[i] = df_15_min_temp
-
-        df_15_min_ts = pd.concat(df_15_min_dict.values()).sort_values(by="ts")[
-            ["ts", "V1"]
-        ]
-
-        df_15_min_ts.columns = ["time", "y"]
-
-        df_ts = TimeSeriesData(df_15_min_ts)
+        df_ts = TimeSeriesData(df_15_min)
 
         m = TimeSeriesDecomposition(df_ts, "additive", method="STL")
         m.decomposer()

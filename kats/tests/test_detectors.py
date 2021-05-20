@@ -94,13 +94,13 @@ if "kats/tests" in os.getcwd():
         os.path.join(
             os.path.dirname("__file__"),
             "../",
-            "data/cdn_working_set.csv"
+            "data/multivariate_anomaly_simulated_data.csv"
             )
         )
 else:
     data_path = "kats/kats/data/air_passengers.csv"
     daily_data_path = "kats/kats/data/peyton_manning.csv"
-    multi_data_path = "kats/kats/data/cdn_working_set.csv"
+    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
 
 data = pd.read_csv(data_path)
 data.columns = ["time", "y"]
@@ -123,44 +123,6 @@ TSData_empty = TimeSeriesData(pd.DataFrame([], columns=["time", "y"]))
 
 # Anomaly detection tests
 class OutlierDetectionTest(TestCase):
-    def test_new_freq_outliers(self) -> None:
-        def process_time(z):
-            x0, x1 = z.split(" ")
-            time = (
-                "-".join(y.rjust(2, "0") for y in x0.split("/"))
-                + "20 "
-                + ":".join(y.rjust(2, "0") for y in x1.split(":"))
-                + ":00"
-            )
-
-            return datetime.strptime(time, "%m-%d-%Y %H:%M:%S")
-
-        df_15_min = DATA_multi
-
-        df_15_min["ts"] = df_15_min["time"].apply(process_time)
-
-        df_15_min_dict = {}
-
-        for i in range(0, 4):
-
-            df_15_min_temp = df_15_min.copy()
-            df_15_min_temp["ts"] = [
-                x + timedelta(minutes=15 * i) for x in df_15_min_temp["ts"]
-            ]
-            df_15_min_dict[i] = df_15_min_temp
-
-        df_15_min_ts = pd.concat(df_15_min_dict.values()).sort_values(by="ts")[
-            ["ts", "V1"]
-        ]
-
-        df_15_min_ts.columns = ["time", "y"]
-
-        df_ts = TimeSeriesData(df_15_min_ts)
-
-        m = OutlierDetector(df_ts, "additive")
-        m.detector()
-        m.remover(interpolate=True)
-
     def test_additive_overrides(self) -> None:
         m = OutlierDetector(ts_data, "additive")
 
@@ -214,26 +176,26 @@ class MultivariateVARDetectorTest(TestCase):
     def test_var_detector(self) -> None:
         np.random.seed(10)
 
-        params = VARParams(maxlags=3)
-        d = MultivariateAnomalyDetector(TSData_multi, params, training_days=3)
+        params = VARParams(maxlags=2)
+        d = MultivariateAnomalyDetector(TSData_multi, params, training_days=60)
         anomaly_score_df = d.detector()
         self.assertCountEqual(
             list(anomaly_score_df.columns),
             list(TSData_multi.value.columns) + ["overall_anomaly_score", "p_value"],
         )
         d.plot()
-        alpha = 0.01
+        alpha = 0.05
         anomalies = d.get_anomaly_timepoints(alpha)
-        d.get_anomalous_metrics(anomalies[0], top_k=5)
+        d.get_anomalous_metrics(anomalies[0], top_k=3)
 
     def test_bayesian_detector(self) -> None:
         np.random.seed(10)
 
-        params = BayesianVARParams(p=3)
+        params = BayesianVARParams(p=2)
         d = MultivariateAnomalyDetector(
-            TSData_multi[24 : -2 * 24],  # testing on shorter data
+            TSData_multi,
             params,
-            training_days=3,
+            training_days=60,
             model_type=MultivariateAnomalyDetectorType.BAYESIAN_VAR,
         )
         anomaly_score_df = d.detector()
@@ -244,15 +206,15 @@ class MultivariateVARDetectorTest(TestCase):
         d.plot()
         alpha = 0.05
         anomalies = d.get_anomaly_timepoints(alpha)
-        d.get_anomalous_metrics(anomalies[0], top_k=5)
+        d.get_anomalous_metrics(anomalies[0], top_k=3)
 
     def test_runtime_errors(self) -> None:
         DATA_multi2 = pd.concat([DATA_multi, DATA_multi])
         TSData_multi2 = TimeSeriesData(DATA_multi2)
-        params = VARParams(maxlags=3)
+        params = VARParams(maxlags=2)
 
         with self.assertRaises(RuntimeError):
-            d = MultivariateAnomalyDetector(TSData_multi2, params, training_days=3)
+            d = MultivariateAnomalyDetector(TSData_multi2, params, training_days=60)
             d.detector()
 
         DATA_multi3 = pd.merge(
@@ -260,7 +222,7 @@ class MultivariateVARDetectorTest(TestCase):
         )
         TSData_multi3 = TimeSeriesData(DATA_multi3)
         with self.assertRaises(RuntimeError):
-            d2 = MultivariateAnomalyDetector(TSData_multi3, params, training_days=3)
+            d2 = MultivariateAnomalyDetector(TSData_multi3, params, training_days=60)
             d2.detector()
 
 
