@@ -150,12 +150,9 @@ class ARIMAModel(m.Model):
 
         arima = ARIMA(
             self.data.value,
-            # pyre-fixme[16]: `ARIMAModel` has no attribute `params`.
             order=(self.params.p, self.params.d, self.params.q),
-            # pyre-fixme[16]: `Params` has no attribute `exog`.
             exog=self.params.exog,
             dates=self.data.time,
-            # pyre-fixme[16]: `Params` has no attribute `freq`.
             freq=self.params.freq,
         )
         logging.info("Created arima model.")

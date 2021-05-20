@@ -4,6 +4,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import math
 import random
 import time
@@ -33,7 +34,7 @@ from kats.detectors.cusum_detection import (
     CUSUMDetector,
     MultiCUSUMDetector,
 )
-from kats.detectors.cusum_onedetection import (
+from kats.detectors.cusum_model import (
     CUSUMDetectorModel,
     CusumScoreFunction,
 )
@@ -56,10 +57,6 @@ from kats.detectors.outlier import (
 from kats.detectors.prophet_detector import ProphetDetectorModel
 from kats.detectors.robust_stat_detection import RobustStatDetector
 from kats.detectors.seasonality import ACFDetector, FFTDetector
-from kats.detectors.slow_drift_detector import (
-    SlowDriftDetectorModel,
-    time_series_to_data_points,
-)
 from kats.detectors.stat_sig_detector import (
     MultiStatSigDetectorModel,
     StatSigDetectorModel,
@@ -73,19 +70,39 @@ from kats.utils.simulator import Simulator
 from scipy.special import expit  # @manual
 
 # pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
 
-data = pd.read_csv("kats/kats/data/air_passengers.csv")
+if "kats/tests" in os.getcwd():
+    data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/air_passengers.csv"
+            )
+        )
+
+    daily_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/peyton_manning.csv"
+            )
+        )
+
+    multi_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/multivariate_anomaly_simulated_data.csv"
+            )
+        )
+else:
+    data_path = "kats/kats/data/air_passengers.csv"
+    daily_data_path = "kats/kats/data/peyton_manning.csv"
+    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
+
+data = pd.read_csv(data_path)
 data.columns = ["time", "y"]
 ts_data = TimeSeriesData(data)
 # generate muliple series
@@ -94,11 +111,11 @@ data_2["y_2"] = data_2["y"]
 ts_data_2 = TimeSeriesData(data_2)
 
 
-daily_data = pd.read_csv("kats/kats/data/peyton_manning.csv")
+daily_data = pd.read_csv(daily_data_path)
 daily_data.columns = ["time", "y"]
 ts_data_daily = TimeSeriesData(daily_data)
 
-DATA_multi = pd.read_csv("kats/kats/data/cdn_working_set.csv")
+DATA_multi = pd.read_csv(multi_data_path)
 TSData_multi = TimeSeriesData(DATA_multi)
 
 TSData_empty = TimeSeriesData(pd.DataFrame([], columns=["time", "y"]))
@@ -106,44 +123,6 @@ TSData_empty = TimeSeriesData(pd.DataFrame([], columns=["time", "y"]))
 
 # Anomaly detection tests
 class OutlierDetectionTest(TestCase):
-    def test_new_freq_outliers(self) -> None:
-        def process_time(z):
-            x0, x1 = z.split(" ")
-            time = (
-                "-".join(y.rjust(2, "0") for y in x0.split("/"))
-                + "20 "
-                + ":".join(y.rjust(2, "0") for y in x1.split(":"))
-                + ":00"
-            )
-
-            return datetime.strptime(time, "%m-%d-%Y %H:%M:%S")
-
-        df_15_min = DATA_multi
-
-        df_15_min["ts"] = df_15_min["time"].apply(process_time)
-
-        df_15_min_dict = {}
-
-        for i in range(0, 4):
-
-            df_15_min_temp = df_15_min.copy()
-            df_15_min_temp["ts"] = [
-                x + timedelta(minutes=15 * i) for x in df_15_min_temp["ts"]
-            ]
-            df_15_min_dict[i] = df_15_min_temp
-
-        df_15_min_ts = pd.concat(df_15_min_dict.values()).sort_values(by="ts")[
-            ["ts", "V1"]
-        ]
-
-        df_15_min_ts.columns = ["time", "y"]
-
-        df_ts = TimeSeriesData(df_15_min_ts)
-
-        m = OutlierDetector(df_ts, "additive")
-        m.detector()
-        m.remover(interpolate=True)
-
     def test_additive_overrides(self) -> None:
         m = OutlierDetector(ts_data, "additive")
 
@@ -197,26 +176,26 @@ class MultivariateVARDetectorTest(TestCase):
     def test_var_detector(self) -> None:
         np.random.seed(10)
 
-        params = VARParams(maxlags=3)
-        d = MultivariateAnomalyDetector(TSData_multi, params, training_days=3)
+        params = VARParams(maxlags=2)
+        d = MultivariateAnomalyDetector(TSData_multi, params, training_days=60)
         anomaly_score_df = d.detector()
         self.assertCountEqual(
             list(anomaly_score_df.columns),
             list(TSData_multi.value.columns) + ["overall_anomaly_score", "p_value"],
         )
         d.plot()
-        alpha = 0.01
+        alpha = 0.05
         anomalies = d.get_anomaly_timepoints(alpha)
-        d.get_anomalous_metrics(anomalies[0], top_k=5)
+        d.get_anomalous_metrics(anomalies[0], top_k=3)
 
     def test_bayesian_detector(self) -> None:
         np.random.seed(10)
 
-        params = BayesianVARParams(p=3)
+        params = BayesianVARParams(p=2)
         d = MultivariateAnomalyDetector(
-            TSData_multi[24 : -2 * 24],  # testing on shorter data
+            TSData_multi,
             params,
-            training_days=3,
+            training_days=60,
             model_type=MultivariateAnomalyDetectorType.BAYESIAN_VAR,
         )
         anomaly_score_df = d.detector()
@@ -227,15 +206,15 @@ class MultivariateVARDetectorTest(TestCase):
         d.plot()
         alpha = 0.05
         anomalies = d.get_anomaly_timepoints(alpha)
-        d.get_anomalous_metrics(anomalies[0], top_k=5)
+        d.get_anomalous_metrics(anomalies[0], top_k=3)
 
     def test_runtime_errors(self) -> None:
         DATA_multi2 = pd.concat([DATA_multi, DATA_multi])
         TSData_multi2 = TimeSeriesData(DATA_multi2)
-        params = VARParams(maxlags=3)
+        params = VARParams(maxlags=2)
 
         with self.assertRaises(RuntimeError):
-            d = MultivariateAnomalyDetector(TSData_multi2, params, training_days=3)
+            d = MultivariateAnomalyDetector(TSData_multi2, params, training_days=60)
             d.detector()
 
         DATA_multi3 = pd.merge(
@@ -243,7 +222,7 @@ class MultivariateVARDetectorTest(TestCase):
         )
         TSData_multi3 = TimeSeriesData(DATA_multi3)
         with self.assertRaises(RuntimeError):
-            d2 = MultivariateAnomalyDetector(TSData_multi3, params, training_days=3)
+            d2 = MultivariateAnomalyDetector(TSData_multi3, params, training_days=60)
             d2.detector()
 
 
@@ -489,6 +468,7 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 0)
+        detector.plot(change_points)
 
     def test_increasing_detection(self) -> None:
         np.random.seed(10)
@@ -507,6 +487,7 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 1)
+        detector.plot(change_points)
 
     def test_decreasing_detection(self) -> None:
         np.random.seed(10)
@@ -525,6 +506,7 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 1)
+        detector.plot(change_points)
 
     def test_spike_change_pos(self) -> None:
         np.random.seed(10)
@@ -539,6 +521,7 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 2)
+        detector.plot(change_points)
 
     def test_spike_change_neg(self) -> None:
         np.random.seed(10)
@@ -557,6 +540,29 @@ class RobustStatTest(TestCase):
         change_points = detector.detector()
 
         self.assertEqual(len(change_points), 2)
+
+    def test_rasie_error(self) -> None:
+        D = 10
+        random_state = 10
+        np.random.seed(random_state)
+        mean1 = np.ones(D)
+        mean2 = mean1 * 2
+        sigma = make_spd_matrix(D, random_state=random_state)
+
+        df_increase = pd.DataFrame(
+            np.concatenate(
+                [
+                    np.random.multivariate_normal(mean1, sigma, 60),
+                    np.random.multivariate_normal(mean2, sigma, 30),
+                ]
+            )
+        )
+
+        df_increase["time"] = pd.Series(pd.date_range("2019-01-01", "2019-04-01"))
+
+        timeseries_multi = TimeSeriesData(df_increase)
+        with self.assertRaises(ValueError):
+            RobustStatDetector(timeseries_multi)
 
 
 class MultiCUSUMDetectorTest(TestCase):
@@ -1285,6 +1291,12 @@ class MKDetectorTest(TestCase):
         d = MKDetector(data=trend_data)
         detected_time_points = d.detector()
         d.plot(detected_time_points)
+        metadata = detected_time_points[0][1]
+        self.assertIsInstance(d, metadata.detector_type)
+        self.assertFalse(metadata.is_multivariate)
+        self.assertEqual(metadata.trend_direction, "increasing")
+        self.assertIsInstance(metadata.Tau, float)
+        print(metadata)
 
         results = d.get_MK_statistics()
         up_trend_detected = d.get_MK_results(results, direction="up")["ds"]
@@ -1385,9 +1397,10 @@ class MKDetectorTest(TestCase):
 
         # Check with no trend data
         no_trend_data = self.gen_no_trend_data_ndim(time=time, ndim=ndim)
-        d = MKDetector(data=no_trend_data, multivariate=True)
+        d = MKDetector(data=no_trend_data)
         detected_time_points = d.detector(window_size=window_size)
         d.plot(detected_time_points)
+        d.plot_heat_map()
         self.assertEqual(len(detected_time_points), 0)
 
         # Check with multivariate trend data
@@ -3406,128 +3419,6 @@ class TestProphetDetector(TestCase):
         res1 = model.fit_predict(data=ts[90:], historical_data=ts[:90])
 
         self.assertEqual(res0.scores.value.to_list(), res1.scores.value.to_list())
-
-
-class TestSlowDriftDetector(TestCase):
-    def generate_ts_with_slope_and_seasonality(
-        self,
-        num_points: int = 1000,
-        end_time: int = 0,
-        level: float = 10000.0,  # Initial Level
-        slope: float = 20.0,  # Change per day
-        seasonality: float = 0.9,  # Multiplier on weekends
-    ) -> TimeSeriesData:
-        granularity = 86400
-        if end_time <= 0:
-            end_time = int(time.time())
-        start_time = end_time - num_points * granularity
-        times = []
-        values = []
-        for i in range(num_points):
-            timestamp = start_time + i * granularity
-            value = level + i * slope
-            if i % 7 >= 5:
-                value *= seasonality
-            times.append(timestamp)
-            values.append(value)
-        return TimeSeriesData(
-            time=pd.Series(times),
-            value=pd.Series(values),
-            use_unix_time=True,
-            unix_time_units="s",
-        )
-
-    def test_time_series_data_to_data_points(self) -> None:
-        ts = TimeSeriesData(
-            df=pd.DataFrame.from_dict(
-                {
-                    "time": [0, 1],
-                    "value": [1.5, 3.0],
-                }
-            ),
-            use_unix_time=True,
-            unix_time_units="s",
-        )
-
-        result = time_series_to_data_points(ts)
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0].timestamp, 0)
-        self.assertEqual(result[0].value, 1.5)
-        self.assertEqual(result[1].timestamp, 1)
-        self.assertEqual(result[1].value, 3.0)
-
-    def test_constructor(self) -> None:
-        model = SlowDriftDetectorModel(
-            slow_drift_window=100,
-            algorithm_version=2,
-            seasonality_period=14,
-            seasonality_num_points=12,
-        )
-        slow_drift_model = model.model
-        model_data = slow_drift_model.get_model_data()
-        self.assertEquals(model_data.slowDriftWindow, 100)
-        self.assertEquals(model_data.algorithmVersion, 2)
-        esp = slow_drift_model.get_parameters()
-        self.assertEquals(esp.seasonalityPeriod, 14)
-        self.assertEquals(esp.seasonalityNumPoints, 12)
-        self.assertIsNone(slow_drift_model.get_ongoing_anomaly())
-
-    def test_holt_winters(self) -> None:
-        model = SlowDriftDetectorModel(
-            slow_drift_window=28 * 86400,
-            algorithm_version=3,
-            seasonality_period=0,
-            seasonality_num_points=0,
-        )
-
-        ts = self.generate_ts_with_slope_and_seasonality()
-        result = model.fit_predict(ts)
-        anomaly_scores = result.scores
-        # Anomalies may happen near the beginning due to initialization.  Assert that
-        # none occur after things have settled down.
-        scores_after_t100 = anomaly_scores.value[100:]
-        self.assertEquals(len(scores_after_t100[scores_after_t100 > 0]), 0)
-        slow_drift_model = model.model
-        slow_drift_model.pruneData()
-        # By the end of the series, trend should converge and not have much noise
-        # This expected value is due to the seasonal adjustment multiplier
-        expected_slope = 20.0 * (5 * 1.0 + 2 * 0.9) / 7
-        for trend_dp in slow_drift_model.get_trend_series():
-            self.assertAlmostEqual(trend_dp.value, expected_slope, delta=0.001)
-        # Level should be linear, with the expected slope as above
-        level_series = slow_drift_model.get_level_series()
-        for i, level_dp in enumerate(level_series):
-            expected_level = level_series[0].value + i * expected_slope
-            self.assertAlmostEqual(level_dp.value, expected_level, delta=0.001)
-        # Seasonality state should be such that the weekday values are all equal
-        # and weekend values are 0.9x the weekdays
-        seasonality = slow_drift_model._model_data.recentData.seasonalitySeries
-        self.assertAlmostEqual(seasonality[0].value, seasonality[1].value, delta=0.001)
-        self.assertAlmostEqual(
-            seasonality[5].value, 0.9 * seasonality[0].value, delta=0.001
-        )
-
-    def test_serialize(self) -> None:
-        model = SlowDriftDetectorModel(
-            slow_drift_window=28 * 86400,
-            algorithm_version=3,
-            seasonality_period=14,
-            seasonality_num_points=12,
-        )
-
-        ts = self.generate_ts_with_slope_and_seasonality()
-        model.fit(ts)
-
-        serialized_model = model.serialize()
-        self.assertIsInstance(serialized_model, bytes)
-        loaded_model = SlowDriftDetectorModel(
-            slow_drift_window=28 * 86400,
-            algorithm_version=3,
-            seasonality_period=14,
-            seasonality_num_points=12,
-            serialized_model=serialized_model,
-        )
-        self.assertEqual(model.model._model_data, loaded_model.model._model_data)
 
 
 class TestChangepointEvaluator(TestCase):

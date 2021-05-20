@@ -4,6 +4,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 from datetime import datetime
 import unittest
 import numpy as np
@@ -19,9 +20,20 @@ from pandas.util.testing import (
 
 from kats.consts import DEFAULT_TIME_NAME, DEFAULT_VALUE_NAME, TimeSeriesData, TSIterator
 
+# tentative, for test purpose
+print(os.getcwd())
 
 # Constant values to reuse across test cases
-DATA_FILE = "kats/kats/data/air_passengers.csv"
+if "kats/tests" in os.getcwd():
+    DATA_FILE = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/air_passengers.csv"
+            )
+            )
+else:
+    DATA_FILE = "kats/kats/data/air_passengers.csv"
 TIME_COL_NAME = "ds"
 VALUE_COL_NAME = "y"
 AIR_DF = pd.read_csv(DATA_FILE)

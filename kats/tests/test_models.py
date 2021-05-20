@@ -4,6 +4,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import unittest
 from unittest import TestCase
 
@@ -41,15 +42,44 @@ from kats.utils.time_series_parameter_tuning import (
 )
 from kats.utils.emp_confidence_int import EmpConfidenceInt
 
-DATA = pd.read_csv("kats/kats/data/air_passengers.csv")
+if "kats/tests" in os.getcwd():
+    data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/air_passengers.csv"
+            )
+        )
+
+    daily_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/peyton_manning.csv"
+            )
+        )
+
+    multi_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/multivariate_anomaly_simulated_data.csv"
+            )
+        )
+else:
+    data_path = "kats/kats/data/air_passengers.csv"
+    daily_data_path = "kats/kats/data/peyton_manning.csv"
+    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
+
+DATA = pd.read_csv(data_path)
 DATA.columns = ["time", "y"]
 TSData = TimeSeriesData(DATA)
 
-DATA_daily = pd.read_csv("kats/kats/data/peyton_manning.csv")
+DATA_daily = pd.read_csv(daily_data_path)
 DATA_daily.columns = ["time", "y"]
 TSData_daily = TimeSeriesData(DATA_daily)
 
-DATA_multi = pd.read_csv("kats/kats/data/multi_ts.csv")
+DATA_multi = pd.read_csv(multi_data_path)
 TSData_multi = TimeSeriesData(DATA_multi)
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]

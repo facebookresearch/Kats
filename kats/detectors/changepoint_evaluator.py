@@ -1,6 +1,6 @@
 import json
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple, Any, Set
+from typing import Any, Dict, List, Optional, Tuple, Set
 import re
 import numpy as np
 import pandas as pd
@@ -284,14 +284,9 @@ class TuringEvaluator(BenchmarkEvaluator):
                                                  ignore_list=ignore_list)
 
 
-    # pyre-fixme[9]: model_params has type `Dict[str, float]`; used as `None`.
-    def _evaluate_detector_model(self, model_params: Dict[str, float] = None,
-                                 # pyre-fixme[9]: data has type `DataFrame`; used as
-                                 #  `None`.
-                                 data: pd.DataFrame = None,
-                                 # pyre-fixme[9]: ignore_list has type `List[str]`;
-                                 #  used as `None`.
-                                 ignore_list: List[str] = None,
+    def _evaluate_detector_model(self, model_params: Optional[Dict[str, float]] = None,
+                                 data: Optional[pd.DataFrame] = None,
+                                 ignore_list: Optional[List[str]] = None,
                                  alert_style_cp: bool = False,
                                  threshold_low: float = 0.0,
                                  threshold_high: float = 1.0)-> pd.DataFrame:
@@ -340,12 +335,9 @@ class TuringEvaluator(BenchmarkEvaluator):
 
 
 
-    # pyre-fixme[9]: model_params has type `Dict[str, float]`; used as `None`.
-    def _evaluate_detector(self, model_params: Dict[str, float] = None,
-                 # pyre-fixme[9]: data has type `DataFrame`; used as `None`.
-                 data: pd.DataFrame = None,
-                 # pyre-fixme[9]: ignore_list has type `List[str]`; used as `None`.
-                 ignore_list: List[str] = None) -> pd.DataFrame:
+    def _evaluate_detector(self, model_params: Optional[Dict[str, float]] = None,
+                 data: Optional[pd.DataFrame] = None,
+                 ignore_list: Optional[List[str]] = None) -> pd.DataFrame:
 
         # this is to avoid a mutable default parameter
         if not ignore_list:

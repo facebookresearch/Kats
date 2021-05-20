@@ -4,30 +4,51 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import unittest
 from datetime import datetime, timedelta
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from data_ai.event_correlation.synthetic_correlation_generator import TimeSeriesGen
+from kats.utils.simulator import Simulator
 from kats.consts import TimeSeriesData
 from kats.detectors.residual_translation import KDEResidualTranslator
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
 # pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
 from scipy.stats import ks_2samp  # @manual
 
-data = pd.read_csv("kats/kats/data/air_passengers.csv")
+if "kats/tests" in os.getcwd():
+    data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/air_passengers.csv"
+            )
+        )
+
+    daily_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/peyton_manning.csv"
+            )
+        )
+
+    multi_data_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname("__file__"),
+            "../",
+            "data/multivariate_anomaly_simulated_data.csv"
+            )
+        )
+else:
+    data_path = "kats/kats/data/air_passengers.csv"
+    daily_data_path = "kats/kats/data/peyton_manning.csv"
+    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
+
+data = pd.read_csv(data_path)
 data.columns = ["time", "y"]
 ts_data = TimeSeriesData(data)
 # generate multiple series
@@ -39,11 +60,11 @@ data_nonstandard_name = data.copy()
 data_nonstandard_name.columns = ["ds", "y"]
 ts_data_nonstandard_name = TimeSeriesData(df=data_nonstandard_name, time_col_name="ds")
 
-daily_data = pd.read_csv("kats/kats/data/peyton_manning.csv")
+daily_data = pd.read_csv(daily_data_path)
 daily_data.columns = ["time", "y"]
 ts_data_daily = TimeSeriesData(daily_data)
 
-DATA_multi = pd.read_csv("kats/kats/data/cdn_working_set.csv")
+DATA_multi = pd.read_csv(multi_data_path)
 TSData_multi = TimeSeriesData(DATA_multi)
 
 
@@ -300,38 +321,12 @@ class DecompositionTest(TestCase):
             m.decomposer()
 
     def test_new_freq(self) -> None:
-        def process_time(z):
-            x0, x1 = z.split(" ")
-            time = (
-                "-".join(y.rjust(2, "0") for y in x0.split("/"))
-                + "20 "
-                + ":".join(y.rjust(2, "0") for y in x1.split(":"))
-                + ":00"
-            )
+        df_15_min = DATA_multi[["time", "1"]]
+        df_15_min["time"] = list(pd.date_range(end='2020-02-01', periods=df_15_min.shape[0], freq='25T'))
+        df_15_min["time"] = df_15_min["time"].astype('str')
+        df_15_min.columns = ["time", "y"]
 
-            return datetime.strptime(time, "%m-%d-%Y %H:%M:%S")
-
-        df_15_min = DATA_multi
-
-        df_15_min["ts"] = df_15_min["time"].apply(process_time)
-
-        df_15_min_dict = {}
-
-        for i in range(0, 4):
-
-            df_15_min_temp = df_15_min.copy()
-            df_15_min_temp["ts"] = [
-                x + timedelta(minutes=15 * i) for x in df_15_min_temp["ts"]
-            ]
-            df_15_min_dict[i] = df_15_min_temp
-
-        df_15_min_ts = pd.concat(df_15_min_dict.values()).sort_values(by="ts")[
-            ["ts", "V1"]
-        ]
-
-        df_15_min_ts.columns = ["time", "y"]
-
-        df_ts = TimeSeriesData(df_15_min_ts)
+        df_ts = TimeSeriesData(df_15_min)
 
         m = TimeSeriesDecomposition(df_ts, "additive", method="STL")
         m.decomposer()
@@ -423,16 +418,13 @@ class SimulatorTest(TestCase):
         sim.add_noise(magnitude=2)
         sim_ts = sim.stl_sim()
         # Compare the obtained simulated time series to
-        # the original TimeSeriesGen simulation from event correlation
-        generator1 = TimeSeriesGen(start="2011-01-01", n_data_points=100, interval="1D")
+        # the original simulated data
+        generator1 = Simulator(n=100, freq="D", start="2011-01-01")
         generator1.add_trend(magnitude=10)
         np.random.seed(614)
-        generator1.add_seasonality(5, period=timedelta(days=7))
+        generator1.add_seasonality(magnitude=5, period=timedelta(days=7))
         generator1.add_noise(magnitude=2)
-        gen_ts = generator1.gen_series()
-        gen_ts_series = TimeSeriesData(
-            gen_ts.reset_index().rename(columns={"index": "time", "0": "value"})
-        )
+        gen_ts_series = generator1.stl_sim()
         self.assertEqual(True, (gen_ts_series.value == sim_ts.value).all())
         self.assertEqual(True, (gen_ts_series.time == sim_ts.time).all())
 
@@ -445,16 +437,13 @@ class SimulatorTest(TestCase):
         sim.add_noise(magnitude=1, multiply=True)
         sim_ts = sim.stl_sim()
         # Compare the obtained simulated time series to
-        # the original TimeSeriesGen simulation from event correlation
-        generator2 = TimeSeriesGen(start="2011-01-01", n_data_points=100, interval="1D")
+        # the original simulated data
+        generator2 = Simulator(n=100, freq="D", start="2011-01-01")
         generator2.add_trend(magnitude=5, multiply=True)
         np.random.seed(614)
-        generator2.add_seasonality(10, period=timedelta(days=14))
+        generator2.add_seasonality(magnitude=10, period=timedelta(days=14))
         generator2.add_noise(magnitude=1, multiply=True)
-        gen_ts = generator2.gen_series()
-        gen_ts_series = TimeSeriesData(
-            gen_ts.reset_index().rename(columns={"index": "time", "0": "value"})
-        )
+        gen_ts_series = generator2.stl_sim()
         self.assertEqual(True, (gen_ts_series.value == sim_ts.value).all())
         self.assertEqual(True, (gen_ts_series.time == sim_ts.time).all())
 

@@ -4,7 +4,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Optional, NamedTuple
+from dataclasses import dataclass
+from typing import Any, List, Optional
 
 import torch
 import torch.nn as nn
@@ -12,22 +13,9 @@ import torch.nn.functional as F
 from sklearn.metrics import mean_absolute_error, accuracy_score
 
 
-def T2VParam(
-    mode: str = "regression",
-    normalizer: Optional[Any] = None,
-    training_output_size: int = 1,
-    batch_size: int = 16,
-    vector_length: int = 16,
-    learning_rate: float = 0.001,
-    epochs: int = 64,
-    # pyre-fixme[9]: hidden has type `List[int]`; used as `None`.
-    hidden: List[int] = None,
-    dropout: float = 0.2,
-    optimizer: Any = torch.optim.Adam,
-):
-
+class T2VParam:
     """
-    A function for storing all parameters of a t2v model.
+    A class for storing all parameters of a t2v model.
 
     :Parameters:
     mode: str
@@ -63,62 +51,43 @@ def T2VParam(
         validators based on the mode.
     """
 
-    if mode == "regression":
-        loss_function = nn.MSELoss
-        validator = mean_absolute_error
-    elif mode == "classification":
-        loss_function = nn.CrossEntropyLoss
-        validator = accuracy_score
-    else:
-        raise ValueError(f"Mode {mode} cannot be recognized")
+    def __init__(
+        self,
+        mode: str = "regression",
+        normalizer: Optional[Any] = None,
+        training_output_size: int = 1,
+        batch_size: int = 16,
+        vector_length: int = 16,
+        learning_rate: float = 0.001,
+        epochs: int = 64,
+        hidden: Optional[List[int]] = None,
+        dropout: float = 0.2,
+        optimizer: Any = torch.optim.Adam,
+    ):
+        if mode == "regression":
+            loss_function = nn.MSELoss
+            validator = mean_absolute_error
+        elif mode == "classification":
+            loss_function = nn.CrossEntropyLoss
+            validator = accuracy_score
+        else:
+            raise ValueError(f"Mode {mode} cannot be recognized")
 
-    if not hidden:
-        hidden = [100]
+        if hidden is None:
+            hidden = [100]
 
-    T2VParam = NamedTuple(
-        "T2VParam",
-        [
-            ("mode", str),
-            ("normalizer", Optional[Any]),
-            ("training_output_size", int),
-            ("batch_size", int),
-            ("vector_length", int),
-            ("loss_function", Any),
-            ("learning_rate", float),
-            ("epochs", int),
-            ("hidden", List[int]),
-            ("dropout", float),
-            ("optimizer", Any),
-            ("validator", Any),
-        ],
-    )
-
-    # pyre-fixme[41]: Cannot reassign final attribute `mode`.
-    T2VParam.mode = mode
-    # pyre-fixme[41]: Cannot reassign final attribute `normalizer`.
-    T2VParam.normalizer = normalizer
-    # pyre-fixme[41]: Cannot reassign final attribute `training_output_size`.
-    T2VParam.training_output_size = training_output_size
-    # pyre-fixme[41]: Cannot reassign final attribute `batch_size`.
-    T2VParam.batch_size = batch_size
-    # pyre-fixme[41]: Cannot reassign final attribute `vector_length`.
-    T2VParam.vector_length = vector_length
-    # pyre-fixme[41]: Cannot reassign final attribute `epochs`.
-    T2VParam.epochs = epochs
-    # pyre-fixme[41]: Cannot reassign final attribute `learning_rate`.
-    T2VParam.learning_rate = learning_rate
-    # pyre-fixme[41]: Cannot reassign final attribute `loss_function`.
-    T2VParam.loss_function = loss_function
-    # pyre-fixme[41]: Cannot reassign final attribute `hidden`.
-    T2VParam.hidden = hidden
-    # pyre-fixme[41]: Cannot reassign final attribute `dropout`.
-    T2VParam.dropout = dropout
-    # pyre-fixme[41]: Cannot reassign final attribute `optimizer`.
-    T2VParam.optimizer = optimizer
-    # pyre-fixme[41]: Cannot reassign final attribute `validator`.
-    T2VParam.validator = validator
-
-    return T2VParam
+        self.batch_size = batch_size
+        self.dropout = dropout
+        self.epochs = epochs
+        self.hidden = hidden
+        self.learning_rate = learning_rate
+        self.loss_function = loss_function
+        self.mode = mode
+        self.normalizer = normalizer
+        self.optimizer = optimizer
+        self.training_output_size = training_output_size
+        self.validator = validator
+        self.vector_length = vector_length
 
 
 # NN Cells

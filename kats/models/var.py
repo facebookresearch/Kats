@@ -93,7 +93,6 @@ class VARModel(m.Model):
         """Fit VAR model"""
 
         logging.debug("Call fit()")
-        # pyre-fixme[16]: `VARModel` has no attribute `params`.
         if self.params.maxlags is None:
             self.params.maxlags = int(12 * (len(self.data.time) / 100.0) ** (1.0 / 4))
 
@@ -105,13 +104,9 @@ class VARModel(m.Model):
         # pyre-fixme[16]: `VARModel` has no attribute `model`.
         self.model = var.fit(
             maxlags=self.params.maxlags,
-            # pyre-fixme[16]: `Params` has no attribute `method`.
             method=self.params.method,
-            # pyre-fixme[16]: `Params` has no attribute `ic`.
             ic=self.params.ic,
-            # pyre-fixme[16]: `Params` has no attribute `verbose`.
             verbose=self.params.verbose,
-            # pyre-fixme[16]: `Params` has no attribute `trend`.
             trend=self.params.trend,
         )
         logging.info("Fitted VAR model.")

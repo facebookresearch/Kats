@@ -59,7 +59,6 @@ class HarmonicRegressionModel(Model):
         """
         # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.
         # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
-        # pyre-fixme[8]: Attribute has type `Params`; used as `ndarray`.
         self.params, self.harms = self.fit_harmonics(
             self.regression_params.period, self.regression_params.fourier_order
         )

@@ -76,7 +76,6 @@ class LinearModel(m.Model):
         """
         logging.debug(
             "Call fit() with parameters: "
-            # pyre-fixme[16]: `LinearModel` has no attribute `params`.
             "alpha:{alpha}".format(alpha=self.params.alpha)
         )
 

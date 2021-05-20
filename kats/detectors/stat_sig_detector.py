@@ -7,7 +7,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -269,7 +269,7 @@ class StatSigDetectorModel(DetectorModel):
 
     def _handle_not_enough_history(
         self, data: TimeSeriesData, historical_data: TimeSeriesData
-    ) -> TimeSeriesData:
+    ) -> Tuple[TimeSeriesData, TimeSeriesData]:
         """
         Handles the case when we don't have enough historical data.
         If we don't need to update, this does not do anything.
@@ -281,8 +281,6 @@ class StatSigDetectorModel(DetectorModel):
 
         # if we are not upating, we should not do anything
         if not self._should_update(data=data, historical_data=historical_data):
-            # pyre-fixme[7]: Expected `TimeSeriesData` but got
-            #  `Tuple[TimeSeriesData, TimeSeriesData]`.
             return data, historical_data
 
         num_hist_points = self.n_control + self.n_test - 1
@@ -296,8 +294,6 @@ class StatSigDetectorModel(DetectorModel):
             )
 
             if history_last >= min_history_last:
-                # pyre-fixme[7]: Expected `TimeSeriesData` but got
-                #  `Tuple[TimeSeriesData, TimeSeriesData]`.
                 return data, historical_data
 
         # when no historical data, divide the data into historical and not
@@ -321,8 +317,6 @@ class StatSigDetectorModel(DetectorModel):
             value=total_data.value[total_data.time >= last_dt],
         )
 
-        # pyre-fixme[7]: Expected `TimeSeriesData` but got `Tuple[TimeSeriesData,
-        #  TimeSeriesData]`.
         return data, historical_data
 
     # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.

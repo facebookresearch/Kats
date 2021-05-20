@@ -7,13 +7,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from typing import Generic, TypeVar
 
 import pandas as pd
 from kats.consts import TimeSeriesData, Params
 from matplotlib import pyplot as plt
 
+ParamsType = TypeVar("ParamsType")
 
-class Model:
+class Model(Generic[ParamsType]):
     __slots__ = ["data"]
 
     """Base forecasting model
@@ -30,7 +32,7 @@ class Model:
     def __init__(
         self,
         data: TimeSeriesData,
-        params: Params,
+        params: ParamsType,
         validate_frequency: bool = False,
         validate_dimension: bool = False,
     ) -> None:
