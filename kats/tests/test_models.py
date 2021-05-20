@@ -63,13 +63,13 @@ if "kats/tests" in os.getcwd():
         os.path.join(
             os.path.dirname("__file__"),
             "../",
-            "data/cdn_working_set.csv"
+            "data/multivariate_anomaly_simulated_data.csv"
             )
         )
 else:
     data_path = "kats/kats/data/air_passengers.csv"
     daily_data_path = "kats/kats/data/peyton_manning.csv"
-    multi_data_path = "kats/kats/data/cdn_working_set.csv"
+    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
 
 DATA = pd.read_csv(data_path)
 DATA.columns = ["time", "y"]
