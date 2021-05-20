@@ -11,7 +11,7 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from data_ai.event_correlation.synthetic_correlation_generator import TimeSeriesGen
+from kats.utils.simulator import Simulator
 from kats.consts import TimeSeriesData
 from kats.detectors.residual_translation import KDEResidualTranslator
 from kats.utils.decomposition import TimeSeriesDecomposition
@@ -453,16 +453,13 @@ class SimulatorTest(TestCase):
         sim.add_noise(magnitude=2)
         sim_ts = sim.stl_sim()
         # Compare the obtained simulated time series to
-        # the original TimeSeriesGen simulation from event correlation
-        generator1 = TimeSeriesGen(start="2011-01-01", n_data_points=100, interval="1D")
+        # the original simulated data
+        generator1 = Simulator(n=100, freq="D", start="2011-01-01")
         generator1.add_trend(magnitude=10)
         np.random.seed(614)
-        generator1.add_seasonality(5, period=timedelta(days=7))
+        generator1.add_seasonality(magnitude=5, period=timedelta(days=7))
         generator1.add_noise(magnitude=2)
-        gen_ts = generator1.gen_series()
-        gen_ts_series = TimeSeriesData(
-            gen_ts.reset_index().rename(columns={"index": "time", "0": "value"})
-        )
+        gen_ts_series = generator1.stl_sim()
         self.assertEqual(True, (gen_ts_series.value == sim_ts.value).all())
         self.assertEqual(True, (gen_ts_series.time == sim_ts.time).all())
 
@@ -475,16 +472,13 @@ class SimulatorTest(TestCase):
         sim.add_noise(magnitude=1, multiply=True)
         sim_ts = sim.stl_sim()
         # Compare the obtained simulated time series to
-        # the original TimeSeriesGen simulation from event correlation
-        generator2 = TimeSeriesGen(start="2011-01-01", n_data_points=100, interval="1D")
+        # the original simulated data
+        generator2 = Simulator(n=100, freq="D", start="2011-01-01")
         generator2.add_trend(magnitude=5, multiply=True)
         np.random.seed(614)
-        generator2.add_seasonality(10, period=timedelta(days=14))
+        generator2.add_seasonality(magnitude=10, period=timedelta(days=14))
         generator2.add_noise(magnitude=1, multiply=True)
-        gen_ts = generator2.gen_series()
-        gen_ts_series = TimeSeriesData(
-            gen_ts.reset_index().rename(columns={"index": "time", "0": "value"})
-        )
+        gen_ts_series = generator2.stl_sim()
         self.assertEqual(True, (gen_ts_series.value == sim_ts.value).all())
         self.assertEqual(True, (gen_ts_series.time == sim_ts.time).all())
 
