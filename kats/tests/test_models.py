@@ -11,7 +11,6 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.models.ar_net import ARNet
 from kats.models.arima import ARIMAModel, ARIMAParams
 from kats.models.bayesian_var import BayesianVAR, BayesianVARParams
 from kats.models.harmonic_regression import (
@@ -67,9 +66,9 @@ if "kats/tests" in os.getcwd():
             )
         )
 elif "/home/runner/work/" in os.getcwd(): # for Githun Action
-    data_path = "/kats/data/air_passengers.csv"
-    daily_data_path = "/kats/data/peyton_manning.csv"
-    multi_data_path = "/kats/data/multivariate_anomaly_simulated_data.csv"
+    data_path = "kats/data/air_passengers.csv"
+    daily_data_path = "kats/data/peyton_manning.csv"
+    multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
 else:
     data_path = "kats/kats/data/air_passengers.csv"
     daily_data_path = "kats/kats/data/peyton_manning.csv"
@@ -830,10 +829,6 @@ class TestParameterTuningDefaultSearchSpace(TestCase):
 
     def test_parameter_tuning_default_search_space_theta_model(self) -> None:
         search_space = ThetaModel.get_parameter_search_space()
-        TimeSeriesParameterTuning.validate_parameters_format(search_space)
-
-    def test_parameter_tuning_default_search_space_arnet_model(self) -> None:
-        search_space = ARNet.get_parameter_search_space()
         TimeSeriesParameterTuning.validate_parameters_format(search_space)
 
 

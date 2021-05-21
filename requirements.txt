@@ -6,6 +6,7 @@ gpytorch
 holidays>=0.10.2
 matplotlib>=2.0.0
 numpy>=1.15.4
+numba>=0.52.0
 pandas>=1.0.4
 plotly>=4.14.3
 pymannkendall>=1.4.1

@@ -98,9 +98,9 @@ if "kats/tests" in os.getcwd():
             )
         )
 elif "/home/runner/work/" in os.getcwd(): # for Githun Action
-    data_path = "/kats/data/air_passengers.csv"
-    daily_data_path = "/kats/data/peyton_manning.csv"
-    multi_data_path = "/kats/data/multivariate_anomaly_simulated_data.csv"
+    data_path = "kats/data/air_passengers.csv"
+    daily_data_path = "kats/data/peyton_manning.csv"
+    multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
 else:
     data_path = "kats/kats/data/air_passengers.csv"
     daily_data_path = "kats/kats/data/peyton_manning.csv"
