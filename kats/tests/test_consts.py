@@ -33,7 +33,7 @@ if "kats/tests" in os.getcwd():
             )
             )
 elif "/home/runner/work/" in os.getcwd(): # for Githun Action
-    DATA_FILE = "/kats/data/air_passengers.csv"
+    DATA_FILE = "kats/data/air_passengers.csv"
 else:
     DATA_FILE = "kats/kats/data/air_passengers.csv"
 TIME_COL_NAME = "ds"
