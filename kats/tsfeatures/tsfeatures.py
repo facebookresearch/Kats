@@ -4,7 +4,9 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import re
 import logging
+import statsmodels
 from functools import partial
 from itertools import groupby
 from typing import List, Optional, Dict
@@ -1278,9 +1280,19 @@ class TsFeatures:
 
         hw_params_features = {"hw_alpha": np.nan, "hw_beta": np.nan, "hw_gamma": np.nan}
         try:
-            m = ExponentialSmoothing(
-                x, seasonal_periods=period, trend="add", seasonal="add"
-            ).fit(use_boxcox=True)
+            # addressing issue of use_boxcox arg in different versions of statsmodels
+            statsmodels_ver = float(re.findall('([0-9]+\\.[0-9]+)\\..*', statsmodels.__version__)[0])
+            _args_ = {
+                "seasonal_periods": period,
+                "trend": "add",
+                "seasonal": "add",
+            }
+            # performing version check on statsmodels
+            if statsmodels_ver >= 0.12:
+                _args_["use_boxcox"] = True
+                m = ExponentialSmoothing(x, **_args_).fit()
+            elif statsmodels_ver < 0.12:
+                m = ExponentialSmoothing(x, **_args_).fit(use_boxcox = True)
             # pyre-fixme[16]: `Optional` has no attribute `get`.
             if extra_args.get("hw_alpha", default_status):
                 hw_params_features["hw_alpha"] = m.params["smoothing_level"]
