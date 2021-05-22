@@ -1290,6 +1290,7 @@ class TsFeatures:
             # performing version check on statsmodels
             if statsmodels_ver >= 0.12:
                 _args_["use_boxcox"] = True
+                _args_["initialization_method"] = 'estimated'
                 m = ExponentialSmoothing(x, **_args_).fit()
             elif statsmodels_ver < 0.12:
                 m = ExponentialSmoothing(x, **_args_).fit(use_boxcox = True)
