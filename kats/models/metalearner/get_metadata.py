@@ -312,13 +312,11 @@ class GetMetaData:
         """
 
         features_dict = TsFeatures().transform(self.data)
-        feature_vec = list(features_dict.values())
 
         # feature contains nan, pass
-        if np.isnan(feature_vec).any():
-            msg = "Feature vector contains NAN."
-            logging.error(msg)
-            raise ValueError(msg)
+        if np.isnan(list(features_dict.values())).any():
+            msg = f"Feature vector contains NAN, features are {features_dict}."
+            logging.warning(msg)
 
         HPT_res = self.tune_executor()
 

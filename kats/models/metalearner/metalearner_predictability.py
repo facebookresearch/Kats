@@ -25,6 +25,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 
+
 class MetaLearnPredictability:
     """Meta-learner framework on predictability.
     This framework uses classification algorithms to predict whether a time series is predictable or not (
@@ -122,6 +123,13 @@ class MetaLearnPredictability:
                 logging.exception(e)
         self.labels = (np.array(self.labels) > self.threshold).astype(int)
         self.features = pd.DataFrame(self.features)
+        self.features.fillna(0, inplace=True)
+        self.features_mean = np.average(self.features.values, axis=0)
+
+        self.features_std = np.std(self.features.values, axis=0)
+
+        self.features_std[self.features_std == 0] = 1.0
+
         return
 
     def _validate_data(self) -> None:
@@ -152,13 +160,6 @@ class MetaLearnPredictability:
         """
 
         self.rescale = True
-        # pyre-fixme[16]: `MetaLearnPredictability` has no attribute `features_mean`.
-        self.features_mean = np.average(self.features.values, axis=0)
-        # pyre-fixme[16]: `MetaLearnPredictability` has no attribute `features_std`.
-        self.features_std = np.std(self.features.values, axis=0)
-
-        self.features_std[self.features_std == 0] = 1.0
-
         features = (self.features.values - self.features_mean) / self.features_std
         self.features = pd.DataFrame(features, columns=self.features.columns)
 
@@ -257,6 +258,7 @@ class MetaLearnPredictability:
         self.clf = clf
         self._clf_threshold = clf_threshold
         return ans
+
     def pred(self, source_ts: TimeSeriesData, ts_rescale: bool = True) -> bool:
         """Predict whether a time series is predicable or not.
 
@@ -268,9 +270,7 @@ class MetaLearnPredictability:
             A boolean representing whether the time series is predictable or not.
         """
 
-        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
-        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
-        ts = TimeSeriesData(source_ts.to_dataframe().copy())
+        ts = TimeSeriesData(pd.DataFrame(source_ts.to_dataframe().copy()))
         if self.clf is None:
             msg = "No model trained yet, please train the model first."
             logging.error(msg)
@@ -285,10 +285,9 @@ class MetaLearnPredictability:
         if np.sum(np.isnan(x)) > 0:
             msg = (
                 "Features of ts contain NaN, please consider preprocessing ts. Features are: "
-                f"{features}. Return False by default."
+                f"{features}. Fill in NaNs with 0."
             )
             logging.warning(msg)
-            return False
         return self.pred_by_feature([x])[0]
 
     def pred_by_feature(
@@ -308,12 +307,14 @@ class MetaLearnPredictability:
             raise ValueError(msg)
         if isinstance(source_x, List):
             x = np.row_stack(source_x)
-        else:
+        elif isinstance(source_x, np.ndarray):
             x = source_x.copy()
+        else:
+            msg = f"In valid source_x type: {type(x)}."
+            logging.error(msg)
+            raise ValueError(msg)
+        x[np.isnan(x)] = 0.0
         if self.rescale:
-            # pyre-fixme[16]: `MetaLearnPredictability` has no attribute
-            #  `features_mean`.
-            # pyre-fixme[16]: `MetaLearnPredictability` has no attribute `features_std`.
             x = (x - self.features_mean) / self.features_std
         pred = (self.clf.predict_proba(x)[:, 1] < self._clf_threshold).astype(int)
         return pred
