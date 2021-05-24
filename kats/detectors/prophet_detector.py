@@ -9,7 +9,6 @@ This module contains code to implement the Prophet algorithm
 as a Detector Model.
 """
 
-import json
 from typing import Optional
 
 import numpy as np
@@ -44,7 +43,10 @@ def timeseries_to_prophet_df(ts_data: TimeSeriesData) -> pd.DataFrame:
         raise ValueError("ProphetModel only works with univariate data")
 
     return pd.DataFrame(
-        {PROPHET_TIME_COLUMN: ts_data.time, PROPHET_VALUE_COLUMN: ts_data.value}
+        {
+            PROPHET_TIME_COLUMN: ts_data.time,
+            PROPHET_VALUE_COLUMN: ts_data.value,
+        }
     )
 
 
@@ -70,7 +72,7 @@ class ProphetDetectorModel(DetectorModel):
         serialized_model: Optional[bytes] = None,
     ) -> None:
         if serialized_model:
-            self.model = model_from_json(json.loads(serialized_model))
+            self.model = model_from_json(serialized_model)
         else:
             self.model = None
             self.strictness_factor = strictness_factor
@@ -84,8 +86,7 @@ class ProphetDetectorModel(DetectorModel):
         Returns:
             json containing information of the model.
         """
-
-        return str.encode(json.dumps(model_to_json(self.model)))
+        return str.encode(model_to_json(self.model))
 
     # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
     #  inconsistently.
@@ -163,10 +164,8 @@ class ProphetDetectorModel(DetectorModel):
             AnomalyResponse object. The length of this obj.ect is same as data. The score property
             gives the score for anomaly.
         """
-
         time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time})
         predict_df = self.model.predict(time_df)
-
         zeros = np.zeros(len(data))
         response = AnomalyResponse(
             scores=TimeSeriesData(
