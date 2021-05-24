@@ -140,6 +140,7 @@ class MetaLearnHPT:
                 logging.error(msg)
                 raise ValueError(msg)
 
+            data_x.fillna(0, inplace=True)
             self.dataX = np.asarray(data_x)
             self.dataY = data_y.copy()
             self.dim_input = self.dataX.shape[1]
@@ -198,6 +199,10 @@ class MetaLearnHPT:
                 x_std[x_std == 0.0] = 1.0
                 self.x_std = x_std
                 self.dataX = (self.dataX - self.x_mean) / self.x_std
+
+        self.n_hidden_shared = 0
+        self.n_hidden_cat_combo = 0
+        self.n_hidden_num = 0
 
     def _get_target_cat(self) -> None:
         # List of number of classes (dim of output) of each categorical variable
@@ -352,11 +357,8 @@ class MetaLearnHPT:
         # Add input dim before n_hidden_shared.
         # Add output dim at the end of n_hidden_cat_combo.
         # Add output dim at the end of n_hidden_num.
-        # pyre-fixme[16]: `MetaLearnHPT` has no attribute `n_hidden_shared`.
         self.n_hidden_shared = n_hidden_shared
-        # pyre-fixme[16]: `MetaLearnHPT` has no attribute `n_hidden_cat_combo`.
         self.n_hidden_cat_combo = n_hidden_cat_combo
-        # pyre-fixme[16]: `MetaLearnHPT` has no attribute `n_hidden_num`.
         self.n_hidden_num = n_hidden_num
 
         self.model = MultitaskNet(
@@ -374,12 +376,12 @@ class MetaLearnHPT:
     def _prepare_data(
         self, val_size: float
     ) -> Tuple[
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
+        torch.FloatTensor,
+        Optional[torch.LongTensor],
+        Optional[torch.FloatTensor],
+        torch.FloatTensor,
+        Optional[torch.LongTensor],
+        Optional[torch.FloatTensor],
     ]:
         # split to train and validation sets
         train_idx, val_idx = train_test_split(
@@ -411,11 +413,6 @@ class MetaLearnHPT:
             if self.numerical_idx
             else None
         )
-
-        # pyre-fixme[7]: Expected `Tuple[torch.Tensor, torch.Tensor, torch.Tensor,
-        #  torch.Tensor, torch.Tensor, torch.Tensor]` but got `Tuple[torch.FloatTensor,
-        #  Optional[torch.LongTensor], Optional[torch.FloatTensor], torch.FloatTensor,
-        #  Optional[torch.LongTensor], Optional[torch.FloatTensor]]`.
         return x_fs, y_cat, y_num, x_fs_val, y_cat_val, y_num_val
 
     def _loss_function(
@@ -508,7 +505,7 @@ class MetaLearnHPT:
 
         # variables for early stopping
         min_val_loss = np.inf
-        epochs_no_improve = 0
+        epochs_no_improve = 0.0
 
         for epoch in range(n_epochs):
             total_loss = 0
@@ -519,8 +516,8 @@ class MetaLearnHPT:
 
                 # two outputs, o1: classification, o2: regression
                 o1, o2 = self.model.forward(batch_x)
-                tmp_y_cat = y_cat[indices] if o1 is not None else None
-                tmp_y_num = y_num[indices] if o2 is not None else None
+                tmp_y_cat = y_cat[indices] if y_cat is not None else None
+                tmp_y_num = y_num[indices] if y_num is not None else None
                 loss_cat_train, loss_num_train = self._loss_function(
                     o1, o2, tmp_y_cat, tmp_y_num
                 )
@@ -547,13 +544,11 @@ class MetaLearnHPT:
             # early stopping variables update
             if loss_sum_val < min_val_loss:
                 min_val_loss = loss_sum_val
-                epochs_no_improve = 0
+                epochs_no_improve = 0.0
             else:
                 epochs_no_improve += 1
 
             # check early stopping condition
-            # pyre-fixme[58]: `>=` is not supported for operand types `int` and
-            #  `Union[float, int]`.
             if epoch > 20 and epochs_no_improve >= n_epochs_stop:
                 logging.info(f"Early stopping! Stop at epoch {epoch + 1}.")
                 break
@@ -569,9 +564,7 @@ class MetaLearnHPT:
             A pd.DataFrame storing the recommended hyper-parameters.
         """
 
-        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
-        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
-        ts = TimeSeriesData(source_ts.to_dataframe().copy())
+        ts = TimeSeriesData(pd.DataFrame(source_ts.to_dataframe().copy()))
 
         if self.model is None:
             msg = "Haven't trained a model. Please train a model or load a model before predicting."
@@ -589,15 +582,14 @@ class MetaLearnHPT:
         new_feature = TsFeatures().transform(ts)
         new_feature_vector = np.asarray(list(new_feature.values()))
 
-        if np.sum(np.isnan(new_feature_vector)) > 0:
+        if np.any(np.isnan(new_feature_vector)):
             logging.warning(
-                "Time series features contain NaN, please consider preprocessing it! "
+                "Time series features contain NaNs!"
                 f"Time series features are {new_feature}. "
-                "Return empty dict as predicted hyper-parameters."
+                "Fill in NaNs with 0."
             )
-            pred_res = {}
-        else:
-            pred_res = self.pred_by_feature([new_feature_vector])[0]
+
+        pred_res = self.pred_by_feature([new_feature_vector])[0]
 
         # To have a consistent type with orginal HPT methods' output.
         res = [["0_0", "unknown", 0, 0.0, 0, pred_res]]
@@ -632,8 +624,13 @@ class MetaLearnHPT:
             x = np.row_stack(source_x)
         elif isinstance(source_x, pd.DataFrame):
             x = source_x.values.copy()
-        else:
+        elif isinstance(source_x, np.ndarray):
             x = source_x.copy()
+        else:
+            msg = f"In valid source_x type: {type(x)}."
+            logging.error(msg)
+            raise ValueError(msg)
+        x[np.isnan(x)] = 0.0
         if self.scale:
             x = (x - self.x_mean) / self.x_std
 
