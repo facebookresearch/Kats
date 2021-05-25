@@ -286,6 +286,8 @@ class GetMetaData:
             A dictionary storing the best hyper-parameters and the errors for each candidate model.
         """
         num_process = min(len(self.all_models), (cpu_count() - 1) // 2)
+        if num_process < 1:
+            num_process = 1
         pool = ThreadPool(processes=num_process)
         tuned_models = {}
         for single_model in self.all_models:
