@@ -644,8 +644,7 @@ class TsFeatures:
     def get_stl_features(
         x: np.ndarray,
         period: int = 7,
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        extra_args: Optional = None,
+        extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
     ):
         """
@@ -672,20 +671,19 @@ class TsFeatures:
         res = STL(x, period=period).fit()
 
         # strength of trend
-        # pyre-fixme[16]: `Optional` has no attribute `get`.
-        if extra_args.get("trend_strength", default_status):
+        if extra_args is not None and extra_args.get("trend_strength", default_status):
             stl_features["trend_strength"] = 1 - np.var(res.resid) / np.var(
                 res.trend + res.resid
             )
 
         # strength of seasonality
-        if extra_args.get("seasonality_strength", default_status):
+        if extra_args is not None and extra_args.get("seasonality_strength", default_status):
             stl_features["seasonality_strength"] = 1 - np.var(res.resid) / np.var(
                 res.seasonal + res.resid
             )
 
         # spikiness: variance of the leave-one-out variances of the remainder component
-        if extra_args.get("spikiness", default_status):
+        if extra_args is not None and extra_args.get("spikiness", default_status):
             resid_array = np.repeat(
                 np.array(res.resid)[:, np.newaxis], len(res.resid), axis=1
             )
@@ -693,11 +691,11 @@ class TsFeatures:
             stl_features["spikiness"] = np.var(np.nanvar(resid_array, axis=0))
 
         # location of peak
-        if extra_args.get("peak", default_status):
+        if extra_args is not None and extra_args.get("peak", default_status):
             stl_features["peak"] = np.argmax(res.seasonal[:period])
 
         # location of trough
-        if extra_args.get("trough", default_status):
+        if extra_args is not None and extra_args.get("trough", default_status):
             stl_features["trough"] = np.argmin(res.seasonal[:period])
 
         return stl_features
@@ -708,8 +706,7 @@ class TsFeatures:
     def get_level_shift(
         x: np.ndarray,
         window_size: int = 20,
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        extra_args: Optional = None,
+        extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
     ):
         """
@@ -743,10 +740,9 @@ class TsFeatures:
         means = np.mean(x[sliding_idx], axis=0)
         mean_diff = np.abs(means[:-1] - means[1:])
 
-        # pyre-fixme[16]: `Optional` has no attribute `get`.
-        if extra_args.get("level_shift_idx", default_status):
+        if extra_args is not None and extra_args.get("level_shift_idx", default_status):
             level_shift_features["level_shift_idx"] = np.argmax(mean_diff)
-        if extra_args.get("level_shift_size", default_status):
+        if extra_args is not None and extra_args.get("level_shift_size", default_status):
             level_shift_features["level_shift_size"] = mean_diff[np.argmax(mean_diff)]
         return level_shift_features
 
@@ -1150,8 +1146,7 @@ class TsFeatures:
     @staticmethod
     @jit(forceobj=True)
     def get_special_ac(
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        x: np.ndarray, extra_args: Optional = None, default_status: bool = True
+        x: np.ndarray, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
     ):
         """
         Gettting special_ac features.
@@ -1172,8 +1167,7 @@ class TsFeatures:
         # First min AC
         special_ac_features = {"firstmin_ac": np.nan, "firstzero_ac": np.nan}
         AC = acf(x, unbiased=False, fft=True, nlags=len(x))[1:]
-        # pyre-fixme[16]: `Optional` has no attribute `get`.
-        if extra_args.get("firstmin_ac", default_status):
+        if extra_args is not None and extra_args.get("firstmin_ac", default_status):
             i = 0
             while i < len(AC) - 1:
                 if AC[i] > AC[i + 1]:
@@ -1183,7 +1177,7 @@ class TsFeatures:
             special_ac_features["firstmin_ac"] = i + 1
 
         # First zero AC
-        if extra_args.get("firstzero_ac", default_status):
+        if extra_args is not None and extra_args.get("firstzero_ac", default_status):
             j = 0
             while j < len(AC) - 1:
                 if AC[j] > 0 > AC[j + 1]:
@@ -1213,8 +1207,7 @@ class TsFeatures:
     # Holt Parameters (2)
     @staticmethod
     def get_holt_params(
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        x: np.ndarray, extra_args: Optional = None, default_status: bool = True
+        x: np.ndarray, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
     ):
         """
         Estimates the smoothing parameter for the level-alpha and the smoothing parameter
@@ -1236,10 +1229,9 @@ class TsFeatures:
         holt_params_features = {"holt_alpha": np.nan, "holt_beta": np.nan}
         try:
             m = ExponentialSmoothing(x, trend="add", seasonal=None).fit()
-            # pyre-fixme[16]: `Optional` has no attribute `get`.
-            if extra_args.get("holt_alpha", default_status):
+            if extra_args is not None and extra_args.get("holt_alpha", default_status):
                 holt_params_features["holt_alpha"] = m.params["smoothing_level"]
-            if extra_args.get("holt_beta", default_status):
+            if extra_args is not None and extra_args.get("holt_beta", default_status):
                 holt_params_features["holt_beta"] = m.params["smoothing_slope"]
             return holt_params_features
         except Exception:
@@ -1250,8 +1242,7 @@ class TsFeatures:
     def get_hw_params(
         x: np.ndarray,
         period: int = 7,
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        extra_args: Optional = None,
+        extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
     ):
         """
@@ -1287,12 +1278,11 @@ class TsFeatures:
                 m = ExponentialSmoothing(x, **_args_).fit()
             elif statsmodels_ver < 0.12:
                 m = ExponentialSmoothing(x, **_args_).fit(use_boxcox = True)
-            # pyre-fixme[16]: `Optional` has no attribute `get`.
-            if extra_args.get("hw_alpha", default_status):
+            if extra_args is not None and extra_args.get("hw_alpha", default_status):
                 hw_params_features["hw_alpha"] = m.params["smoothing_level"]
-            if extra_args.get("hw_beta", default_status):
+            if extra_args is not None and extra_args.get("hw_beta", default_status):
                 hw_params_features["hw_beta"] = m.params["smoothing_slope"]
-            if extra_args.get("hw_gamma", default_status):
+            if extra_args is not None and extra_args.get("hw_gamma", default_status):
                 hw_params_features["hw_gamma"] = m.params["smoothing_seasonal"]
             return hw_params_features
         except Exception:
@@ -1301,8 +1291,7 @@ class TsFeatures:
     # CUSUM Detection Outputs (8)
     @staticmethod
     def get_cusum_detector(
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        ts: TimeSeriesData, extra_args: Optional = None, default_status: bool = True
+        ts: TimeSeriesData, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
     ):
         """
         Run the Kats CUSUM Detector on the Time Series, extract features from the outputs of the detection.
@@ -1336,34 +1325,33 @@ class TsFeatures:
         try:
             cusum = cusum_detection.CUSUMDetector(ts)
             cusum_cp = cusum.detector()
-            # pyre-fixme[16]: `Optional` has no attribute `get`.
-            if extra_args.get("cusum_num", default_status):
+            if extra_args is not None and extra_args.get("cusum_num", default_status):
                 cusum_detector_features["cusum_num"] = len(cusum_cp)
-            if extra_args.get("cusum_conf", default_status):
+            if extra_args is not None and extra_args.get("cusum_conf", default_status):
                 cusum_detector_features["cusum_conf"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][0].confidence
                 )
-            if extra_args.get("cusum_cp_index", default_status):
+            if extra_args is not None and extra_args.get("cusum_cp_index", default_status):
                 cusum_detector_features["cusum_cp_index"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][1]._cp_index / len(ts)
                 )
-            if extra_args.get("cusum_delta", default_status):
+            if extra_args is not None and extra_args.get("cusum_delta", default_status):
                 cusum_detector_features["cusum_delta"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][1]._delta
                 )
-            if extra_args.get("cusum_llr", default_status):
+            if extra_args is not None and extra_args.get("cusum_llr", default_status):
                 cusum_detector_features["cusum_llr"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][1]._llr
                 )
-            if extra_args.get("cusum_regression_detected", default_status):
+            if extra_args is not None and extra_args.get("cusum_regression_detected", default_status):
                 cusum_detector_features["cusum_regression_detected"] = (
                     False if len(cusum_cp) == 0 else cusum_cp[0][1]._regression_detected
                 )
-            if extra_args.get("cusum_stable_changepoint", default_status):
+            if extra_args is not None and extra_args.get("cusum_stable_changepoint", default_status):
                 cusum_detector_features["cusum_stable_changepoint"] = (
                     False if len(cusum_cp) == 0 else cusum_cp[0][1]._stable_changepoint
                 )
-            if extra_args.get("cusum_p_value", default_status):
+            if extra_args is not None and extra_args.get("cusum_p_value", default_status):
                 cusum_detector_features["cusum_p_value"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][1]._p_value
                 )
@@ -1374,8 +1362,7 @@ class TsFeatures:
     # Robust Stat Detection Outputs (2)
     @staticmethod
     def get_robust_stat_detector(
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        ts: TimeSeriesData, extra_args: Optional = None, default_status: bool = True
+        ts: TimeSeriesData, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
     ):
         """
         Run the Kats Robust Stat Detector on the Time Series, extract features from the outputs of the detection.
@@ -1399,10 +1386,9 @@ class TsFeatures:
         try:
             robust = robust_stat_detection.RobustStatDetector(ts)
             robust_cp = robust.detector()
-            # pyre-fixme[16]: `Optional` has no attribute `get`.
-            if extra_args.get("robust_num", default_status):
+            if extra_args is not None and extra_args.get("robust_num", default_status):
                 robust_stat_detector_features["robust_num"] = len(robust_cp)
-            if extra_args.get("robust_metric_mean", default_status):
+            if extra_args is not None and extra_args.get("robust_metric_mean", default_status):
                 robust_stat_detector_features["robust_metric_mean"] = (
                     0
                     if len(robust_cp) == 0
@@ -1415,8 +1401,7 @@ class TsFeatures:
     # BOCP Detection Outputs (3)
     @staticmethod
     def get_bocp_detector(
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        ts: TimeSeriesData, extra_args: Optional = None, default_status: bool = True
+        ts: TimeSeriesData, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
     ):
         """
         Run the Kats BOCP Detector on the Time Series, extract features from the outputs of the detection.
@@ -1442,16 +1427,15 @@ class TsFeatures:
         try:
             bocp = bocpd.BOCPDetector(ts)
             bocp_cp = bocp.detector(choose_priors=False)
-            # pyre-fixme[16]: `Optional` has no attribute `get`.
-            if extra_args.get("bocp_num", default_status):
+            if extra_args is not None and extra_args.get("bocp_num", default_status):
                 bocp_detector_features["bocp_num"] = len(bocp_cp)
-            if extra_args.get("bocp_conf_max", default_status):
+            if extra_args is not None and extra_args.get("bocp_conf_max", default_status):
                 bocp_detector_features["bocp_conf_max"] = (
                     0
                     if len(bocp_cp) == 0
                     else np.max([cp[0].confidence for cp in bocp_cp])
                 )
-            if extra_args.get("bocp_conf_mean", default_status):
+            if extra_args is not None and extra_args.get("bocp_conf_mean", default_status):
                 bocp_detector_features["bocp_conf_mean"] = (
                     0
                     if len(bocp_cp) == 0
@@ -1504,8 +1488,7 @@ class TsFeatures:
     def get_trend_detector(
         ts: TimeSeriesData,
         threshold: float = 0.8,
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        extra_args: Optional = None,
+        extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
     ):
         """
@@ -1534,10 +1517,9 @@ class TsFeatures:
         try:
             tdetector = trend_mk.MKDetector(data=ts, threshold=threshold)
             tdetected_time_points = tdetector.detector(direction="both")
-            # pyre-fixme[16]: `Optional` has no attribute `get`.
-            if extra_args.get("trend_num", default_status):
+            if extra_args is not None and extra_args.get("trend_num", default_status):
                 trend_detector_features["trend_num"] = len(tdetected_time_points)
-            if extra_args.get("trend_num_increasing", default_status):
+            if extra_args is not None and extra_args.get("trend_num_increasing", default_status):
                 trend_detector_features["trend_num_increasing"] = len(
                     [
                         p
@@ -1545,7 +1527,7 @@ class TsFeatures:
                         if p[1].trend_direction == "decreasing"
                     ]
                 )
-            if extra_args.get("trend_avg_abs_tau", default_status):
+            if extra_args is not None and extra_args.get("trend_avg_abs_tau", default_status):
                 trend_detector_features["trend_avg_abs_tau"] = (
                     0
                     if len(tdetected_time_points) == 0
@@ -1728,8 +1710,7 @@ class TsFeatures:
     # seasonality features (4)
     @staticmethod
     def get_seasonalities(
-        # pyre-fixme[9]: extra_args has type `Optional[typing.Any]`; used as `None`.
-        ts: TimeSeriesData, extra_args: Optional = None, default_status: bool = True
+        ts: TimeSeriesData, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
     ):
         """
         Run the Kats seaonality detectors to get the estimated seasonal period, then extract trend,
@@ -1776,18 +1757,17 @@ class TsFeatures:
                 _period = 7
             res = STL(ts.value.values, period=_period).fit()
 
-            # pyre-fixme[16]: `Optional` has no attribute `get`.
-            if extra_args.get("seasonal_period", default_status):
+            if extra_args is not None and extra_args.get("seasonal_period", default_status):
                 seasonality_features["seasonal_period"] = _period
 
             # getting seasonality magnitude
-            if extra_args.get("seasonality_mag", default_status):
+            if extra_args is not None and extra_args.get("seasonality_mag", default_status):
                 seasonality_features["seasonality_mag"] = np.round(
                     np.quantile(res.seasonal, 0.95) - np.quantile(res.seasonal, 0.05)
                 )
 
             # fitting linear regression for trend magnitude
-            if extra_args.get("trend_mag", default_status):
+            if extra_args is not None and extra_args.get("trend_mag", default_status):
                 exog = res.trend
                 _series = exog - exog[0]
                 mod = sm.OLS(_series, np.arange(len(_series)))
@@ -1796,7 +1776,7 @@ class TsFeatures:
                 seasonality_features["trend_mag"] = _res.params[0]
 
             # residual standard deviation
-            if extra_args.get("residual_std", default_status):
+            if extra_args is not None and extra_args.get("residual_std", default_status):
                 seasonality_features["residual_std"] = np.std(res.resid)
 
             return seasonality_features
