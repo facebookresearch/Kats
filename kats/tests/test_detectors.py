@@ -96,10 +96,14 @@ if "kats/tests" in os.getcwd():
             "data/multivariate_anomaly_simulated_data.csv"
             )
         )
-elif "/home/runner/work/" in os.getcwd(): # for Githun Action
+elif "/home/runner/work/" in os.getcwd(): # for Github Action
     data_path = "kats/data/air_passengers.csv"
     daily_data_path = "kats/data/peyton_manning.csv"
     multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
+elif "/kats/tutorial" in os.getcwd().lower():
+    data_path = "~/kats/kats/data/air_passengers.csv"
+    daily_data_path = "~/kats/kats/data/peyton_manning.csv"
+    multi_data_path = "~/kats/kats/data/multivariate_anomaly_simulated_data.csv"
 else:
     data_path = "kats/kats/data/air_passengers.csv"
     daily_data_path = "kats/kats/data/peyton_manning.csv"
