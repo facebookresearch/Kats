@@ -54,6 +54,7 @@ class TimeSeriesChangePoint:
         end_time: End time of the change.
         confidence: The confidence of the change point.
     """
+
     def __init__(self, start_time, end_time, confidence: float) -> None:
         self._start_time = start_time
         self._end_time = end_time
@@ -155,8 +156,7 @@ class TimeSeriesData:
         time: Union[pd.Series, pd.DatetimeIndex, None] = None,
         value: Union[pd.Series, pd.DataFrame, None] = None,
         time_col_name: str = DEFAULT_TIME_NAME,
-        # pyre-fixme[9]: date_format has type `str`; used as `None`.
-        date_format: str = None,
+        date_format: Optional[str] = None,
         use_unix_time: bool = False,
         unix_time_units: str = "ns",
         tz: Optional[str] = None,
@@ -841,8 +841,10 @@ class TimeSeriesData:
         return frequency
 
     def interpolate(
-        # pyre-fixme[9]: freq has type `str`; used as `None`.
-        self, freq: str = None, method: str = "linear", remove_duplicate_time=False
+        self,
+        freq: Optional[Union[str, pd.Timedelta]] = None,
+        method: str = "linear",
+        remove_duplicate_time=False,
     ) -> "TimeSeriesData":
         """
         Interpolate missing date if `time` doesn't have constant frequency.
@@ -867,7 +869,6 @@ class TimeSeriesData:
         """
 
         if not freq:
-            # pyre-fixme[9]: freq has type `str`; used as `Timedelta`.
             freq = self.infer_freq_robust()
 
         # convert to pandas.DataFrame so that we can leverage the built-in methods
