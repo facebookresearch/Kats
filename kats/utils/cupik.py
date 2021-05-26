@@ -211,6 +211,7 @@ class Pipeline:
               of dictionaries including the output acquired using feature extraction
               methods in Kats
         """
+        logging.info(f'Current step: {str(s.__class__)}')
         if (
             str(s.__class__).split()[1][1:8] == "sklearn"
         ):  # if current step is a scikit-learn model
