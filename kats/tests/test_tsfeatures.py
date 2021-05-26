@@ -7,6 +7,8 @@
 import os
 from unittest import TestCase
 
+import re
+import statsmodels
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
@@ -30,6 +32,7 @@ DATA.columns = ["time", "y"]
 TSData = TimeSeriesData(DATA)
 TSData_short = TimeSeriesData(DATA.iloc[:8, :])
 TSData_mini = TimeSeriesData(DATA.iloc[:2, :])
+statsmodels_ver = float(re.findall('([0-9]+\\.[0-9]+)\\..*', statsmodels.__version__)[0])
 
 
 class TSfeaturesTest(TestCase):
@@ -51,50 +54,57 @@ class TSfeaturesTest(TestCase):
         )
 
         # test feature vector value
+        rounded_truth = {
+            'length': 144,
+            'mean': 280.298611,
+            'var': 14291.973331,
+            'entropy': 0.428737,
+            'lumpiness': 3041164.562906,
+            'stability': 12303.627267,
+            'flat_spots': 2,
+            'hurst': -0.080233,
+            'std1st_der': 27.206288,
+            'crossing_points': 7,
+            'binarize_mean': 0.444444,
+            'unitroot_kpss': 0.128475,
+            'heterogeneity': 126.064506,
+            'histogram_mode': 155.8,
+            'linearity': 0.853638,
+            'trend_strength': 0.9681,
+            'seasonality_strength': 0.440863,
+            'spikiness': 33.502886,
+            'peak': 6,
+            'trough': 3,
+            'level_shift_idx': 118,
+            'level_shift_size': 15.6,
+            'y_acf1': 0.948047,
+            'y_acf5': 3.392072,
+            'diff1y_acf1': 0.302855,
+            'diff1y_acf5': 0.259459,
+            'diff2y_acf1': -0.191006,
+            'diff2y_acf5': 0.134207,
+            'y_pacf5': 1.003288,
+            'diff1y_pacf5': 0.219412,
+            'diff2y_pacf5': 0.26101,
+            'seas_acf1': 0.662904,
+            'seas_pacf1': 0.15617,
+            'firstmin_ac': 8,
+            'firstzero_ac': 52,
+            'holt_alpha': 1.0,
+            'holt_beta': 0.0,
+            'hw_alpha': 0.842106,
+            'hw_beta': 0.052631,
+            'hw_gamma': 0.157901
+        }
+        if statsmodels_ver >= 0.12:
+            rounded_truth['holt_alpha'] = 0.995071
+            rounded_truth['holt_beta'] = 0.004213
+            rounded_truth['hw_alpha'] = 1.0
+            rounded_truth['hw_beta'] = 0.0
+            rounded_truth['hw_gamma'] = 0.0
         self.assertEqual(
             feature_vector_round,
-            {
-                'length': 144,
-                'mean': 280.298611,
-                'var': 14291.973331,
-                'entropy': 0.428737,
-                'lumpiness': 3041164.562906,
-                'stability': 12303.627267,
-                'flat_spots': 2,
-                'hurst': -0.080233,
-                'std1st_der': 27.206288,
-                'crossing_points': 7,
-                'binarize_mean': 0.444444,
-                'unitroot_kpss': 0.128475,
-                'heterogeneity': 126.064506,
-                'histogram_mode': 155.8,
-                'linearity': 0.853638,
-                'trend_strength': 0.9681,
-                'seasonality_strength': 0.440863,
-                'spikiness': 33.502886,
-                'peak': 6,
-                'trough': 3,
-                'level_shift_idx': 118,
-                'level_shift_size': 15.6,
-                'y_acf1': 0.948047,
-                'y_acf5': 3.392072,
-                'diff1y_acf1': 0.302855,
-                'diff1y_acf5': 0.259459,
-                'diff2y_acf1': -0.191006,
-                'diff2y_acf5': 0.134207,
-                'y_pacf5': 1.003288,
-                'diff1y_pacf5': 0.219412,
-                'diff2y_pacf5': 0.26101,
-                'seas_acf1': 0.662904,
-                'seas_pacf1': 0.15617,
-                'firstmin_ac': 8,
-                'firstzero_ac': 52,
-                'holt_alpha': 1.0,
-                'holt_beta': 0.0,
-                'hw_alpha': 0.842106,
-                'hw_beta': 0.052631,
-                'hw_gamma': 0.157901
-            }
+            rounded_truth
         )
 
     def test_feature_selections(self) -> None:
@@ -116,46 +126,53 @@ class TSfeaturesTest(TestCase):
         )
 
         # test feature vector value
+        rounded_truth = {
+            'length': 144,
+            'mean': 280.298611,
+            'var': 14291.973331,
+            'entropy': 0.428737,
+            'lumpiness': 3041164.562906,
+            'stability': 12303.627267,
+            'flat_spots': 2,
+            'hurst': -0.080233,
+            'std1st_der': 27.206288,
+            'crossing_points': 7,
+            'binarize_mean': 0.444444,
+            'heterogeneity': 126.064506,
+            'linearity': 0.853638,
+            'trend_strength': 0.9681,
+            'seasonality_strength': 0.440863,
+            'spikiness': 33.502886,
+            'peak': 6,
+            'trough': 3,
+            'level_shift_idx': 118,
+            'level_shift_size': 15.6,
+            'y_acf1': 0.948047,
+            'y_acf5': 3.392072,
+            'diff1y_acf1': 0.302855,
+            'diff1y_acf5': 0.259459,
+            'diff2y_acf1': -0.191006,
+            'diff2y_acf5': 0.134207,
+            'y_pacf5': 1.003288,
+            'diff1y_pacf5': 0.219412,
+            'seas_acf1': 0.662904,
+            'seas_pacf1': 0.15617,
+            'firstzero_ac': 52,
+            'holt_alpha': 1.0,
+            'holt_beta': 0.0,
+            'hw_alpha': 0.842106,
+            'hw_beta': 0.052631,
+            'hw_gamma': 0.157901
+        }
+        if statsmodels_ver >= 0.12:
+            rounded_truth['holt_alpha'] = 0.995071
+            rounded_truth['holt_beta'] = 0.004213
+            rounded_truth['hw_alpha'] = 1.0
+            rounded_truth['hw_beta'] = 0.0
+            rounded_truth['hw_gamma'] = 0.0
         self.assertEqual(
             feature_vector_round,
-            {
-                'length': 144,
-                'mean': 280.298611,
-                'var': 14291.973331,
-                'entropy': 0.428737,
-                'lumpiness': 3041164.562906,
-                'stability': 12303.627267,
-                'flat_spots': 2,
-                'hurst': -0.080233,
-                'std1st_der': 27.206288,
-                'crossing_points': 7,
-                'binarize_mean': 0.444444,
-                'heterogeneity': 126.064506,
-                'linearity': 0.853638,
-                'trend_strength': 0.9681,
-                'seasonality_strength': 0.440863,
-                'spikiness': 33.502886,
-                'peak': 6,
-                'trough': 3,
-                'level_shift_idx': 118,
-                'level_shift_size': 15.6,
-                'y_acf1': 0.948047,
-                'y_acf5': 3.392072,
-                'diff1y_acf1': 0.302855,
-                'diff1y_acf5': 0.259459,
-                'diff2y_acf1': -0.191006,
-                'diff2y_acf5': 0.134207,
-                'y_pacf5': 1.003288,
-                'diff1y_pacf5': 0.219412,
-                'seas_acf1': 0.662904,
-                'seas_pacf1': 0.15617,
-                'firstzero_ac': 52,
-                'holt_alpha': 1.0,
-                'holt_beta': 0.0,
-                'hw_alpha': 0.842106,
-                'hw_beta': 0.052631,
-                'hw_gamma': 0.157901
-            }
+            rounded_truth
         )
 
         # test selecting features
@@ -180,17 +197,21 @@ class TSfeaturesTest(TestCase):
         )
 
         # test feature vector value
+        rounded_truth = {
+            'var': 14291.973331,
+            'linearity': 0.853638,
+            'spikiness': 33.502886,
+            'trough': 3,
+            'level_shift_idx': 118,
+            'holt_alpha': 1.0,
+            'hw_gamma': 0.157901
+        }
+        if statsmodels_ver >= 0.12:
+            rounded_truth['holt_alpha'] = 0.995071
+            rounded_truth['hw_gamma'] = 0.0
         self.assertEqual(
             feature_vector_round,
-            {
-                'var': 14291.973331,
-                'linearity': 0.853638,
-                'spikiness': 33.502886,
-                'trough': 3,
-                'level_shift_idx': 118,
-                'holt_alpha': 1.0,
-                'hw_gamma': 0.157901
-            }
+            rounded_truth
         )
 
         # test selecting extension features
@@ -289,12 +310,20 @@ class TSfeaturesTest(TestCase):
         )
 
     def test_IntegerArrays(self) -> None:
-        df = pd.DataFrame(
-            {
-                'time':range(15),
-                'value':[1, 4, 9, 4, 5, 5, 7, 2, 5, 1, 6, 3, 6, 5, 5]
-            }
-        )
+        if statsmodels_ver < 0.12:
+            df = pd.DataFrame(
+                {
+                    'time':range(15),
+                    'value':[1, 4, 9, 4, 5, 5, 7, 2, 5, 1, 6, 3, 6, 5, 5]
+                }
+            )
+        elif statsmodels_ver >= 0.12:
+            df = pd.DataFrame(
+                {
+                    'time':range(20),
+                    'value':[1, 4, 9, 4, 5, 5, 7, 2, 5, 1, 6, 3, 6, 5, 5, 6, 9, 10, 5, 6]
+                }
+            )
         # pyre-fixme[16]: `DataFrame` has no attribute `value`.
         df.value = df.value.astype(dtype = pd.Int64Dtype())
         ts = TimeSeriesData(df)
@@ -312,15 +341,29 @@ class TSfeaturesTest(TestCase):
         ])
         feats = ts_features.transform(ts)
         feats = {key: round(feats[key], 3) for key in feats}
-        self.assertEqual(
-            feats,
-            {
-                'length': 15,
-                'mean': 4.533,
-                'entropy': 0.765,
-                'hurst': -0.143,
-                'y_acf1': -0.298,
-                'seas_acf1': -0.121,
-                'hw_gamma': 0.947
-            }
-        )
+        if statsmodels_ver < 0.12:
+            self.assertEqual(
+                feats,
+                {
+                    'length': 15,
+                    'mean': 4.533,
+                    'entropy': 0.765,
+                    'hurst': -0.143,
+                    'y_acf1': -0.298,
+                    'seas_acf1': -0.121,
+                    'hw_gamma': 0.947
+                }
+            )
+        elif statsmodels_ver >= 0.12:
+            self.assertEqual(
+                feats,
+                {
+                    'length': 20,
+                    'mean': 5.2,
+                    'entropy': 0.894,
+                    'hurst': -0.12,
+                    'y_acf1': 0.041,
+                    'seas_acf1': -0.125,
+                    'hw_gamma': 0.0
+                }
+            )

@@ -118,7 +118,7 @@ class TsFeatures:
         window: int = 5,
         n_fast: int = 12,
         n_slow: int = 21,
-        selected_features: Optional[Dict[str, bool]] = None,
+        selected_features: Optional[List[str]] = None,
         **kwargs,
     ):
         # init hyper-parameters
@@ -1232,7 +1232,11 @@ class TsFeatures:
             if extra_args is not None and extra_args.get("holt_alpha", default_status):
                 holt_params_features["holt_alpha"] = m.params["smoothing_level"]
             if extra_args is not None and extra_args.get("holt_beta", default_status):
-                holt_params_features["holt_beta"] = m.params["smoothing_slope"]
+                statsmodels_ver = float(re.findall('([0-9]+\\.[0-9]+)\\..*', statsmodels.__version__)[0])
+                if statsmodels_ver < 0.12:
+                    holt_params_features["holt_beta"] = m.params["smoothing_slope"]
+                elif statsmodels_ver >= 0.12:
+                    holt_params_features["holt_beta"] = m.params["smoothing_trend"]
             return holt_params_features
         except Exception:
             return holt_params_features
@@ -1281,7 +1285,10 @@ class TsFeatures:
             if extra_args is not None and extra_args.get("hw_alpha", default_status):
                 hw_params_features["hw_alpha"] = m.params["smoothing_level"]
             if extra_args is not None and extra_args.get("hw_beta", default_status):
-                hw_params_features["hw_beta"] = m.params["smoothing_slope"]
+                if statsmodels_ver < 0.12:
+                    hw_params_features["hw_beta"] = m.params["smoothing_slope"]
+                elif statsmodels_ver >= 0.12:
+                    hw_params_features["hw_beta"] = m.params["smoothing_trend"]            
             if extra_args is not None and extra_args.get("hw_gamma", default_status):
                 hw_params_features["hw_gamma"] = m.params["smoothing_seasonal"]
             return hw_params_features
