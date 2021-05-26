@@ -97,6 +97,9 @@ class TSfeaturesTest(TestCase):
             'hw_gamma': 0.157901
         }
         if statsmodels_ver >= 0.12:
+            rounded_truth['trend_strength'] = 0.93833
+            rounded_truth['seasonality_strength'] = 0.329934
+            rounded_truth['spikiness'] = 111.697325
             rounded_truth['holt_alpha'] = 0.995071
             rounded_truth['holt_beta'] = 0.004213
             rounded_truth['hw_alpha'] = 1.0
@@ -165,6 +168,9 @@ class TSfeaturesTest(TestCase):
             'hw_gamma': 0.157901
         }
         if statsmodels_ver >= 0.12:
+            rounded_truth['trend_strength'] = 0.93833
+            rounded_truth['seasonality_strength'] = 0.329934
+            rounded_truth['spikiness'] = 111.697325
             rounded_truth['holt_alpha'] = 0.995071
             rounded_truth['holt_beta'] = 0.004213
             rounded_truth['hw_alpha'] = 1.0
@@ -207,6 +213,7 @@ class TSfeaturesTest(TestCase):
             'hw_gamma': 0.157901
         }
         if statsmodels_ver >= 0.12:
+            rounded_truth['spikiness'] = 111.697325
             rounded_truth['holt_alpha'] = 0.995071
             rounded_truth['hw_gamma'] = 0.0
         self.assertEqual(
@@ -257,38 +264,43 @@ class TSfeaturesTest(TestCase):
         )
 
         # test feature vector value
+        rounded_truth = {
+            'cusum_num': 1,
+            'cusum_conf': 1.0,
+            'cusum_cp_index': 0.527778,
+            'cusum_delta': 199.098856,
+            'cusum_llr': 168.663483,
+            'cusum_regression_detected': 1,
+            'cusum_stable_changepoint': 1,
+            'cusum_p_value': 0.0,
+            'robust_num': 3,
+            'robust_metric_mean': -31.866667,
+            'bocp_num': 3,
+            'bocp_conf_max': 0.677218,
+            'bocp_conf_mean': 0.587680,
+            'outlier_num': 0,
+            'trend_num': 2,
+            'trend_num_increasing': 0,
+            'trend_avg_abs_tau': 0.821053,
+            'nowcast_roc': 0.062858,
+            'nowcast_ma': 280.417143,
+            'nowcast_mom': 12.841727,
+            'nowcast_lag': 273.136691,
+            'nowcast_macd': 11.032608,
+            'nowcast_macdsign': 10.985509,
+            'nowcast_macddiff': 0.527714,
+            'seasonal_period': 7,
+            'trend_mag': 2.404464,
+            'seasonality_mag': 35.0,
+            'residual_std': 21.258429,
+        }
+        if statsmodels_ver >= 0.12:
+            rounded_truth['trend_mag'] = 2.318814
+            rounded_truth['seasonality_mag'] = 36.0
+            rounded_truth['residual_std'] = 29.630087
         self.assertEqual(
             feature_vector_round,
-            {
-                'cusum_num': 1,
-                'cusum_conf': 1.0,
-                'cusum_cp_index': 0.527778,
-                'cusum_delta': 199.098856,
-                'cusum_llr': 168.663483,
-                'cusum_regression_detected': 1,
-                'cusum_stable_changepoint': 1,
-                'cusum_p_value': 0.0,
-                'robust_num': 3,
-                'robust_metric_mean': -31.866667,
-                'bocp_num': 3,
-                'bocp_conf_max': 0.677218,
-                'bocp_conf_mean': 0.587680,
-                'outlier_num': 0,
-                'trend_num': 2,
-                'trend_num_increasing': 0,
-                'trend_avg_abs_tau': 0.821053,
-                'nowcast_roc': 0.062858,
-                'nowcast_ma': 280.417143,
-                'nowcast_mom': 12.841727,
-                'nowcast_lag': 273.136691,
-                'nowcast_macd': 11.032608,
-                'nowcast_macdsign': 10.985509,
-                'nowcast_macddiff': 0.527714,
-                'seasonal_period': 7,
-                'trend_mag': 2.404464,
-                'seasonality_mag': 35.0,
-                'residual_std': 21.258429,
-            }
+            rounded_truth
         )
 
 
