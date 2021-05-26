@@ -100,8 +100,10 @@ class TSfeaturesTest(TestCase):
             rounded_truth['trend_strength'] = 0.93833
             rounded_truth['seasonality_strength'] = 0.329934
             rounded_truth['spikiness'] = 111.697325
-            rounded_truth['holt_alpha'] = 0.995071
-            rounded_truth['holt_beta'] = 0.004213
+            feature_vector_round['holt_alpha'] = np.round(feature_vector_round['holt_alpha'], 1)
+            feature_vector_round['holt_beta'] = np.round(feature_vector_round['holt_beta'], 1)
+            rounded_truth['holt_alpha'] = 1.0
+            rounded_truth['holt_beta'] = 0.0
             rounded_truth['hw_alpha'] = 1.0
             rounded_truth['hw_beta'] = 0.0
             rounded_truth['hw_gamma'] = 0.0
@@ -171,8 +173,10 @@ class TSfeaturesTest(TestCase):
             rounded_truth['trend_strength'] = 0.93833
             rounded_truth['seasonality_strength'] = 0.329934
             rounded_truth['spikiness'] = 111.697325
-            rounded_truth['holt_alpha'] = 0.995071
-            rounded_truth['holt_beta'] = 0.004213
+            feature_vector_round['holt_alpha'] = np.round(feature_vector_round['holt_alpha'], 1)
+            feature_vector_round['holt_beta'] = np.round(feature_vector_round['holt_beta'], 1)
+            rounded_truth['holt_alpha'] = 1.0
+            rounded_truth['holt_beta'] = 0.0
             rounded_truth['hw_alpha'] = 1.0
             rounded_truth['hw_beta'] = 0.0
             rounded_truth['hw_gamma'] = 0.0
@@ -214,7 +218,8 @@ class TSfeaturesTest(TestCase):
         }
         if statsmodels_ver >= 0.12:
             rounded_truth['spikiness'] = 111.697325
-            rounded_truth['holt_alpha'] = 0.995071
+            feature_vector_round['holt_alpha'] = np.round(feature_vector_round['holt_alpha'], 1)
+            rounded_truth['holt_alpha'] = 1.0
             rounded_truth['hw_gamma'] = 0.0
         self.assertEqual(
             feature_vector_round,
