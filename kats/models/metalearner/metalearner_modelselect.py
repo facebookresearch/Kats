@@ -415,7 +415,7 @@ class MetaLearnModelSelect:
         elif isinstance(source_x, np.ndarray):
             x = source_x.copy()
         else:
-            msg = f"In valid source_x type: {type(x)}."
+            msg = f"Invalid source_x type: {type(x)}."
             logging.error(msg)
             raise ValueError(msg)
         if self.scale:
@@ -462,12 +462,11 @@ class MetaLearnModelSelect:
             # scale time series to make ts features more stable
             # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOp...
             ts.value /= ts.value.max()
-        new_features_vector = np.asarray(list(TsFeatures().transform(ts).values()))
+        test = np.asarray(list(TsFeatures().transform(ts).values()))
+        test[np.isnan(test)] = 0.0
         if self.scale:
-            new_features_vector = (
-                new_features_vector - np.asarray(self.x_mean)
-            ) / np.asarray(self.x_std)
-        test = new_features_vector.reshape([1, -1])
+            test = (test - self.x_mean) / self.x_std
+        test = test.reshape([1, -1])
         m = len(self.clf.estimators_)
         data = np.array(
             [self.clf.estimators_[i].predict_proba(test)[0] for i in range(m)]

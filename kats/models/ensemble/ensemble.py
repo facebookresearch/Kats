@@ -121,6 +121,8 @@ class BaseEnsemble:
         """
 
         num_process = min(len(BASE_MODELS.keys()), (cpu_count() - 1) // 2)
+        if num_process < 1:
+            num_process = 1
         pool = Pool(processes=(num_process), maxtasksperchild=1000)
 
         fitted_models = {}
