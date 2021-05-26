@@ -24,12 +24,12 @@ For more information, check out the Kats tutorial notebook on backtesting!
 import logging
 import multiprocessing as mp
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
-from kats.models.model import Model as mm
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model as mm
 
 
 # Constant to indicate error types supported
@@ -123,13 +123,13 @@ class BackTesterParent(ABC):
 
         super().__init__()
 
-    def calc_error(self) -> float:
+    def calc_error(self) -> Optional[float]:
         """
         Calculates all errors in `self.error_methods` and stores them in the
         errors dict.
 
         Returns:
-          The error value.
+          The error value. None if the error value does not exist.
         """
 
         logging.info("Calculating Errors")
@@ -170,10 +170,6 @@ class BackTesterParent(ABC):
             for error_type in self.error_methods:
                 # Weighting the errors by the relative fold length if
                 # predictions are of different sizes
-                # pyre-fixme[7]: Expected `float` but got implicit return value of
-                #  `None`.
-                # pyre-fixme[7]: Expected `float` but got implicit return value of
-                #  `None`.
                 self.errors[error_type] = (
                     self.errors[error_type]
                     + (
@@ -187,11 +183,10 @@ class BackTesterParent(ABC):
 
     def _calc_mape(
         self,
-        # pyre-fixme[11]: Annotation `array` is not defined as a type.
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         """Calculates MAPE error."""
 
@@ -200,10 +195,10 @@ class BackTesterParent(ABC):
 
     def _calc_smape(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         """Calculates SMAPE error."""
 
@@ -214,10 +209,10 @@ class BackTesterParent(ABC):
 
     def _calc_mae(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         """Calculates MAE error."""
 
@@ -226,10 +221,10 @@ class BackTesterParent(ABC):
 
     def _calc_mase(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         """Calculates MASE error.
 
@@ -245,10 +240,10 @@ class BackTesterParent(ABC):
 
     def _calc_mse(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         """Calculates MSE error."""
 
@@ -257,10 +252,10 @@ class BackTesterParent(ABC):
 
     def _calc_rmse(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         """Calculates RMSE error."""
 
@@ -271,7 +266,7 @@ class BackTesterParent(ABC):
         self,
         training_data_indices: Tuple[int, int],
         testing_data_indices: Tuple[int, int],
-    ) -> Tuple[np.ndarray, np.ndarray, mm, np.ndarray]:
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, mm, np.ndarray]]:
         """
         Trains model, evaluates it, and stores results in results list.
         """
@@ -355,8 +350,6 @@ class BackTesterParent(ABC):
         if not self.multi:
             self.results.append((train_data_only, truth, train_model, predictions))
         else:
-            # pyre-fixme[7]: Expected `Tuple[np.ndarray, np.ndarray, mm,
-            #  np.ndarray]` but got implicit return value of `None`.
             return (train_data_only, truth, train_model, predictions)
 
     def _build_and_train_models(
