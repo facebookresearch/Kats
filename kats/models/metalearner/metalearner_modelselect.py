@@ -92,6 +92,8 @@ class MetaLearnModelSelect:
 
             self.scale = False
             self.clf = None
+        elif load_model:
+            pass
         else:
             msg = "Fail to initiate MetaLearnModelSelect."
             raise ValueError(msg)
