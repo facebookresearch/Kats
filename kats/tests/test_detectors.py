@@ -4,9 +4,10 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import math
+import os
 import random
+import re
 import time
 import unittest
 from collections import Counter
@@ -15,6 +16,7 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.bocpd import (
     BOCPDetector,
@@ -71,6 +73,10 @@ from scipy.special import expit  # @manual
 # pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
+
+statsmodels_ver = float(
+    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
+)
 
 if "kats/tests" in os.getcwd():
     data_path = os.path.abspath(
@@ -2957,8 +2963,14 @@ class TestCUSUMDetectorModel(TestCase):
         # pyre-fixme[29]: `Series` is not a function.
         self.assertEqual(score_tsd.value[-72:].sum(), 0)
         # the increase regression is detected and is on for about 7 days
-        self.assertEqual((score_tsd.value > 0.01).sum(), 162)
-        # the decrease regression is detected
+        # statsmodels version difference will result in different STL results
+        if statsmodels_ver < 0.12:
+            self.assertEqual((score_tsd.value > 0.01).sum(), 162)
+        elif statsmodels_ver >= 0.12:
+            self.assertEqual((score_tsd.value > 0.01).sum(), 168)
+        else:
+            raise ValueError('statsmodels version incorrect')
+        # make sure the time series time are the same
         self.assertTrue((score_tsd.time.values == tsd.time.values).all())
         # make sure the time series name are the same
         self.assertTrue(score_tsd.value.name == tsd.value.name)
