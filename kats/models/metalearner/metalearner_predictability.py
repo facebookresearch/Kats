@@ -40,7 +40,7 @@ class MetaLearnPredictability:
                   d['features'] are time series features, and d['best_model'] is a string representing the best candidate model of the corresponding time series data.
                   metadata should not be None unless load_model is True. Default is None
         threshold: Optional; A float representing the threshold for the forecasting error. A time series whose forecasting error of the best forecasting model is higher than the threshold is considered as unpredictable. Default is 0.2.
-        load_model: Optional; A boolean to specify whether or not to load a trained model. Default is None.
+        load_model: Optional; A boolean to specify whether or not to load a trained model. Default is False.
 
     Sample Usage:
     # Create an object.
@@ -288,7 +288,8 @@ class MetaLearnPredictability:
                 f"{features}. Fill in NaNs with 0."
             )
             logging.warning(msg)
-        return self.pred_by_feature([x])[0]
+        ans = True if self.pred_by_feature([x])[0] == 1 else False
+        return ans
 
     def pred_by_feature(
         self, source_x: Union[np.ndarray, List[np.ndarray], pd.DataFrame]
