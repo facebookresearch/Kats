@@ -541,9 +541,7 @@ class MKDetector(Detector):
         Tau_df, _ = self._metrics_analysis()
         Tau_df = Tau_df.set_index("ds")
 
-        # pyre-fixme[16]: Module `go` has no attribute `Figure`.
         fig = go.Figure(
-            # pyre-fixme[16]: Module `go` has no attribute `Heatmap`.
             data=go.Heatmap(
                 z=Tau_df.T.values,
                 x=Tau_df.index,
