@@ -70,6 +70,8 @@ class ProphetDetectorModel(DetectorModel):
         strictness_factor: float = 0.8,
         uncertainty_samples: float = 50,
         serialized_model: Optional[bytes] = None,
+        country_code="US",
+        remove_outliers=False,
     ) -> None:
         if serialized_model:
             self.model = model_from_json(serialized_model)
@@ -77,6 +79,9 @@ class ProphetDetectorModel(DetectorModel):
             self.model = None
             self.strictness_factor = strictness_factor
             self.uncertainty_samples = uncertainty_samples
+            self.country_code = country_code
+            self.remove_outliers = remove_outliers
+
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -142,7 +147,12 @@ class ProphetDetectorModel(DetectorModel):
             uncertainty_samples=self.uncertainty_samples,
         )
 
-        self.model.fit(timeseries_to_prophet_df(total_data))
+        data_df = timeseries_to_prophet_df(total_data)
+
+        if self.remove_outliers:
+            data_df = self._remove_outliers(data_df)
+
+        self.model.fit(data_df)
 
     # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
     #  inconsistently.
@@ -188,3 +198,30 @@ class ProphetDetectorModel(DetectorModel):
             stat_sig_ts=TimeSeriesData(time=data.time, value=pd.Series(zeros)),
         )
         return response
+
+    @staticmethod
+    def _remove_outliers(
+        ts_df: pd.DataFrame,
+        outlier_ci_threshold: float = 0.99,
+        country_code: str = "US",
+    ) -> pd.DataFrame:
+        """
+        Remove outliers from the time series by fitting a Prophet model to the time series
+        and stripping all points that fall outside the confidence interval of the predictions
+        of the model.
+        """
+
+        ts_dates_df = pd.DataFrame({PROPHET_TIME_COLUMN : ts_df.iloc[:, 0]})
+
+        model = Prophet(
+            interval_width=outlier_ci_threshold,
+        )
+        model_pass1 = model.fit(ts_df)
+
+        forecast = model_pass1.predict(ts_dates_df)
+
+        is_outlier = (ts_df[PROPHET_VALUE_COLUMN] < forecast[PROPHET_YHAT_LOWER_COLUMN]) | (ts_df[PROPHET_VALUE_COLUMN] > forecast[PROPHET_YHAT_UPPER_COLUMN])
+
+        ts_df = ts_df[~is_outlier]
+
+        return ts_df
