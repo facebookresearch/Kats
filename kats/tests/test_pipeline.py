@@ -7,6 +7,8 @@
 import os
 from unittest import TestCase
 
+import re
+import statsmodels
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
@@ -30,6 +32,7 @@ else:
 DATA = pd.read_csv(DATA_FILE)
 DATA.columns = ["time", "y"]
 TSData = TimeSeriesData(DATA)
+statsmodels_ver = float(re.findall('([0-9]+\\.[0-9]+)\\..*', statsmodels.__version__)[0])
 
 
 class cupikTest(TestCase):
@@ -78,7 +81,10 @@ class cupikTest(TestCase):
             == fitted.fitted_values.values
         )
         self.assertEqual(np.sum(bools), 144)
-        self.assertEqual(fitted.predict(1).fcst.values[0], 433.328591954023)
+        if statsmodels_ver < 0.12:
+            self.assertEqual(fitted.predict(1).fcst.values[0], 433.328591954023)
+        elif statsmodels_ver >= 0.12:
+            self.assertEqual(fitted.predict(1).fcst.values[0], 433.1270492317991)
 
 
         # test if the model can be built on the output from the detector
@@ -90,4 +96,7 @@ class cupikTest(TestCase):
         )
         fitted = pipe.fit(TSData)
         self.assertEqual(len(pipe.metadata['trend_detector'][0]), 2)
-        self.assertEqual(fitted.predict(1).fcst.values[0], 433.328591954023)
+        if statsmodels_ver < 0.12:
+            self.assertEqual(fitted.predict(1).fcst.values[0], 433.328591954023)
+        elif statsmodels_ver >= 0.12:
+            self.assertEqual(fitted.predict(1).fcst.values[0], 433.1270492317991)

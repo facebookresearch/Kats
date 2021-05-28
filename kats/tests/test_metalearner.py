@@ -306,7 +306,11 @@ class MetaLearnPredictabilityTest(TestCase):
         t1, t2 = generate_test_ts()
         t2_df = t2.to_dataframe().copy()
         # Test case for time series with nan features
-        _ = mlp.pred(t1)
+        ts_pred = mlp.pred(t1)
+        self.assertTrue(
+            isinstance(ts_pred, bool),
+            f"The output of MetaLearnPredictability should be a boolean but receives {type(ts_pred)}.",
+        )
 
         mlp.pred(t2)
         features = np.random.randn(3 * mlp.features.shape[1]).reshape(3, -1)
