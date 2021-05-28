@@ -3123,6 +3123,24 @@ class TestProphetDetector(TestCase):
 
         self.assertEqual(res0.scores.value.to_list(), res1.scores.value.to_list())
 
+    def test_outlier_removal_threshold(self):
+        ts = self.create_random_ts(0, 365, 10, 2)
+        ts_df = pd.DataFrame(
+        {"ds": ts.time, "y": ts.value}
+        )
+
+        model = ProphetDetectorModel()
+
+        filtered_ts_df = model._remove_outliers(
+            ts_df, outlier_ci_threshold=0.99
+        )
+
+        aggressively_filtered_ts_df = model._remove_outliers(
+            ts_df, outlier_ci_threshold=0.8
+        )
+
+        self.assertGreaterEqual(len(ts_df), len(filtered_ts_df))
+        self.assertGreaterEqual(len(filtered_ts_df), len(aggressively_filtered_ts_df))
 
 class TestChangepointEvaluator(TestCase):
     def test_eval_agg(self) -> None:
