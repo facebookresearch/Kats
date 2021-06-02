@@ -315,9 +315,7 @@ class CUSUMDetectorModel(DetectorModel):
                     self.cps.pop(0)
 
                 self._set_alert_on(
-                    # pyre-fixme[29]: `Series` is not a function.
                     historical_data.value[: meta.cp_index + 1].mean(),
-                    # pyre-fixme[29]: `Series` is not a function.
                     historical_data.value[: meta.cp_index + 1].std(),
                     meta.direction,
                 )
@@ -468,7 +466,6 @@ class CUSUMDetectorModel(DetectorModel):
                 name=historical_data.value.name,
             )
 
-        # pyre-fixme[16]: `Timedelta` has no attribute `total_seconds`.
         smooth_window = int(scan_window.total_seconds() / frequency.total_seconds())
         if smooth_window > 1:
             smooth_historical_value = pd.Series(
@@ -519,8 +516,6 @@ class CUSUMDetectorModel(DetectorModel):
             # if step window is not provide use the time range of data or
             # half of the scan_window.
             step_window = min(
-                # pyre-fixme[58]: `/` is not supported for operand types `Timedelta`
-                #  and `int`.
                 scan_window / 2,
                 (data.time.iloc[-1] - data.time.iloc[0])
                 + frequency,  # to include the last data point

@@ -204,6 +204,9 @@ class TimeSeriesData:
                 )
                 # Sorting by time if necessary
                 if sort_by_time:
+                    # pyre-fixme[6]: Expected `Union[typing_extensions.Literal[0],
+                    #  typing_extensions.Literal['index']]` for 1st param but got
+                    #  `str`.
                     df.sort_values(self.time_col_name, inplace=True)
                     df.reset_index(inplace=True, drop=True)
                 else:
@@ -472,7 +475,6 @@ class TimeSeriesData:
         return self.to_dataframe().__repr__()
 
     def _repr_html_(self) -> str:
-        # pyre-fixme[29]: `Series` is not a function.
         return self.to_dataframe()._repr_html_()
 
     def _set_univariate_values_to_series(self):

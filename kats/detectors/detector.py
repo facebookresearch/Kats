@@ -61,6 +61,7 @@ class Detector(ABC):
         if interpolate:
             df_final.interpolate(method="linear", limit_direction="both", inplace=True)
         # may contian multiple time series y
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         df_final.columns = [f"y_{i}" for i in range(i)]
         df_final["time"] = df_final.index
         ts_out = TimeSeriesData(df_final)

@@ -2837,7 +2837,6 @@ class TestCUSUMDetectorModel(TestCase):
         score_tsd = model.fit_predict(data=tsd).scores
         self.assertEqual(len(score_tsd), len(tsd))
         # the regression is went away
-        # pyre-fixme[29]: `Series` is not a function.
         self.assertEqual(score_tsd.value[-6:].sum(), 0)
         # the increase regression is detected
         self.assertEqual((score_tsd.value > 0.5).sum(), 24)
@@ -2960,7 +2959,6 @@ class TestCUSUMDetectorModel(TestCase):
 
         self.assertEqual(len(score_tsd), len(tsd))
         # the scores set to zero after about 7 days
-        # pyre-fixme[29]: `Series` is not a function.
         self.assertEqual(score_tsd.value[-72:].sum(), 0)
         # the increase regression is detected and is on for about 7 days
         # statsmodels version difference will result in different STL results

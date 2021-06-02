@@ -84,6 +84,7 @@ class ChangePointInterval(object):
         extends the data.
         """
         new_data_df = data.to_dataframe()
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         new_data_df.columns = ['time', 'value']
 
         self.data_df = pd.concat([self.data_df, new_data_df])

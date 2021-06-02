@@ -429,6 +429,7 @@ class SimulatorTest(TestCase):
         generator1.add_seasonality(magnitude=5, period=timedelta(days=7))
         generator1.add_noise(magnitude=2)
         gen_ts_series = generator1.stl_sim()
+        # pyre-fixme[16]: `bool` has no attribute `all`.
         self.assertEqual(True, (gen_ts_series.value == sim_ts.value).all())
         self.assertEqual(True, (gen_ts_series.time == sim_ts.time).all())
 
@@ -448,6 +449,7 @@ class SimulatorTest(TestCase):
         generator2.add_seasonality(magnitude=10, period=timedelta(days=14))
         generator2.add_noise(magnitude=1, multiply=True)
         gen_ts_series = generator2.stl_sim()
+        # pyre-fixme[16]: `bool` has no attribute `all`.
         self.assertEqual(True, (gen_ts_series.value == sim_ts.value).all())
         self.assertEqual(True, (gen_ts_series.time == sim_ts.time).all())
 

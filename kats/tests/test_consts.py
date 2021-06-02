@@ -678,14 +678,12 @@ class TimeSeriesDataInitTest(unittest.TestCase):
         self.assertEqual(
             # pyre-fixme[16]: `float` has no attribute `equals`.
             self.ts_from_df_multi.min.equals(
-                # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.Ind...
                 self.ts_from_df_multi.value.min(skipna=True)
             ),
             True,
         )
         self.assertEqual(
             self.ts_from_df_multi.max.equals(
-                # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.Ind...
                 self.ts_from_df_multi.value.max(skipna=True)
             ),
             True,
@@ -718,11 +716,9 @@ class TimeSeriesDataInitTest(unittest.TestCase):
         )
         ts_from_df_multi_new.value = pd.DataFrame(new_val_multi)
         self.assertEqual(
-            # pyre-fixme[29]: `Series` is not a function.
             ts_from_df_multi_new.min.equals(pd.DataFrame(new_val_multi).min()), True
         )
         self.assertEqual(
-            # pyre-fixme[29]: `Series` is not a function.
             ts_from_df_multi_new.max.equals(pd.DataFrame(new_val_multi).max()), True
         )
 
@@ -731,14 +727,12 @@ class TimeSeriesDataInitTest(unittest.TestCase):
         ts_from_df_multi_new.value = pd.DataFrame(new_val_multi)
         self.assertEqual(
             ts_from_df_multi_new.min.equals(
-                # pyre-fixme[29]: `Series` is not a function.
                 pd.DataFrame(new_val_multi).min(skipna=True)
             ),
             True,
         )
         self.assertEqual(
             ts_from_df_multi_new.max.equals(
-                # pyre-fixme[29]: `Series` is not a function.
                 pd.DataFrame(new_val_multi).max(skipna=True)
             ),
             True,

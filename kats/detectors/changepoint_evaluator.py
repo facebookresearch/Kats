@@ -431,6 +431,7 @@ class TuringEvaluator(BenchmarkEvaluator):
         ts = pd.DataFrame.from_dict(this_ts_dict, orient='index')
         ts.sort_index(inplace=True)
         ts.reset_index(inplace=True)
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         ts.columns = ["time", "y"]
         first_time_val = ts.time.values[0]
         if re.match(r'\d{4}-\d{2}-\d{2}', first_time_val):
