@@ -207,7 +207,6 @@ class GetMetaData:
     def _scale(self) -> None:
         """Rescale time series."""
 
-        # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOpsMix...
         self.data.value /= self.data.value.max()
         msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
         logging.info(msg)

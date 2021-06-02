@@ -477,11 +477,7 @@ class TemporalHierarchicalModel:
             for k in fcsts[elm]:
                 fcst_num = len(fcsts[elm][k])
                 time = pd.date_range(
-                    # pyre-fixme[58]: `*` is not supported for operand types
-                    #  `Union[pd._libs.tslibs.timedeltas.Timedelta, str]` and `int`.
                     last_timestamp + freq * k,
-                    # pyre-fixme[58]: `*` is not supported for operand types
-                    #  `Union[pd._libs.tslibs.timedeltas.Timedelta, str]` and `int`.
                     last_timestamp + freq * k * fcst_num,
                     periods=fcst_num,
                 )

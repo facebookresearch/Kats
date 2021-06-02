@@ -562,7 +562,6 @@ class MetaLearnHPT:
 
         if ts_scale:
             # scale time series to make ts features more stable
-            # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOp...
             ts.value /= ts.value.max()
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
             logging.info(msg)
@@ -583,6 +582,7 @@ class MetaLearnHPT:
         # To have a consistent type with orginal HPT methods' output.
         res = [["0_0", "unknown", 0, 0.0, 0, pred_res]]
         res = pd.DataFrame(res)
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         res.columns = [
             "arm_name",
             "metric_name",

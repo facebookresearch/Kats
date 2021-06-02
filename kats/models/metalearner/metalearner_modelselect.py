@@ -191,6 +191,7 @@ class MetaLearnModelSelect:
         """
 
         combined = pd.concat([self.metadataX.iloc[i], self.metadataX.iloc[j]], axis=1)
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         combined.columns = [
             str(self.metadataY.iloc[i]) + " model",
             str(self.metadataY.iloc[j]) + " model",
@@ -368,7 +369,6 @@ class MetaLearnModelSelect:
 
         if ts_scale:
             # scale time series to make ts features more stable
-            # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOp...
             ts.value /= ts.value.max()
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
             logging.info(msg)
@@ -451,7 +451,6 @@ class MetaLearnModelSelect:
         ts = TimeSeriesData(pd.DataFrame(source_ts.to_dataframe().copy()))
         if ts_scale:
             # scale time series to make ts features more stable
-            # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOp...
             ts.value /= ts.value.max()
         test = np.asarray(list(TsFeatures().transform(ts).values()))
         test[np.isnan(test)] = 0.0
@@ -518,6 +517,7 @@ class RandomDownSampler:
             resampled_hpt += list(self.hpt.iloc[np.asarray(idx_dict[key])])
 
         resampled_x = pd.DataFrame(resampled_x)
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         resampled_x.columns = self.col_namesX
 
         resampled_y = pd.Series(resampled_y, name="y")

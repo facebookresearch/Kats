@@ -172,7 +172,6 @@ class KDEResidualTranslator:
         log_proba = pd.DataFrame(
             {
                 # pyre-fixme[16]: `KDEResidualTranslator` has no attribute `_kde`.
-                # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.series.S...
                 "value": self._kde.score_samples(residual.value.to_frame()),
                 "time": residual.time,
             }

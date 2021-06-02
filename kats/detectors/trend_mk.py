@@ -142,7 +142,6 @@ class MKDetector(Detector):
             return ts  # no seasonality
         else:
             map = {"weekly": 7, "monthly": 30, "yearly": 365}
-            # pyre-fixme[29]: `Series` is not a function.
             ts = ts.rolling(window=map[freq]).mean()
         return ts
 
@@ -510,7 +509,6 @@ class MKDetector(Detector):
         # pyre-fixme[16]: `MKDetector` has no attribute `direction`.
         if self.direction == "down":
             top_metrics = MK_statistics_tp.reindex(
-                # pyre-fixme[16]: Optional type has no attribute `index`.
                 MK_statistics_tp.Tau.sort_values(axis=0).index
             )
         elif self.direction == "up":
@@ -519,7 +517,6 @@ class MKDetector(Detector):
             )
         elif self.direction == "both":
             top_metrics = MK_statistics_tp.reindex(
-                # pyre-fixme[20]: Argument `by` expected.
                 MK_statistics_tp.Tau.abs().sort_values(axis=0, ascending=False).index
             )
 

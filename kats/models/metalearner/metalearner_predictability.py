@@ -269,7 +269,6 @@ class MetaLearnPredictability:
             logging.error(msg)
             raise ValueError(msg)
         if ts_rescale:
-            # pyre-fixme[29]: `Union[BoundMethod[typing.Callable(pd.core.base.IndexOp...
             ts.value /= ts.value.max()
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
             logging.info(msg)

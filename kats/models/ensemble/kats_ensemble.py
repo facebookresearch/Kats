@@ -673,11 +673,8 @@ class KatsEnsemble:
             # pyre-fixme[16]: `KatsEnsemble` has no attribute `fcst_df`.
             self.fcst_df = pd.DataFrame({
                 "time": self.dates,
-                # pyre-fixme[29]: `Series` is not a function.
                 "fcst": fcsts["fcst"].median(axis=1),
-                # pyre-fixme[29]: `Series` is not a function.
                 "fcst_lower": fcsts["fcst_lower"].median(axis=1),
-                # pyre-fixme[29]: `Series` is not a function.
                 "fcst_upper": fcsts["fcst_upper"].median(axis=1),
             })
         else:

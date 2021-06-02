@@ -21,6 +21,7 @@ class test_preprocessing(TestCase):
     def test_regression(self) -> None:
         # Create dummy time series
         ts = pd.DataFrame([np.arange(12), np.arange(12)]).transpose()
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         ts.columns = ["time", "value"]
         # pyre-fixme[16]: `test_preprocessing` has no attribute `ts`.
         self.ts = [TimeSeriesData(ts)]
@@ -80,6 +81,7 @@ class test_preprocessing(TestCase):
     def test_classification(self) -> None:
         # Create dummy time series
         ts = pd.DataFrame([np.arange(12), np.arange(12)]).transpose()
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         ts.columns = ["time", "value"]
         # pyre-fixme[16]: `test_preprocessing` has no attribute `ts`.
         self.ts = [TimeSeriesData(ts)]
@@ -134,6 +136,7 @@ class test_batch(TestCase):
             ts = pd.DataFrame(
                 [np.arange(12), np.random.randint(0, 100, 12)]
             ).transpose()
+            # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
             ts.columns = ["time", "value"]
             ts = TimeSeriesData(ts)
             TS.append(ts)
@@ -196,6 +199,7 @@ class test_batch(TestCase):
             ts = pd.DataFrame(
                 [np.arange(10), np.random.randint(0, 100, 10)]
             ).transpose()
+            # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
             ts.columns = ["time", "value"]
             ts = TimeSeriesData(ts)
             TS.append(ts)
@@ -245,6 +249,7 @@ class test_t2vnn(TestCase):
             ts = pd.DataFrame(
                 [np.arange(30), np.random.randint(0, 11, 30).astype(float)]
             ).transpose()
+            # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
             ts.columns = ["time", "value"]
             ts = TimeSeriesData(ts)
             TS.append(ts)
@@ -305,6 +310,7 @@ class test_t2vnn(TestCase):
             ts = pd.DataFrame(
                 [np.arange(30), np.random.randint(0, 11, 30).astype(float)]
             ).transpose()
+            # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
             ts.columns = ["time", "value"]
             ts = TimeSeriesData(ts)
             TS.append(ts)
