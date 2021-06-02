@@ -6,8 +6,9 @@
 
 """A module for meta-learner hyper-parameter selection.
 
-This module contains two classes: 1) MetaLearnHPT, which is for recommending hyper-parameters of forecasting models;
-and 2) MultitaskNet, which is a multi-task neural network built with pytorch.
+This module contains two classes, including:
+    - :class:`MetaLearnHPT` for recommending hyper-parameters of forecasting models;
+    - :class:`MultitaskNet` for multi-task neural network built with pytorch.
 """
 
 import collections
@@ -88,8 +89,8 @@ class MetaLearnHPT:
     MetaLearnHPT provides get_default_model, build_network, train, pred, pred_by_feature, save_model, load_model and plot.
 
     Attributes:
-        data_x: Optional; A pd.DataFrame of time series features. data_x should not be None unless load_model is True. Default is None.
-        data_y: Optional; A pd.DataFrame of the corresponding best hyper-parameters. data_y should not be None unless load_model is True. Default is None.
+        data_x: Optional; A `pandas.DataFrame` object of time series features. data_x should not be None unless load_model is True. Default is None.
+        data_y: Optional; A `pandas.DataFrame` object of the corresponding best hyper-parameters. data_y should not be None unless load_model is True. Default is None.
         categorical_idx: Optional; A list of strings of the names of the categorical hyper-parameters. Default is None.
         numerical_idx: Optional; A list of strings of the names of the numerical hyper-parameters. Default is None.
         default_model: Optional; A string of the name of the forecast model whose default settings will be used.
@@ -98,23 +99,14 @@ class MetaLearnHPT:
         load_model: Optional; A boolean to specify whether or not to load a trained model. Default is False.
 
     Sample Usage:
-        # Create a default model, using Holt-Winter's model as an example.
-        >>> mlhpt_hw = MetaLearnHPT(X, Y, default_model='holtwinters')
-        # Build a multi-task neural network
+        >>> mlhpt_hw = MetaLearnHPT(X, Y, default_model='holtwinters') # Use default Holt-Winter's model as an example.
         >>> mlhpt_hw.build_network()
-        # Train the model.
         >>> mlhpt_hw.train()
-        # Generate hyper-parameters for a time series.
-        >>> mlhpt_hw.pred(ts=TSdata)
-        # Generate hyper-parameters for time series features.
-        >>> mlhpt_hw.pred_by_feature(features)
-        # Save trained model to a binary
-        >>> mlhpt_hw.save_model('my_model_binary.pkl')
-        # Load a trained model
-        >>> mlhpt_hw2=MetaLearnHPT(load_model=True)
+        >>> mlhpt_hw.pred(ts=TSdata) # Recommend hyper-parameters for TSdata.
+        >>> mlhpt_hw.save_model('my_model_binary.pkl') # Save trained model to a binary
+        >>> mlhpt_hw2=MetaLearnHPT(load_model=True) # Load a trained model
         >>> mlhpt_hw2.load_model('my_model_binary.pkl')
-        # Example for a customized object of class MetaLearnHPT, using Holt-Winter's model as an example
-        >>> mlhpt_hw = MetaLearnHPT(X, Y_holtwinters, ['trend','damped', 'seasonal'], ['seasonal_periods'])
+        >>> mlhpt_hw = MetaLearnHPT(X, Y_holtwinters, ['trend','damped', 'seasonal'], ['seasonal_periods']) # Example for building customized MetaLearnHPT object.
         >>> mlhpt_hw.build_network(n_hidden_shared=[30], n_hidden_cat_combo=[[2], [3], [5]],n_hidden_num=[3])
         >>> mlhpt_hw.train(loss_scale=30, lr=0.001)
     """
@@ -228,9 +220,6 @@ class MetaLearnHPT:
 
     def get_default_model(self):
         """Get the name of default_model. It the instance is a customized model, return None.
-
-        Args:
-            None.
 
         Returns:
             A string reprsenting the default model or None.
@@ -557,11 +546,11 @@ class MetaLearnHPT:
         """Predict hyper-parameters for a new time series data.
 
         Args:
-            source_ts: A TimeSeriesData object representing the time series for which to generate hyper-parameters
+            source_ts: :class:`kats.consts.TimeSeriesData` object representing the time series for which to generate hyper-parameters
             ts_scale: A boolean to specify whether or not to rescale time series data (i.e., divide its value by its maximum value) before calculating its features. Default is True.
 
         Returns:
-            A pd.DataFrame storing the recommended hyper-parameters.
+            A `pandas.DataFrame` object storing the recommended hyper-parameters.
         """
 
         ts = TimeSeriesData(pd.DataFrame(source_ts.to_dataframe().copy()))
@@ -744,7 +733,7 @@ class MultitaskNet(nn.Module):
     def __init__(
         self,
         input_and_n_hidden_shared: List[int],
-        n_hidden_and_output_cat_combo: List[List],
+        n_hidden_and_output_cat_combo: List[List[int]],
         n_hidden_and_output_num: List[int],
     ) -> None:
         super(MultitaskNet, self).__init__()

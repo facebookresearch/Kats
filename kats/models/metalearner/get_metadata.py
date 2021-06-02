@@ -18,31 +18,35 @@ from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 from typing import Any, Callable, Dict, Tuple
 
-import kats.models.model as m
 import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
 import pandas as pd
-from kats.consts import Params, SearchMethodEnum, TimeSeriesData
-from kats.models import arima, holtwinters, prophet, sarima, stlf, theta
+from kats.consts import SearchMethodEnum, TimeSeriesData
+from kats.models.arima import ARIMAModel, ARIMAParams
+from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
+from kats.models.prophet import ProphetModel, ProphetParams
+from kats.models.sarima import SARIMAModel, SARIMAParams
+from kats.models.stlf import STLFModel, STLFParams
+from kats.models.theta import ThetaModel, ThetaParams
 from kats.tsfeatures.tsfeatures import TsFeatures
 
 
 candidate_models = {
-    "arima": arima.ARIMAModel,
-    "holtwinters": holtwinters.HoltWintersModel,
-    "prophet": prophet.ProphetModel,
-    "theta": theta.ThetaModel,
-    "stlf": stlf.STLFModel,
-    "sarima": sarima.SARIMAModel,
+    "arima": ARIMAModel,
+    "holtwinters": HoltWintersModel,
+    "prophet": ProphetModel,
+    "theta": ThetaModel,
+    "stlf": STLFModel,
+    "sarima": SARIMAModel,
 }
 
 candidate_params = {
-    "arima": arima.ARIMAParams,
-    "holtwinters": holtwinters.HoltWintersParams,
-    "prophet": prophet.ProphetParams,
-    "theta": theta.ThetaParams,
-    "stlf": stlf.STLFParams,
-    "sarima": sarima.SARIMAParams,
+    "arima": ARIMAParams,
+    "holtwinters": HoltWintersParams,
+    "prophet": ProphetParams,
+    "theta": ThetaParams,
+    "stlf": STLFParams,
+    "sarima": SARIMAParams,
 }
 
 # Constant to indicate error types supported
@@ -59,8 +63,8 @@ class GetMetaData:
     This class provides tune_executor and get_meta_dat.
 
     Attributes:
-        data: A TimeSeriesData object of input time series data.
-        all_models: Optional; A dictionary of candidate model classes. Default includes models of ARIMA, SARIMA, HoltWinters, Prophet, Theta, and STLF.
+        data: :class:`kats.consts.TimeSeriesData` object representing the input time series data.
+        all_models: Optional; A dictionary of candidate model classes. Default dictionary includes models of ARIMA, SARIMA, HoltWinters, Prophet, Theta, and STLF.
         all_params: Optional; A dictionary of the corresponding candidate model parameter classes. Default includes model parameter classes of ARIMA, SARIMA, HoltWinters, Prophet, Theta, and STLF.
         min_length: Optional; An integer for the minimal length of a time series. Time series data whose length is shorter than min_length will be excluded. Default is 30.
         scale: Optional; A boolean to specify whether or not to rescale the time series data by its maximum values. Default is True. Default is True.
@@ -71,29 +75,17 @@ class GetMetaData:
         num_arms: Optional; An integer for the number of arms in hyper-parameter search. Default is 4.
 
     Sample Usage:
-        # Define time series data
         >>> TSdata = TimeSeriesData(data)
-        # Create a GetMetaData object.
         >>> MD = GetMetaData(data=TSdata)
-        # Get the best hyper-params for each candidate model and their corresponding errors.
         >>> hpt_res = MD.tune_executor()
-        # Get meta-data, hyper-parameter searching method and error metric.
-        >>> my_meta_data = MD.get_meta_data()
+        >>> my_meta_data = MD.get_meta_data() # Get meta-data, hyper-parameter searching method and error metric.
     """
 
     def __init__(
         self,
         data: TimeSeriesData,
-        # pyre-fixme[9]: all_models has type `Dict[str, m.Model]`; used as
-        #  `Dict[str, typing.Type[typing.Union[arima.ARIMAModel,
-        #  holtwinters.HoltWintersModel, prophet.ProphetModel, sarima.SARIMAModel,
-        #  stlf.STLFModel, theta.ThetaModel]]]`.
-        all_models: Dict[str, m.Model] = candidate_models,
-        # pyre-fixme[9]: all_params has type `Dict[str, Params]`; used as `Dict[str,
-        #  typing.Type[typing.Union[arima.ARIMAParams, holtwinters.HoltWintersParams,
-        #  prophet.ProphetParams, sarima.SARIMAParams, stlf.STLFParams,
-        #  theta.ThetaParams]]]`.
-        all_params: Dict[str, Params] = candidate_params,
+        all_models: Dict[str, Any] = candidate_models,
+        all_params: Dict[str, Any] = candidate_params,
         min_length: int = 30,
         scale: bool = True,
         method: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
@@ -106,9 +98,7 @@ class GetMetaData:
         if not isinstance(data, TimeSeriesData):
             msg = "Input data should be TimeSeriesData"
             raise ValueError(msg)
-        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
-        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
-        self.data = TimeSeriesData(data.to_dataframe().copy())
+        self.data = TimeSeriesData(pd.DataFrame(data.to_dataframe().copy()))
         self.all_models = all_models
         self.all_params = all_params
         self.min_length = min_length
@@ -192,8 +182,9 @@ class GetMetaData:
             raise ValueError("It's constant time series!")
 
         # check if the time series contains NAN, inf or -inf
-        # pyre-fixme[16]: `None` has no attribute `isna`.
-        if self.data.value.replace([np.inf, -np.inf], np.nan).isna().any():
+        if np.any(np.isinf(self.data.value.values)) or np.any(
+            np.isnan(self.data.value.values)
+        ):
             raise ValueError("Time series contains NAN or infinity value(s)!")
 
         msg = "Valid time series data!"
@@ -279,9 +270,6 @@ class GetMetaData:
     def tune_executor(self) -> Dict[str, Any]:
         """Get the best hyper parameters for each candidate model and their corresponding errors for the time series data.
 
-        Args:
-            None.
-
         Returns:
             A dictionary storing the best hyper-parameters and the errors for each candidate model.
         """
@@ -304,9 +292,6 @@ class GetMetaData:
         """Get meta data, as well as search method and type of error metric
 
         Meta data includes time series features, best hyper-params for each candidate models, and best model.
-
-        Args:
-            None.
 
         Returns:
             A dictionary storing the best hyper-parameters and the errors for each candidate model, the features of the time series data, the hyper-parameter searching method,
@@ -347,21 +332,20 @@ class GetMetaData:
 
     def _calc_mape(
         self,
-        # pyre-fixme[11]: Annotation `array` is not defined as a type.
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         logging.info("Calculating MAPE")
         return np.mean(np.abs((truth - predictions) / truth))
 
     def _calc_smape(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         logging.info("Calculating SMAPE")
         return ((abs(truth - predictions) / (truth + predictions)).sum()) * (
@@ -370,20 +354,20 @@ class GetMetaData:
 
     def _calc_mae(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         logging.info("Calculating MAE")
         return diffs.mean()
 
     def _calc_mase(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         # MASE = mean(|actual - forecast| / naiveError), where naiveError = 1/ (n-1) sigma^n_[i=2](|actual_[i] - actual_[i-1]|).
         logging.info("Calculating MASE")
@@ -394,20 +378,20 @@ class GetMetaData:
 
     def _calc_mse(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         logging.info("Calculating MSE")
         return ((diffs) ** 2).mean()
 
     def _calc_rmse(
         self,
-        training_inputs: np.array,
-        predictions: np.array,
-        truth: np.array,
-        diffs: np.array,
+        training_inputs: np.ndarray,
+        predictions: np.ndarray,
+        truth: np.ndarray,
+        diffs: np.ndarray,
     ) -> float:
         logging.info("Calculating RMSE")
         return np.sqrt(self._calc_mse(training_inputs, predictions, truth, diffs))

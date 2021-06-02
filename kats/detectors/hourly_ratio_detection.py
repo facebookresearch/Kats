@@ -5,19 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scipy
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
+
+# pyre-fixme[21]: Could not find a name `chi2` defined in module `scipy.stats`.
+from scipy.stats import chi2
 from sklearn.covariance import MinCovDet
 
 """A module for detecting abnormal in hourly ratio.
 
-This module contains the class HourlyRatioDetector, which detects the abnormal intra-day hourly ratio patterns.
+This module contains the class :class:`HourlyRatioDetector`, which detects the abnormal intra-day hourly ratio patterns.
 """
 
 
@@ -29,25 +31,21 @@ class HourlyRatioDetector(Detector):
     This class provides detector and plot.
 
     Attributes:
-        data: A TimeSeriesData object representing the data to be examed, which should be of hour-level granularity.
-        freq: Optional; A string representing the data frequency (following the naming conventions of pandas). Can be 'H' (hourly frequency), 'T' minutely frequency, 'S' secondly frequency or any other frequency finer than hourly frequency.
-            Default is 'None', in which case the frequency will be infered by infer_freq_robust.
+        data: A :class:`kats.consts.TimeSeriesData` object representing the data to be examed, which should be of hour-level granularity.
+        freq: Optional; A string or a `pandas.Timedelta` object representing the data frequency (following the naming conventions of pandas). Can be 'H' (hourly frequency), 'T' minutely frequency, 'S' secondly frequency or any other frequency finer than hourly frequency.
+            Default is None, in which case the frequency will be infered by infer_freq_robust.
         aggregate: Optional; A string representing the aggregation method for aggregating data to hourly level data. Can be 'min', 'max', 'sum', 'mean' or None. Default is None, which means no aggregation.
 
     Sample Usage:
-        # Create a detector object.
         >>> hr = HourlyRatioDetector(data)
-        # One can also create the object with more info: hr = HourlyRatioDetector(data, freq = "T", aggregate = 'mean')
-        # Run detect method
         >>> anomlies=hr.detector()
-        # Plot the anomalies of weekday 3
-        >>> hr = hr.plot(weekday = 3)
+        >>> hr = hr.plot(weekday = 3) # Plot the anomalies of weekday 3
     """
 
     def __init__(
         self,
         data: TimeSeriesData,
-        freq: Optional[str] = None,
+        freq: Union[str, pd.Timedelta, None] = None,
         aggregate: Optional[str] = None,
     ) -> None:
         super(HourlyRatioDetector, self).__init__(data=data)
@@ -79,11 +77,11 @@ class HourlyRatioDetector(Detector):
 
         lower_granularity = ["T", "S", "L", "U", "N"]
         if self.freq is None:
-            # pyre-fixme[8]: Attribute has type `Optional[str]`; used as `Timedelta`.
             self.freq = self.data.infer_freq_robust()
         if self.freq == "H" or (
-            # pyre-fixme[16]: `Optional` has no attribute `value`.
-            isinstance(self.freq, pd.Timedelta) and self.freq.value == 3600000000000
+            isinstance(self.freq, pd.Timedelta)
+            # pyre-fixme[16]: `None` has no attribute `value`.
+            and self.freq.value == 3600000000000
         ):
             msg = "Input data is hourly data."
             logging.info(msg)
@@ -158,27 +156,31 @@ class HourlyRatioDetector(Detector):
         return
 
     def _mahalanobis_test(
-        # pyre-fixme[11]: Annotation `array` is not defined as a type.
-        self, obs: np.array, median: np.array, cov: np.array, alpha: float = 0.01
-    ) -> Tuple[np.array, np.array]:
+        self,
+        obs: np.ndarray,
+        median: np.ndarray,
+        cov: np.ndarray,
+        alpha: float = 0.01,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """mahalanobis test function.
 
         Args:
-            obs: A np.array storing the data to be tested.
-            median: A np.array storing the medians used to build centeralize test data.
-            cov: A np.array representing the covariance matrix.
+            obs: A :class:`numpy.ndarray` object storing the data to be tested.
+            median: A :class:`numpy.ndarray` object storing the medians used to build centeralize test data.
+            cov: A :class:`numpy.ndarray` object representing the covariance matrix.
             alpha: A float representing the significance level for the Mahalanobis test. We take the instance with pvalue<=alpha as an abnormal point.
 
         Returns:
-            lab: A np.array of booleans representing whether the corresponding instance is abnormal or not.
-            pvalue: A np.array storing the pvalues of tests of each instance.
+            lab: A :class:`numpy.ndarray` object of booleans representing whether the corresponding instance is abnormal or not.
+            pvalue: A :class:`numpy.ndarray` object storing the pvalues of tests of each instance.
         """
 
         diff = obs - median
         scores = np.sum(diff * np.linalg.solve(cov, diff.T).T, axis=1)
         # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
-        pvalue = 1.0 - scipy.stats.chi2(df=diff.shape[1]).cdf(scores)
+        pvalue = 1.0 - chi2(df=diff.shape[1]).cdf(scores)
         lab = pvalue <= alpha
+        # pyre-fixme[7]: Expected `Tuple[np.ndarray, np.ndarray]` but got `Tuple[bool, float]`.
         return (lab, pvalue)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.

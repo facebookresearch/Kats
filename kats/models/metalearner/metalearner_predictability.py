@@ -6,13 +6,13 @@
 
 """A module for meta-learner predictability.
 
-This module contains the class MetaLearnPredictability for meta-learner predictability. This class predicts whether a time series is predictable or not.
+This module contains the class :class:`MetaLearnPredictability` for meta-learner predictability. This class predicts whether a time series is predictable or not.
 The predictability of a time series is determined by whether the forecasting errors of the possible best forecasting model can be less than a user-defined threshold.
 """
 
 import ast
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import joblib
 import numpy as np
@@ -43,23 +43,19 @@ class MetaLearnPredictability:
         load_model: Optional; A boolean to specify whether or not to load a trained model. Default is False.
 
     Sample Usage:
-    # Create an object.
-    >>> mlp = MetaLearnPredictability(data)
-    # Train a model
-    >>> mlp.train()
-    # Save the trained model
-    >>> mlp.save_model()
-    # Create a new object to load the trained model
-    >>> mlp2 = MetaLearnPredictability(load_model=True)
-    >>> mlp2.load_model()
-    # Predict whether a time series is predictable.
-    >>> mlp.pred(TSdata)
-    # Predict using time series features.
-    >>> mlp.pred_by_feature(TSfeatures)
+        >>> mlp = MetaLearnPredictability(data)
+        >>> mlp.train()
+        >>> mlp.save_model()
+        >>> mlp.pred(TSdata) # Predict whether a time series is predictable.
+        >>> mlp2 = MetaLearnPredictability(load_model=True) # Create a new object to load the trained model
+        >>> mlp2.load_model()
     """
 
     def __init__(
-        self, metadata: Optional[List] = None, threshold: float = 0.2, load_model=False
+        self,
+        metadata: Optional[List[Any]] = None,
+        threshold: float = 0.2,
+        load_model=False,
     ) -> None:
         if load_model:
             msg = "Initialize this class without meta data, and a pretrained model should be loaded using .load_model() method."
@@ -151,9 +147,6 @@ class MetaLearnPredictability:
 
     def preprocess(self) -> None:
         """Rescale input time series features to zero-mean and unit-variance.
-
-        Args:
-            None.
 
         Returns:
             None.
@@ -263,7 +256,7 @@ class MetaLearnPredictability:
         """Predict whether a time series is predicable or not.
 
         Args:
-            source_ts: A TimeSeriesData object representing the new time series data.
+            source_ts: :class:`kats.consts.TimeSeriesData` object representing the new time series data.
             ts_scale: Optional; A boolean to specify whether or not to rescale time series data (i.e., normalizing it with its maximum vlaue) before calculating features. Default is True.
 
         Returns:

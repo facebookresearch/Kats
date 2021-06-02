@@ -6,8 +6,9 @@
 
 """A module for meta-learner model selection.
 
-This module contains: 1) the MetaLearnModelSelect class for meta-learner models selection, which recommends the forecasting model based on time series or time series features;
-and 2) the RandomDownSampler class for creating balanced dataset via downsampling.
+This module contains:
+    - :class:`MetaLearnModelSelect` for meta-learner models selection, which recommends the forecasting model based on time series or time series features;
+    - :class:`RandomDownSampler` for creating balanced dataset via downsampling.
 """
 
 import ast
@@ -47,23 +48,17 @@ class MetaLearnModelSelect:
         load_model: Optional; A boolean to specify whether or not to load a trained model. Default is False.
 
     Sample Usage:
-    # Create an object of class MetaLearnModelSelect.
-    >>> mlms = MetaLearnModelSelect(data)
-    # Train a meta-learner model selection model.
-    >>> mlms.train(n_trees=200, test_size=0.1, eval_method='mean')
-    # Predict/recommend forecasting model for a new time series data.
-    >>> mlms.pred(TSdata)
-    # Predict/recommend the top 3 most suitable forecasting model.
-    >>> mlms2.pred(TSdata, n_top=3)
-    # Save the trained model.
-    >>> mlms.save_model("mlms.pkl")
-    # Create a new object and then load a pre-trained model.
-    >>> mlms2 = MetaLearnModelSelect(metadata=None, load_model=True)
-    >>> mlms2.load_model("mlms.pkl")
+        >>> mlms = MetaLearnModelSelect(data)
+        >>> mlms.train(n_trees=200, test_size=0.1, eval_method='mean') # Train a meta-learner model selection model.
+        >>> mlms.pred(TSdata) # Predict/recommend forecasting model for a new time series data.
+        >>> mlms2.pred(TSdata, n_top=3) # Predict/recommend the top 3 most suitable forecasting model.
+        >>> mlms.save_model("mlms.pkl") # Save the trained model.
+        >>> mlms2 = MetaLearnModelSelect(metadata=None, load_model=True) # Create a new object and then load a pre-trained model.
+        >>> mlms2.load_model("mlms.pkl")
     """
 
     def __init__(
-        self, metadata: Optional[List[Dict]] = None, load_model: bool = False
+        self, metadata: Optional[List[Dict[str, Any]]] = None, load_model: bool = False
     ) -> None:
         if not load_model and metadata is not None:
             if len(metadata) <= 30:
@@ -147,9 +142,6 @@ class MetaLearnModelSelect:
     def count_category(self) -> Dict[str, int]:
         """Count the number of observations of each candidate model in meta-data.
 
-        Args:
-            None.
-
         Returns:
             A dictionary storing the number of observations of each candidate model in meta-data.
         """
@@ -209,9 +201,6 @@ class MetaLearnModelSelect:
     def get_corr_mtx(self) -> pd.DataFrame:
         """Calculate correlation matrix of feature matrix.
 
-        Args:
-            None.
-
         Returns:
             A pd.DataFrame representing the correlation matrix of time series features.
         """
@@ -222,7 +211,7 @@ class MetaLearnModelSelect:
         """Generate heat-map for correlation matrix of feature matrix.
 
         Args:
-            camp: A string representing the olor bar used to generate heat-map.
+            camp: Optional; A string representing the olor bar used to generate heat-map. Default is "RdBu_r".
 
         Returns:
             None
@@ -363,7 +352,7 @@ class MetaLearnModelSelect:
         """Predict the best forecasting model for a new time series data.
 
         Args:
-            source_ts: A TimeSeriesData object representing the new time series data.
+            source_ts: :class:`kats.consts.TimeSeriesData` object representing the new time series data.
             ts_scale: Optional; A boolean to specify whether or not to rescale time series data (i.e., normalizing it with its maximum vlaue) before calculating features. Default is True.
             n_top: Optional; A integer for the number of top model names to return. Default is 1.
 
@@ -450,7 +439,7 @@ class MetaLearnModelSelect:
         The statistical test is based on the bootstrapping samples drawn from the fitted random forest model. This function is only available for random forest classifier.
 
         Args:
-            source_ts: A TimeSeriesData object representing the new time series data.
+            source_ts: :class:`kats.consts.TimeSeriesData` object representing the new time series data.
             ts_scale: Optional; A boolean to specify whether or not to rescale time series data (i.e., normalizing it with its maximum vlaue) before calculating features. Default is True.
             sig_level: Optional; A float representing the significance level for bootstrap test. If pvalue>=sig_level, then we deem there is no difference between the best and the second best model.
                        Default is 0.2.
@@ -495,9 +484,9 @@ class RandomDownSampler:
     RandomDownSampler provides methods for creating a balanced dataset via downsampling. It contains fit_resample.
 
     Attributes:
-        hpt: A pd.Series storing the best hyper-parameters and the corresponding errors for each model.
-        dataX: A pd.DataFrame representing the time series features matrix.
-        dataY: A pd.Series representing the best models for the corresponding time series.
+        hpt: A `pandas.Series` object storing the best hyper-parameters and the corresponding errors for each model.
+        dataX: A `pandas.DataFrame` object representing the time series features matrix.
+        dataY: A `pandas.Series` object representing the best models for the corresponding time series.
     """
 
     def __init__(self, hpt: pd.Series, dataX: pd.DataFrame, dataY: pd.Series) -> None:
@@ -509,12 +498,9 @@ class RandomDownSampler:
     def fit_resample(self) -> Tuple[pd.Series, pd.DataFrame, pd.Series]:
         """Create balanced dataset via random downsampling.
 
-        Args:
-            None.
-
         Returns:
-            A tuple containing the pd.Series of the best hyper-parameters and the corresponding errors, the pd.Dataframe of the downsampled time series features,
-            and the pd.Series of the downsampled best models for the corresponding time series.
+            A tuple containing the `pandas.Series` object of the best hyper-parameters and the corresponding errors, the `pandas.DataFrame` object of the downsampled time series features,
+            and the `pandas.Series` object of the downsampled best models for the corresponding time series.
         """
 
         resampled_x, resampled_y, resampled_hpt = [], [], []
