@@ -5,11 +5,8 @@
 <p style="text-align: center;">Kats: kits to analyze time series</p>
 
 <div align="center">
-  <a href="https://facebook.github.io/kats/docs">
-  <img alt="Documentation Status" src=""/>
-  </a>
   <a href="https://github.com/facebookresearch/Kats/actions">
-  <img alt="Github Actions" src="https://github.com/facebookresearch/Kats/actions/workflows/build_and_test.yml/badge_svg"/>
+  <img alt="Github Actions" src="https://github.com/facebookresearch/Kats/actions/workflows/build_and_test.yml/badge.svg"/>
   </a>
 </div>
 
