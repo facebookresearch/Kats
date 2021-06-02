@@ -6,25 +6,25 @@
 
 """CUSUMDetectorModel is a wraper of CUSUMDetector to detect multiple change points
 
-    Typical usage example:
+Typical usage example:
 
-    # Define CUSUMDetectorModel
-    >>> model = CUSUMDetectorModel(
-            scan_window=43200,
-            historical_window=604800,
-            threshold=0.01,
-            delta_std_ratio=1.0,
-            serialized_model=None,
-            change_directions=["increase"],
-            score_func=CusumScoreFunction.percentage_change,
-            remove_seasonality=True,
-        )
-    # Run detector
-    >>> respond = model.fit_predict(tsd)
-    # plot anomaly score
-    >>> respond.scores.plot(cols=['value'])
-    # Get change points in unixtime
-    >>> change_points = model.cps
+>>> # Define CUSUMDetectorModel
+>>> model = CUSUMDetectorModel(
+        scan_window=43200,
+        historical_window=604800,
+        threshold=0.01,
+        delta_std_ratio=1.0,
+        serialized_model=None,
+        change_directions=["increase"],
+        score_func=CusumScoreFunction.percentage_change,
+        remove_seasonality=True,
+    )
+>>> # Run detector
+>>> respond = model.fit_predict(tsd)
+>>> # Plot anomaly score
+>>> respond.scores.plot(cols=['value'])
+>>> # Get change points in unixtime
+>>> change_points = model.cps
 """
 
 import json
@@ -55,6 +55,7 @@ def percentage_change(
 ) -> TimeSeriesData:
     """
     Calculate percentage change absolute change / baseline change
+
     Args:
         data: The data need to calculate the score
         pre_mean: Baseline mean
@@ -66,6 +67,7 @@ def percentage_change(
 def change(data: TimeSeriesData, pre_mean: float, **kwargs: Any) -> TimeSeriesData:
     """
     Calculate absolute change
+
     Args:
         data: The data need to calculate the score
         pre_mean: Baseline mean
@@ -77,6 +79,7 @@ def change(data: TimeSeriesData, pre_mean: float, **kwargs: Any) -> TimeSeriesDa
 def z_score(data: TimeSeriesData, pre_mean: float, pre_std: float) -> TimeSeriesData:
     """
     Calculate z score: absolute change / std
+
     Args:
         data: The data need to calculate the score
         pre_mean: Baseline mean
@@ -264,6 +267,7 @@ class CUSUMDetectorModel(DetectorModel):
         change_directions: List[str] = CUSUM_DEFAULT_ARGS["change_directions"],
     ) -> None:
         """Fit CUSUM model.
+
         Args:
             data: the new data the model never seen
             historical_data: the historical data, `historical_data` have to end with the
@@ -385,15 +389,18 @@ class CUSUMDetectorModel(DetectorModel):
         This function combines fit and predict and return anomaly socre for data. It
         requires scan_window > step_window.
         The relationship between two consective cusum runs in the loop is shown as below:
-        |---historical_window---|---scan_window---|
-                                                  |-step_window-|
-                      |---historical_window---|---scan_window---|
+
+        >>> |---historical_window---|---scan_window---|
+        >>>                                           |-step_window-|
+        >>>               |---historical_window---|---scan_window---|
+
+        * scan_window: the window size in seconds to detect change point
+        * historical_window: the window size in seconds to provide historical data
+        * step_window: the window size in seconds to specify the step size between two scans
 
         Args:
-            scan_window: the window size in seconds to detect change point
-            historical_window: the window size in seconds to provide historical data
-            step_window: the window size in seconds to specify the step size between two
-                scans
+            data: :class:`kats.consts.TimeSeriesData` object representing the data
+            historical_data: :class:`kats.consts.TimeSeriesData` object representing the history.
 
         Returns:
             The anomaly response contains the anomaly socres.
