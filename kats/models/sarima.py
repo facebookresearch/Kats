@@ -7,12 +7,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-from typing import List, Dict, Optional, Tuple, Callable
+from typing import List, Dict, Optional, Tuple, Callable, Union, Any
 
 import kats.models.model as m
 import numpy as np
 import pandas as pd
-from kats.consts import Params, TimeSeriesData
+from kats.consts import TimeSeriesData, Params
 from kats.utils.parameter_tuning_utils import (
     get_default_sarima_parameter_search_space,
 )
@@ -31,8 +31,7 @@ class SARIMAParams(Params):
         q: An integer for trend moving average (MA) order.
         exog: Optional; An array of exogenous regressors.
         seasonal_order: Optional; A tuple for (P,D,Q,s) order of the seasonal component for AR order, difference order, MA order, and periodicity. Default is (0,0,0,0).
-        trend: Optional; A string or an iterable for deterministic trend. Can be 'c' (constant), 't' (linear trend with time), 'ct' (both constant and linear trend), or an iterable of integers defining the non-zero polynomial exponents to include.
-        Default is None (not to include trend).
+        trend: Optional; A string or an iterable for deterministic trend. Can be 'c' (constant), 't' (linear trend with time), 'ct' (both constant and linear trend), or an iterable of integers defining the non-zero polynomial exponents to include. Default is None (not to include trend).
         measurement_error: Optional; A boolean to specify whether or not to assume the observed time series were measured with error. Default is False.
         time_varying_regression: Optional; A boolean to specify whether or not coefficients on the regressors (if provided) are allowed to vary over time. Default is False.
         mle_regression: Optional; A boolean to specify whether or not to estimate coefficients of regressors as part of maximum likelihood estimation or through Kalman filter.
@@ -94,6 +93,8 @@ class SARIMAParams(Params):
         )
 
     def validate_params(self):
+        """Not implemented."""
+
         logging.info("Method validate_params() is not implemented.")
         pass
 
@@ -104,8 +105,8 @@ class SARIMAModel(m.Model):
     This class provides fit, predict and plot methods for SARIMA model.
 
     Attributes:
-        data: A TimeSeriesData for input time series.
-        params: A SARIMAParams for model parameters.
+        data: :class:`kats.consts.TimeSeriesData` object for input time series.
+        params: :class:`SARIMAParams` for model parameters.
     """
 
     def __init__(
@@ -120,6 +121,26 @@ class SARIMAModel(m.Model):
             )
             logging.error(msg)
             raise ValueError(msg)
+        self.start_params = None
+        self.transformed = None
+        self.includes_fixed = None
+        self.cov_type = None
+        self.cov_kwds = None
+        self.method = None
+        self.maxiter = None
+        self.full_output = None
+        self.disp = None
+        self.callback = None
+        self.return_params = None
+        self.optim_score = None
+        self.optim_complex_step = None
+        self.optim_hessian = None
+        self.low_memory = None
+        self.model = None
+        self.include_history = False
+        self.alpha = 0.05
+        self.fcst_df = None
+        self.freq = None
 
     def fit(
         self,
@@ -166,35 +187,20 @@ class SARIMAModel(m.Model):
         """
 
         logging.debug("Call fit() method")
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `start_params`.
         self.start_params = start_params
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `transformed`.
         self.transformed = transformed
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `includes_fixed`.
         self.includes_fixed = includes_fixed
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `cov_type`.
         self.cov_type = cov_type
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `cov_kwds`.
         self.cov_kwds = cov_kwds
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `method`.
         self.method = method
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `maxiter`.
         self.maxiter = maxiter
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `full_output`.
         self.full_output = full_output
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `disp`.
         self.disp = disp
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `callback`.
         self.callback = callback
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `return_params`.
         self.return_params = return_params
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `optim_score`.
         self.optim_score = optim_score
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `optim_complex_step`.
         self.optim_complex_step = optim_complex_step
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `optim_hessian`.
         self.optim_hessian = optim_hessian
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `low_memory`.
         self.low_memory = low_memory
 
         logging.info("Created SARIMA model.")
@@ -215,7 +221,6 @@ class SARIMAModel(m.Model):
             trend_offset=self.params.trend_offset,
             use_exact_diffuse=self.params.use_exact_diffuse,
         )
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `model`.
         self.model = sarima.fit(
             start_params=self.start_params,
             transformed=self.transformed,
@@ -247,20 +252,15 @@ class SARIMAModel(m.Model):
             alpha: A float for confidence level. Default is 0.05.
 
         Returns:
-            A pd.DataFrame of forecasts and confidence intervals.
+            A :class:`pandas.DataFrame` of forecasts and confidence intervals.
         """
         logging.debug(
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `include_history`.
         self.include_history = include_history
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `freq`.
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `data`.
         self.freq = kwargs.get("freq", self.data.infer_freq_robust())
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `alpha`.
         self.alpha = alpha
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `model`.
         fcst = self.model.get_forecast(steps)
 
         logging.info("Generated forecast data from SARIMA model.")
@@ -307,7 +307,6 @@ class SARIMAModel(m.Model):
                 )
                 logging.error(msg)
                 raise ValueError(msg)
-            # pyre-fixme[16]: `SARIMAModel` has no attribute `fcst_df`.
             self.fcst_df = pd.DataFrame(
                 {
                     "time": np.concatenate(
@@ -355,14 +354,10 @@ class SARIMAModel(m.Model):
         return "SARIMA"
 
     @staticmethod
-    def get_parameter_search_space() -> List[Dict[str, object]]:
+    def get_parameter_search_space() -> List[Dict[str, Union[List[Any], bool, str]]]:
         """Get default SARIMA parameter search space.
 
-        Args:
-            None.
         Returns:
             A dictionary representing the default SARIMA parameter search space.
         """
-        # pyre-fixme[7]: Expected `List[Dict[str, object]]` but got `List[Dict[str,
-        #  typing.Union[List[typing.Any], bool, str]]]`.
         return get_default_sarima_parameter_search_space()

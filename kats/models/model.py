@@ -10,10 +10,11 @@ import logging
 from typing import Generic, TypeVar
 
 import pandas as pd
-from kats.consts import TimeSeriesData, Params
+from kats.consts import TimeSeriesData
 from matplotlib import pyplot as plt
 
 ParamsType = TypeVar("ParamsType")
+
 
 class Model(Generic[ParamsType]):
     __slots__ = ["data"]
