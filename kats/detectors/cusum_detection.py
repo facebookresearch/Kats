@@ -7,30 +7,31 @@
 """CUSUM stands for cumulative sum, it is a changepoint detection algorithm.
 
 In the Kats implementation, it has two main components:
-1. Locate the change point: The algorithm iteratively estimates the means before and
-    after the change point and finds the change point maximizing/minimizing the cusum
-    value until the change point has converged. The starting point for the change point is
-    at the middle.
-2. Hypothesis testing: Conducting log likelihood ratio test where the null hypothesis has
-    no change point with one mean and the alternative hypothesis has a change point with
-    two means.
+  1. Locate the change point: The algorithm iteratively estimates the means before and
+  after the change point and finds the change point maximizing/minimizing the cusum
+  value until the change point has converged. The starting point for the change point is
+  at the middle.
+
+  2. Hypothesis testing: Conducting log likelihood ratio test where the null hypothesis has
+  no change point with one mean and the alternative hypothesis has a change point with
+  two means.
 And here are a few things worth mentioning:
-* We assume there is only one increase/decrease change point;
-* We use Gaussian distribution as the underlying model to calculate the cusum value and
-    conduct the hypothesis test;
+  * We assume there is only one increase/decrease change point;
+  * We use Gaussian distribution as the underlying model to calculate the cusum value and
+  conduct the hypothesis test;
 
 Typical usage example:
 
-    # Univariate CUSUM
-        >>> timeseries = TimeSeriesData(...)
-        >>> detector = CusumDetector(timeseries)
-    # Run detector
-        >>> changepoints = detector.detector()
-    # plot the results
-        >>> detector.plot(changepoints)
+>>> # Univariate CUSUM
+>>> timeseries = TimeSeriesData(...)
+>>> detector = CusumDetector(timeseries)
+>>> #Run detector
+>>> changepoints = detector.detector()
+>>> # Plot the results
+>>> detector.plot(changepoints)
 
-    The usage is the same for multivariate CUSUM except that the time series needs to be multivariate
-    and that the plotting functions are not yet supported for this use case.
+The usage is the same for multivariate CUSUM except that the time series needs to be multivariate
+and that the plotting functions are not yet supported for this use case.
 
 """
 
@@ -171,7 +172,7 @@ class CUSUMDetector(Detector):
     These detector is used to detect mean changes in Normal Distribution.
 
     Attributes:
-        data: The input time series data from TimeSeriesData
+        data: :class:`kats.consts.TimeSeriesData`; The input time series data
         is_multivariate: Optional; bool; should be False unless running MultiCUSUMDetector
     """
 
@@ -366,6 +367,7 @@ class CUSUMDetector(Detector):
     def detector(self, **kwargs) -> List[Tuple[TimeSeriesChangePoint, CUSUMMetadata]]:
         """
         Find the change point and calculate related statistics
+
         Args:
             threshold: Optional; float; significance level, default: 0.01;
             max_iter: Optional; int, maximun iteration in finding the changepoint;

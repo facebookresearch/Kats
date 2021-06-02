@@ -10,18 +10,17 @@ We provide two seasonality detector: ACFDetector and FFTDetector. ACFDetector us
 autocorrelation function to find seasonality, while FFTDetector uses Fast Fourier
 Transform to detect seasonality.
 
-    Typical usage example:
+Typical usage example:
 
-    timeseries = TimeSeriesData(...)
-
-    # initialize detector
-    detector = ACFDetector(timeseries)
-    # run detector
-    detector.detector(diff=1, alpha = 0.01)
-    # seasonality decomposition, returns trend, seasonal, residual term
-    detector.remover()
-    # plot acf and decompsition results
-    detector.plot()
+>>> timeseries = TimeSeriesData(...)
+>>> # initialize detector
+>>> detector = ACFDetector(timeseries)
+>>> # run detector
+>>> detector.detector(diff=1, alpha = 0.01)
+>>> # seasonality decomposition, returns trend, seasonal, residual term
+>>> detector.remover()
+>>> # plot acf and decompsition results
+>>> detector.plot()
 """
 
 import logging
