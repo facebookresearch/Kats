@@ -27,7 +27,7 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
     """Weighted average ensemble model class
 
     Attributes:
-        data: the input time series data as in `TimeSeriesData`
+        data: the input time series data as in :class:`kats.consts.TimeSeriesData`
         params: the model parameter class in Kats
     """
 
@@ -156,12 +156,6 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
 
     def plot(self):
         """Plot method for weighted average ensemble model
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         logging.info("Generating chart for forecast result from Ensemble.")
         mm.Model.plot(self.data, self.fcst_df)
