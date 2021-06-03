@@ -22,7 +22,7 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
     """Median ensemble model class
 
     Attributes:
-        data: the input time series data as in `TimeSeriesData`
+        data: the input time series data as in :class:`kats.consts.TimeSeriesData`
         params: the model parameter class in Kats
     """
 
@@ -79,12 +79,6 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
 
     def plot(self):
         """Plot method for median ensemble model
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         logging.info("Generating chart for forecast result from Ensemble.")

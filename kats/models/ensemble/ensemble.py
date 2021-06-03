@@ -75,15 +75,7 @@ class EnsembleParams:
 class BaseEnsemble:
     """Base ensemble class
 
-    Implement parent class for ensemble. We provide following methods
-    - fit: fit base models
-    - _predict_all: make predictions with multiple base models
-    - plot: visualize the ensemble results
-    - get_report: performance report for base and ensemble models
-
-    Attributes:
-        data: TimeSeriesData object
-        params: EnsembleParams object
+    Implement parent class for ensemble.
     """
 
     def __init__(self, data: TimeSeriesData, params: EnsembleParams) -> None:
@@ -112,12 +104,6 @@ class BaseEnsemble:
         This method fits each individual model for ensembling
         and create a dict of model and fitted obj, such as
         {'m1': fitted_m1_obj, 'm2': fitted_m2_obj}
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         num_process = min(len(BASE_MODELS.keys()), (cpu_count() - 1) // 2)
@@ -170,12 +156,6 @@ class BaseEnsemble:
 
     def plot(self):
         """Plot method for ensemble model (not implemented yet)
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         pass

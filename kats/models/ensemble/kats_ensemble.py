@@ -65,34 +65,7 @@ SMODELS = {
 class KatsEnsemble:
     """Decomposition based ensemble model in Kats
     This is the holistic ensembling class based on decomposition when seasonality presents
-    We specifically provide following methods:
-        seasonality_detector : detect seasonalities with ACF detector in Kats
-        deseasonalize        : perform STL decomposition of seasonality presents
-        fitExecutor          : callable function to fit forecast models in parallel
-                            services who call KatsEnsemble need to write their own
-                            executor to get better performance
-        forecastExecutor     : callable function to fit and predict in parallel
-                            services who call KatsEnsemble need to write their own
-                            executor to get better performance
-        fit                  : fit individual models by calling fitExecutor
-        predict              : predict the future time series values by a given steps
-        forecast             : combination of fit and predict methods
-        plot                 : plot the historical and predicted values
-
-    Attributes:
-        data  : TimeSeriesData
-        params: Dict with following keys
-            models: EnsembleParams contains individual model params
-                    i.e., [BaseModelParams, ...]
-            aggregation: we support median ('median) and
-                         weighted average ('weightedavg')
-            fitExecutor: callable executor to fit individual models
-            forecastExecutor: callable executor to fit and predict individual models
-            seasonality_length : the length of seasonality -> TODO: auto determine
-            decomposition_method : type of decomposition,
-                            we support "additive", and "multiplicative"
     """
-
     def __init__(
         self,
         data: TimeSeriesData,
@@ -148,7 +121,7 @@ class KatsEnsemble:
         """Detect seasonalities from given TimeSeriesData
 
         Args:
-            data: the input `TimeSeriesData`
+            data: :class:`kats.consts.TimeSeriesData`, the input `TimeSeriesData`
 
         Returns:
             Flag for the presence of seasonality
@@ -167,7 +140,7 @@ class KatsEnsemble:
         Static method to perform decomposition on the input data
 
         Args:
-            data: input time series data
+            data: :class:`kats.consts.TimeSeriesData`, input time series data
             decomposition_method: the specific method for decomposition
 
         Returns:
@@ -201,7 +174,7 @@ class KatsEnsemble:
         Static method to re-seasonalize the input data
 
         Args:
-            sea_data: the seasonal data from deseasonalize method
+            sea_data: :class:`kats.consts.TimeSeriesData`, the seasonal data from deseasonalize method
             desea_predict: dict of forecasted results for the deseasonalized
                 data for each individual forecasting method
             decomposition_method: the specific method for decomposition
@@ -290,7 +263,7 @@ class KatsEnsemble:
         used.
 
         Attributes:
-            data: given TimeSeriesData, could be original or de-seasonalized
+            data: :class:`kats.consts.TimeSeriesData`, given TimeSeriesData, could be original or de-seasonalized
             models: EnsembleParams object containing model params
                 in BaseModelParams
             should_auto_backtest: boolean flag for additional back testing runs
@@ -327,12 +300,6 @@ class KatsEnsemble:
         """Fit individual forecasting models via calling fitExecutor
 
         This is the fit methdo to fit individual forecasting model
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         # pyre-fixme[16]: `KatsEnsemble` has no attribute `seasonality`.
@@ -595,7 +562,7 @@ class KatsEnsemble:
         (3). back testing (optional)
 
         Args:
-            data: the input time series data as in `TimeSeriesData`
+            data: :class:`kats.consts.TimeSeriesData`, the input time series data as in :class:`kats.consts.TimeSeriesData`
             models: the ensemble parameters as in `EnsembleParams`
             steps: the length of forecasting horizon
             should_auto_backtest: flag to automatically perform back test, default as False
@@ -835,12 +802,6 @@ class KatsEnsemble:
 
     def plot(self) -> None:
         """plot forecast results
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         logging.info("Generating chart for forecast result from Ensemble model.")
         # pyre-fixme[16]: Module `kats` has no attribute `models`.
