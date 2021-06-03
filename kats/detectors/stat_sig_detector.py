@@ -525,7 +525,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
                 }
             )
         )
-    >>> ss_detect = StatSigDetectorModel(n_control=n_control, n_test=n_test)
+    >>> ss_detect = MultiStatSigDetectorModel(n_control=n_control, n_test=n_test)
     >>> anom = ss_detect.fit_predict(data=data_ts, historical_data=hist_ts)
     """
 
