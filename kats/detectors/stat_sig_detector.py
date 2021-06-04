@@ -54,7 +54,7 @@ class StatSigDetectorModel(DetectorModel):
     window, adding one data point at a time from the current data, and detecting significant
     change. We return the t-statistic as a score, which reflects the severity of the
     change.
-    We suggest using a n_control >= 30 to get good estimates
+    We suggest using n_control >= 30 to get good estimates
 
     Attributes:
         n_control: number of data points(or time units) of history to compare with
@@ -63,19 +63,17 @@ class StatSigDetectorModel(DetectorModel):
         time_units: units of time used to measure the intervals. If not provided
                     we infer it from the provided data.
 
-    Example usage:
-    # history and ts_pt are TimeSeriesData objects and history is larger
-    # than (n_control + n_test) so that we have sufficient history to
-    # run the detector
+    >>> # Example usage:
+    >>> # history and ts_pt are TimeSeriesData objects and history is larger
+    >>> # than (n_control + n_test) so that we have sufficient history to
+    >>> # run the detector
     >>> n_control = 28
     >>> n_test = 7
     >>> import random
     >>> control_time = pd.date_range(start='2018-01-01', freq='D', periods=(n_control + n_test))
-
     >>> test_time = pd.date_range(start='2018-02-05', freq='D', periods=n_test)
     >>> control_val = [random.normalvariate(100,10) for _ in range(n_control + n_test)]
     >>> test_val = [random.normalvariate(120,10) for _ in range(n_test)]
-
     >>> hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
     >>> data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
     >>> ss_detect = StatSigDetectorModel(n_control=n_control, n_test=n_test)
@@ -171,7 +169,8 @@ class StatSigDetectorModel(DetectorModel):
         data, historical_data = self._handle_not_enough_history(
             # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
             #  `Optional[TimeSeriesData]`.
-            data=data, historical_data=historical_data
+            data=data,
+            historical_data=historical_data,
         )
         # pyre-fixme[16]: `StatSigDetectorModel` has no attribute `data`.
         self.data = data
@@ -481,7 +480,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
     and detecting significant change. The T-statistics we return here are based on the adjusted p-values
     from the FDR controlling procedure.
 
-    We suggest using a n_control >= 30 to get good estimates
+    We suggest using n_control >= 30 to get good estimates
 
     Attributes:
         n_control: int, number of data points(or time units) of history to compare with
@@ -490,23 +489,21 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         time_units: str, units of time used to measure the intervals. If not provided
                     we infer it from the provided data
         method: str, indicates the FDR controlling method used for adjusting the p-values.
-        Defaults to 'fdr_bh' for Benjamini-Hochberg.  Inputs for other FDR controlling methods
-        can be found at https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html
+            Defaults to 'fdr_bh' for Benjamini-Hochberg.  Inputs for other FDR controlling methods
+            can be found at https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html
 
-    Example usage:
-    # history and ts_pt are TimeSeriesData objects and history is larger
-    # than (n_control + n_test) so that we have sufficient history to
-    # run the detector
+    >>> # Example usage:
+    >>> # history and ts_pt are TimeSeriesData objects and history is larger
+    >>> # than (n_control + n_test) so that we have sufficient history to
+    >>> # run the detector
     >>> n_control = 28
     >>> n_test = 7
     >>> import random
     >>> control_time = pd.date_range(start='2018-01-01', freq='D', periods=(n_control + n_test))
     >>> test_time = pd.date_range(start='2018-02-05', freq='D', periods=n_test)
-
     >>> num_seq = 5
     >>> control_val = [np.random.randn(len(control_time)) for _ in range(num_seq)]
     >>> test_val = [np.random.randn(len(test_time)) for _ in range(num_seq)]
-
     >>> hist_ts =
         TimeSeriesData(
             pd.DataFrame(
@@ -583,7 +580,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         data, historical_data = self._handle_not_enough_history(
             # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
             #  `Optional[TimeSeriesData]`.
-            data=data, historical_data=historical_data
+            data=data,
+            historical_data=historical_data,
         )
         # pyre-fixme[16]: `MultiStatSigDetectorModel` has no attribute `data`.
         self.data = data
