@@ -1,0 +1,247 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>TsFeatures · </title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="## **What is TsFeatures**"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="TsFeatures · "/><meta property="og:type" content="website"/><meta property="og:url" content="https://home.fburl.com//"/><meta property="og:description" content="## **What is TsFeatures**"/><meta property="og:image" content="https://home.fburl.com/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://home.fburl.com/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/img/kats_horizontal.png"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/js/scrollSpy.js"></script><link rel="stylesheet" href="/css/main.css"/><script src="/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/"><img class="logo" src="/img/kats_horizontal.png" alt=""/><h2 class="headerTitleWithLogo"></h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/docs/Forecasting_Quadratic_Model" target="_self">Docs</a></li><li class=""><a href="/team" target="_self">Team</a></li><li class=""><a href="/docs/doc4" target="_self">API</a></li><li class=""><a href="/help" target="_self">Help</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>TSFeatures</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Forecasting</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Autoregressive">Autoregressive Neural Network (AR_net)</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Quadratic_Model">Quadratic Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Linear_Model">Linear Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_KatsEnsemble">KatsEnsemble</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Empirical_Confidence_Interval">Empirical Confidence Interval</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_STLF">STLF</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Theta">Theta</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Holt_Winters">Holt-Winter’s</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Prophet">Prophet</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_SARIMA">SARIMA</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_ARIMA">ARIMA</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Detection</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Detection_Residual_Translation">BOCPD: Residual Translation</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_BOCPD">BOCPD: Bayesian Online Changepoint Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Outlier_Detection">Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_ACFDetector">ACFDetector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Seasonality_Detector">Seasonality Detector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Cusum_Detector">Cusum Detector</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">TSFeatures</h3><ul class=""><li class="navListItem navListItemActive"><a class="navItem" href="/docs/TsFeatures">TsFeatures</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Multivariate</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Multivariate_Outlier_Detection">Multivariate Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Multivariate_VAR">VAR</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Utilities</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Model_Hyperparameter_Tuning">Model Hyperparameter Tuning</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Backtesting">Backtesting</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Time_Series_Decomposition">Time Series Decomposition</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Dataswarm_Operators">Dataswarm Operators</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">TsFeatures</h1></header><article><div><span><h2><a class="anchor" aria-hidden="true" id="what-is-tsfeatures"></a><a href="#what-is-tsfeatures" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a><strong>What is TsFeatures</strong></h2>
+<p>In time series analysis, there is often the need for characterizing a time series using a set of meaningful features. Example features include strength of seasonality, strength of trend, spikiness, amount of level shift, presence of flat segments, ACF/PACF based features, linearity, Hurst exponent, ARCH statistic, etc. The features are usually used for identifying similar/outlying time series from a large number of samples. They also play a crucial role in many downstream projects, including (1). “meta-learning”, i.e., choosing the best forecasting model based on characteristics of the input time series, (2). time series classification and clustering analysis, (3). Nowcasting algorithms for better short-term forecasting, (4). Forecaster’s Guardrail project, which aims to compare user’s forecast accuracy relatively within same clusters, and more. TsFeatures is the module in Kats which computes such features. A similar package is openly available in R (<a href="https://pkg.robjhyndman.com/tsfeatures/index.html"><em>https://pkg.robjhyndman.com/tsfeatures/index.html</em></a>). Our implementation follows the feature definitions in the R package.</p>
+<h2><a class="anchor" aria-hidden="true" id="what-features-are-included"></a><a href="#what-features-are-included" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a><strong>What features are included</strong></h2>
+<p>The module currently supports the following features:</p>
+<ul>
+<li><strong>Length</strong>: length of time series data. The appropriate forecast method for a time series depends on how many observations are available. For example, shorter series tend to need simple models such as a random walk. On the other hand, for longer time series, we have enough information to be able to estimate a number of parameters.</li>
+<li><strong>Mean/Variance (2)</strong>: mean/variance of time series.</li>
+<li><strong>Spectral entropy</strong>: Shannon entropy of spectral density function. High value indicates noisy and unpredictable time series.</li>
+<li><strong>Lumpiness</strong>: variance of variances within non-overlapping windows</li>
+<li><strong>Stability</strong>: variance of means within non-overlapping</li>
+<li><strong>Trend/Seasonal strength (2)</strong>: measures of trend and seasonality of a time series based on an STL decomposition. Trend strength is the variance explained by STL trend term, and seasonal strength is the variance explained by STL seasonality terms.</li>
+<li><strong>Spikiness:</strong> variance of leave-one-out variances of STL remainder after an STL decomposition.</li>
+<li><strong>Peak/Trough (2)</strong>: location of peak/trough in the seasonal component after an STL decomposition.</li>
+<li><strong>Flat spots</strong>: presence of flat segments. It’s computed by dividing the sample space of a time series into <code>nbins</code> equal-sized intervals, and computing the maximum run length within any single interval.</li>
+<li><strong>Level shift based features (2)</strong>: These two features compute features of a time series based on sliding (overlapping) windows. <code>level_shift_size</code> finds the largest mean shift between two consecutive windows, and <code>level_shift_idx</code> finds the location of this largest mean shift.</li>
+<li><strong>Hurst Exponent</strong> is used as a measure of long-term memory of time series. It relates to the autocorrelations of the time series, and the rate at which these decrease as the lag between pairs of values increases. The goal of the Hurst Exponent is to provide a scalar value that will help identify whether a series is mean reverting, random walking or trending. A value of H near 0 is a highly mean reverting series, while for H near 1 the series is strongly trending.</li>
+<li><strong>ACF based features (7)</strong>: summarizes the strength of a relationship between an observation in a time series with observations at prior time steps. The autocorrelation is used for finding repeating patterns, such as the presence of a periodic signal obscured by noise. AC is comprised of both the direct correlation and indirect correlations. These indirect correlations are a linear function of the correlation of the observation, with observations at intervening time steps. We compute ACs of the series, the differenced series, and the twice-differenced series, and then provide a vector comprising the first AC in each case, the sum of squares of the first 5 ACs in each case, and the AC at the first seasonal lag.</li>
+<li><strong>PACF based features (4)</strong>:summarizes the strength of a relationship between an observation in a time series with observations at prior time steps with the relationships of intervening observations (indirect correlation) removed. We compute PACs of the series, the differenced series, and the second-order differenced series, and then provide a vector comprising the sum of squares of the first 5 PACs in each case, and the PAC at the first seasonal lag.</li>
+<li><strong>First min AC</strong>: the time of first minimum in the autocorrelation function.</li>
+<li><strong>First zero AC</strong>: the time of first zero crossing the autocorrelation function.</li>
+<li><strong>Linearity</strong>: R square from a fitted linear regression.</li>
+<li><strong>Standard deviation of the first derivative of the time series</strong></li>
+<li><strong>Crossing Points</strong>: the number of times a time series crosses the median line.</li>
+<li><strong>Binarize mean</strong>: converts time series into a binarized version: time series values above its mean are given 1, and those below the mean are 0, and then returns the average value of the binarized vector.</li>
+<li><strong>ARCH statistic</strong>: Lagrange multiplier test statistic from Engle’s Test for Autoregressive Conditional Heteroscedasticity (ARCH). It measures the heterogeneity of the time series.</li>
+<li><strong>Histogram mode</strong>: measures the mode of the data vector using histograms with a given number of bins.</li>
+<li><strong>KPSS unit root statistic</strong>: a test statistic based on KPSS test, which is to test a null hypothesis that an observable time series is stationary around a deterministic trend. Linear trend and lag one are used here.</li>
+<li><strong>Holt Parameters (2)</strong>: estimates the smoothing parameter for the level-alpha and the smoothing parameter for the trend-beta of Holt’s linear trend method.</li>
+<li><strong>Holt-Winter’s Parameters (3)</strong>: estimates the smoothing parameter for the level-alpha, trend-beta of HW’s linear trend, and additive seasonal trend-gamma.</li>
+</ul>
+<h2><a class="anchor" aria-hidden="true" id="hyperparameters"></a><a href="#hyperparameters" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Hyperparameters</h2>
+<ul>
+<li><code>window_size</code>: used for calculating <strong>Level shift based features</strong>, <strong>Lumpiness</strong>, and <strong>Stability</strong>.</li>
+<li><code>spectral_freq</code>: used for calculating <strong>Spectral entropy</strong>.</li>
+<li><code>stl_period</code>: used for calculating Trend/Seasonal strength, Spikiness, Peak, Trough, Holt-Winter’s Parameters, and ACF/PACF based features.</li>
+<li><code>nbins</code>: used for calculating <strong>Flat spots</strong> and <strong>Histogram mode.</strong></li>
+<li><code>lag_size</code>: used for calculating <strong>Hurst Exponent</strong>.</li>
+<li><code>acfpacf_lag</code>: used for calculating <strong>ACF/PACF based features</strong>.</li>
+</ul>
+<h2><a class="anchor" aria-hidden="true" id="examples"></a><a href="#examples" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Examples</h2>
+<ul>
+<li>Hurst Exponent : a time series data can be characterized in the following manner based on Hurst Exponent:
+<ul>
+<li>H &lt; 0.5 : The time series is mean reverting</li>
+<li>H = 0.5 - The time series is a Geometric Brownian Motion</li>
+<li>H &gt; 0.5 - The time series is trending</li>
+</ul></li>
+</ul>
+<p>The following figure shows three synthetic time series, and they are Geometric Brownian Motion, Mean-Reverting and Trending Series, respectively. Their corresponding Hurst Exponent outputs are 0.4171, 0.0022, and 0.7185, which are consistent with our expectation.</p>
+<p><img src="/img/TSfeatures/Figure_2.png" alt=""></p>
+<h2><a class="anchor" aria-hidden="true" id="how-can-i-use-tsfeatures"></a><a href="#how-can-i-use-tsfeatures" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>How can I use TsFeatures</h2>
+<p>TsFeatures is available through Kats’ Bento kernel. The following code provides an example.</p>
+<pre><code class="hljs"><span class="hljs-keyword">from</span> infrastrategy.kats.tsfeatures.tsfeatures <span class="hljs-keyword">import</span> TsFeatures
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts <span class="hljs-keyword">import</span> TimeSeriesData
+<span class="hljs-keyword">from</span> sklearn.preprocessing <span class="hljs-keyword">import</span> scale
+<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
+
+# Calculate features <span class="hljs-keyword">for</span> one <span class="hljs-type">time</span> series
+
+ts_data = TimeSeriesData(df_data[[<span class="hljs-string">'time'</span>, <span class="hljs-string">'value'</span>]])
+
+model = TsFeatures()
+
+features = model.<span class="hljs-keyword">transform</span>(ts_data)
+</code></pre>
+<h2><a class="anchor" aria-hidden="true" id="what-is-spark-transformer"></a><a href="#what-is-spark-transformer" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>What is Spark Transformer</h2>
+<p>Many use cases of TsFeatures involve computations across a large number of time series. A Spark transformer is created for TsFeatures extraction, which enables large batches of time series analysis in parallel. The transformer can be called directly from Daiquery, or from dataswarm pipelines using the HiveQLOperator. Example dataswarm <a href="https://www.internalfb.com/intern/diffusion/FBS/browsefile/master/fbcode/dataswarm-pipelines/tasks_adhoc/infrastructure/kats/kats_spark_transforme_tsfeatures_pipeline.py?commit=c6edf84870accf4aedbfeb4dacabc6e9133d760a">code</a>:</p>
+<pre><code class="hljs"><span class="hljs-attr">features_table</span> = <span class="hljs-string">HiveQLOperator(</span>
+    <span class="hljs-attr">dep_list</span>=<span class="hljs-string">[</span>
+        <span class="hljs-attr">wait_for_ts_table</span>
+    <span class="hljs-attr">],</span>
+    <span class="hljs-attr">migration_mode</span>=<span class="hljs-string">'spark',</span>
+    <span class="hljs-attr">spark_opts</span>=<span class="hljs-string">{</span>
+        <span class="hljs-meta">'spark.sql.transform.enabled'</span>: <span class="hljs-string">'true',</span>
+        <span class="hljs-meta">'spark.sql.shuffle.partitions'</span>: <span class="hljs-string">'500'</span>
+    <span class="hljs-attr">},</span>
+    <span class="hljs-attr">hive_query</span>=<span class="hljs-string">"""</span>
+        <span class="hljs-attr">CREATE</span> <span class="hljs-string">TABLE IF NOT EXISTS {output_table} (</span>
+            <span class="hljs-attr">id</span> <span class="hljs-string">BIGINT,</span>
+            <span class="hljs-attr">length</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">mean</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">var</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">entropy</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">lumpiness</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">stability</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">flat_spots</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">hurst</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">std1st_der</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">crossing_points</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">binarize_mean</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">unitroot_kpss</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">heterogeneity</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">histogram_mode</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">linearity</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">trend_strength</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">seasonality_strength</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">spikiness</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">peak</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">trough</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">level_shift_idx</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">level_shift_size</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">y_acf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">y_acf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff1y_acf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff1y_acf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff2y_acf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff2y_acf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">y_pacf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff1y_pacf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff2y_pacf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">seas_acf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">seas_pacf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">firstmin_ac</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">firstzero_ac</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">holt_alpha</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">holt_beta</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">hw_alpha</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">hw_beta</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">hw_gamma</span> <span class="hljs-string">double</span>
+        <span class="hljs-attr">)</span>
+        <span class="hljs-attr">PARTITIONED</span> <span class="hljs-string">BY (ds STRING)</span>
+
+        <span class="hljs-attr">TBLPROPERTIES</span> <span class="hljs-string">(</span>
+            <span class="hljs-meta">'oncall'</span> = <span class="hljs-string">'kats_dev',</span>
+            <span class="hljs-meta">'noUII'</span> = <span class="hljs-string">'1',</span>
+            <span class="hljs-meta">'RETENTION'</span> = <span class="hljs-string">'7'</span>
+        <span class="hljs-attr">);</span>
+
+        <span class="hljs-attr">ADD</span> <span class="hljs-string">FILE &lt;FBPACKAGE:kats.tsfeatures.transformer:LATEST&gt;/transformer;</span>
+
+        <span class="hljs-attr">INSERT</span> <span class="hljs-string">OVERWRITE TABLE {output_table}</span>
+        <span class="hljs-meta">PARTITION(ds</span>=<span class="hljs-string">'&lt;DATEID&gt;')</span>
+        <span class="hljs-attr">SELECT</span> <span class="hljs-string">TRANSFORM(id, FB_MAKE_JSON_OBJ(ts_values))</span>
+        <span class="hljs-attr">USING</span> <span class="hljs-string">'transformer window_size=20 \
+               input_schema=id,values \
+               output_schema=id,length,mean,var,entropy,lumpiness,stability,flat_spots,hurst,std1st_der,crossing_points,binarize_mean,unitroot_kpss,heterogeneity,histogram_mode,linearity,trend_strength,seasonality_strength,spikiness,peak,trough,level_shift_idx,level_shift_size,y_acf1,y_acf5,diff1y_acf1,diff1y_acf5,diff2y_acf1,diff2y_acf5,y_pacf5,diff1y_pacf5,diff2y_pacf5,seas_acf1,seas_pacf1,firstmin_ac,firstzero_ac,holt_alpha,holt_beta,hw_alpha,hw_beta,hw_gamma'</span>
+        <span class="hljs-attr">AS</span>
+            <span class="hljs-attr">id</span> <span class="hljs-string">BIGINT,</span>
+            <span class="hljs-attr">length</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">mean</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">var</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">entropy</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">lumpiness</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">stability</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">flat_spots</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">hurst</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">std1st_der</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">crossing_points</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">binarize_mean</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">unitroot_kpss</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">heterogeneity</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">histogram_mode</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">linearity</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">trend_strength</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">seasonality_strength</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">spikiness</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">peak</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">trough</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">level_shift_idx</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">level_shift_size</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">y_acf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">y_acf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff1y_acf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff1y_acf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff2y_acf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff2y_acf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">y_pacf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff1y_pacf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">diff2y_pacf5</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">seas_acf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">seas_pacf1</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">firstmin_ac</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">firstzero_ac</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">holt_alpha</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">holt_beta</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">hw_alpha</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">hw_beta</span> <span class="hljs-string">double,</span>
+            <span class="hljs-attr">hw_gamma</span> <span class="hljs-string">double</span>
+
+        <span class="hljs-attr">FROM</span> <span class="hljs-string">(</span>
+            <span class="hljs-attr">SELECT</span> <span class="hljs-string">id, ts_values</span>
+            <span class="hljs-attr">FROM</span> <span class="hljs-string">tmp_tsfeatures_ts_values_test:infrastructure</span>
+            <span class="hljs-attr">WHERE</span> <span class="hljs-string">ds = '&lt;DATEID&gt;'</span>
+            <span class="hljs-attr">LIMIT</span> <span class="hljs-string">10000</span>
+        <span class="hljs-attr">)</span>
+    <span class="hljs-attr">""".format(</span>
+        <span class="hljs-attr">output_table</span>=<span class="hljs-string">'tsfeatures_test'</span>
+    <span class="hljs-attr">),</span>
+<span class="hljs-attr">)</span>
+</code></pre>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/docs/Detection_Cusum_Detector"><span class="arrow-prev">← </span><span>Cusum Detector</span></a><a class="docs-next button" href="/docs/Multivariate_Outlier_Detection"><span>Multivariate Outlier Detection</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#what-is-tsfeatures"><strong>What is TsFeatures</strong></a></li><li><a href="#what-features-are-included"><strong>What features are included</strong></a></li><li><a href="#hyperparameters">Hyperparameters</a></li><li><a href="#examples">Examples</a></li><li><a href="#how-can-i-use-tsfeatures">How can I use TsFeatures</a></li><li><a href="#what-is-spark-transformer">What is Spark Transformer</a></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/" class="nav-home"><img src="/img/cats_logo_banner.png" alt=""/></a><div><h5>Kats Project</h5><a href="/docs/Forecasting_Autoregressive">Forecasting</a><a href="/docs/Detection_Residual_Translation">Detection</a><a href="/docs/TsFeatures">TSFeatures</a><a href="/docs/Forecasting_Autoregressive">Multivariate</a><a href="/docs/Multivariate_Outlier_Detection">Visualization</a><a href="/docs/Model_Hyperparameter_Tuning">Utilities</a></div><div><h5>Kats Community</h5><a href="/en/users.html">User Showcase</a><a href="https://stackoverflow.com/questions/tagged/" target="_blank" rel="noreferrer noopener">Stack Overflow</a><a href="https://discordapp.com/">Project Chat</a><a href="https://twitter.com/" target="_blank" rel="noreferrer noopener">Twitter</a></div><div><h5>More</h5><a href="/blog">Blog</a><a href="https://github.com/">GitHub</a><a class="github-button" data-icon="octicon-star" data-count-href="/facebook/docusaurus/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div></section><a href="https://opensource.facebook.com/" target="_blank" rel="noreferrer noopener" class="fbOpenSource"><img src="/img/oss_logo.png" alt="Facebook Open Source" width="170" height="45"/></a><section class="copyright">Copyright © 2021 Kats Project @ Facebook</section></footer></div></body></html>

@@ -1,0 +1,42 @@
+{
+  "Introduction": {
+    "Kats Project": ["katsSample"],
+    "First Category": ["doc2"],
+    "Second Category": ["doc3"]
+  },
+  "docs": {
+    "Forecasting": [
+      "Forecasting_Autoregressive",
+      "Forecasting_Quadratic_Model",
+      "Forecasting_Linear_Model",
+      "Forecasting_KatsEnsemble",
+      "Forecasting_Empirical_Confidence_Interval",
+      "Forecasting_STLF",
+      "Forecasting_Theta",
+      "Forecasting_Holt_Winters",
+      "Forecasting_Prophet",
+      "Forecasting_SARIMA",
+      "Forecasting_ARIMA"
+    ],
+    "Detection": [
+      "Detection_Residual_Translation",
+      "Detection_BOCPD",
+      "Detection_Outlier_Detection",
+      "Detection_ACFDetector",
+      "Detection_Seasonality_Detector",
+      "Detection_Cusum_Detector"
+    ],
+    "TSFeatures": ["TsFeatures"],
+    "Multivariate": ["Multivariate_Outlier_Detection", "Multivariate_VAR"],
+    "Visualization": [""],
+    "Utilities": [
+      "Model_Hyperparameter_Tuning",
+      "Utilities_Backtesting",
+      "Utilities_Time_Series_Decomposition",
+      "Utilities_Dataswarm_Operators"
+    ]
+  },
+  "docs-other": {
+    "API": ["doc4", "doc5"]
+  }
+}

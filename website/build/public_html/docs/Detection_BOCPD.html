@@ -1,0 +1,171 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>BOCPD: Bayesian Online Changepoint Detection · </title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="&lt;!-- ## BOCPD: Bayesian Online Changepoint Detection --&gt;"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="BOCPD: Bayesian Online Changepoint Detection · "/><meta property="og:type" content="website"/><meta property="og:url" content="https://home.fburl.com//"/><meta property="og:description" content="&lt;!-- ## BOCPD: Bayesian Online Changepoint Detection --&gt;"/><meta property="og:image" content="https://home.fburl.com/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://home.fburl.com/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/img/kats_horizontal.png"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/js/scrollSpy.js"></script><link rel="stylesheet" href="/css/main.css"/><script src="/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/"><img class="logo" src="/img/kats_horizontal.png" alt=""/><h2 class="headerTitleWithLogo"></h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/docs/Forecasting_Quadratic_Model" target="_self">Docs</a></li><li class=""><a href="/team" target="_self">Team</a></li><li class=""><a href="/docs/doc4" target="_self">API</a></li><li class=""><a href="/help" target="_self">Help</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Detection</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Forecasting</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Autoregressive">Autoregressive Neural Network (AR_net)</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Quadratic_Model">Quadratic Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Linear_Model">Linear Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_KatsEnsemble">KatsEnsemble</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Empirical_Confidence_Interval">Empirical Confidence Interval</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_STLF">STLF</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Theta">Theta</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Holt_Winters">Holt-Winter’s</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Prophet">Prophet</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_SARIMA">SARIMA</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_ARIMA">ARIMA</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Detection</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Detection_Residual_Translation">BOCPD: Residual Translation</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/docs/Detection_BOCPD">BOCPD: Bayesian Online Changepoint Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Outlier_Detection">Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_ACFDetector">ACFDetector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Seasonality_Detector">Seasonality Detector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Cusum_Detector">Cusum Detector</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">TSFeatures</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/TsFeatures">TsFeatures</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Multivariate</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Multivariate_Outlier_Detection">Multivariate Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Multivariate_VAR">VAR</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Utilities</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Model_Hyperparameter_Tuning">Model Hyperparameter Tuning</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Backtesting">Backtesting</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Time_Series_Decomposition">Time Series Decomposition</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Dataswarm_Operators">Dataswarm Operators</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">BOCPD: Bayesian Online Changepoint Detection</h1></header><article><div><span><!-- ## BOCPD: Bayesian Online Changepoint Detection -->
+<p>Bayesian online changepoint detection is a method for detecting changes in a time series. The detector tries to detect sudden changes in a time series that persist over a period of time. Compared to other changepoint detection methods, this method has some unique features:</p>
+<ul>
+<li>This is an online model. As new data arrives, it revises its predictions. It only needs to look at few steps ahead(specified by the user) to detect, and does not need the entire time series apriori.</li>
+<li>Since this is a Bayesian model, the user can specify their prior belief about the probability of a changepoint, as well as the parameters of the underlying model governing the time series.</li>
+</ul>
+<p>This faithfully implements the algorithm in Adams &amp; McKay, 2007. &quot;Bayesian Online Changepoint Detection&quot; (<a href="https://arxiv.org/abs/0710.3742"><em>https://arxiv.org/abs/0710.3742</em></a>).</p>
+<p>The basic idea is to see whether the new values are improbable, when compared to a bayesian predictive model, built from the previous observations.</p>
+<p>There are two different classes the user needs to specify. The first is a changepoint detection class, and the second one is the underlying predictive model(UPM). The UPM specifies the generative model, from which successive points in the time series are generated from.</p>
+<p>For the changepoint detection model, the user needs to specify:</p>
+<ul>
+<li>The data, which is an univariate time series</li>
+<li>the lag, which specifies how many steps to look ahead to find the changepoint</li>
+</ul>
+<p>For the underlying predictive model, currently we only support a Normal distribution with unknown mean, known variance. We will add more distributions in the future. For the UPM, the user needs to specify:</p>
+<ul>
+<li>whether to use empirical prior, derived from the data</li>
+<li>If not using empirical prior, user needs to specify the mean and precision of the prior distribution of the mean, as well the known precision. The model is formulated in terms of precision (which is the inverse of variance) for convenience</li>
+</ul>
+<h3><a class="anchor" aria-hidden="true" id="api"></a><a href="#api" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API</h3>
+<pre><code class="hljs"><span class="hljs-keyword">class</span> <span class="hljs-symbol">BayesOnlineChangePoint</span>(<span class="hljs-symbol">data</span>=<span class="hljs-symbol">ts_df, <span class="hljs-symbol">lag</span></span>=<span class="hljs-symbol">10, <span class="hljs-symbol">debug</span></span>=<span class="hljs-symbol">True</span>)
+</code></pre>
+<pre><code class="hljs"><span class="hljs-keyword">class</span> <span class="hljs-symbol">NormalKnownPrec</span>(<span class="hljs-symbol">data</span>=<span class="hljs-symbol">ts_df, <span class="hljs-symbol">empirical</span></span>=<span class="hljs-symbol">True</span>)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="methods"></a><a href="#methods" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Methods</h3>
+<pre><code class="hljs"><span class="hljs-comment"># to run the detector</span>
+detector(<span class="hljs-attribute">model</span>=this_model, <span class="hljs-attribute">changepoint_prior</span>=0.01, <span class="hljs-attribute">threshold</span>=0.4)
+
+<span class="hljs-comment"># to plot the results</span>
+plot()
+
+<span class="hljs-comment"># to adjust the parameters and plot again</span>
+adjust_parameters(<span class="hljs-attribute">threshold</span>=0.2, <span class="hljs-attribute">lag</span>=10)
+</code></pre>
+<pre><code class="hljs"># The user does <span class="hljs-literal">not</span> need to query the UPM
+# However, these the are public methods
+`pred_prob``(`` t``:`` ``int``,`` x``:`` ``float``)`
+`pred_mean``(``self``,`` t``:`` ``int``,`` x``:`` ``float``)`
+`pred_var``(``self``,`` t``:`` ``int``,`` x``:`` ``float``)``
+<span class="hljs-title">update_sufficient_stats(self, x:</span> float)
+`
+`t ``:`` time`
+`x``:`` value of the time series at time t`
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="parameters"></a><a href="#parameters" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Parameters</h3>
+<pre><code class="hljs"><span class="hljs-comment"># Constructor</span>
+class BayesOnlineChangePoint(data=ts_df, lag=10, debug=True)
+data: univariate time series of class TimeSeriesData
+lag: positive integer. How many steps <span class="hljs-keyword">do</span> we want <span class="hljs-keyword">to</span> look ahead
+debug: <span class="hljs-built_in">boolean</span> <span class="hljs-keyword">If</span> <span class="hljs-literal">true</span>, we will generate additional plots showing
+       probability <span class="hljs-keyword">of</span> the <span class="hljs-keyword">next</span> <span class="hljs-keyword">data</span> point, <span class="hljs-keyword">as</span> well <span class="hljs-keyword">as</span> mean <span class="hljs-keyword">and</span> <span class="hljs-keyword">variance</span>
+       <span class="hljs-keyword">of</span> the predictive <span class="hljs-keyword">model</span>
+
+<span class="hljs-comment"># detector</span>
+detector(<span class="hljs-keyword">model</span>=this_model, changepoint_prior=<span class="hljs-number">0.01</span>, threshold=<span class="hljs-number">0.4</span>)
+<span class="hljs-keyword">model</span>: This <span class="hljs-keyword">is</span> the UPM. It <span class="hljs-keyword">is</span> <span class="hljs-keyword">now</span> an <span class="hljs-keyword">object</span> <span class="hljs-keyword">of</span> <span class="hljs-keyword">class</span> NormalKnownPrec
+changepoint_prior: <span class="hljs-built_in">float</span> <span class="hljs-keyword">between</span> <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> <span class="hljs-number">1.</span>
+                    <span class="hljs-keyword">prior</span>  belief <span class="hljs-keyword">on</span> probability <span class="hljs-keyword">of</span> observing changepoint
+threshold: <span class="hljs-built_in">float</span> <span class="hljs-keyword">between</span> <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> <span class="hljs-number">1.</span>
+           Algorithm calculates posterior probability <span class="hljs-keyword">of</span> a changepoint
+           <span class="hljs-keyword">at</span> <span class="hljs-keyword">each</span> point. <span class="hljs-keyword">If</span> probability <span class="hljs-keyword">is</span> above this specified threshold,
+           we make that point a changepoint
+<span class="hljs-comment"># adjust parameters</span>
+adjust_parameters(threshold=<span class="hljs-number">0.2</span>, lag=<span class="hljs-number">10</span>)
+threshold: same <span class="hljs-keyword">as</span> defined above
+lag: same <span class="hljs-keyword">as</span> defined above <span class="hljs-keyword">for</span> detector
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="output"></a><a href="#output" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Output</h3>
+<pre><code class="hljs">Output is a dict with two keys
+'change_probs': An<span class="hljs-built_in"> array </span>Change probabilities at each point
+'change_points': An<span class="hljs-built_in"> array </span>with index of each of the changepoints
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="minimal-example"></a><a href="#minimal-example" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Minimal Example</h3>
+<pre><code class="hljs"># <span class="hljs-keyword">import</span> stuff <span class="hljs-keyword">and</span> simulate data
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts <span class="hljs-keyword">import</span> TimeSeriesData
+<span class="hljs-keyword">from</span> infrastrategy.kats.detectors.ChangePointDetection <span class="hljs-keyword">import</span> (BayesOnlineChangePoint,NormalKnownPrec)
+
+# make some time series data with changepoints
+def make_ts():
+    np.random.seed(seed=<span class="hljs-number">100</span>)# constants
+    sigma = <span class="hljs-number">1</span>
+    t_start = <span class="hljs-number">0</span>
+    t_end = <span class="hljs-number">450</span>#calculation
+    num_points = t_end - t_start
+    y_val = norm.rvs(loc=<span class="hljs-number">1.35</span>, scale=<span class="hljs-number">0.05</span>, size=num_points)# make changepoints
+    y_val[<span class="hljs-number">100</span>:<span class="hljs-number">200</span>] = y_val[<span class="hljs-number">100</span>:<span class="hljs-number">200</span>] - <span class="hljs-number">0.2</span>
+    y_val[<span class="hljs-number">350</span>:<span class="hljs-number">450</span>] = y_val[<span class="hljs-number">350</span>:<span class="hljs-number">450</span>] - <span class="hljs-number">0.15</span>
+    df = pd.DataFrame({<span class="hljs-string">'time'</span>: list(range(t_start, t_end)), <span class="hljs-string">'value'</span>: y_val })
+
+    <span class="hljs-keyword">return</span> df
+</code></pre>
+<pre><code class="hljs">
+
+<span class="routeros"><span class="hljs-comment"># standard function call</span>
+this_model = NormalKnownPrec(<span class="hljs-attribute">data</span>=ts_df, <span class="hljs-attribute">empirical</span>=<span class="hljs-literal">True</span>)
+
+change_point = BayesOnlineChangePoint(<span class="hljs-attribute">data</span>=ts_df, <span class="hljs-attribute">lag</span>=10)
+output = change_point.detector(<span class="hljs-attribute">model</span>=this_model, <span class="hljs-attribute">changepoint_prior</span>=0.01, <span class="hljs-attribute">threshold</span>=0.4)
+change_point.plot()
+
+</span></code></pre>
+<!-- [standard changepoint pic] -->
+<p><img src="/img/Detection/bocpd_standard_changepoint_pic.png" alt=""></p>
+<pre><code class="hljs"><span class="hljs-comment"># more advanced, call with debug, adjust parameters</span>
+this_model = NormalKnownPrec(<span class="hljs-attribute">data</span>=ts_df, <span class="hljs-attribute">empirical</span>=<span class="hljs-literal">True</span>)
+
+change_point = BayesOnlineChangePoint(<span class="hljs-attribute">data</span>=ts_df, <span class="hljs-attribute">lag</span>=10, <span class="hljs-attribute">debug</span>=<span class="hljs-literal">True</span>)
+output = change_point.detector(<span class="hljs-attribute">model</span>=this_model, <span class="hljs-attribute">changepoint_prior</span>=0.01, <span class="hljs-attribute">threshold</span>=0.4)
+change_point.plot()
+cp_output = change_point.adjust_parameters(<span class="hljs-attribute">threshold</span>=0.2, <span class="hljs-attribute">lag</span>=10)
+
+</code></pre>
+<!-- [debugging pic] -->
+<p><img src="/img/Detection/bocpd_debugging_pic.png" alt=""></p>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/docs/Detection_Residual_Translation"><span class="arrow-prev">← </span><span>BOCPD: Residual Translation</span></a><a class="docs-next button" href="/docs/Detection_Outlier_Detection"><span>Outlier Detection</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/" class="nav-home"><img src="/img/cats_logo_banner.png" alt=""/></a><div><h5>Kats Project</h5><a href="/docs/Forecasting_Autoregressive">Forecasting</a><a href="/docs/Detection_Residual_Translation">Detection</a><a href="/docs/TsFeatures">TSFeatures</a><a href="/docs/Forecasting_Autoregressive">Multivariate</a><a href="/docs/Multivariate_Outlier_Detection">Visualization</a><a href="/docs/Model_Hyperparameter_Tuning">Utilities</a></div><div><h5>Kats Community</h5><a href="/en/users.html">User Showcase</a><a href="https://stackoverflow.com/questions/tagged/" target="_blank" rel="noreferrer noopener">Stack Overflow</a><a href="https://discordapp.com/">Project Chat</a><a href="https://twitter.com/" target="_blank" rel="noreferrer noopener">Twitter</a></div><div><h5>More</h5><a href="/blog">Blog</a><a href="https://github.com/">GitHub</a><a class="github-button" data-icon="octicon-star" data-count-href="/facebook/docusaurus/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div></section><a href="https://opensource.facebook.com/" target="_blank" rel="noreferrer noopener" class="fbOpenSource"><img src="/img/oss_logo.png" alt="Facebook Open Source" width="170" height="45"/></a><section class="copyright">Copyright © 2021 Kats Project @ Facebook</section></footer></div></body></html>

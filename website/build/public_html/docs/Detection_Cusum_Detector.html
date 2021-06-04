@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Cusum Detector · </title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="&lt;!-- # Cusum Detector --&gt;"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Cusum Detector · "/><meta property="og:type" content="website"/><meta property="og:url" content="https://home.fburl.com//"/><meta property="og:description" content="&lt;!-- # Cusum Detector --&gt;"/><meta property="og:image" content="https://home.fburl.com/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://home.fburl.com/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/img/kats_horizontal.png"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/js/scrollSpy.js"></script><link rel="stylesheet" href="/css/main.css"/><script src="/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/"><img class="logo" src="/img/kats_horizontal.png" alt=""/><h2 class="headerTitleWithLogo"></h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/docs/Forecasting_Quadratic_Model" target="_self">Docs</a></li><li class=""><a href="/team" target="_self">Team</a></li><li class=""><a href="/docs/doc4" target="_self">API</a></li><li class=""><a href="/help" target="_self">Help</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Detection</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Forecasting</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Autoregressive">Autoregressive Neural Network (AR_net)</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Quadratic_Model">Quadratic Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Linear_Model">Linear Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_KatsEnsemble">KatsEnsemble</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Empirical_Confidence_Interval">Empirical Confidence Interval</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_STLF">STLF</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Theta">Theta</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Holt_Winters">Holt-Winter’s</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Prophet">Prophet</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_SARIMA">SARIMA</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_ARIMA">ARIMA</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Detection</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Detection_Residual_Translation">BOCPD: Residual Translation</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_BOCPD">BOCPD: Bayesian Online Changepoint Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Outlier_Detection">Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_ACFDetector">ACFDetector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Seasonality_Detector">Seasonality Detector</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/docs/Detection_Cusum_Detector">Cusum Detector</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">TSFeatures</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/TsFeatures">TsFeatures</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Multivariate</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Multivariate_Outlier_Detection">Multivariate Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Multivariate_VAR">VAR</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Utilities</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Model_Hyperparameter_Tuning">Model Hyperparameter Tuning</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Backtesting">Backtesting</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Time_Series_Decomposition">Time Series Decomposition</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Dataswarm_Operators">Dataswarm Operators</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Cusum Detector</h1></header><article><div><span><!-- # Cusum Detector -->
+<p>Cusum is a method to detect an up/down shift of means in a time series. In Kats implementation, it has two main components:</p>
+<ol>
+<li>Locate the change point: The algorithm iteratively estimates the means before and after the change point and finds the change point maximizing/minimizing the cusum value until the change point has converged. The starting point for the change point is at the middle.</li>
+<li>Hypothesis testing: Conducting log likelihood ratio test where the null hypothesis has no change point with one mean and the alternative hypothesis has a change point with two means.</li>
+</ol>
+<p>And here are a few things worth mentioning:</p>
+<ul>
+<li>We assume there is only one increase/decrease change point;</li>
+<li>We use Gaussian distribution as the underlying model to calculate the cusum value and conduct the hypothesis test;</li>
+</ul>
+<h2><a class="anchor" aria-hidden="true" id="api"></a><a href="#api" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API</h2>
+<pre><code class="hljs"># Model Class
+<span class="hljs-keyword">class</span> <span class="hljs-symbol">CusumDetector</span>(<span class="hljs-symbol">data</span>)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="methods"></a><a href="#methods" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Methods</h3>
+<pre><code class="hljs">detector<span class="hljs-params">(
+    <span class="hljs-attr">threshold</span>= 0.01,
+    <span class="hljs-attr">max_iter</span>= 10,
+    <span class="hljs-attr">delta_std_ratio</span>= 1.0,
+    <span class="hljs-attr">min_abs_change</span>= 0,
+    <span class="hljs-attr">start_point</span>= None,
+    <span class="hljs-attr">change_directions</span>= None,
+    <span class="hljs-attr">interest_window</span>= None,
+    <span class="hljs-attr">magnitude_quantile</span>= None,
+    <span class="hljs-attr">magnitude_ratio</span>= 1.3,
+    <span class="hljs-attr">magnitude_comparable_day</span>= 0.5
+)</span> <span class="hljs-comment"># run detector</span>
+plot<span class="hljs-params">()</span> <span class="hljs-comment"># plot results</span>
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="parameters"></a><a href="#parameters" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Parameters</h3>
+<pre><code class="hljs">threshold: <span class="hljs-type">float</span>, significance <span class="hljs-keyword">level</span>;
+max_iter: <span class="hljs-type">int</span>, maximum iteration <span class="hljs-keyword">in</span> finding the changepoint;
+delta_std_ratio: <span class="hljs-type">float</span>, the mean delta has <span class="hljs-keyword">to</span> be larger than this parameter times std <span class="hljs-keyword">of</span> the data <span class="hljs-keyword">to</span> be consider <span class="hljs-keyword">as</span> a change;
+min_abs_change: <span class="hljs-type">int</span>, minimal absolute delta <span class="hljs-keyword">between</span> mu0 <span class="hljs-keyword">and</span> mu1
+start_point: <span class="hljs-type">int</span>, the <span class="hljs-keyword">start</span> idx <span class="hljs-keyword">of</span> the changepoint, <span class="hljs-keyword">None</span> means the middle <span class="hljs-keyword">of</span> the <span class="hljs-type">time</span> series;
+change_directions: list&lt;str&gt;, a list contain either <span class="hljs-keyword">or</span> <span class="hljs-keyword">both</span> <span class="hljs-string">'increase'</span> <span class="hljs-keyword">and</span> <span class="hljs-string">'decrease'</span> <span class="hljs-keyword">to</span> specify what <span class="hljs-keyword">type</span> <span class="hljs-keyword">of</span> change <span class="hljs-keyword">to</span> be detected;
+interest_window: list&lt;<span class="hljs-type">int</span>, <span class="hljs-type">int</span>&gt;, a list containing the <span class="hljs-keyword">start</span> <span class="hljs-keyword">and</span> <span class="hljs-keyword">end</span> <span class="hljs-keyword">of</span> the interest <span class="hljs-keyword">window</span> <span class="hljs-keyword">where</span> we will look <span class="hljs-keyword">for</span> a change <span class="hljs-type">point</span>. Note that the llr will still be calculated <span class="hljs-keyword">using</span> <span class="hljs-keyword">all</span> data points;
+magnitude_quantile: <span class="hljs-type">float</span>, the quantile <span class="hljs-keyword">for</span> magnitude comparison, <span class="hljs-keyword">if</span> <span class="hljs-keyword">none</span>, will skip the magnitude comparison;
+magnitude_ratio: <span class="hljs-type">float</span>, comparable ratio;
+magnitude_comparable_day: <span class="hljs-type">float</span>, maximal percentage <span class="hljs-keyword">of</span> days can have comparable magnitude <span class="hljs-keyword">to</span> be considered <span class="hljs-keyword">as</span> regression.
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="outputs"></a><a href="#outputs" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Outputs</h3>
+<p>the detector method outputs a tuple of (if the regression is detected, metadata for the change)
+The metadata includes:</p>
+<pre><code class="hljs">changepoint: change point index,
+mu0: mean <span class="hljs-keyword">before</span> change,
+mu1: mean <span class="hljs-keyword">after</span> change,
+changetime: The <span class="hljs-built_in">time</span> <span class="hljs-keyword">of</span> <span class="hljs-keyword">the</span> changepoint,
+stable_changepoint: <span class="hljs-keyword">if</span> <span class="hljs-keyword">the</span> changepoint converged,
+delta: <span class="hljs-built_in">difference</span> between mu0 <span class="hljs-keyword">and</span> mu1,
+llr_int: <span class="hljs-keyword">the</span> <span class="hljs-built_in">log</span> likelihood <span class="hljs-keyword">in</span> <span class="hljs-keyword">the</span> interest window,
+llr: <span class="hljs-keyword">the</span> <span class="hljs-built_in">log</span> likelihood <span class="hljs-keyword">in</span> <span class="hljs-keyword">the</span> full <span class="hljs-built_in">time</span> series,
+p_value: p_value,
+regression_detected: <span class="hljs-keyword">if</span> <span class="hljs-keyword">the</span> regression detected
+</code></pre>
+<h2><a class="anchor" aria-hidden="true" id="examples"></a><a href="#examples" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Examples</h2>
+<h3><a class="anchor" aria-hidden="true" id="simulate-data-set"></a><a href="#simulate-data-set" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Simulate data set</h3>
+<pre><code class="hljs"><span class="hljs-keyword">from</span> infrastrategy.kats.consts <span class="hljs-keyword">import</span> TimeSeriesData, TimeSeriesIterator
+<span class="hljs-keyword">from</span> infrastrategy.kats.detectors.regressionDetection <span class="hljs-keyword">import</span> CusumDetector
+<span class="hljs-keyword">import</span> numpy as np
+<span class="hljs-keyword">import</span> pandas as pd
+
+# simulate data
+np.random.seed(<span class="hljs-number">10</span>)
+df = pd.DataFrame(
+    {
+        <span class="hljs-string">'time'</span>: pd.date_range(<span class="hljs-string">'2019-01-01'</span>, <span class="hljs-string">'2019-03-01'</span>),
+        <span class="hljs-string">'increase'</span>:np.concatenate([np.random.normal(<span class="hljs-number">1</span>,<span class="hljs-number">0.2</span>,<span class="hljs-number">30</span>), np.random.normal(<span class="hljs-number">2</span>,<span class="hljs-number">0.2</span>,<span class="hljs-number">30</span>)]),
+        <span class="hljs-string">'decrease'</span>:np.concatenate([np.random.normal(<span class="hljs-number">1</span>,<span class="hljs-number">0.3</span>,<span class="hljs-number">50</span>), np.random.normal(<span class="hljs-number">0.5</span>,<span class="hljs-number">0.3</span>,<span class="hljs-number">10</span>)]),
+    }
+)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="detect-increase"></a><a href="#detect-increase" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Detect increase</h3>
+<pre><code class="hljs"><span class="hljs-attribute">timeseries</span> = TimeSeriesData(
+    df.loc[:,[<span class="hljs-string">'time'</span>,<span class="hljs-string">'increase'</span>]]
+)
+detector = CusumDetector(timeseries)
+<span class="hljs-comment"># run detector</span>
+detector.detector()
+<span class="hljs-comment"># plot the results</span>
+detector.plot()
+</code></pre>
+<!-- [cusum_increase_pic] -->
+<p><img src="/img/Detection/cusum_increase_pic.png" alt=""></p>
+<h3><a class="anchor" aria-hidden="true" id="detect-decrease"></a><a href="#detect-decrease" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Detect decrease</h3>
+<pre><code class="hljs"><span class="hljs-attribute">timeseries</span> = TimeSeriesData(
+    df.loc[:,[<span class="hljs-string">'time'</span>,<span class="hljs-string">'decrease'</span>]]
+)
+detector = CusumDetector(timeseries)
+<span class="hljs-comment"># run detector</span>
+detector.detector()
+<span class="hljs-comment"># plot the results</span>
+detector.plot()
+</code></pre>
+<p><img src="/img/Detection/cusum_decrease_pic.png" alt=""></p>
+<!-- [cusum_decrease_pic] -->
+<h3><a class="anchor" aria-hidden="true" id="use-interest_window"></a><a href="#use-interest_window" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Use interest_window</h3>
+<pre><code class="hljs"><span class="hljs-attribute">timeseries</span> = TimeSeriesData(
+    df.loc[:,[<span class="hljs-string">'time'</span>,<span class="hljs-string">'increase'</span>]]
+)
+detector = CusumDetector(timeseries)
+<span class="hljs-comment"># run detector</span>
+detector.detector(interest_window=[<span class="hljs-number">40</span>,<span class="hljs-number">50</span>])
+<span class="hljs-comment"># plot the results</span>
+detector.plot()
+</code></pre>
+<p><img src="/img/Detection/cusum_interest_window_pic.png" alt=""></p>
+<!-- [cusum_interest_window_pic] -->
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/docs/Detection_Seasonality_Detector"><span class="arrow-prev">← </span><span>Seasonality Detector</span></a><a class="docs-next button" href="/docs/TsFeatures"><span class="function-name-prevnext">TsFeatures</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#api">API</a><ul class="toc-headings"><li><a href="#methods">Methods</a></li><li><a href="#parameters">Parameters</a></li><li><a href="#outputs">Outputs</a></li></ul></li><li><a href="#examples">Examples</a><ul class="toc-headings"><li><a href="#simulate-data-set">Simulate data set</a></li><li><a href="#detect-increase">Detect increase</a></li><li><a href="#detect-decrease">Detect decrease</a></li><li><a href="#use-interest_window">Use interest_window</a></li></ul></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/" class="nav-home"><img src="/img/cats_logo_banner.png" alt=""/></a><div><h5>Kats Project</h5><a href="/docs/Forecasting_Autoregressive">Forecasting</a><a href="/docs/Detection_Residual_Translation">Detection</a><a href="/docs/TsFeatures">TSFeatures</a><a href="/docs/Forecasting_Autoregressive">Multivariate</a><a href="/docs/Multivariate_Outlier_Detection">Visualization</a><a href="/docs/Model_Hyperparameter_Tuning">Utilities</a></div><div><h5>Kats Community</h5><a href="/en/users.html">User Showcase</a><a href="https://stackoverflow.com/questions/tagged/" target="_blank" rel="noreferrer noopener">Stack Overflow</a><a href="https://discordapp.com/">Project Chat</a><a href="https://twitter.com/" target="_blank" rel="noreferrer noopener">Twitter</a></div><div><h5>More</h5><a href="/blog">Blog</a><a href="https://github.com/">GitHub</a><a class="github-button" data-icon="octicon-star" data-count-href="/facebook/docusaurus/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div></section><a href="https://opensource.facebook.com/" target="_blank" rel="noreferrer noopener" class="fbOpenSource"><img src="/img/oss_logo.png" alt="Facebook Open Source" width="170" height="45"/></a><section class="copyright">Copyright © 2021 Kats Project @ Facebook</section></footer></div></body></html>

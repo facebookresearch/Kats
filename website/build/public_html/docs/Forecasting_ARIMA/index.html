@@ -1,0 +1,112 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>ARIMA · </title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="&lt;!-- # ARIMA --&gt;"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="ARIMA · "/><meta property="og:type" content="website"/><meta property="og:url" content="https://home.fburl.com//"/><meta property="og:description" content="&lt;!-- # ARIMA --&gt;"/><meta property="og:image" content="https://home.fburl.com/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://home.fburl.com/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/img/kats_horizontal.png"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/js/scrollSpy.js"></script><link rel="stylesheet" href="/css/main.css"/><script src="/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/"><img class="logo" src="/img/kats_horizontal.png" alt=""/><h2 class="headerTitleWithLogo"></h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/docs/Forecasting_Quadratic_Model" target="_self">Docs</a></li><li class=""><a href="/team" target="_self">Team</a></li><li class=""><a href="/docs/doc4" target="_self">API</a></li><li class=""><a href="/help" target="_self">Help</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Forecasting</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Forecasting</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Autoregressive">Autoregressive Neural Network (AR_net)</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Quadratic_Model">Quadratic Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Linear_Model">Linear Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_KatsEnsemble">KatsEnsemble</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Empirical_Confidence_Interval">Empirical Confidence Interval</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_STLF">STLF</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Theta">Theta</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Holt_Winters">Holt-Winter’s</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Prophet">Prophet</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_SARIMA">SARIMA</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/docs/Forecasting_ARIMA">ARIMA</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Detection</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Detection_Residual_Translation">BOCPD: Residual Translation</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_BOCPD">BOCPD: Bayesian Online Changepoint Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Outlier_Detection">Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_ACFDetector">ACFDetector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Seasonality_Detector">Seasonality Detector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Cusum_Detector">Cusum Detector</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">TSFeatures</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/TsFeatures">TsFeatures</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Multivariate</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Multivariate_Outlier_Detection">Multivariate Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Multivariate_VAR">VAR</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Utilities</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Model_Hyperparameter_Tuning">Model Hyperparameter Tuning</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Backtesting">Backtesting</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Time_Series_Decomposition">Time Series Decomposition</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Dataswarm_Operators">Dataswarm Operators</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">ARIMA</h1></header><article><div><span><!-- # ARIMA -->
+<p><a href="https://en.wikipedia.org/wiki/Autoregressive_integrated_moving_average">ARIMA</a> model (stand for Auto Regressive Integrated Moving Average) is a classical statistical model for time series data. It contains three main components from its name</p>
+<ul>
+<li>AR, Auto Regressive, means the variable of interest (time series) is regressed on its own lagged values</li>
+<li>MA, Moving Average, means the regression error is a linear combination of error terms whose values occurred contemporaneously and at various times in the past</li>
+<li>I, Integrated, means data values have been replaced with the difference between their values and the previous value</li>
+</ul>
+<p>We use the implementation in <a href="https://www.statsmodels.org/stable/index.html">statsmodels</a> and re-write the API to adapt Kats development style.</p>
+<h2><a class="anchor" aria-hidden="true" id="api"></a><a href="#api" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API</h2>
+<pre><code class="hljs"># Parameter <span class="hljs-keyword">class</span>
+<span class="hljs-symbol">class</span> <span class="hljs-symbol">ARIMAParams</span>(<span class="hljs-symbol">p, <span class="hljs-symbol">d</span>, <span class="hljs-symbol">q</span>, <span class="hljs-symbol">exog</span></span>=<span class="hljs-symbol">None, <span class="hljs-symbol">dates</span></span>=<span class="hljs-symbol">None, <span class="hljs-symbol">freq</span></span>=<span class="hljs-symbol">None</span>)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="parameters"></a><a href="#parameters" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Parameters:</h3>
+<pre><code class="hljs">p: <span class="hljs-keyword">the</span> order <span class="hljs-keyword">of</span> AR terms
+d: <span class="hljs-keyword">the</span> <span class="hljs-built_in">number</span> <span class="hljs-keyword">of</span> differencing <span class="hljs-built_in">to</span> make <span class="hljs-keyword">the</span> <span class="hljs-built_in">time</span> series stationary
+q: <span class="hljs-keyword">the</span> order <span class="hljs-keyword">of</span> MA terms
+exog: optional, exogenous variables
+dates: optional, pandas-compatible datetime object
+freq: optional, frequency <span class="hljs-keyword">of</span> <span class="hljs-keyword">a</span> given <span class="hljs-built_in">time</span> series
+</code></pre>
+<pre><code class="hljs"># Model <span class="hljs-keyword">class</span>
+<span class="hljs-symbol">class</span> <span class="hljs-symbol">ARIMAModel</span>(<span class="hljs-symbol">data, <span class="hljs-symbol">params</span></span>)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="methods"></a><a href="#methods" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Methods</h3>
+<pre><code class="hljs"><span class="hljs-keyword">fit</span>(): # <span class="hljs-keyword">fit</span> <span class="hljs-keyword">ARIMA</span> model with given parameters
+<span class="hljs-keyword">predict</span>(steps, freq): # <span class="hljs-keyword">predict</span> the future <span class="hljs-keyword">for</span> future steps
+<span class="hljs-keyword">plot</span>(): # <span class="hljs-keyword">plot</span> the time series data with confidence internal (<span class="hljs-keyword">if</span> exist)
+</code></pre>
+<h2><a class="anchor" aria-hidden="true" id="example"></a><a href="#example" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example</h2>
+<p>We use air passenger data as an example for ARIMA model</p>
+<pre><code class="hljs">import pandas as pd
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts import TimeSeriesData
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.arima import ARIMAModel, ARIMAParams
+
+<span class="hljs-comment"># read data and rename the two columns required by TimeSeriesData structure</span>
+data = pd.read_csv(<span class="hljs-string">"../data/example_air_passengers.csv"</span>)
+data.columns = [<span class="hljs-string">"time"</span>, <span class="hljs-string">"y"</span>]
+TSdata = TimeSeriesData(data)
+
+<span class="hljs-comment"># create ARIMAParam with specifying initial param values</span>
+params = ARIMAParams(<span class="hljs-attribute">p</span>=1, <span class="hljs-attribute">d</span>=1, <span class="hljs-attribute">q</span>=1)
+
+<span class="hljs-comment"># create ARIMAModel with given data and params</span>
+m = ARIMAModel(<span class="hljs-attribute">data</span>=TSdata, <span class="hljs-attribute">params</span>=params)
+
+<span class="hljs-comment"># call fit method to fit model</span>
+m.fit()
+
+<span class="hljs-comment"># call predict method to predict the next 30 steps</span>
+m.predict(<span class="hljs-attribute">steps</span>=30, <span class="hljs-attribute">freq</span>=<span class="hljs-string">"MS"</span>)
+
+<span class="hljs-comment"># visualize the results</span>
+m.plot()
+</code></pre>
+<p><img src="/img/Forecasting/arima_img_1.png" alt=""></p>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/docs/Forecasting_SARIMA"><span class="arrow-prev">← </span><span>SARIMA</span></a><a class="docs-next button" href="/docs/Detection_Residual_Translation"><span>BOCPD: Residual Translation</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#api">API</a><ul class="toc-headings"><li><a href="#parameters">Parameters:</a></li><li><a href="#methods">Methods</a></li></ul></li><li><a href="#example">Example</a></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/" class="nav-home"><img src="/img/cats_logo_banner.png" alt=""/></a><div><h5>Kats Project</h5><a href="/docs/Forecasting_Autoregressive">Forecasting</a><a href="/docs/Detection_Residual_Translation">Detection</a><a href="/docs/TsFeatures">TSFeatures</a><a href="/docs/Forecasting_Autoregressive">Multivariate</a><a href="/docs/Multivariate_Outlier_Detection">Visualization</a><a href="/docs/Model_Hyperparameter_Tuning">Utilities</a></div><div><h5>Kats Community</h5><a href="/en/users.html">User Showcase</a><a href="https://stackoverflow.com/questions/tagged/" target="_blank" rel="noreferrer noopener">Stack Overflow</a><a href="https://discordapp.com/">Project Chat</a><a href="https://twitter.com/" target="_blank" rel="noreferrer noopener">Twitter</a></div><div><h5>More</h5><a href="/blog">Blog</a><a href="https://github.com/">GitHub</a><a class="github-button" data-icon="octicon-star" data-count-href="/facebook/docusaurus/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div></section><a href="https://opensource.facebook.com/" target="_blank" rel="noreferrer noopener" class="fbOpenSource"><img src="/img/oss_logo.png" alt="Facebook Open Source" width="170" height="45"/></a><section class="copyright">Copyright © 2021 Kats Project @ Facebook</section></footer></div></body></html>
