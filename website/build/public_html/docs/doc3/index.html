@@ -1,0 +1,439 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>doc3 · </title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="&lt;!-- # Backtesting --&gt;"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="doc3 · "/><meta property="og:type" content="website"/><meta property="og:url" content="https://home.fburl.com//"/><meta property="og:description" content="&lt;!-- # Backtesting --&gt;"/><meta property="og:image" content="https://home.fburl.com/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://home.fburl.com/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/img/kats_horizontal.png"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/js/scrollSpy.js"></script><link rel="stylesheet" href="/css/main.css"/><script src="/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/"><img class="logo" src="/img/kats_horizontal.png" alt=""/><h2 class="headerTitleWithLogo"></h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class=""><a href="/docs/Forecasting_Quadratic_Model" target="_self">Docs</a></li><li class=""><a href="/team" target="_self">Team</a></li><li class=""><a href="/docs/doc4" target="_self">API</a></li><li class=""><a href="/help" target="_self">Help</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Second Category</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Kats Project</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/katsSample">katsSample</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">First Category</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/doc2">Viz Doc</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Second Category</h3><ul class=""><li class="navListItem navListItemActive"><a class="navItem" href="/docs/doc3">doc3</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">doc3</h1></header><article><div><span><!-- # Backtesting -->
+<p>Kats offers 4 different ways of backtesting your model.</p>
+<ol>
+<li>Simple Backtesting</li>
+<li>Fixed Window Ahead Backtesting</li>
+<li>Expanding Window Backtesting</li>
+<li>Rolling Window Backtesting</li>
+</ol>
+<p>In addition to these methods, users can use the <code>CrossValidation</code> class to create their own folds for training and testing their model.</p>
+<p>The four backtesting methods are each implemented as their own class, inheriting most attributes and functionalities from their abstract parent, <code>BackTesterParent</code>.</p>
+<h2><a class="anchor" aria-hidden="true" id="backtesterparent"></a><a href="#backtesterparent" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a><code>BackTesterParent</code></h2>
+<h3><a class="anchor" aria-hidden="true" id="api"></a><a href="#api" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API:</h3>
+<pre><code class="hljs"># Abstract Parent Class
+<span class="hljs-keyword">class</span> <span class="hljs-symbol">BackTester</span>(
+        <span class="hljs-symbol">self,
+        <span class="hljs-symbol">error_methods</span>: <span class="hljs-symbol">List</span></span>[<span class="hljs-symbol">str</span>],
+        <span class="hljs-symbol">data: <span class="hljs-symbol">TimeSeriesData</span>,
+        <span class="hljs-symbol">params</span>: <span class="hljs-symbol">Params</span>,
+        <span class="hljs-symbol">model_class</span>,
+        <span class="hljs-symbol">multi</span>: <span class="hljs-symbol">bool</span>,
+        <span class="hljs-symbol">offset</span></span>=<span class="hljs-symbol">0,
+        </span>**<span class="hljs-symbol">kwargs</span>
+    ):
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="parameters"></a><a href="#parameters" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Parameters:</h3>
+<pre><code class="hljs">error_methods: list. List of strings indicating which errors <span class="hljs-keyword">to</span> calculate
+               (see backtesters.ALLOWED_ERRORS <span class="hljs-keyword">for</span> exhaustive list)
+data: TimeSeriesData. Kats TimeSeriesData object
+params: Params. Kats Params objects <span class="hljs-keyword">for</span> the model parameters
+model_class: Untyped. Kats model object representing the forecasting model
+multi (optional): boolean. flag <span class="hljs-keyword">to</span> use multiprocessing <span class="hljs-keyword">to</span> <span class="hljs-builtin-name">run</span> each fold <span class="hljs-keyword">in</span> parallel.
+       Can throw errors <span class="hljs-keyword">if</span> enabled when code is already running <span class="hljs-keyword">in</span> a child process.
+      <span class="hljs-built_in"> Default </span><span class="hljs-literal">True</span> <span class="hljs-keyword">for</span> rolling window <span class="hljs-keyword">and</span> expanding window backtests.
+offset (optional): int. Gap between training <span class="hljs-keyword">and</span> testing datasets.<span class="hljs-built_in"> Default </span>0.
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="public-attributes"></a><a href="#public-attributes" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Public Attributes:</h3>
+<pre><code class="hljs">results: list. List of tuples (training_data, testing_data, trained_model,
+         forecast_predictions) storing forecast results
+errors: dict. Dictionary (string -&gt; float) mapping the <span class="hljs-builtin-name">error</span><span class="hljs-built_in"> type </span><span class="hljs-keyword">to</span> value
+params: Kats Params objects <span class="hljs-keyword">for</span> the model parameters
+size: int. Number of datapoints
+error_funcs: dict. Dictionary (string -&gt; function) mapping <span class="hljs-builtin-name">error</span> name <span class="hljs-keyword">to</span> function
+             that calculates it
+freq: str. Frequency of pandas dataframe (inferred)
+raw_errors: List of numpy.arrays storing<span class="hljs-built_in"> raw </span>errors (truth - predicted)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="public-methods"></a><a href="#public-methods" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Public Methods:</h3>
+<pre><code class="hljs">run_backtests(): <span class="hljs-comment"># Creates all folds and runs backtests on them</span>
+get_error_value(error_name): <span class="hljs-comment"># Gets the error value for the given error name</span>
+</code></pre>
+<h2></h2>
+<h2><a class="anchor" aria-hidden="true" id="backtestersimple"></a><a href="#backtestersimple" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a><code>BackTesterSimple</code></h2>
+<h3><a class="anchor" aria-hidden="true" id="api-1"></a><a href="#api-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API:</h3>
+<pre><code class="hljs"><span class="hljs-keyword">class</span> <span class="hljs-symbol">BackTesterSimple</span>(
+        <span class="hljs-symbol">self,
+        <span class="hljs-symbol">error_methods</span>: <span class="hljs-symbol">List</span></span>[<span class="hljs-symbol">str</span>],
+        <span class="hljs-symbol">data: <span class="hljs-symbol">TimeSeriesData</span>,
+        <span class="hljs-symbol">params</span>: <span class="hljs-symbol">Params</span>,
+        <span class="hljs-symbol">train_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">test_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">model_class</span>,
+        </span>**<span class="hljs-symbol">kwargs</span>
+    ):
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="additional-parameters-beyond-parent-class-backtesterparent"></a><a href="#additional-parameters-beyond-parent-class-backtesterparent" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Additional Parameters (beyond Parent Class <code>BacktesterParent</code>):</h3>
+<pre><code class="hljs">train_percentage: <span class="hljs-built_in">float</span>. Percentage of data used <span class="hljs-keyword">for</span> training (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+test_percentage: <span class="hljs-built_in">float</span>. Percentage of data used <span class="hljs-keyword">for</span> testing (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="example"></a><a href="#example" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example:</h3>
+<pre><code class="hljs">import pandas as pd
+import<span class="hljs-built_in"> logging
+</span><span class="hljs-keyword">from</span> infrastrategy.kats.utils.backtesters import BackTesterSimple
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts import TimeSeriesData
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.arima import ARIMAModel, ARIMAParams
+
+<span class="hljs-comment"># Read in the data</span>
+DATA = pd.read_csv(<span class="hljs-string">"air_passengers.csv"</span>)
+DATA.columns = [<span class="hljs-string">"time"</span>, <span class="hljs-string">"y"</span>]
+
+<span class="hljs-comment"># Create Kats Objects</span>
+TSData = TimeSeriesData(DATA)
+params = ARIMAParams(<span class="hljs-attribute">p</span>=1, <span class="hljs-attribute">d</span>=1, <span class="hljs-attribute">q</span>=1)
+ALL_ERRORS = [<span class="hljs-string">'mape'</span>, <span class="hljs-string">'smape'</span>, <span class="hljs-string">'mae'</span>, <span class="hljs-string">'mase'</span>, <span class="hljs-string">'mse'</span>, <span class="hljs-string">'rmse'</span>]
+
+<span class="hljs-comment"># Run Backtesting</span>
+backtester = BackTesterSimple(ALL_ERRORS, TSData, params, 75, 25, ARIMAModel)
+backtester.run_backtest()
+
+<span class="hljs-comment"># Log Errors</span>
+<span class="hljs-keyword">for</span> error, value <span class="hljs-keyword">in</span> backtester.errors.items():
+    logging.<span class="hljs-builtin-name">info</span>(error, value)
+
+<span class="hljs-string">""</span><span class="hljs-string">"
+Output:
+mape 0.11196918606389973
+smape 0.11831396728056609
+mae 52.10695557149991
+mase 2.5646017691584593
+mse 5202.055885499536
+rmse 72.1252791017098
+"</span><span class="hljs-string">""</span>
+</code></pre>
+<p>[Image: Simple Backtesting (1).png]</p>
+<h2><a class="anchor" aria-hidden="true" id="backtesterfixedwindow"></a><a href="#backtesterfixedwindow" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a><code>BackTesterFixedWindow</code></h2>
+<h3><a class="anchor" aria-hidden="true" id="api-2"></a><a href="#api-2" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API:</h3>
+<pre><code class="hljs"><span class="hljs-keyword">class</span> <span class="hljs-symbol">BackTesterFixedWindow</span>(
+        <span class="hljs-symbol">self,
+        <span class="hljs-symbol">error_methods</span>: <span class="hljs-symbol">List</span></span>[<span class="hljs-symbol">str</span>],
+        <span class="hljs-symbol">data: <span class="hljs-symbol">TimeSeriesData</span>,
+        <span class="hljs-symbol">params</span>: <span class="hljs-symbol">Params</span>,
+        <span class="hljs-symbol">train_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">test_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">window_percentage</span>: <span class="hljs-symbol">int</span>,
+        <span class="hljs-symbol">model_class</span>,
+        </span>**<span class="hljs-symbol">kwargs</span>
+    ):
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="additional-parameters-beyond-parent-class-backtesterparent-1"></a><a href="#additional-parameters-beyond-parent-class-backtesterparent-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Additional Parameters (beyond Parent Class <code>BacktesterParent</code>):</h3>
+<pre><code class="hljs">train_percentage: <span class="hljs-built_in">float</span>. Percentage of data used <span class="hljs-keyword">for</span> training (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+test_percentage: <span class="hljs-built_in">float</span>. Percentage of data used <span class="hljs-keyword">for</span> testing (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+window_percentage: <span class="hljs-built_in">int</span>. Percentage of data used <span class="hljs-keyword">for</span> fixed window (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="example-1"></a><a href="#example-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example:</h3>
+<pre><code class="hljs">import pandas as pd
+import<span class="hljs-built_in"> logging
+</span><span class="hljs-keyword">from</span> infrastrategy.kats.utils.backtesters import BackTesterFixedWindow
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts import TimeSeriesData
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.arima import ARIMAModel, ARIMAParams
+
+<span class="hljs-comment"># Read in the data</span>
+DATA = pd.read_csv(<span class="hljs-string">"air_passengers.csv"</span>)
+DATA.columns = [<span class="hljs-string">"time"</span>, <span class="hljs-string">"y"</span>]
+
+<span class="hljs-comment"># Create Kats Objects</span>
+TSData = TimeSeriesData(DATA)
+params = ARIMAParams(<span class="hljs-attribute">p</span>=1, <span class="hljs-attribute">d</span>=1, <span class="hljs-attribute">q</span>=1)
+ALL_ERRORS = [<span class="hljs-string">'mape'</span>, <span class="hljs-string">'smape'</span>, <span class="hljs-string">'mae'</span>, <span class="hljs-string">'mase'</span>, <span class="hljs-string">'mse'</span>, <span class="hljs-string">'rmse'</span>]
+
+<span class="hljs-comment"># Run Backtesting</span>
+backtester = BackTesterFixedWindow(
+                ALL_ERRORS,
+                TSData,
+                params,
+                50, # Train Percentage
+                25, # Test Percentage
+                25, # Window Percentage
+                ARIMAModel,
+             )
+backtester.run_backtest()
+
+<span class="hljs-comment"># Log Errors</span>
+<span class="hljs-keyword">for</span> error, value <span class="hljs-keyword">in</span> backtester.errors.items():
+    logging.<span class="hljs-builtin-name">info</span>(error, value)
+
+<span class="hljs-string">""</span><span class="hljs-string">"
+Output:
+mape 0.1576580864978473
+smape 0.17958289869819613
+mae 75.88164448597571
+mase 4.806063120878033
+mse 10227.195099143722
+rmse 101.12959556501609
+"</span><span class="hljs-string">""</span>
+</code></pre>
+<p>[Image: Fixed Window Ahead Backtesting.png]</p>
+<h2><a class="anchor" aria-hidden="true" id="backtesterexpandingwindow"></a><a href="#backtesterexpandingwindow" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a><code>BackTesterExpandingWindow</code></h2>
+<h3><a class="anchor" aria-hidden="true" id="api-3"></a><a href="#api-3" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API:</h3>
+<pre><code class="hljs"><span class="hljs-keyword">class</span> <span class="hljs-symbol">BackTesterExpandingWindow</span>(
+        <span class="hljs-symbol">self,
+        <span class="hljs-symbol">error_methods</span>: <span class="hljs-symbol">List</span></span>[<span class="hljs-symbol">str</span>],
+        <span class="hljs-symbol">data: <span class="hljs-symbol">TimeSeriesData</span>,
+        <span class="hljs-symbol">params</span>: <span class="hljs-symbol">Params</span>,
+        <span class="hljs-symbol">start_train_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">end_train_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">test_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">expanding_steps</span>: <span class="hljs-symbol">int</span>,
+        <span class="hljs-symbol">model_class</span>,
+        <span class="hljs-symbol">multi</span></span>=<span class="hljs-symbol">True,
+        </span>**<span class="hljs-symbol">kwargs</span>
+    ):
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="additional-parameters-beyond-parent-class-backtesterparent-2"></a><a href="#additional-parameters-beyond-parent-class-backtesterparent-2" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Additional Parameters (beyond Parent Class <code>BacktesterParent</code>):</h3>
+<pre><code class="hljs">start_train_percentage: <span class="hljs-built_in">float</span>. Initial training window (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+end_train_percentage: <span class="hljs-built_in">float</span>. Final training window (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+test_percentage: <span class="hljs-built_in">float</span>. Percentage of data used <span class="hljs-keyword">for</span> testing (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+expanding_steps: <span class="hljs-built_in">int</span>. Number of expanding steps to take (# of folds)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="example-2"></a><a href="#example-2" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example:</h3>
+<pre><code class="hljs">import pandas as pd
+import<span class="hljs-built_in"> logging
+</span><span class="hljs-keyword">from</span> infrastrategy.kats.utils.backtesters import BackTesterExpandingWindow
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts import TimeSeriesData
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.arima import ARIMAModel, ARIMAParams
+
+<span class="hljs-comment"># Read in the data</span>
+DATA = pd.read_csv(<span class="hljs-string">"air_passengers.csv"</span>)
+DATA.columns = [<span class="hljs-string">"time"</span>, <span class="hljs-string">"y"</span>]
+
+<span class="hljs-comment"># Create Kats Objects</span>
+TSData = TimeSeriesData(DATA)
+params = ARIMAParams(<span class="hljs-attribute">p</span>=1, <span class="hljs-attribute">d</span>=1, <span class="hljs-attribute">q</span>=1)
+ALL_ERRORS = [<span class="hljs-string">'mape'</span>, <span class="hljs-string">'smape'</span>, <span class="hljs-string">'mae'</span>, <span class="hljs-string">'mase'</span>, <span class="hljs-string">'mse'</span>, <span class="hljs-string">'rmse'</span>]
+
+<span class="hljs-comment"># Run Backtesting</span>
+backtester = BackTesterExpandingWindow(
+                ALL_ERRORS,
+                TSData,
+                params,
+                50, # Start Train Percentage
+                75, # End Train Percentage
+                25, # Test Percentage
+                3,  # Expanding Steps (num folds)
+                ARIMAModel
+             )
+backtester.run_backtest()
+
+<span class="hljs-comment"># Log Errors</span>
+<span class="hljs-keyword">for</span> error, value <span class="hljs-keyword">in</span> backtester.errors.items():
+    logging.<span class="hljs-builtin-name">info</span>(error, value)
+
+<span class="hljs-string">""</span><span class="hljs-string">"
+Output:
+mape 0.11646836437857695
+smape 0.12484447779715938
+mae 47.34768419814879
+mase 2.663259144891901
+mse 4180.568820457178
+rmse 64.3500798305892
+"</span><span class="hljs-string">""</span>
+</code></pre>
+<p>[Image: Expanding Window Backtesting.png]</p>
+<h2><a class="anchor" aria-hidden="true" id="backtesterrollingwindow"></a><a href="#backtesterrollingwindow" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a><code>BackTesterRollingWindow</code></h2>
+<h3><a class="anchor" aria-hidden="true" id="api-4"></a><a href="#api-4" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API:</h3>
+<pre><code class="hljs"><span class="hljs-keyword">class</span> <span class="hljs-symbol">BackTesterExpandingWindow</span>(
+        <span class="hljs-symbol">self,
+        <span class="hljs-symbol">error_methods</span>: <span class="hljs-symbol">List</span></span>[<span class="hljs-symbol">str</span>],
+        <span class="hljs-symbol">data: <span class="hljs-symbol">TimeSeriesData</span>,
+        <span class="hljs-symbol">params</span>: <span class="hljs-symbol">Params</span>,
+        <span class="hljs-symbol">train_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">test_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">sliding_steps</span>: <span class="hljs-symbol">int</span>,
+        <span class="hljs-symbol">model_class</span>,
+        <span class="hljs-symbol">multi</span></span>=<span class="hljs-symbol">True,
+        </span>**<span class="hljs-symbol">kwargs</span>
+    ):
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="additional-parameters-beyond-parent-class-backtesterparent-3"></a><a href="#additional-parameters-beyond-parent-class-backtesterparent-3" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Additional Parameters (beyond Parent Class <code>BacktesterParent</code>):</h3>
+<pre><code class="hljs">train_percentage: <span class="hljs-built_in">float</span>. Percentage of data used <span class="hljs-keyword">for</span> training (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+test_percentage: <span class="hljs-built_in">float</span>. Percentage of data used <span class="hljs-keyword">for</span> testing (between <span class="hljs-number">0</span><span class="hljs-number">-100</span>)
+sliding_steps: <span class="hljs-built_in">int</span>. Number of rolling steps to take (# of folds)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="example-3"></a><a href="#example-3" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example:</h3>
+<pre><code class="hljs">import pandas as pd
+import<span class="hljs-built_in"> logging
+</span><span class="hljs-keyword">from</span> infrastrategy.kats.utils.backtesters import BackTesterRollingWindow
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts import TimeSeriesData
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.arima import ARIMAModel, ARIMAParams
+
+<span class="hljs-comment"># Read in the data</span>
+DATA = pd.read_csv(<span class="hljs-string">"air_passengers.csv"</span>)
+DATA.columns = [<span class="hljs-string">"time"</span>, <span class="hljs-string">"y"</span>]
+
+<span class="hljs-comment"># Create Kats Objects</span>
+TSData = TimeSeriesData(DATA)
+params = ARIMAParams(<span class="hljs-attribute">p</span>=1, <span class="hljs-attribute">d</span>=1, <span class="hljs-attribute">q</span>=1)
+ALL_ERRORS = [<span class="hljs-string">'mape'</span>, <span class="hljs-string">'smape'</span>, <span class="hljs-string">'mae'</span>, <span class="hljs-string">'mase'</span>, <span class="hljs-string">'mse'</span>, <span class="hljs-string">'rmse'</span>]
+
+<span class="hljs-comment"># Run Backtesting</span>
+backtester = BackTesterRollingWindow(
+                ALL_ERRORS,
+                TSData,
+                params,
+                50, # Train Percentage
+                25, # Test Percentage
+                3,  # Sliding Steps (num folds)
+                ARIMAModel
+             )
+backtester.run_backtest()
+
+<span class="hljs-comment"># Log Errors</span>
+<span class="hljs-keyword">for</span> error, value <span class="hljs-keyword">in</span> backtester.errors.items():
+    logging.<span class="hljs-builtin-name">info</span>(error, value)
+
+<span class="hljs-string">""</span><span class="hljs-string">"
+Output:
+mape 0.15088136891940276
+smape 0.14958146228491798
+mae 57.53915506835433
+mase 2.991962943893486
+mse 5395.149798608472
+rmse 73.08384900313399
+"</span><span class="hljs-string">""</span>
+</code></pre>
+<p>[Image: Rolling Window Backtesting.png]</p>
+<h2><a class="anchor" aria-hidden="true" id="crossvalidation"></a><a href="#crossvalidation" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a><code>CrossValidation</code></h2>
+<p>The <code>CrossValidation</code> class allows the user to create folds, train the model on them, and record the errors. Currently, the user can create folds via an expanding window or rolling window approach.</p>
+<h3><a class="anchor" aria-hidden="true" id="api-5"></a><a href="#api-5" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API:</h3>
+<pre><code class="hljs"># Abstract Parent Class
+<span class="hljs-keyword">class</span> <span class="hljs-symbol">BackTester</span>(
+        <span class="hljs-symbol">self,
+        <span class="hljs-symbol">error_methods</span>: <span class="hljs-symbol">List</span></span>[<span class="hljs-symbol">str</span>],
+        <span class="hljs-symbol">data: <span class="hljs-symbol">TimeSeriesData</span>,
+        <span class="hljs-symbol">params</span>: <span class="hljs-symbol">Params</span>,
+        <span class="hljs-symbol">train_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">test_percentage</span>: <span class="hljs-symbol">float</span>,
+        <span class="hljs-symbol">num_folds</span>: <span class="hljs-symbol">int</span>,
+        <span class="hljs-symbol">model_class</span>,
+        <span class="hljs-symbol">rolling_window</span></span>=<span class="hljs-symbol">False,
+        <span class="hljs-symbol">multi</span></span>=<span class="hljs-symbol">True,
+    </span>):
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="parameters-1"></a><a href="#parameters-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Parameters:</h3>
+<pre><code class="hljs">error_methods: list. List of strings indicating which errors <span class="hljs-keyword">to</span> calculate
+               (see backtesters.ALLOWED_ERRORS <span class="hljs-keyword">for</span> exhaustive list)
+data: TimeSeriesData. Kats TimeSeriesData object
+params: Params. Kats Params objects <span class="hljs-keyword">for</span> the model parameters
+train_percentage: float. Percentage of data used <span class="hljs-keyword">for</span> training (between 0-100)
+test_percentage: float. Percentage of data used <span class="hljs-keyword">for</span> testing (between 0-100)
+num_folds: int. Number of folds
+model_class: Untyped. Kats model object representing the forecasting model
+rolling_window (optional): boolean. Flag <span class="hljs-keyword">to</span> use rolling window method.<span class="hljs-built_in"> Default </span><span class="hljs-literal">False</span>
+multi (optional): boolean. flag <span class="hljs-keyword">to</span> use multiprocessing <span class="hljs-keyword">to</span> <span class="hljs-builtin-name">run</span> each fold <span class="hljs-keyword">in</span> parallel.
+       Can throw errors <span class="hljs-keyword">if</span> enabled when code is already running <span class="hljs-keyword">in</span> a child process.
+      <span class="hljs-built_in"> Default </span><span class="hljs-literal">True</span> <span class="hljs-keyword">for</span> rolling window <span class="hljs-keyword">and</span> expanding window backtests.
+offset (optional): int. Gap between training <span class="hljs-keyword">and</span> testing datasets.<span class="hljs-built_in"> Default </span>0.
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="public-attributes-1"></a><a href="#public-attributes-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Public Attributes:</h3>
+<pre><code class="hljs">results: list. List of tuples (training_data, testing_data, trained_model,
+         forecast_predictions) storing forecast results
+errors: dict. Dictionary (string -&gt; float) mapping the <span class="hljs-builtin-name">error</span><span class="hljs-built_in"> type </span><span class="hljs-keyword">to</span> value
+size: int. Number of datapoints
+raw_errors: list. List of numpy.arrays storing<span class="hljs-built_in"> raw </span>errors (predicted - truth)
+backtester: child class of BackTesterParent. Backtesting Object that does
+            training &amp; evaluation
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="public-methods-1"></a><a href="#public-methods-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Public Methods:</h3>
+<pre><code class="hljs">run_cv(): # Creates <span class="hljs-keyword">all</span> folds <span class="hljs-keyword">and</span> does model training &amp; testing <span class="hljs-keyword">on</span> <span class="hljs-keyword">each</span>.
+get_error_value(error_name): # Gets the error <span class="hljs-keyword">value</span> <span class="hljs-keyword">for</span> the given error <span class="hljs-type">name</span>
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="example-4"></a><a href="#example-4" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example:</h3>
+<pre><code class="hljs">import pandas as pd
+import<span class="hljs-built_in"> logging
+</span><span class="hljs-keyword">from</span> infrastrategy.kats.utils.backtesters import CrossValidation
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts import TimeSeriesData
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.arima import ARIMAModel, ARIMAParams
+
+<span class="hljs-comment"># Read in the data</span>
+DATA = pd.read_csv(<span class="hljs-string">"air_passengers.csv"</span>)
+DATA.columns = [<span class="hljs-string">"time"</span>, <span class="hljs-string">"y"</span>]
+
+<span class="hljs-comment"># Create Kats Objects</span>
+TSData = TimeSeriesData(DATA)
+params = ARIMAParams(<span class="hljs-attribute">p</span>=1, <span class="hljs-attribute">d</span>=1, <span class="hljs-attribute">q</span>=1)
+ALL_ERRORS = [<span class="hljs-string">'mape'</span>, <span class="hljs-string">'smape'</span>, <span class="hljs-string">'mae'</span>, <span class="hljs-string">'mase'</span>, <span class="hljs-string">'mse'</span>, <span class="hljs-string">'rmse'</span>]
+
+<span class="hljs-comment"># Run Backtesting</span>
+crossvalidator = CrossValidation(
+                    ALL_ERRORS,
+                    TSData,
+                    params,
+                    50, # Train Percentage
+                    25, # Test Percentage
+                    3,  # Number of Folds
+                    ARIMAModel,
+                    <span class="hljs-attribute">rolling_window</span>=<span class="hljs-literal">True</span>
+                 )
+crossvalidator.run_cv()
+
+<span class="hljs-comment"># Log Errors</span>
+<span class="hljs-keyword">for</span> error, value <span class="hljs-keyword">in</span> crossvalidator.errors.items():
+    logging.<span class="hljs-builtin-name">info</span>(error, value)
+
+<span class="hljs-string">""</span><span class="hljs-string">"
+Output:
+mape 0.15088136891940276
+smape 0.14958146228491798
+mae 57.53915506835433
+mase 2.991962943893486
+mse 5395.149798608472
+rmse 73.08384900313399
+"</span><span class="hljs-string">""</span>
+</code></pre>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/docs/doc2"><span class="arrow-prev">← </span><span>Viz Doc</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#backtesterparent"><code>BackTesterParent</code></a><ul class="toc-headings"><li><a href="#api">API:</a></li><li><a href="#parameters">Parameters:</a></li><li><a href="#public-attributes">Public Attributes:</a></li><li><a href="#public-methods">Public Methods:</a></li></ul></li><li><a href="#backtestersimple"><code>BackTesterSimple</code></a><ul class="toc-headings"><li><a href="#api-1">API:</a></li><li><a href="#additional-parameters-beyond-parent-class-backtesterparent">Additional Parameters (beyond Parent Class <code>BacktesterParent</code>):</a></li><li><a href="#example">Example:</a></li></ul></li><li><a href="#backtesterfixedwindow"><code>BackTesterFixedWindow</code></a><ul class="toc-headings"><li><a href="#api-2">API:</a></li><li><a href="#additional-parameters-beyond-parent-class-backtesterparent-1">Additional Parameters (beyond Parent Class <code>BacktesterParent</code>):</a></li><li><a href="#example-1">Example:</a></li></ul></li><li><a href="#backtesterexpandingwindow"><code>BackTesterExpandingWindow</code></a><ul class="toc-headings"><li><a href="#api-3">API:</a></li><li><a href="#additional-parameters-beyond-parent-class-backtesterparent-2">Additional Parameters (beyond Parent Class <code>BacktesterParent</code>):</a></li><li><a href="#example-2">Example:</a></li></ul></li><li><a href="#backtesterrollingwindow"><code>BackTesterRollingWindow</code></a><ul class="toc-headings"><li><a href="#api-4">API:</a></li><li><a href="#additional-parameters-beyond-parent-class-backtesterparent-3">Additional Parameters (beyond Parent Class <code>BacktesterParent</code>):</a></li><li><a href="#example-3">Example:</a></li></ul></li><li><a href="#crossvalidation"><code>CrossValidation</code></a><ul class="toc-headings"><li><a href="#api-5">API:</a></li><li><a href="#parameters-1">Parameters:</a></li><li><a href="#public-attributes-1">Public Attributes:</a></li><li><a href="#public-methods-1">Public Methods:</a></li><li><a href="#example-4">Example:</a></li></ul></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/" class="nav-home"><img src="/img/cats_logo_banner.png" alt=""/></a><div><h5>Kats Project</h5><a href="/docs/Forecasting_Autoregressive">Forecasting</a><a href="/docs/Detection_Residual_Translation">Detection</a><a href="/docs/TsFeatures">TSFeatures</a><a href="/docs/Forecasting_Autoregressive">Multivariate</a><a href="/docs/Multivariate_Outlier_Detection">Visualization</a><a href="/docs/Model_Hyperparameter_Tuning">Utilities</a></div><div><h5>Kats Community</h5><a href="/en/users.html">User Showcase</a><a href="https://stackoverflow.com/questions/tagged/" target="_blank" rel="noreferrer noopener">Stack Overflow</a><a href="https://discordapp.com/">Project Chat</a><a href="https://twitter.com/" target="_blank" rel="noreferrer noopener">Twitter</a></div><div><h5>More</h5><a href="/blog">Blog</a><a href="https://github.com/">GitHub</a><a class="github-button" data-icon="octicon-star" data-count-href="/facebook/docusaurus/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div></section><a href="https://opensource.facebook.com/" target="_blank" rel="noreferrer noopener" class="fbOpenSource"><img src="/img/oss_logo.png" alt="Facebook Open Source" width="170" height="45"/></a><section class="copyright">Copyright © 2021 Kats Project @ Facebook</section></footer></div></body></html>

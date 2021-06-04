@@ -1,0 +1,415 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Model Hyperparameter Tuning · </title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="&lt;!-- # Model Hyperparameter Tuning --&gt;"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Model Hyperparameter Tuning · "/><meta property="og:type" content="website"/><meta property="og:url" content="https://home.fburl.com//"/><meta property="og:description" content="&lt;!-- # Model Hyperparameter Tuning --&gt;"/><meta property="og:image" content="https://home.fburl.com/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://home.fburl.com/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/img/kats_horizontal.png"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/js/scrollSpy.js"></script><link rel="stylesheet" href="/css/main.css"/><script src="/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/"><img class="logo" src="/img/kats_horizontal.png" alt=""/><h2 class="headerTitleWithLogo"></h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/docs/Forecasting_Quadratic_Model" target="_self">Docs</a></li><li class=""><a href="/team" target="_self">Team</a></li><li class=""><a href="/docs/doc4" target="_self">API</a></li><li class=""><a href="/help" target="_self">Help</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Utilities</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Forecasting</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Autoregressive">Autoregressive Neural Network (AR_net)</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Quadratic_Model">Quadratic Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Linear_Model">Linear Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_KatsEnsemble">KatsEnsemble</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Empirical_Confidence_Interval">Empirical Confidence Interval</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_STLF">STLF</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Theta">Theta</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Holt_Winters">Holt-Winter’s</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Prophet">Prophet</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_SARIMA">SARIMA</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_ARIMA">ARIMA</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Detection</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Detection_Residual_Translation">BOCPD: Residual Translation</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_BOCPD">BOCPD: Bayesian Online Changepoint Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Outlier_Detection">Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_ACFDetector">ACFDetector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Seasonality_Detector">Seasonality Detector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Cusum_Detector">Cusum Detector</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">TSFeatures</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/TsFeatures">TsFeatures</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Multivariate</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Multivariate_Outlier_Detection">Multivariate Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Multivariate_VAR">VAR</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Utilities</h3><ul class=""><li class="navListItem navListItemActive"><a class="navItem" href="/docs/Model_Hyperparameter_Tuning">Model Hyperparameter Tuning</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Backtesting">Backtesting</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Time_Series_Decomposition">Time Series Decomposition</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Dataswarm_Operators">Dataswarm Operators</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Model Hyperparameter Tuning</h1></header><article><div><span><!-- # Model Hyperparameter Tuning -->
+<p>In statistical modeling or machine learning, **hyperparameter tuning **or <strong>hyperparameter optimization</strong> is the process to choose a set of optimal <a href="https://en.wikipedia.org/wiki/Hyperparameter_(machine_learning)">hyperparameters</a> for the model or the ML algorithm. A hyperparameter is a <a href="https://en.wikipedia.org/wiki/Parameter">parameter</a> whose value can control and affect the modeling process. This is in contrast to the **parameters of interest **or **model parameters **which are typically feature/predictor/independent variable weights and to be learned through the modeling. Hyperparameters differ by types and values across various models or ML algorithms and we perform hyperparameter tuning to achieve optimal model generalizability — model performance on hold-out data sets which are not used for model training.</p>
+<p>Hyperparemeter tuning is achieved by adopting the optimal set of hyperparameters through performance evaluation on a hold-out data set — validation set. Often we split the validation set into separate splits and select the optimal set of hyperparameters base on the aggregate performance over those splits. One key component of hyperparameter tuning is the <strong>how</strong> we search for the optimal parameter, we have used three approaches in our modules:</p>
+<ul>
+<li>Grid search: search the optimal parameter over a <strong>predefined grid</strong> of parameter spaces — a Cartesian product of all possible parameter combinations from defined parameter values</li>
+<li>Random search: search the optimal parameter over <strong>random samples</strong> from defined parameter ranges or values</li>
+<li>Bayesian optimal search(to be implemented): search the optimal parameter through a Bayesian iterative optimization process.</li>
+</ul>
+<p>The general ideas of grid search and random search are demonstrated through a toy evaluation function, for <a href="https://ax.dev/docs/bayesopt.html">Bayesian optimization</a> we just give the general illustration and will update actual examples once implemented. A nice summary for <a href="https://ax.dev/docs/bayesopt.html">Bayesian optimization</a> can be found in the link, on the high level this approach is trying to find the optimal parameter by performing en <strong>efficient</strong> parameter search during each iteration to achieve the <strong>maximum gain</strong> on the <strong>objective function</strong>, where the information of the objective function is retrieved from the <strong>posterior distribution</strong> by adopting a Bayesian framework. The prior often used is <a href="https://en.wikipedia.org/wiki/Gaussian_process">Gaussian process</a> (GP) and during each iteration the optimal parameter is chosen based on the acquisition function, one commonly used is the expected improvement:</p>
+<!-- [Image: Screen Shot 2020-05-06 at 12.17.01 PM.png] -->
+<p><img src="/img/Utilities/hyperparameter_tuning_bayesopt_formula.png" alt=""></p>
+<p>where f(x) is the unknown objective function to be maximized(minimization would just be the opposite) and f* is the best observation in the current iteration. The idea can be simply illustrated from the following animation:
+<img src="/img/Utilities/hyperparameter_tuning_bayesopt.gif" alt=""></p>
+<h2><a class="anchor" aria-hidden="true" id="api"></a><a href="#api" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API</h2>
+<h3><a class="anchor" aria-hidden="true" id="classes-and-methods"></a><a href="#classes-and-methods" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Classes and methods:</h3>
+<pre><code class="hljs"><span class="hljs-keyword">class</span> <span class="hljs-symbol">TimeSeriesParameterTuning</span>(<span class="hljs-symbol">ABC</span>)
+
+# <span class="hljs-symbol">methods</span>
+<span class="hljs-symbol">validate_parameters_format</span>(<span class="hljs-symbol">parameters</span>): # <span class="hljs-symbol">validate</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">input</span> <span class="hljs-symbol">types</span> <span class="hljs-symbol">and</span> <span class="hljs-symbol">values</span>
+<span class="hljs-symbol">get_search_space</span>(): # <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">space</span>
+<span class="hljs-symbol">generator_run_for_search_method</span>(<span class="hljs-symbol">evaluation_function, <span class="hljs-symbol">generator_run</span></span>): # <span class="hljs-symbol">run</span> <span class="hljs-symbol">and</span> <span class="hljs-symbol">return</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">of</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">experiment</span> <span class="hljs-symbol">trials</span> <span class="hljs-symbol">using</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">evaluation</span> <span class="hljs-symbol">function</span> <span class="hljs-symbol">and</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">run</span> <span class="hljs-symbol">generator</span>
+<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>(<span class="hljs-symbol">evaluation_function, <span class="hljs-symbol">arm_count</span></span>): # <span class="hljs-symbol">abstract</span> <span class="hljs-symbol">wrapper</span> <span class="hljs-symbol">method</span> <span class="hljs-symbol">to</span> <span class="hljs-symbol">kick</span> <span class="hljs-symbol">off</span> <span class="hljs-symbol">experiment</span> <span class="hljs-symbol">runs</span>
+<span class="hljs-symbol">list_parameter_value_scores</span>(): # <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">dataframe</span>
+
+</code></pre>
+<pre><code class="hljs"># Search objects factory metaclass
+<span class="hljs-keyword">class</span> <span class="hljs-symbol">SearchMethodFactory</span>(<span class="hljs-symbol">metaclass</span>=<span class="hljs-symbol">Final</span>)
+# <span class="hljs-symbol">create</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">method</span> <span class="hljs-symbol">class</span> <span class="hljs-symbol">object</span> <span class="hljs-symbol">based</span> <span class="hljs-symbol">on</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">selected_search_method, <span class="hljs-symbol">currently</span></span> <span class="hljs-symbol">we</span> <span class="hljs-symbol">have</span> <span class="hljs-symbol">supported</span> <span class="hljs-symbol">three</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">methods: </span>"<span class="hljs-symbol">GRID_SEARCH</span>", "<span class="hljs-symbol">RANDOM_SEARCH_UNIFORM</span>", "<span class="hljs-symbol">RANDOM_SEARCH_SOBOL</span>", <span class="hljs-symbol">and</span> "<span class="hljs-symbol">BAYES_OPT</span>"
+<span class="hljs-symbol">create_search_method</span>(<span class="hljs-symbol">parameters, <span class="hljs-symbol">selected_search_method</span>, <span class="hljs-symbol">experiment_name</span>, <span class="hljs-symbol">objective_name</span></span>):
+
+<span class="hljs-symbol">class</span> <span class="hljs-symbol">GridSearch</span>(<span class="hljs-symbol">TimeSeriesParameterTuning</span>)
+# <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">dataframe</span> <span class="hljs-symbol">from</span> <span class="hljs-symbol">a</span> <span class="hljs-symbol">grid</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">run</span> <span class="hljs-symbol">generator</span> <span class="hljs-symbol">repeated</span> <span class="hljs-symbol">by</span> "<span class="hljs-symbol">arm_count</span>" <span class="hljs-symbol">number</span> <span class="hljs-symbol">of</span> <span class="hljs-symbol">times</span>
+<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>(<span class="hljs-symbol">evaluation_function, <span class="hljs-symbol">arm_count</span></span>):
+
+<span class="hljs-symbol">class</span> <span class="hljs-symbol">RandomSearch</span>(<span class="hljs-symbol">TimeSeriesParameterTuning</span>)
+# <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">dataframe</span> <span class="hljs-symbol">from</span> <span class="hljs-symbol">a</span> <span class="hljs-symbol">random</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">run</span> <span class="hljs-symbol">generator</span> <span class="hljs-symbol">repeated</span> <span class="hljs-symbol">by</span> "<span class="hljs-symbol">arm_count</span>" <span class="hljs-symbol">number</span> <span class="hljs-symbol">of</span> <span class="hljs-symbol">times, <span class="hljs-symbol">with</span></span> <span class="hljs-symbol">class</span> <span class="hljs-symbol">varialbe</span> "<span class="hljs-symbol">random_strategy</span>" <span class="hljs-symbol">defining</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">actual</span> <span class="hljs-symbol">random</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">strategy</span>
+<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>(<span class="hljs-symbol">evaluation_function, <span class="hljs-symbol">arm_count</span></span>):
+
+<span class="hljs-symbol">class</span> <span class="hljs-symbol">BayesianOptSearch</span>(<span class="hljs-symbol">TimeSeriesParameterTuning</span>)
+# <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">dataframe</span> <span class="hljs-symbol">from</span> <span class="hljs-symbol">a</span> <span class="hljs-symbol">grid</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">run</span> <span class="hljs-symbol">generator</span> <span class="hljs-symbol">repeated</span> <span class="hljs-symbol">by</span> "<span class="hljs-symbol">arm_count</span>" <span class="hljs-symbol">number</span> <span class="hljs-symbol">of</span> <span class="hljs-symbol">times</span>
+<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>(<span class="hljs-symbol">evaluation_function, <span class="hljs-symbol">arm_count</span></span>):
+
+<span class="hljs-symbol">class</span> <span class="hljs-symbol">SearchForMultipleSpaces</span>
+# <span class="hljs-symbol">Wrapper</span> <span class="hljs-symbol">method</span> <span class="hljs-symbol">for</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">above</span> <span class="hljs-symbol">three</span> <span class="hljs-symbol">hypterparameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">classes</span> <span class="hljs-symbol">with</span> <span class="hljs-symbol">specific</span> <span class="hljs-symbol">input</span> <span class="hljs-symbol">model</span> <span class="hljs-symbol">class</span> <span class="hljs-symbol">parameter</span>
+<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>(<span class="hljs-symbol">selected_model, <span class="hljs-symbol">evaluation_function</span>, <span class="hljs-symbol">arm_count</span></span>)
+</code></pre>
+<h2><a class="anchor" aria-hidden="true" id="example"></a><a href="#example" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example</h2>
+<pre><code class="hljs">
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
+<span class="hljs-keyword">import</span> infrastrategy.kats.parameter_tuning.time_series_parameter_tuning <span class="hljs-keyword">as</span> tpt
+
+<span class="hljs-keyword">from</span> ax.core.parameter <span class="hljs-keyword">import</span> ChoiceParameter, FixedParameter, ParameterType
+<span class="hljs-keyword">from</span> ax.models.random.sobol <span class="hljs-keyword">import</span> SobolGenerator
+<span class="hljs-keyword">from</span> ax.models.random.uniform <span class="hljs-keyword">import</span> UniformGenerator
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts <span class="hljs-keyword">import</span> ModelEnum, SearchMethodEnum, TimeSeriesData
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.arima <span class="hljs-keyword">import</span> ARIMAModel, ARIMAParams
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.prophet <span class="hljs-keyword">import</span> ProphetModel, ProphetParams
+
+<span class="hljs-comment"># Define a random state</span>
+
+seed=<span class="hljs-number">123</span>
+random_state = np.random.RandomState(seed=seed)
+
+<span class="hljs-comment"># A toy evaluation function for illustration purpose only</span>
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">toy_evaluation</span><span class="hljs-params">(params)</span>:</span>
+error = random_state.random()
+sem = <span class="hljs-number">0.0</span> <span class="hljs-comment"># standard error of the mean of model's estimation error.</span>
+<span class="hljs-keyword">return</span> error, sem
+
+pd.set_option(<span class="hljs-string">'display.max_colwidth'</span>, <span class="hljs-number">-1</span>)
+
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="grid-search"></a><a href="#grid-search" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Grid search</h3>
+<pre><code class="hljs">
+parameters_grid_search = [
+{
+<span class="hljs-string">"name"</span>: <span class="hljs-string">"p"</span>,
+<span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+<span class="hljs-string">"values"</span>: list(range(1, 3)),
+<span class="hljs-string">"value_type"</span>: <span class="hljs-string">"int"</span>,
+<span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+},
+{
+<span class="hljs-string">"name"</span>: <span class="hljs-string">"d"</span>,
+<span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+<span class="hljs-string">"values"</span>: list(range(1, 2)),
+<span class="hljs-string">"value_type"</span>: <span class="hljs-string">"int"</span>,
+<span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+},
+{
+<span class="hljs-string">"name"</span>: <span class="hljs-string">"q"</span>,
+<span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+<span class="hljs-string">"values"</span>: list(range(1, 3)),
+<span class="hljs-string">"value_type"</span>: <span class="hljs-string">"int"</span>,
+<span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+},
+]
+
+<span class="hljs-comment"># Create search method object</span>
+
+parameter_tuner_grid = tpt.SearchMethodFactory.create_search_method(
+<span class="hljs-attribute">objective_name</span>=<span class="hljs-string">"toy_metric"</span>,
+<span class="hljs-attribute">parameters</span>=parameters_grid_search,
+<span class="hljs-attribute">selected_search_method</span>=SearchMethodEnum.GRID_SEARCH,
+)
+
+<span class="hljs-comment"># Kick off a parameter tuning trial, "arm_count=-1" implies to run all combinations in the grid</span>
+
+parameter_tuner_grid.generate_evaluate_new_parameter_values(
+<span class="hljs-attribute">evaluation_function</span>=toy_evaluation, <span class="hljs-attribute">arm_count</span>=-1
+)
+
+<span class="hljs-comment"># Retrieve parameter tuning results</span>
+
+parameter_tuning_results_grid = (
+parameter_tuner_grid.list_parameter_value_scores()
+)
+
+parameter_tuning_results_grid
+
+</code></pre>
+<p><img src="/img/Utilities/hyperparameter_tuning_grid_search_results.png" alt=""></p>
+<!-- [Image: hyperparameter tuning grid search results.png] -->
+<h3><a class="anchor" aria-hidden="true" id="random-search"></a><a href="#random-search" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Random search</h3>
+<pre><code class="hljs">
+parameters_random_search = [
+{
+<span class="hljs-string">"name"</span>: <span class="hljs-string">"seasonality_prior_scale"</span>,
+<span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+<span class="hljs-string">"value_type"</span>: <span class="hljs-string">"float"</span>,
+<span class="hljs-string">"values"</span>: list(np.logspace(-2, 1, 10, <span class="hljs-attribute">endpoint</span>=<span class="hljs-literal">True</span>)),
+<span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+},
+{
+<span class="hljs-string">"name"</span>: <span class="hljs-string">"yearly_seasonality"</span>,
+<span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+<span class="hljs-string">"value_type"</span>: <span class="hljs-string">"bool"</span>,
+<span class="hljs-string">"values"</span>: [<span class="hljs-literal">True</span>, <span class="hljs-literal">False</span>],
+},
+{
+<span class="hljs-string">"name"</span>: <span class="hljs-string">"seasonality_mode"</span>,
+<span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+<span class="hljs-string">"value_type"</span>: <span class="hljs-string">"str"</span>,
+<span class="hljs-string">"values"</span>: [<span class="hljs-string">"additive"</span>, <span class="hljs-string">"multiplicative"</span>],
+},
+{
+<span class="hljs-string">"name"</span>: <span class="hljs-string">"changepoint_prior_scale"</span>,
+<span class="hljs-string">"type"</span>: <span class="hljs-string">"range"</span>,
+<span class="hljs-string">"value_type"</span>: <span class="hljs-string">"float"</span>,
+<span class="hljs-string">"values"</span>: [list(np.logspace(-3, 0, 10, <span class="hljs-attribute">endpoint</span>=<span class="hljs-literal">True</span>))],
+<span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+},
+{
+<span class="hljs-string">"name"</span>: <span class="hljs-string">"changepoint_range"</span>,
+<span class="hljs-string">"type"</span>: <span class="hljs-string">"range"</span>,
+<span class="hljs-string">"value_type"</span>: <span class="hljs-string">"float"</span>,
+<span class="hljs-string">"bounds"</span>: [0.5, 0.8],
+<span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+},
+]
+
+<span class="hljs-comment"># Create search method object</span>
+
+parameter_tuner_random = tpt.SearchMethodFactory.create_search_method(
+<span class="hljs-attribute">objective_name</span>=<span class="hljs-string">"toy_metric"</span>,
+<span class="hljs-attribute">parameters</span>=parameters_random_search,
+<span class="hljs-attribute">selected_search_method</span>=SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
+)
+
+<span class="hljs-comment"># Kick off parameter tuning trials, total number of random combinations will be num_trials\*num_arms</span>
+
+num*<span class="hljs-attribute">trials</span>=3
+<span class="hljs-attribute">num_arms</span>=4
+<span class="hljs-keyword">for</span> * <span class="hljs-keyword">in</span> range(num_trials):
+parameter_tuner_random.generate_evaluate_new_parameter_values(
+<span class="hljs-attribute">evaluation_function</span>=toy_evaluation, <span class="hljs-attribute">num_arms</span>=num_arms
+)
+
+<span class="hljs-comment"># Retrieve parameter tuning results</span>
+
+parameter_tuning_results_random = (
+parameter_tuner_random.list_parameter_value_scores()
+)
+parameter_tuning_results_random
+
+</code></pre>
+<p><img src="/img/Utilities/hyperparameter_tuning_random_search_results.png" alt=""></p>
+<h1><a class="anchor" aria-hidden="true" id="model-hyperparameter-tuning"></a><a href="#model-hyperparameter-tuning" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Model Hyperparameter Tuning</h1>
+<p>In statistical modeling or machine learning, **hyperparameter tuning **or <strong>hyperparameter optimization</strong> is the process to choose a set of optimal <a href="https://en.wikipedia.org/wiki/Hyperparameter_(machine_learning)">hyperparameters</a> for the model or the ML algorithm. A hyperparameter is a <a href="https://en.wikipedia.org/wiki/Parameter">parameter</a> whose value can control and affect the modeling process. This is in contrast to the **parameters of interest **or **model parameters **which are typically feature/predictor/independent variable weights and to be learned through the modeling. Hyperparameters differ by types and values across various models or ML algorithms and we perform hyperparameter tuning to achieve optimal model generalizability — model performance on hold-out data sets which are not used for model training.</p>
+<p>Hyperparemeter tuning is achieved by adopting the optimal set of hyperparameters through performance evaluation on a hold-out data set — validation set. Often we split the validation set into separate splits and select the optimal set of hyperparameters base on the aggregate performance over those splits. One key component of hyperparameter tuning is the <strong>how</strong> we search for the optimal parameter, we have used three approaches in our modules:</p>
+<ul>
+<li>Grid search: search the optimal parameter over a <strong>predefined grid</strong> of parameter spaces — a Cartesian product of all possible parameter combinations from defined parameter values</li>
+<li>Random search: search the optimal parameter over <strong>random samples</strong> from defined parameter ranges or values</li>
+<li>Bayesian optimal search(to be implemented): search the optimal parameter through a Bayesian iterative optimization process.</li>
+</ul>
+<p>The general ideas of grid search and random search are demonstrated through a toy evaluation function, for <a href="https://ax.dev/docs/bayesopt.html">Bayesian optimization</a> we just give the general illustration and will update actual examples once implemented. A nice summary for <a href="https://ax.dev/docs/bayesopt.html">Bayesian optimization</a> can be found in the link, on the high level this approach is trying to find the optimal parameter by performing en <strong>efficient</strong> parameter search during each iteration to achieve the <strong>maximum gain</strong> on the <strong>objective function</strong>, where the information of the objective function is retrieved from the <strong>posterior distribution</strong> by adopting a Bayesian framework. The prior often used is <a href="https://en.wikipedia.org/wiki/Gaussian_process">Gaussian process</a> (GP) and during each iteration the optimal parameter is chosen based on the acquisition function, one commonly used is the expected improvement:</p>
+<p>[Image: Screen Shot 2020-05-06 at 12.17.01 PM.png]
+where f(x) is the unknown objective function to be maximized(minimization would just be the opposite) and f* is the best observation in the current iteration. The idea can be simply illustrated from the following animation:
+[Image: bo_1d_opt.gif]</p>
+<h2><a class="anchor" aria-hidden="true" id="api-1"></a><a href="#api-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API</h2>
+<h3><a class="anchor" aria-hidden="true" id="classes-and-methods-1"></a><a href="#classes-and-methods-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Classes and methods:</h3>
+<pre><code class="hljs"><span class="hljs-keyword">class</span> `<span class="hljs-symbol">TimeSeriesParameterTuning</span>`(<span class="hljs-symbol">ABC</span>)
+
+# <span class="hljs-symbol">methods</span>
+`<span class="hljs-symbol">validate_parameters_format</span>``(``<span class="hljs-symbol">parameters</span>``):`` ``# <span class="hljs-symbol">validate</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">input</span> <span class="hljs-symbol">types</span> <span class="hljs-symbol">and</span> <span class="hljs-symbol">values</span>`
+`<span class="hljs-symbol">get_search_space</span>``():`` ``# <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">space</span> `
+`<span class="hljs-symbol">generator_run_for_search_method</span>``(``<span class="hljs-symbol">evaluation_function</span>``,`` <span class="hljs-symbol">generator_run</span>``):`` ``# <span class="hljs-symbol">run</span> <span class="hljs-symbol">and</span> <span class="hljs-symbol">return</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">of</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">experiment</span> <span class="hljs-symbol">trials</span> <span class="hljs-symbol">using</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">evaluation</span> <span class="hljs-symbol">function</span> <span class="hljs-symbol">and</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">run</span> <span class="hljs-symbol">generator</span> `
+`<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>``(``<span class="hljs-symbol">evaluation_function</span>``,`` <span class="hljs-symbol">arm_count</span>``): # <span class="hljs-symbol">abstract</span> <span class="hljs-symbol">wrapper</span> <span class="hljs-symbol">method</span> <span class="hljs-symbol">to</span> <span class="hljs-symbol">kick</span> <span class="hljs-symbol">off</span> <span class="hljs-symbol">experiment</span> <span class="hljs-symbol">runs</span>`` `
+`<span class="hljs-symbol">list_parameter_value_scores</span>``():`` # <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">dataframe</span>
+
+`
+</code></pre>
+<pre><code class="hljs"># Search objects factory metaclass
+<span class="hljs-keyword">class</span> <span class="hljs-symbol">SearchMethodFactory</span>(<span class="hljs-symbol">metaclass</span>=<span class="hljs-symbol">Final</span>)
+# <span class="hljs-symbol">create</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">method</span> <span class="hljs-symbol">class</span> <span class="hljs-symbol">object</span> <span class="hljs-symbol">based</span> <span class="hljs-symbol">on</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">selected_search_method, <span class="hljs-symbol">currently</span></span> <span class="hljs-symbol">we</span> <span class="hljs-symbol">have</span> <span class="hljs-symbol">supported</span> <span class="hljs-symbol">three</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">methods: </span>"<span class="hljs-symbol">GRID_SEARCH</span>", "<span class="hljs-symbol">RANDOM_SEARCH_UNIFORM</span>", "<span class="hljs-symbol">RANDOM_SEARCH_SOBOL</span>", <span class="hljs-symbol">and</span> "<span class="hljs-symbol">BAYES_OPT</span>"
+<span class="hljs-symbol">create_search_method</span>(<span class="hljs-symbol">parameters, <span class="hljs-symbol">selected_search_method</span>, <span class="hljs-symbol">experiment_name</span>, <span class="hljs-symbol">objective_name</span></span>):
+
+<span class="hljs-symbol">class</span> <span class="hljs-symbol">GridSearch</span>(<span class="hljs-symbol">TimeSeriesParameterTuning</span>)
+# <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">dataframe</span> <span class="hljs-symbol">from</span> <span class="hljs-symbol">a</span> <span class="hljs-symbol">grid</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">run</span> <span class="hljs-symbol">generator</span> <span class="hljs-symbol">repeated</span> <span class="hljs-symbol">by</span> "<span class="hljs-symbol">arm_count</span>" <span class="hljs-symbol">number</span> <span class="hljs-symbol">of</span> <span class="hljs-symbol">times</span>
+<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>(<span class="hljs-symbol">evaluation_function, <span class="hljs-symbol">arm_count</span></span>):
+
+<span class="hljs-symbol">class</span> <span class="hljs-symbol">RandomSearch</span>(<span class="hljs-symbol">TimeSeriesParameterTuning</span>)
+# <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">dataframe</span> <span class="hljs-symbol">from</span> <span class="hljs-symbol">a</span> <span class="hljs-symbol">random</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">run</span> <span class="hljs-symbol">generator</span> <span class="hljs-symbol">repeated</span> <span class="hljs-symbol">by</span> "<span class="hljs-symbol">arm_count</span>" <span class="hljs-symbol">number</span> <span class="hljs-symbol">of</span> <span class="hljs-symbol">times, <span class="hljs-symbol">with</span></span> <span class="hljs-symbol">class</span> <span class="hljs-symbol">varialbe</span> "<span class="hljs-symbol">random_strategy</span>" <span class="hljs-symbol">defining</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">actual</span> <span class="hljs-symbol">random</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">strategy</span>
+<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>(<span class="hljs-symbol">evaluation_function, <span class="hljs-symbol">arm_count</span></span>):
+
+<span class="hljs-symbol">class</span> <span class="hljs-symbol">BayesianOptSearch</span>(<span class="hljs-symbol">TimeSeriesParameterTuning</span>)
+# <span class="hljs-symbol">return</span> <span class="hljs-symbol">parameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">results</span> <span class="hljs-symbol">dataframe</span> <span class="hljs-symbol">from</span> <span class="hljs-symbol">a</span> <span class="hljs-symbol">grid</span> <span class="hljs-symbol">search</span> <span class="hljs-symbol">run</span> <span class="hljs-symbol">generator</span> <span class="hljs-symbol">repeated</span> <span class="hljs-symbol">by</span> "<span class="hljs-symbol">arm_count</span>" <span class="hljs-symbol">number</span> <span class="hljs-symbol">of</span> <span class="hljs-symbol">times</span>
+<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>(<span class="hljs-symbol">evaluation_function, <span class="hljs-symbol">arm_count</span></span>):
+
+<span class="hljs-symbol">class</span> `<span class="hljs-symbol">SearchForMultipleSpaces</span>`
+`# <span class="hljs-symbol">Wrapper</span> <span class="hljs-symbol">method</span> <span class="hljs-symbol">for</span> <span class="hljs-symbol">the</span> <span class="hljs-symbol">above</span> <span class="hljs-symbol">three</span> <span class="hljs-symbol">hypterparameter</span> <span class="hljs-symbol">tuning</span> <span class="hljs-symbol">classes</span> <span class="hljs-symbol">with</span> <span class="hljs-symbol">specific</span> <span class="hljs-symbol">input</span> <span class="hljs-symbol">model</span> <span class="hljs-symbol">class</span> <span class="hljs-symbol">parameter</span>  `
+`<span class="hljs-symbol">generate_evaluate_new_parameter_values</span>``(``<span class="hljs-symbol">selected_model</span>``,`` <span class="hljs-symbol">evaluation_function</span>``,`` <span class="hljs-symbol">arm_count</span>``)`
+</code></pre>
+<h2><a class="anchor" aria-hidden="true" id="example-1"></a><a href="#example-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example</h2>
+<pre><code class="hljs"><span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
+<span class="hljs-keyword">import</span> infrastrategy.kats.parameter_tuning.time_series_parameter_tuning <span class="hljs-keyword">as</span> tpt
+
+<span class="hljs-keyword">from</span> ax.core.parameter <span class="hljs-keyword">import</span> ChoiceParameter, FixedParameter, ParameterType
+<span class="hljs-keyword">from</span> ax.models.random.sobol <span class="hljs-keyword">import</span> SobolGenerator
+<span class="hljs-keyword">from</span> ax.models.random.uniform <span class="hljs-keyword">import</span> UniformGenerator
+<span class="hljs-keyword">from</span> infrastrategy.kats.consts <span class="hljs-keyword">import</span> ModelEnum, SearchMethodEnum, TimeSeriesData
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.arima <span class="hljs-keyword">import</span> ARIMAModel, ARIMAParams
+<span class="hljs-keyword">from</span> infrastrategy.kats.models.prophet <span class="hljs-keyword">import</span> ProphetModel, ProphetParams
+
+<span class="hljs-comment"># Define a random state</span>
+seed=<span class="hljs-number">123</span>
+random_state = np.random.RandomState(seed=seed)
+<span class="hljs-comment"># A toy evaluation function for illustration purpose only</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">toy_evaluation</span><span class="hljs-params">(params)</span>:</span>
+        error = random_state.random()
+        sem = <span class="hljs-number">0.0</span>  <span class="hljs-comment"># standard error of the mean of model's estimation error.</span>
+        <span class="hljs-keyword">return</span> error, sem
+
+pd.set_option(<span class="hljs-string">'display.max_colwidth'</span>, <span class="hljs-number">-1</span>)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="grid-search-1"></a><a href="#grid-search-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Grid search</h3>
+<pre><code class="hljs">parameters_grid_search = [
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"p"</span>,
+                <span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+                <span class="hljs-string">"values"</span>: list(range(1, 3)),
+                <span class="hljs-string">"value_type"</span>: <span class="hljs-string">"int"</span>,
+                <span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+            },
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"d"</span>,
+                <span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+                <span class="hljs-string">"values"</span>: list(range(1, 3)),
+                <span class="hljs-string">"value_type"</span>: <span class="hljs-string">"int"</span>,
+                <span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+            },
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"q"</span>,
+                <span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+                <span class="hljs-string">"values"</span>: list(range(1, 3)),
+                <span class="hljs-string">"value_type"</span>: <span class="hljs-string">"int"</span>,
+                <span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+            },
+        ]
+
+<span class="hljs-comment"># Create search method object</span>
+parameter_tuner_grid = tpt.SearchMethodFactory.create_search_method(
+            <span class="hljs-attribute">objective_name</span>=<span class="hljs-string">"toy_metric"</span>,
+            <span class="hljs-attribute">parameters</span>=parameters_grid_search,
+            <span class="hljs-attribute">selected_search_method</span>=SearchMethodEnum.GRID_SEARCH,
+        )
+<span class="hljs-comment"># Kick off a parameter tuning trial,  "arm_count=-1" implies to run all combinations in the grid</span>
+parameter_tuner_grid.generate_evaluate_new_parameter_values(
+            <span class="hljs-attribute">evaluation_function</span>=toy_evaluation, <span class="hljs-attribute">arm_count</span>=-1
+        )
+<span class="hljs-comment"># Retrieve parameter tuning results</span>
+parameter_tuning_results_grid = (
+            parameter_tuner_grid.list_parameter_value_scores()
+        )
+
+parameter_tuning_results_grid
+</code></pre>
+<p>[Image: Screen Shot 2020-07-23 at 10.39.57 AM.png]</p>
+<h3><a class="anchor" aria-hidden="true" id="random-search-1"></a><a href="#random-search-1" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Random search</h3>
+<pre><code class="hljs">parameters_random_search = [
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"seasonality_prior_scale"</span>,
+                <span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+                <span class="hljs-string">"value_type"</span>: <span class="hljs-string">"float"</span>,
+                <span class="hljs-string">"values"</span>: list(np.logspace(-2, 1, 10, <span class="hljs-attribute">endpoint</span>=<span class="hljs-literal">True</span>)),
+                <span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+            },
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"yearly_seasonality"</span>,
+                <span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+                <span class="hljs-string">"value_type"</span>: <span class="hljs-string">"bool"</span>,
+                <span class="hljs-string">"values"</span>: [<span class="hljs-literal">True</span>, <span class="hljs-literal">False</span>],
+            },
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"seasonality_mode"</span>,
+                <span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+                <span class="hljs-string">"value_type"</span>: <span class="hljs-string">"str"</span>,
+                <span class="hljs-string">"values"</span>: [<span class="hljs-string">"additive"</span>, <span class="hljs-string">"multiplicative"</span>],
+            },
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"changepoint_prior_scale"</span>,
+                <span class="hljs-string">"type"</span>: <span class="hljs-string">"choice"</span>,
+                <span class="hljs-string">"value_type"</span>: <span class="hljs-string">"float"</span>,
+                <span class="hljs-string">"values"</span>: list(np.logspace(-3, 0, 10, <span class="hljs-attribute">endpoint</span>=<span class="hljs-literal">True</span>)),
+                <span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+            },
+            {
+                <span class="hljs-string">"name"</span>: <span class="hljs-string">"changepoint_range"</span>,
+                <span class="hljs-string">"type"</span>: <span class="hljs-string">"range"</span>,
+                <span class="hljs-string">"value_type"</span>: <span class="hljs-string">"float"</span>,
+                <span class="hljs-string">"bounds"</span>: [0.5, 0.8],
+                <span class="hljs-string">"is_ordered"</span>: <span class="hljs-literal">True</span>,
+            },
+        ]
+
+<span class="hljs-comment"># Create search method object</span>
+parameter_tuner_random = tpt.SearchMethodFactory.create_search_method(
+    <span class="hljs-attribute">objective_name</span>=<span class="hljs-string">"toy_metric"</span>,
+    <span class="hljs-attribute">parameters</span>=parameters_random_search,
+    <span class="hljs-attribute">selected_search_method</span>=SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
+)
+<span class="hljs-comment"># Kick off parameter tuning trials, total number of random combinations will be num_trials*num_arms</span>
+<span class="hljs-attribute">num_trials</span>=3
+<span class="hljs-attribute">num_arms</span>=4
+<span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> range(num_trials):
+    parameter_tuner_random.generate_evaluate_new_parameter_values(
+        <span class="hljs-attribute">evaluation_function</span>=toy_evaluation, <span class="hljs-attribute">arm_count</span>=num_arms
+    )
+<span class="hljs-comment"># Retrieve parameter tuning results</span>
+parameter_tuning_results_random = (
+    parameter_tuner_random.list_parameter_value_scores()
+)
+parameter_tuning_results_random
+</code></pre>
+<p>[Image: Screen Shot 2020-07-23 at 10.40.41 AM.png]</p>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-next button" href="/docs/Utilities_Backtesting"><span>Backtesting</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#api">API</a><ul class="toc-headings"><li><a href="#classes-and-methods">Classes and methods:</a></li></ul></li><li><a href="#example">Example</a><ul class="toc-headings"><li><a href="#grid-search">Grid search</a></li><li><a href="#random-search">Random search</a></li></ul></li><li><a href="#api-1">API</a><ul class="toc-headings"><li><a href="#classes-and-methods-1">Classes and methods:</a></li></ul></li><li><a href="#example-1">Example</a><ul class="toc-headings"><li><a href="#grid-search-1">Grid search</a></li><li><a href="#random-search-1">Random search</a></li></ul></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/" class="nav-home"><img src="/img/cats_logo_banner.png" alt=""/></a><div><h5>Kats Project</h5><a href="/docs/Forecasting_Autoregressive">Forecasting</a><a href="/docs/Detection_Residual_Translation">Detection</a><a href="/docs/TsFeatures">TSFeatures</a><a href="/docs/Forecasting_Autoregressive">Multivariate</a><a href="/docs/Multivariate_Outlier_Detection">Visualization</a><a href="/docs/Model_Hyperparameter_Tuning">Utilities</a></div><div><h5>Kats Community</h5><a href="/en/users.html">User Showcase</a><a href="https://stackoverflow.com/questions/tagged/" target="_blank" rel="noreferrer noopener">Stack Overflow</a><a href="https://discordapp.com/">Project Chat</a><a href="https://twitter.com/" target="_blank" rel="noreferrer noopener">Twitter</a></div><div><h5>More</h5><a href="/blog">Blog</a><a href="https://github.com/">GitHub</a><a class="github-button" data-icon="octicon-star" data-count-href="/facebook/docusaurus/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div></section><a href="https://opensource.facebook.com/" target="_blank" rel="noreferrer noopener" class="fbOpenSource"><img src="/img/oss_logo.png" alt="Facebook Open Source" width="170" height="45"/></a><section class="copyright">Copyright © 2021 Kats Project @ Facebook</section></footer></div></body></html>

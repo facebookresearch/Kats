@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Empirical Confidence Interval · </title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="&lt;!-- # Empirical Confidence Interval --&gt;"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Empirical Confidence Interval · "/><meta property="og:type" content="website"/><meta property="og:url" content="https://home.fburl.com//"/><meta property="og:description" content="&lt;!-- # Empirical Confidence Interval --&gt;"/><meta property="og:image" content="https://home.fburl.com/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://home.fburl.com/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/img/kats_horizontal.png"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/js/scrollSpy.js"></script><link rel="stylesheet" href="/css/main.css"/><script src="/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/"><img class="logo" src="/img/kats_horizontal.png" alt=""/><h2 class="headerTitleWithLogo"></h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/docs/Forecasting_Quadratic_Model" target="_self">Docs</a></li><li class=""><a href="/team" target="_self">Team</a></li><li class=""><a href="/docs/doc4" target="_self">API</a></li><li class=""><a href="/help" target="_self">Help</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Forecasting</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Forecasting</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Autoregressive">Autoregressive Neural Network (AR_net)</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Quadratic_Model">Quadratic Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Linear_Model">Linear Model</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_KatsEnsemble">KatsEnsemble</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/docs/Forecasting_Empirical_Confidence_Interval">Empirical Confidence Interval</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_STLF">STLF</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Theta">Theta</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Holt_Winters">Holt-Winter’s</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_Prophet">Prophet</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_SARIMA">SARIMA</a></li><li class="navListItem"><a class="navItem" href="/docs/Forecasting_ARIMA">ARIMA</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Detection</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Detection_Residual_Translation">BOCPD: Residual Translation</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_BOCPD">BOCPD: Bayesian Online Changepoint Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Outlier_Detection">Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_ACFDetector">ACFDetector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Seasonality_Detector">Seasonality Detector</a></li><li class="navListItem"><a class="navItem" href="/docs/Detection_Cusum_Detector">Cusum Detector</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">TSFeatures</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/TsFeatures">TsFeatures</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Multivariate</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Multivariate_Outlier_Detection">Multivariate Outlier Detection</a></li><li class="navListItem"><a class="navItem" href="/docs/Multivariate_VAR">VAR</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Utilities</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/Model_Hyperparameter_Tuning">Model Hyperparameter Tuning</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Backtesting">Backtesting</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Time_Series_Decomposition">Time Series Decomposition</a></li><li class="navListItem"><a class="navItem" href="/docs/Utilities_Dataswarm_Operators">Dataswarm Operators</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Empirical Confidence Interval</h1></header><article><div><span><!-- # Empirical Confidence Interval -->
+<p>Producing high quality prediction interval (or uncertainty interval) is very challenging, different models have various approaches to quantify the uncertainty of the forecasts. We implemented a unified framework to calculate the uncertainty interval for any forecasting models in an empirical approach. The procedure is described as follows</p>
+<ol>
+<li>Run K-fold cross validation for a given model and data, each fold contains h (horizon) time ahead</li>
+<li>For each horizon, calculate the Std of K error terms (S.E)</li>
+<li>Fit linear model: S.E. ~ Horizon</li>
+<li>Estimate the S.E. for each horizon for the true future</li>
+<li>Lower/Upper = Point Estimate -/+ Z_Score * S.E.</li>
+</ol>
+<h2><a class="anchor" aria-hidden="true" id="api"></a><a href="#api" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API</h2>
+<pre><code class="hljs"><span class="hljs-keyword">class</span> <span class="hljs-symbol">EmpConfidenceInt</span>(<span class="hljs-symbol">error_methods, <span class="hljs-symbol">data</span>, <span class="hljs-symbol">params</span>, <span class="hljs-symbol">train_percentage</span>, <span class="hljs-symbol">test_percentage</span>,
+                       <span class="hljs-symbol">sliding_steps</span>, <span class="hljs-symbol">model_class</span>, <span class="hljs-symbol">multi</span>, <span class="hljs-symbol">confidence_level</span></span>)
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="parameters"></a><a href="#parameters" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Parameters</h3>
+<pre><code class="hljs">error_methods: list of <span class="hljs-builtin-name">error</span> methods <span class="hljs-keyword">from</span> [<span class="hljs-string">"mape"</span>, <span class="hljs-string">"smape"</span>, <span class="hljs-string">"mae"</span>, <span class="hljs-string">"mase"</span>, <span class="hljs-string">"mse"</span>, <span class="hljs-string">"rmse"</span>]
+data: input data with TimeSeriesData format
+params: model parameters
+train_percentage: percentage <span class="hljs-keyword">for</span> training data <span class="hljs-builtin-name">set</span>
+test_percentage: percentage <span class="hljs-keyword">for</span> testing data <span class="hljs-builtin-name">set</span>
+sliding_steps: steps <span class="hljs-keyword">for</span> a moving sliding window
+model_class: model class
+multi: flag <span class="hljs-keyword">to</span> use multiprocessing,<span class="hljs-built_in"> default </span>as <span class="hljs-literal">True</span>
+confidence_level: confidence level,<span class="hljs-built_in"> default </span>as 0.8
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="methods"></a><a href="#methods" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Methods</h3>
+<p>We provide three useful methods:</p>
+<ol>
+<li><code>get_eci</code>: calculate the empirical confidence interval and return the forecasted series with lower and upper bounds, as specified <code>steps</code> and <code>freq</code></li>
+<li><code>diagnose</code>: our method depends on the fit of S.E. ~ Horizon, so it's useful to check the linear model fit plot via call <code>ci.diagnose()</code></li>
+<li><code>plot</code>: plot the forecasted series with lower and upper bounds, if the default confidence/uncertainty interval exists, plot both</li>
+</ol>
+<h2><a class="anchor" aria-hidden="true" id="example"></a><a href="#example" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example</h2>
+<p>We demo the usage of empirical confidence interval with air passenger data on prophet model</p>
+<pre><code class="hljs">from infrastrategy.kats.utils.empConfidenceInt <span class="hljs-built_in">import</span> EmpConfidenceInt
+from infrastrategy.kats.consts <span class="hljs-built_in">import</span> TimeSeriesData
+from infrastrategy.kats.models.prophet <span class="hljs-built_in">import</span> ProphetParams, ProphetModel
+<span class="hljs-built_in">import</span> pandas as pd
+
+<span class="hljs-attr">DATA</span> = pd.read_csv(<span class="hljs-string">"../data/example_air_passengers.csv"</span>)
+DATA.<span class="hljs-attr">columns</span> = [<span class="hljs-string">"time"</span>, <span class="hljs-string">"y"</span>]
+<span class="hljs-attr">TSData</span> = TimeSeriesData(DATA)
+<span class="hljs-attr">params</span> = ProphetParams(<span class="hljs-attr">seasonality_mode="multiplicative")</span>
+<span class="hljs-attr">ALL_ERRORS</span> = [<span class="hljs-string">"mape"</span>, <span class="hljs-string">"smape"</span>, <span class="hljs-string">"mae"</span>, <span class="hljs-string">"mase"</span>, <span class="hljs-string">"mse"</span>, <span class="hljs-string">"rmse"</span>]
+
+<span class="hljs-comment"># define the empConfidenceInt obj with required params</span>
+<span class="hljs-attr">ci</span> = EmpConfidenceInt(
+        ALL_ERRORS,
+        TSData,
+        params,
+        <span class="hljs-number">50</span>,
+        <span class="hljs-number">25</span>,
+        <span class="hljs-number">12.5</span>,
+        ProphetModel,
+        <span class="hljs-attr">confidence_level=0.9</span>
+    )
+</code></pre>
+<pre><code class="hljs"><span class="hljs-comment"># get eci, return a dataframe with calculated</span>
+eci = ci.get_eci(<span class="hljs-attribute">steps</span>=100, <span class="hljs-attribute">freq</span>=<span class="hljs-string">"MS"</span>)
+</code></pre>
+<pre><code class="hljs"><span class="hljs-comment"># let's diagonise the linear model fitting</span>
+ci.<span class="hljs-keyword">diagnose()
+</span></code></pre>
+<p><img src="/img/Forecasting/empConfidenceInt_img_1.png" alt=""></p>
+<!-- [Placeholder for empConfidenceInt_img_1.png] -->
+<pre><code class="hljs"># <span class="hljs-keyword">check</span> <span class="hljs-keyword">out</span> the comparison <span class="hljs-keyword">between</span> empirical confidence <span class="hljs-type">interval</span> v.s. <span class="hljs-keyword">default</span> ones
+ci.plot()
+</code></pre>
+<!-- [Placeholder for empConfidenceInt_img_2.png] -->
+<p><img src="/img/Forecasting/empConfidenceInt_img_2.png" alt=""></p>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/docs/Forecasting_KatsEnsemble"><span class="arrow-prev">← </span><span class="function-name-prevnext">KatsEnsemble</span></a><a class="docs-next button" href="/docs/Forecasting_STLF"><span>STLF</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#api">API</a><ul class="toc-headings"><li><a href="#parameters">Parameters</a></li><li><a href="#methods">Methods</a></li></ul></li><li><a href="#example">Example</a></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/" class="nav-home"><img src="/img/cats_logo_banner.png" alt=""/></a><div><h5>Kats Project</h5><a href="/docs/Forecasting_Autoregressive">Forecasting</a><a href="/docs/Detection_Residual_Translation">Detection</a><a href="/docs/TsFeatures">TSFeatures</a><a href="/docs/Forecasting_Autoregressive">Multivariate</a><a href="/docs/Multivariate_Outlier_Detection">Visualization</a><a href="/docs/Model_Hyperparameter_Tuning">Utilities</a></div><div><h5>Kats Community</h5><a href="/en/users.html">User Showcase</a><a href="https://stackoverflow.com/questions/tagged/" target="_blank" rel="noreferrer noopener">Stack Overflow</a><a href="https://discordapp.com/">Project Chat</a><a href="https://twitter.com/" target="_blank" rel="noreferrer noopener">Twitter</a></div><div><h5>More</h5><a href="/blog">Blog</a><a href="https://github.com/">GitHub</a><a class="github-button" data-icon="octicon-star" data-count-href="/facebook/docusaurus/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div></section><a href="https://opensource.facebook.com/" target="_blank" rel="noreferrer noopener" class="fbOpenSource"><img src="/img/oss_logo.png" alt="Facebook Open Source" width="170" height="45"/></a><section class="copyright">Copyright © 2021 Kats Project @ Facebook</section></footer></div></body></html>
