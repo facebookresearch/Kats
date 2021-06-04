@@ -136,7 +136,7 @@ class ARIMAModelTest(TestCase):
 
         m_daily = ARIMAModel(data=TSData_daily, params=params)
         m_daily.fit()
-        m_daily.predict(steps=30)
+        m_daily.predict(steps=30, include_history=True)
         m.plot()
 
     def test_others(self) -> None:
