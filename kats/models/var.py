@@ -28,11 +28,9 @@ from typing import Dict, List, Any
 import kats.models.model as m
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
+from kats.utils.parameter_tuning_utils import get_default_var_parameter_search_space
 from matplotlib import pyplot as plt
 from statsmodels.tsa.api import VAR
-from kats.utils.parameter_tuning_utils import (
-    get_default_var_parameter_search_space
-)
 
 
 class VARParams(Params):
@@ -88,6 +86,7 @@ class VARModel(m.Model):
             )
             logging.error(msg)
             raise ValueError(msg)
+        self.include_history = False
 
     def fit(self, **kwargs) -> None:
         """Fit VAR model"""
@@ -119,11 +118,14 @@ class VARModel(m.Model):
         self.resid = self.model.resid
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
-    def predict(self, steps: int, **kwargs) -> Dict[str, TimeSeriesData]:
+    def predict(
+        self, steps: int, include_history: bool = False, **kwargs
+    ) -> Dict[str, TimeSeriesData]:
         """Predict with the fitted VAR model
 
         Args:
             steps: Number of time steps to forecast
+            include_history: optional, A boolearn to specify whether to include historical data. Default is False.
             freq: optional, frequency of timeseries data.
                 Defaults to automatically inferring from time index.
             alpha: optional, significance level of confidence interval.
@@ -138,6 +140,7 @@ class VARModel(m.Model):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
+        self.include_history = include_history
         # pyre-fixme[16]: `VARModel` has no attribute `freq`.
         self.freq = kwargs.get("freq", "D")
         # pyre-fixme[16]: `VARModel` has no attribute `alpha`.
@@ -169,6 +172,25 @@ class VARModel(m.Model):
                 }
             )
             self.fcst_dict[name] = fcst_df
+
+        if self.include_history:
+            try:
+                hist_fcst = self.model.fittedvalues.values
+                hist_dates = self.data.time.iloc[-len(hist_fcst) :]
+                for i, name in enumerate(ts_names):
+                    print(pd.DataFrame({"time": hist_dates, "fcst": hist_fcst[:, i]}))
+                    fcst_df = pd.concat(
+                        [
+                            pd.DataFrame({"time": hist_dates, "fcst": hist_fcst[:, i]}),
+                            self.fcst_dict[name],
+                        ]
+                    )
+                    self.fcst_dict[name] = fcst_df
+
+            except Exception as e:
+                msg = f"Fail to generate in-sample forecasts for historical data with error message {e}."
+                logging.error(msg)
+                raise ValueError(msg)
 
         logging.debug(
             "Return forecast data: {fcst_dict}".format(fcst_dict=self.fcst_dict)

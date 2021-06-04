@@ -36,36 +36,28 @@ from kats.models.sarima import SARIMAModel, SARIMAParams
 from kats.models.stlf import STLFModel, STLFParams
 from kats.models.theta import ThetaModel, ThetaParams
 from kats.models.var import VARModel, VARParams
+from kats.utils.emp_confidence_int import EmpConfidenceInt
 from kats.utils.time_series_parameter_tuning import (
     TimeSeriesParameterTuning,
 )
-from kats.utils.emp_confidence_int import EmpConfidenceInt
 
 if "kats/tests" in os.getcwd():
     data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/air_passengers.csv"
-            )
-        )
+        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
+    )
 
     daily_data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/peyton_manning.csv"
-            )
-        )
+        os.path.join(os.path.dirname("__file__"), "../", "data/peyton_manning.csv")
+    )
 
     multi_data_path = os.path.abspath(
         os.path.join(
             os.path.dirname("__file__"),
             "../",
-            "data/multivariate_anomaly_simulated_data.csv"
-            )
+            "data/multivariate_anomaly_simulated_data.csv",
         )
-elif "/home/runner/work/" in os.getcwd(): # for Githun Action
+    )
+elif "/home/runner/work/" in os.getcwd():  # for Githun Action
     data_path = "kats/data/air_passengers.csv"
     daily_data_path = "kats/data/peyton_manning.csv"
     multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
@@ -627,7 +619,7 @@ class testVARModel(TestCase):
         params = VARParams()
         m = VARModel(TSData_multi, params)
         m.fit()
-        m.predict(steps=30)
+        m.predict(steps=30, include_history=True)
 
 
 class testBayesianVARModel(TestCase):
@@ -643,8 +635,14 @@ class testEmpConfidenceInt(TestCase):
     def test_empConfInt_Prophet(self) -> None:
         params = ProphetParams(seasonality_mode="multiplicative")
         ci = EmpConfidenceInt(
-            # pyre-fixme[6]: Expected `int` for 6th param but got `float`.
-            ALL_ERRORS, TSData, params, 50, 25, 12.5, ProphetModel, confidence_level=0.9
+            ALL_ERRORS,
+            TSData,
+            params,
+            50,
+            25,
+            12,
+            ProphetModel,
+            confidence_level=0.9,
         )
         ci.get_eci(steps=100, freq="MS")
 
