@@ -52,7 +52,7 @@ class QuadraticModel(m.Model):
     This class provides the fit, predict and plot methods for the Quadratic Model
 
     Attributes:
-        data: the input time series data as `TimeSeriesData`
+        data: the input time series data as :class:`kats.consts.TimeSeriesData`
         params: the parameter class defined with `QuadraticModelParams`
     """
     def __init__(self, data: TimeSeriesData, params: QuadraticModelParams) -> None:
@@ -65,12 +65,6 @@ class QuadraticModel(m.Model):
             raise ValueError(msg)
     def fit(self) -> None:
         """fit Quadratic Model.
-
-        Args:
-            None.
-
-        Returns:
-            None.
         """
         logging.debug(
             "Call fit() with parameters: "

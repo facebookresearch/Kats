@@ -103,7 +103,7 @@ class LSTMModel(mm.Model):
     This is the Kats model class for time series forecast using the LSTM model
 
     Attributes:
-        data: A TimeSeriesData object as the input data
+        data: :class:`kats.consts.TimeSeriesData`, the input data
         params: A LSTMParams object for the parameters
     """
 
@@ -268,12 +268,6 @@ class LSTMModel(mm.Model):
 
     def plot(self):
         """Plot forecast results from the LSTM model
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         mm.Model.plot(self.data, self.fcst_df)

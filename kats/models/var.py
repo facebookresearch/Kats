@@ -74,7 +74,7 @@ class VARModel(m.Model):
     This class provides fit, predict, and plot methods for VAR model
 
     Attributes:
-        data: the input time series data as `TimeSeriesData`
+        data: the input time series data as :class:`kats.consts.TimeSeriesData`
         params: the parameter class defined with `VARParams`
     """
 

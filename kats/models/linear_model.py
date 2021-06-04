@@ -53,7 +53,7 @@ class LinearModel(m.Model):
     This class provides the fit, predict and plot methods for the Linear Model
 
     Attributes:
-        data: the input time series data as `TimeSeriesData`
+        data: :class:`kats.consts.TimeSeriesData`, the input time series data as `TimeSeriesData`
         params: the parameter class defined with `LinearModelParams`
     """
     def __init__(self, data: TimeSeriesData, params: LinearModelParams) -> None:
@@ -67,12 +67,6 @@ class LinearModel(m.Model):
 
     def fit(self) -> None:
         """fit Linear Model.
-
-        Args:
-            None.
-
-        Returns:
-            None.
         """
         logging.debug(
             "Call fit() with parameters: "
