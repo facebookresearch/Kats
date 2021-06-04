@@ -65,7 +65,7 @@ class ARIMAModel(m.Model):
     """Model class for ARIMA model
 
     Attributes:
-        data: The input historical time series data from TimeSeriesData
+        data: :class:`kats.consts.TimeSeriesData`, the input historical time series data from TimeSeriesData
         params: The ARIMA model parameters from ARIMAParams
     """
 
@@ -230,12 +230,6 @@ class ARIMAModel(m.Model):
 
     def plot(self):
         """Plot forecast results from the ARIMA model
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         m.Model.plot(self.data, self.fcst_df)

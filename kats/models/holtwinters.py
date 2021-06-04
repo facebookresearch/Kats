@@ -97,7 +97,7 @@ class HoltWintersModel(m.Model):
     """Model class for the HoltWinters model
 
     Attributes:
-        data: The input historical time series data from TimeSeriesData
+        data: :class:`kats.consts.TimeSeriesData`, the input historical time series data from TimeSeriesData
         params: The HoltWinters model parameters from HoltWintersParams
     """
 
@@ -112,11 +112,6 @@ class HoltWintersModel(m.Model):
 
     def fit(self, **kwargs) -> None:
         """Fit the model with the specified input parameters
-
-        Args:
-            None
-        Returns:
-            None
         """
 
         logging.debug("Call fit() with parameters:{kwargs}".format(kwargs=kwargs))
@@ -218,12 +213,6 @@ class HoltWintersModel(m.Model):
 
     def plot(self):
         """Plot forecast results from the HoltWinters model
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         logging.info("Generating chart for forecast result from arima model.")
