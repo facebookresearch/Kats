@@ -30,18 +30,21 @@ Multivariate MK Test.  Neither detector has any distribution requirement for the
 not be any serial correlation.
 """
 
+
 class MKMetadata:
     """Metadata object for changepoint of MKDetector
 
     Attributes:
-       detector_type: Detector, Type of detector changepoint is for.  Right now, this is always MKDetector.
-       is_multivariate: boolean, Whether this is a changepoint for a multivariate time series
-       trend_direction: string, Direction of trend, either 'increasing' or 'decreasing'
-       Tau: float or Dict, Kendall's Tau value for changepoint.  This is a  float in the univariate case and
-       a Dict in the multivarite case
+        detector_type: Detector, Type of detector changepoint is for.  Right now, this is always MKDetector.
+        is_multivariate: boolean, Whether this is a changepoint for a multivariate time series
+        trend_direction: string, Direction of trend, either 'increasing' or 'decreasing'
+        Tau: float or Dict, Kendall's Tau value for changepoint.
+            This is a  float in the univariate case and a Dict in the multivarite case
     """
 
-    def __init__(self, is_multivariate: bool, trend_direction: str, Tau: Union[float, Dict]):
+    def __init__(
+        self, is_multivariate: bool, trend_direction: str, Tau: Union[float, Dict]
+    ):
         self._detector_type = MKDetector
         self._is_multivariate = is_multivariate
         self._trend_direction = trend_direction
@@ -136,7 +139,7 @@ class MKDetector(Detector):
 
     # pyre-fixme[9]: freq has type `str`; used as `None`.
     def _remove_seasonality(self, ts: pd.DataFrame, freq: str = None) -> pd.DataFrame:
-        """ Remove seasonality in the time series using moving average. """
+        """Remove seasonality in the time series using moving average."""
 
         if freq is None:
             return ts  # no seasonality
@@ -146,7 +149,7 @@ class MKDetector(Detector):
         return ts
 
     def _smoothing(self, ts: pd.DataFrame) -> pd.DataFrame:
-        """ Remove noise in the time series using holt-winters model. """
+        """Remove noise in the time series using holt-winters model."""
 
         smoothed_ts = pd.DataFrame()
         for c in ts.columns:
@@ -157,7 +160,8 @@ class MKDetector(Detector):
                     _fit = model.fit(smoothing_level=0.2, optimized=False)
                     smoothed_ts_tmp = _fit.predict(
                         # pyre-fixme[16]: Optional type has no attribute `index`.
-                        start=ts_c.index[0], end=ts_c.index[-1]
+                        start=ts_c.index[0],
+                        end=ts_c.index[-1],
                     )
                     smoothed_ts = pd.concat(
                         [smoothed_ts, smoothed_ts_tmp.rename(c)], axis=1
@@ -194,7 +198,7 @@ class MKDetector(Detector):
         return x, c
 
     def _drop_missing_values(self, x: np.array) -> Tuple[np.array, int]:
-        """ Drop the missing values in x. """
+        """Drop the missing values in x."""
 
         if x.ndim == 1:  # univariate case with 1-dim array/ shape(n,)
             x = x[~(np.isnan(x))]
@@ -209,12 +213,12 @@ class MKDetector(Detector):
 
     def MKtest(self, ts: pd.DataFrame) -> Tuple[dt, str, float, float]:
         """
-        This functions performs the Mann-Kendall (MK) test for trend detection (Mann 1945,
-            Kendall 1975, Gilbert 1987).
-        Input:
+        This functions performs the Mann-Kendall (MK) test for trend detection (Mann 1945, Kendall 1975, Gilbert 1987).
+        Args:
             ts: the dataframe of input data with time as index.
                 This time series should not present seasonality for MK test.
-        Output:
+
+        Returns:
             anchor_date: the last time point in ts; the date for which alert is triggered
             trend: tells the trend (decreasing, increasing, or no trend)
             p: p-value of the significance test
@@ -234,17 +238,14 @@ class MKDetector(Detector):
 
     def multivariate_MKtest(self, ts: pd.DataFrame) -> Tuple[dt, str, float, Dict]:
         """
-        This function performs the Multivariate Mann-Kendall (MK) test proposed by
-        R. M. Hirsch and J. R. Slack (1984).
-        Input:
-            ts: the dataframe of input data with time as index.
-                This time series should not present seasonality for MK test.
-         Output:
+        This function performs the Multivariate Mann-Kendall (MK) test proposed by R. M. Hirsch and J. R. Slack (1984).
+        Args:
+            ts: the dataframe of input data with time as index.  This time series should not present seasonality for MK test.
+        Returns:
             anchor_date: the last time point in ts; the date for which alert is triggered
             trend:_dict: tells the trend (decreasing, increasing, or no trend) for each metric
             p: p-value of the significance test
-            Tau_dict: Dictionary of Kendall Tau-b statistics for each univariate time series, and
-                       Tau_dict["overall"] gives the Tau-b statistic for the multivariate time series
+            Tau_dict: Dictionary of Kendall Tau-b statistics for each univariate time series, and Tau_dict["overall"] gives the Tau-b statistic for the multivariate time series
         """
 
         anchor_date = ts.index[-1]
@@ -280,13 +281,11 @@ class MKDetector(Detector):
 
     def runDetector(self, ts: pd.DataFrame) -> Dict:
         """
-        This function runs MK test for a time point in the input data,
-            and saves its related statistics to a dict.
-        Input:
-            ts: the dataframe of input data with noise and seasonality removed.
-                Its index is time.
-        Output: a dictionary consists of MK test statistics for the anchor time point,
-            including trend, p-value and Kendall Tau.
+        This function runs MK test for a time point in the input data, and saves its related statistics to a dict.
+        Args:
+            ts: the dataframe of input data with noise and seasonality removed.  Its index is time.
+        Returns:
+            a dictionary consists of MK test statistics for the anchor time point, including trend, p-value and Kendall Tau.
         """
 
         # run MK test
@@ -311,7 +310,8 @@ class MKDetector(Detector):
         """
         This function runs MK test sequentially. It finds the trend and calculates
             the related statistics for all time points in a given time series.
-        Input:
+
+        Args:
             window_size: int, the number of look back days for checking trend
                 persistence (20 days by default)
 
@@ -415,7 +415,7 @@ class MKDetector(Detector):
     def get_MK_results(
         self, MK_statistics: pd.DataFrame, direction: str
     ) -> pd.DataFrame:
-        """ Obtain a subset of MK_statistics given the desired direction """
+        """Obtain a subset of MK_statistics given the desired direction"""
 
         if direction not in ["up", "down", "both"]:
             raise ValueError("direction should be chosen from {'up', 'down', 'both'}")
@@ -480,12 +480,12 @@ class MKDetector(Detector):
     # pyre-fixme[9]: top_k has type `int`; used as `None`.
     def get_top_k_metrics(self, time_point: dt, top_k: int = None) -> pd.DataFrame:
         """
-        This function obtains k metrics that shows the most significant trend at a time point.
-        Only works for multivariate data.
-        Input:
+        This function obtains k metrics that shows the most significant trend at a time point.  Only works for multivariate data.
+
+        Args:
             time_point: the time point to be investigated
             top_k: the number of top metrics
-        Output:
+        Returns:
             a dataframe consists of top_k metrics and their corresponding Kendall Tau and trend
         """
 
@@ -530,7 +530,7 @@ class MKDetector(Detector):
     def plot_heat_map(self) -> pd.DataFrame:
         """
         This function plots the Tau of each metric in a heatmap
-        Output: a dataframe contains Tau for all metrics at all time points
+        Returns: a dataframe contains Tau for all metrics at all time points
         """
 
         import plotly.graph_objects as go
