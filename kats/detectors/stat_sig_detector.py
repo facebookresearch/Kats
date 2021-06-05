@@ -167,9 +167,9 @@ class StatSigDetectorModel(DetectorModel):
         # handle cases where there is either no historical  data, or
         # not enough historical data
         data, historical_data = self._handle_not_enough_history(
+            data=data,
             # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
             #  `Optional[TimeSeriesData]`.
-            data=data,
             historical_data=historical_data,
         )
         # pyre-fixme[16]: `StatSigDetectorModel` has no attribute `data`.
@@ -578,9 +578,9 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         # handle cases where there is either no historical  data, or
         # not enough historical data
         data, historical_data = self._handle_not_enough_history(
+            data=data,
             # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
             #  `Optional[TimeSeriesData]`.
-            data=data,
             historical_data=historical_data,
         )
         # pyre-fixme[16]: `MultiStatSigDetectorModel` has no attribute `data`.
