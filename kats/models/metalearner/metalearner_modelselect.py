@@ -406,7 +406,7 @@ class MetaLearnModelSelect:
         elif isinstance(source_x, np.ndarray):
             x = source_x.copy()
         else:
-            msg = f"Invalid source_x type: {type(x)}."
+            msg = f"Invalid source_x type: {type(source_x)}."
             logging.error(msg)
             raise ValueError(msg)
         if self.scale:

@@ -303,7 +303,7 @@ class MetaLearnPredictability:
         elif isinstance(source_x, np.ndarray):
             x = source_x.copy()
         else:
-            msg = f"In valid source_x type: {type(x)}."
+            msg = f"In valid source_x type: {type(source_x)}."
             logging.error(msg)
             raise ValueError(msg)
         x[np.isnan(x)] = 0.0
