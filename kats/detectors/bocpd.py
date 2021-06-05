@@ -57,7 +57,7 @@ class BOCPDMetadata:
     Attributes:
         model: The kind of predictive model used.
         ts_name: string, name of the time series for which the detector is
-        is being run.
+            is being run.
     """
 
     # pyre-fixme[9]: ts_name has type `str`; used as `None`.
@@ -229,8 +229,7 @@ class BOCPDetector(Detector):
     built from the previous observations.
 
     Attrbutes:
-        data: TimeSeriesData, data on which we will run the BOCPD
-            algorithm.
+        data: TimeSeriesData, data on which we will run the BOCPD algorithm.
     """
 
     def __init__(self, data: TimeSeriesData) -> None:
@@ -285,47 +284,47 @@ class BOCPDetector(Detector):
         and returns the list of changepoints, along with some metadata
 
         Args:
-        model: This specifies the probabilistic model, that generates
-               the data within each segment. The user can input several
-               model types depending on the behavior of the time series.
-               Currently allowed models are:
-               NORMAL_KNOWN_MODEL: Normal model with variance known. Use
-               this to find level shifts in normally distributed data.
-               TREND_CHANGE_MODEL : This model assumes each segment is
-               generated from ordinary linear regression. Use this model
-               to understand changes in slope, or trend in time series.
-               POISSON_PROCESS_MODEL: This assumes a poisson generative model.
-               Use this for count data, where most of the values are close
-               to zero.
+            model: This specifies the probabilistic model, that generates
+                the data within each segment. The user can input several
+                model types depending on the behavior of the time series.
+                Currently allowed models are:
+                NORMAL_KNOWN_MODEL: Normal model with variance known. Use
+                this to find level shifts in normally distributed data.
+                TREND_CHANGE_MODEL : This model assumes each segment is
+                generated from ordinary linear regression. Use this model
+                to understand changes in slope, or trend in time series.
+                POISSON_PROCESS_MODEL: This assumes a poisson generative model.
+                Use this for count data, where most of the values are close
+                to zero.
 
-        model_parameters: Model Parameters correspond to specific parameters
-                          for a specific model. They are defined in the
-                          NormalKnownParameters, TrendChangeParameters,
-                          PoissonModelParameters classes.
+            model_parameters: Model Parameters correspond to specific parameters
+                for a specific model. They are defined in the
+                NormalKnownParameters, TrendChangeParameters,
+                PoissonModelParameters classes.
 
-        lag: integer referring to the lag in reporting the changepoint. We
-             report the changepoint after seeing "lag" number of data points.
-             Higher lag gives greater certainty that this is indeed a changepoint.
-             Lower lag will detect the changepoint faster. This is the tradeoff.
+            lag: integer referring to the lag in reporting the changepoint. We
+                report the changepoint after seeing "lag" number of data points.
+                Higher lag gives greater certainty that this is indeed a changepoint.
+                Lower lag will detect the changepoint faster. This is the tradeoff.
 
-        choose_priors: If True, then hyperparameter tuning library (HPT) is used
-            to choose the best priors which maximizes the posterior predictive
+            choose_priors: If True, then hyperparameter tuning library (HPT) is used
+                to choose the best priors which maximizes the posterior predictive
 
-        changepoint_prior: This is a Bayesian algorithm. Hence, this parameter
-                           specifies the prior belief on the probability
-                           that a given point is a changepoint. For example,
-                           if you believe 10% of your data will be a changepoint,
-                           you can set this to 0.1.
+            changepoint_prior: This is a Bayesian algorithm. Hence, this parameter
+                specifies the prior belief on the probability
+                that a given point is a changepoint. For example,
+                if you believe 10% of your data will be a changepoint,
+                you can set this to 0.1.
 
-        threshold: We report the probability of observing the changepoint
-                   at each instant. The actual changepoints are obtained by
-                   denoting the points above this threshold to be a changepoint.
+            threshold: We report the probability of observing the changepoint
+                at each instant. The actual changepoints are obtained by
+                denoting the points above this threshold to be a changepoint.
 
-        debug: This surfaces additional information, such as the plots of
-               predicted means and variances, which allows the user to see
-               debug why changepoints were not properly detected.
+            debug: This surfaces additional information, such as the plots of
+                predicted means and variances, which allows the user to see
+                debug why changepoints were not properly detected.
 
-        agg_cp: It is tested and believed that by aggregating run-length
+            agg_cp: It is tested and believed that by aggregating run-length
                 posterior, we may have a stronger signal for changepoint
                 detection. When setting this parameter as True, posterior
                 will be the aggregation of run-length posterior by fetching
