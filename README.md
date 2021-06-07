@@ -31,6 +31,12 @@ Kats is on PyPI, so you can use `pip` to install it.
 pip install kats
 ```
 
+You can then use `pip` to install the requirements for Kats.
+
+```bash
+pip install -r ~/Kats/requirements.txt
+```
+
 ## Examples
 Here are a few sample snippets from a subset of Kats offerings:
 
@@ -61,27 +67,23 @@ fcst = m.predict(steps=30, freq="MS")
 Using `CUSUM` detection algorithm on simulated data set.
 ```python
 # import packages
-from kats.consts import TimeSeriesData, TimeSeriesIterator
+from kats.consts import TimeSeriesData
 from kats.detectors.cusum_detection import CUSUMDetector
 
-# synthesize data with simulation
+# simulate time series with increase
 np.random.seed(10)
-df = pd.DataFrame(
+df_increase = pd.DataFrame(
     {
         'time': pd.date_range('2019-01-01', '2019-03-01'),
         'increase':np.concatenate([np.random.normal(1,0.2,30), np.random.normal(2,0.2,30)]),
-        'decrease':np.concatenate([np.random.normal(1,0.3,50), np.random.normal(0.5,0.3,10)]),
     }
 )
 
-# detect increase
-timeseries = TimeSeriesData(
-    df.loc[:,['time','increase']]
-)
-detector = CUSUMDetector(timeseries)
+# convert to TimeSeriesData object
+timeseries = TimeSeriesData(df_increase)
 
-# run detector
-change_points = detector.detector(change_directions=["increase"])
+# run detector and find change points
+change_points = CUSUMDetector(timeseries).detector()
 ```
 
 ### TSFeatures
@@ -89,7 +91,6 @@ We can extract meaningful features from the given time series data
 ```python
 # Initiate feature extraction class
 from kats.tsfeatures.tsfeatures import TsFeatures
-tsFeatures = TsFeatures()
 
 features = TsFeatures().transform(air_passengers_ts)
 ```
