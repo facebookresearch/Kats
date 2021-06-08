@@ -4,153 +4,116 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+from __future__ import annotations
+
+import attr
 from kats.consts import TimeSeriesData
 from datetime import datetime
 import numpy as np
 import pandas as pd
 from scipy.stats import norm, t, ttest_ind # @manual
 from statsmodels.stats import multitest
+from typing import List, Optional, Tuple
 
 from dataclasses import dataclass
 
+# from np.typing import ArrayLike
+ArrayLike = np.ndarray
+
 
 #Single Spike object
-class SingleSpike(object):
-    def __init__(self, time: datetime, value: float, n_sigma: float):
-        self.time = time
-        self.value = value
-        self.n_sigma = n_sigma
+@attr.s(auto_attribs=True)
+class SingleSpike:
+    time: datetime
+    value: float
+    n_sigma: float
 
     @property
-    def time_str(self):
+    def time_str(self) -> str:
         return datetime.strftime(self.time, '%Y-%m-%d')
 
 
 # Changepoint Interval object
-class ChangePointInterval(object):
-    def __init__(self, cp_start: datetime, cp_end: datetime):
-        self.start_time = cp_start
-        self.end_time = cp_end
-
-        self._previous_interval = None
-        self.all_spikes = None
-
-        self.spike_std_threshold = 2.
-        self.data_df = None
+@attr.s(auto_attribs=True)
+class ChangePointInterval:
+    start_time: datetime
+    end_time: datetime
+    previous_interval: Optional[ChangePointInterval] = attr.ib(default=None, init=False)
+    _all_spikes: Optional[List[SingleSpike]] = attr.ib(default=None, init=False)
+    spike_std_threshold: float = attr.ib(default=2., init=False)
+    data_df: Optional[pd.DataFrame] = attr.ib(None, init=False)
+    _ts_cols: List[str] = attr.ib(factory = lambda: ['value'], init=False)
 
     @property
-    def data(self):
-        if self.data_df is not None:
-            return self.data_df.value.values
-        else:
-            return None
+    def data(self) -> Optional[ArrayLike]:
+        df = self.data_df
+        return None if df is None else df.value.values
 
     @data.setter
-    def data(self, data: TimeSeriesData):
+    def data(self, data: TimeSeriesData) -> None:
         all_data_df = data.to_dataframe()
+        # pyre-ignore[16]: `DataFrame` has no attribute `columns`.
+        all_data_df.columns = ['time'] + self._ts_cols
         all_data_df['time'] = pd.to_datetime(all_data_df['time'])
-        self.data_df = all_data_df[
-            # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_start`.
-            (all_data_df.time >= self.cp_start)
-            # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_end`.
-            & (all_data_df.time < self.cp_end)
+        all_data_df = all_data_df.loc[
+            (all_data_df.time >= self.start_time) & (all_data_df.time < self.end_time)
         ]
-        self.data_df.columns = ['time', 'value']
+        self.data_df = all_data_df
 
-    @property
-    def previous_interval(self):
-        return self._previous_interval
+    def _detect_spikes(self) -> List[SingleSpike]:
+        df = self.data_df
+        if df is None:
+            raise ValueError('data must be set before spike detection')
+        df['z_score'] = (df.value - self.mean_val)/np.sqrt(self.variance_val)
 
-    @previous_interval.setter
-    def previous_interval(self, prev_interval):
-        self._previous_interval = prev_interval
+        spike_df = df.query(f'z_score >={self.spike_std_threshold}')
+        return [SingleSpike(time=row['time'], value=row['value'], n_sigma=row['z_score']) for counter, row in spike_df.iterrows()]
 
-    def _detect_spikes(self):
-        self.data_df['z_score'] = (
-            (self.data_df.value - self.mean_val)/np.sqrt(self.variance_val)
-        )
-
-        spike_df = self.data_df.query(f'z_score >={self.spike_std_threshold}')
-        if spike_df.shape[0] == 0:
-            self.all_spikes = []
-        else:
-            self.all_spikes = [
-                SingleSpike(time=row['time'], value=row['value'], n_sigma=row['z_score'])
-                for counter, row in spike_df.iterrows()
-            ]
-
-    def extend_data(self, data: TimeSeriesData):
+    def extend_data(self, data: TimeSeriesData) -> None:
         """
         extends the data.
         """
         new_data_df = data.to_dataframe()
-        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
-        new_data_df.columns = ['time', 'value']
-
-        self.data_df = pd.concat([self.data_df, new_data_df])
-        self.data_df = self.data_df[
-            # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_start`.
-            (self.data_df.time >= self.cp_start)
-            # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_end`.
-            & (self.data_df.time < self.cp_end)
-        ]
-
+        # pyre-ignore[16]: `DataFrame` has no attribute `columns`.
+        new_data_df.columns = ['time'] + self._ts_cols
+        df = self.data_df
+        if df is not None:
+            new_data_df = pd.concat([df, new_data_df])
+        self.data_df = new_data_df.loc[(new_data_df.time >= self.start_time) & (new_data_df.time < self.end_time)]
 
     @property
-    def start_time(self):
-        return self.cp_start
-
-    @start_time.setter
-    def start_time(self, cp_start: datetime):
-        # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_start`.
-        self.cp_start = cp_start
+    def start_time_str(self) -> str:
+        return datetime.strftime(self.start_time, '%Y-%m-%d')
 
     @property
-    def end_time(self):
-        return self.cp_end
-
-    @end_time.setter
-    def end_time(self, cp_end: datetime):
-        # pyre-fixme[16]: `ChangePointInterval` has no attribute `cp_end`.
-        self.cp_end = cp_end
+    def end_time_str(self) -> str:
+        return datetime.strftime(self.end_time, '%Y-%m-%d')
 
     @property
-    def start_time_str(self):
-        return datetime.strftime(self.cp_start, '%Y-%m-%d')
+    def mean_val(self) -> float:
+        vals = self.data
+        return 0. if vals is None else np.mean(vals)
 
     @property
-    def end_time_str(self):
-        return datetime.strftime(self.cp_end, '%Y-%m-%d')
-
-    @property
-    def mean_val(self):
-        if self.data_df is not None:
-            return np.mean(self.data_df.value.values)
-        else:
-            return 0.
-    @property
-    def variance_val(self):
-        if self.data_df is not None:
-            return np.var(self.data_df.value.values)
-        else:
-            return 0.
+    def variance_val(self) -> float:
+        vals = self.data
+        return 0. if vals is None else np.var(vals)
 
     def __len__(self) -> int:
-        if self.data_df is not None:
-            return self.data_df.shape[0]
-        else:
-            return 0
+        df = self.data_df
+        return 0 if df is None else len(df)
 
     @property
-    def spikes(self):
-        if self.all_spikes is None:
-            self._detect_spikes()
-        return self.all_spikes
-
+    def spikes(self) -> List[SingleSpike]:
+        spikes = self._all_spikes
+        if spikes is None:
+            spikes = self._detect_spikes()
+            self._all_spikes = spikes
+        return spikes
 
 
 # Percentage Change Object
-class PercentageChange(object):
+class PercentageChange:
     def __init__(self, current:ChangePointInterval,
                  previous: ChangePointInterval):
         self.current = current
@@ -163,68 +126,65 @@ class PercentageChange(object):
         self.alpha = 0.05
 
     @property
-    def ratio_estimate(self):
+    def ratio_estimate(self) -> float:
         return (self.current.mean_val / self.previous.mean_val)
 
     @property
-    def perc_change(self):
-        return  (self.ratio_estimate - 1.) * 100.
+    def perc_change(self) -> float:
+        return (self.ratio_estimate - 1.) * 100.
 
     @property
-    def perc_change_upper(self):
+    def perc_change_upper(self) -> float:
         if self.upper is None:
             self._delta_method()
         return (self.upper - 1) * 100.
 
     @property
-    def perc_change_lower(self):
+    def perc_change_lower(self) -> float:
         if self.lower is None:
             self._delta_method()
         return (self.lower - 1) * 100.
 
     @property
-    def direction(self):
+    def direction(self) -> str:
         if self.perc_change > 0.:
             return 'up'
         else:
             return 'down'
 
     @property
-    def stat_sig(self):
+    def stat_sig(self) -> bool:
         if self.upper is None:
             self._delta_method()
 
         # not stat sig e.g. [0.88, 1.55]
-        if self.upper  > 1. and self.lower < 1.:
-            return False
-        else:
-            return True
+        return not(self.upper > 1. and self.lower < 1.)
 
     @property
-    def score(self):
+    def score(self) -> float:
         if self._t_score is None:
             self._ttest()
 
         return self._t_score
 
     @property
-    def p_value(self):
+    def p_value(self) -> float:
         if self._p_value is None:
             self._ttest()
 
         return self._p_value
 
     @property
-    def mean_previous(self):
+    def mean_previous(self) -> float:
         return self.previous.mean_val
 
     @property
-    def mean_difference(self):
+    def mean_difference(self) -> float:
         _mean_diff = self.current.mean_val - self.previous.mean_val
         return _mean_diff
 
     @property
-    def ci_upper(self):
+    def ci_upper(self) -> float:
         sp_mean = self._pooled_stddev()
         df = self._get_df()
 
@@ -238,7 +198,7 @@ class PercentageChange(object):
         return _ci_upper
 
     @property
-    def ci_lower(self):
+    def ci_lower(self) -> float:
         sp_mean = self._pooled_stddev()
         df = self._get_df()
         # the plus sign here is non-intuitive. See comment
@@ -250,7 +210,7 @@ class PercentageChange(object):
 
         return _ci_lower
 
-    def _get_df(self):
+    def _get_df(self) -> float:
         """
         degree of freedom of t-test
         """
@@ -260,7 +220,7 @@ class PercentageChange(object):
 
         return df
 
-    def _pooled_stddev(self):
+    def _pooled_stddev(self) -> float:
         """
         This calculates the pooled standard deviation for t-test
         as defined in https://online.stat.psu.edu/stat500/lesson/7/7.3/7.3.1/7.3.1.1
@@ -283,7 +243,7 @@ class PercentageChange(object):
 
         return s_p
 
-    def _ttest_manual(self):
+    def _ttest_manual(self) -> Tuple[float, float]:
         """
         scipy's t-test gives nan when one of the arrays has a
         size of 1.
@@ -299,10 +259,7 @@ class PercentageChange(object):
 
         return t_score, p_value
 
-    def _ttest(self):
-        current_data = self.current.data
-        prev_data = self.previous.data
-
+    def _ttest(self) -> None:
         n_1 = len(self.previous)
         n_2 = len(self.current)
 
@@ -329,13 +286,19 @@ class PercentageChange(object):
         """
         Calculates the covariance of x and y
         """
-        n_min = min(len(self.current), len(self.previous))
-        current_data = self.current.data[len(self.current) - n_min:-1]
-        prev_data = self.previous.data[len(self.previous) - n_min:-1]
+        current = self.current.data
+        previous = self.previous.data
+        if current is None or previous is None:
+            return np.nan
+        n_min = min(len(current), len(previous))
+        if n_min == 0:
+            return np.nan
+        current = current[-n_min:-1]
+        previous = previous[-n_min:-1]
 
-        return np.cov(current_data,prev_data)[0,1]/n_min
+        return np.cov(current, previous)[0, 1]/n_min
 
-    def _delta_method(self):
+    def _delta_method(self) -> None:
         test_mean = self.current.mean_val
         control_mean = self.previous.mean_val
         test_var = self.current.variance_val
@@ -355,127 +318,124 @@ class PercentageChange(object):
         self.lower = self.ratio_estimate + norm.ppf(self.alpha/2) * np.sqrt(abs(sigma_sq_ratio))
         self.upper = self.ratio_estimate - norm.ppf(self.alpha/2) * np.sqrt(abs(sigma_sq_ratio))
 
+
 # Multivariable Changepoint Interval object
+@attr.s(auto_attribs=True, init=False)
 class MultiChangePointInterval(ChangePointInterval):
-    def __init__(self,cp_start: datetime, cp_end: datetime):
-        ChangePointInterval.__init__(self, cp_start, cp_end)
-        self.num_series = -1
-        self.ts_cols = None
+    num_series: int = 0
+
+    def __init__(self, start_time: datetime, end_time: datetime):
+        super().__init__(start_time, end_time)
+        self._ts_cols = []
 
     @property
-    def data(self):
-        if self.data_df is not None:
-            return self.data_df[[c for c in self.data_df.columns if c != 'time']].values
-        else:
+    def data(self) -> Optional[ArrayLike]:
+        df = self.data_df
+        if df is None:
             return None
+        return df[[c for c in df.columns if c != 'time']].values
 
     @data.setter
-    def data(self, data: TimeSeriesData):
+    def data(self, data: TimeSeriesData) -> None:
+        self._ts_cols = list(data.value.columns)
+        self.num_series = len(self._ts_cols)
         all_data_df = data.to_dataframe()
-        self.ts_cols = list(data.value.columns)
-        self.num_series = len(self.ts_cols)
+        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
+        all_data_df.columns = ['time']  + self._ts_cols
         all_data_df['time'] = pd.to_datetime(all_data_df['time'])
-        self.data_df = all_data_df[
-            # pyre-fixme[16]: `MultiChangePointInterval` has no attribute `cp_start`.
-            (all_data_df.time >= self.cp_start)
-            # pyre-fixme[16]: `MultiChangePointInterval` has no attribute `cp_end`.
-            & (all_data_df.time <= self.cp_end)
+        all_data_df = all_data_df.loc[
+            (all_data_df.time >= self.start_time) & (all_data_df.time <= self.end_time)
         ]
-        self.data_df.columns = ['time']  + self.ts_cols
+        self.data_df = all_data_df
 
-    def _detect_spikes(self):
-        self.all_spikes = [[] for _ in range(self.num_series)]
+    # pyre-fixme[15]: Inconsistent override [15]: `kats.detectors.detector_consts.MultiChangePointInterval._detect_spikes` overrides method defined in `ChangePointInterval` inconsistently. Returned type `List[List[SingleSpike]]` is not a subtype of the overridden return `List[SingleSpike]`.
+    def _detect_spikes(self) -> List[List[SingleSpike]]:
+        data_df = self.data_df
+        if data_df is None:
+            raise ValueError('detect_spikes called before data has been set.')
 
-        for i, c in enumerate(self.ts_cols):
-            self.data_df[f'z_score_{c}'] = (
-                (self.data_df[c] - self.mean_val[i])/np.sqrt(self.variance_val[i])
+        spikes = []
+        for i, c in enumerate(self._ts_cols):
+            data_df[f'z_score_{c}'] = (
+                (data_df[c] - self.mean_val[i])/np.sqrt(self.variance_val[i])
             )
 
-            spike_df = self.data_df.query(f'z_score_{c} >={self.spike_std_threshold}')
+            spike_df = data_df.query(f'z_score_{c} >={self.spike_std_threshold}')
 
             if spike_df.shape[0] == 0:
                 continue
             else:
-                self.all_spikes[i] = [
+                spikes.append([
                     SingleSpike(time=row['time'], value=row[c], n_sigma=row[f'z_score_{c}'])
                     for counter, row in spike_df.iterrows()
-                ]
-
-    def extend_data(self, data: TimeSeriesData):
-        """
-        extends the data.
-        """
-        new_data_df = data.to_dataframe()
-        self.data_df.columns =  ['time']  + self.ts_cols
-
-
-        self.data_df = pd.concat([self.data_df, new_data_df])
-        self.data_df = self.data_df[
-            # pyre-fixme[16]: `MultiChangePointInterval` has no attribute `cp_start`.
-            (self.data_df.time >= self.cp_start)
-            # pyre-fixme[16]: `MultiChangePointInterval` has no attribute `cp_end`.
-            & (self.data_df.time <= self.cp_end)
-        ]
+                ])
+        return spikes
 
     @property
-    def mean_val(self):
-        if self.data_df is not None:
-            return np.array([np.mean(self.data_df[c].values) for c in self.ts_cols])
-        else:
+    def mean_val(self) -> ArrayLike:
+        data_df = self.data_df
+        if data_df is None:
             return np.zeros(self.num_series)
+        return np.array([np.mean(data_df[c].values) for c in self._ts_cols])
 
     @property
-    def variance_val(self):
-        if self.data_df is not None:
-            return np.array([np.var(self.data_df[c].values) for c in self.ts_cols])
-        else:
+    def variance_val(self) -> ArrayLike:
+        data_df = self.data_df
+        if data_df is None:
             return np.zeros(self.num_series)
+        return np.array([np.var(data_df[c].values) for c in self._ts_cols])
 
 
 # Multivariable Percentage Change Object
 class MultiPercentageChange(PercentageChange):
     def __init__(self,
-                 current:MultiChangePointInterval,
+                 current: MultiChangePointInterval,
                  previous: MultiChangePointInterval,
                  method='fdr_bh'):
         PercentageChange.__init__(self, current, previous)
         self.method = method
 
     @property
-    def direction(self):
+    def direction(self) -> ArrayLike:
         return np.vectorize(lambda x: 'up' if x > 0 else 'down')(self.perc_change)
 
     @property
-    def stat_sig(self):
+    def stat_sig(self) -> ArrayLike:
         if self.upper is None:
             self._delta_method()
-
+        # pyre-fixme[16]: `ChangePointInterval` has no attribute `num_series`.
         return np.array([False if self.upper[i]  > 1. and self.lower[i] < 1 else True for i in range(self.current.num_series)])
 
-    def _ttest(self):
-        p_value_start = np.zeros(self.current.num_series)
-        t_value_start = np.zeros(self.current.num_series)
+    def _ttest(self) -> None:
+        # pyre-fixme[16]: `ChangePointInterval` has no attribute `num_series`.
+        num_series = self.current.num_series
+        p_value_start = np.zeros(num_series)
+        t_value_start = np.zeros(num_series)
 
         n_1 = len(self.previous)
         n_2 = len(self.current)
 
         if n_1 == 1 and n_2 == 1:
-            self._t_score = np.inf * np.ones(self.current.num_series)
-            self._p_value = np.zeros(self.current.num_series)
+            self._t_score = np.inf * np.ones(num_series)
+            self._p_value = np.zeros(num_series)
             return
         elif n_1 == 1 or n_2 == 1:
             t_value_start, p_value_start = self._ttest_manual()
         else:
-            for i in range(self.current.num_series):
-                current_data = self.current.data[:,i]
-                prev_data = self.previous.data[:,i]
+            current_data = self.current.data
+            prev_data = self.previous.data
+            if current_data is None or prev_data is None:
+                raise ValueError('Interval data not set')
+            for i in range(num_series):
+                current_slice = current_data[:,i]
+                prev_slice = prev_data[:,i]
                 t_value_start[i], p_value_start[i] = ttest_ind(
-                    current_data, prev_data, equal_var=True, nan_policy='omit'
+                    current_slice, prev_slice, equal_var=True, nan_policy='omit'
                 )
 
         # The new p-values are the old p-values rescaled so that self.alpha is still the threshold for rejection
         _, self._p_value, _, _ = multitest.multipletests(p_value_start, alpha = self.alpha, method = self.method)
-        self._t_score = np.zeros(self.current.num_series)
+        self._t_score = np.zeros(num_series)
         # We are using a two-sided test here, so we take inverse_tcdf(self._p_value / 2) with df = len(self.current) + len(self.previous) - 2
         for i in range(self.current.num_series):
             if t_value_start[i] < 0:
@@ -485,13 +445,13 @@ class MultiPercentageChange(PercentageChange):
 
 
 @dataclass
-class ConfidenceBand():
+class ConfidenceBand:
     lower: TimeSeriesData
     upper: TimeSeriesData
 
 
 @dataclass
-class AnomalyResponse():
+class AnomalyResponse:
     scores: TimeSeriesData
     confidence_band: ConfidenceBand
     predicted_ts: TimeSeriesData
@@ -499,7 +459,7 @@ class AnomalyResponse():
     stat_sig_ts: TimeSeriesData
 
     def update(self, time: datetime, score: float, ci_upper: float,
-               ci_lower: float, pred: float, anom_mag: float, stat_sig: float):
+               ci_lower: float, pred: float, anom_mag: float, stat_sig: float) -> None:
         """
         Add one more point and remove the last point
         """
@@ -513,7 +473,7 @@ class AnomalyResponse():
         self.anomaly_magnitude_ts = self._update_ts_slice(self.anomaly_magnitude_ts, time, anom_mag)
         self.stat_sig_ts =  self._update_ts_slice(self.stat_sig_ts, time, stat_sig)
 
-    def _update_ts_slice(self, ts: TimeSeriesData, time: datetime, value: float):
+    def _update_ts_slice(self, ts: TimeSeriesData, time: datetime, value: float) -> TimeSeriesData:
         time = ts.time.iloc[1:].append(pd.Series(time))
         time.reset_index(drop=True, inplace=True)
         value=ts.value.iloc[1:].append(pd.Series(value))
@@ -524,7 +484,7 @@ class AnomalyResponse():
         )
 
     def inplace_update(self, time: datetime, score: float, ci_upper: float,
-               ci_lower: float, pred: float, anom_mag: float, stat_sig: float):
+               ci_lower: float, pred: float, anom_mag: float, stat_sig: float) -> None:
         """
         Add one more point and remove the last point
         """
@@ -536,10 +496,10 @@ class AnomalyResponse():
         self._inplace_update_ts(self.anomaly_magnitude_ts, time, anom_mag)
         self._inplace_update_ts(self.stat_sig_ts, time, stat_sig)
 
-    def _inplace_update_ts(self, ts: TimeSeriesData, time: datetime, value: float):
+    def _inplace_update_ts(self, ts: TimeSeriesData, time: datetime, value: float) -> None:
         ts.value.loc[ts.time == time] = value
 
-    def get_last_n(self, N: int):
+    def get_last_n(self, N: int) -> AnomalyResponse:
         """
         returns the response for the last N days
         """
@@ -555,7 +515,7 @@ class AnomalyResponse():
             stat_sig_ts=self.stat_sig_ts[-N:]
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         str_ret = f"""
         Time: {self.scores.time.values},
         Scores: {self.scores.value.values},
@@ -568,9 +528,11 @@ class AnomalyResponse():
         return str_ret
 
 
-class MultiAnomalyResponse(object):
+class MultiAnomalyResponse:
 
-    def __init__(self, scores: TimeSeriesData, confidence_band: ConfidenceBand, predicted_ts: TimeSeriesData, anomaly_magnitude_ts: TimeSeriesData, stat_sig_ts: TimeSeriesData):
+    def __init__(self, scores: TimeSeriesData, confidence_band: ConfidenceBand, predicted_ts: TimeSeriesData,
+                 anomaly_magnitude_ts: TimeSeriesData, stat_sig_ts: TimeSeriesData):
+        self.scores = scores
         self.key_mapping = {index:key for index, key in enumerate(scores.value.columns)}
         self.response_objects = {}
         for key in scores.value.columns:
@@ -584,9 +546,8 @@ class MultiAnomalyResponse(object):
                 stat_sig_ts=TimeSeriesData(pd.DataFrame({"time": stat_sig_ts.time, "value": stat_sig_ts.value[key]})),
             )
 
-    # pyre-fixme[11]: Annotation `array` is not defined as a type.
-    def update(self, time: datetime, score: np.array, ci_upper: np.array,
-               ci_lower: np.array, pred: np.array, anom_mag: np.array, stat_sig: np.array):
+    def update(self, time: datetime, score: ArrayLike, ci_upper: ArrayLike,
+               ci_lower: ArrayLike, pred: ArrayLike, anom_mag: ArrayLike, stat_sig: ArrayLike) -> None:
         """
         Add one more point and remove the last point
         """
@@ -594,8 +555,8 @@ class MultiAnomalyResponse(object):
             self.response_objects[self.key_mapping[i]].update(time, score[i], ci_upper[i], ci_lower[i], pred[i], anom_mag[i], stat_sig[i])
 
 
-    def inplace_update(self, time: datetime, score: np.array, ci_upper: np.array,
-               ci_lower: np.array, pred: np.array, anom_mag: np.array, stat_sig: np.array):
+    def inplace_update(self, time: datetime, score: ArrayLike, ci_upper: ArrayLike, ci_lower: ArrayLike,
+                       pred: ArrayLike, anom_mag: ArrayLike, stat_sig: ArrayLike) -> None:
         """
         Add one more point and remove the last point
         """
@@ -603,7 +564,9 @@ class MultiAnomalyResponse(object):
             self.response_objects[self.key_mapping[i]].inplace_update(time, score[i],
                 ci_upper[i], ci_lower[i], pred[i], anom_mag[i], 1.0 if stat_sig[i] else 0.0)
 
-    def _get_time_series_data_components(self):
+    def _get_time_series_data_components(self) -> Tuple[
+        datetime, TimeSeriesData, TimeSeriesData, TimeSeriesData, TimeSeriesData, TimeSeriesData, TimeSeriesData
+    ]:
 
         time =  next(iter(self.response_objects.values())).scores.time
 
@@ -639,12 +602,12 @@ class MultiAnomalyResponse(object):
 
         return time, score_ts, upper_ts, lower_ts, predicted_ts, anomaly_magnitude_ts, stat_sig_ts
 
-    def get_last_n(self, N: int):
+    def get_last_n(self, N: int) -> MultiAnomalyResponse:
         """
         returns the response for the last N days
         """
 
-        time, score_ts, upper_ts, lower_ts, predicted_ts, anomaly_magnitude_ts, stat_sig_ts = self._get_time_series_data_components()
+        _, score_ts, upper_ts, lower_ts, predicted_ts, anomaly_magnitude_ts, stat_sig_ts = self._get_time_series_data_components()
 
         return MultiAnomalyResponse(
             scores=score_ts[-N:],
@@ -657,7 +620,7 @@ class MultiAnomalyResponse(object):
             stat_sig_ts=stat_sig_ts[-N:]
         )
 
-    def get_anomaly_response(self):
+    def get_anomaly_response(self) -> AnomalyResponse:
         time, score_ts, upper_ts, lower_ts, predicted_ts, anomaly_magnitude_ts, stat_sig_ts = self._get_time_series_data_components()
 
         return AnomalyResponse(
@@ -668,7 +631,7 @@ class MultiAnomalyResponse(object):
             stat_sig_ts=stat_sig_ts,
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         str_ret = f"""
         Time: {self.scores.time.values},
         Scores: {self.scores.value.values}

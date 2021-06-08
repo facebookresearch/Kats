@@ -8,7 +8,6 @@ import math
 import os
 import random
 import re
-import time
 import unittest
 from collections import Counter
 from datetime import datetime, timedelta
@@ -1562,12 +1561,12 @@ class ChangePointIntervalTest(TestCase):
         self.current_end = current_seq[-1] + timedelta(days=1)
 
         previous_int = ChangePointInterval(
-            cp_start=self.prev_start, cp_end=self.prev_end
+            self.prev_start, self.prev_end
         )
         previous_int.data = self.previous
 
         # tests whether data is clipped property to start and end dates
-        self.assertEqual(previous_int.data.tolist(), previous_values[0:9].tolist())
+        np.testing.assert_array_equal(previous_values[0:9], previous_int.data)
 
         # test extending the data
         # now the data is extended to include the whole sequence
@@ -1577,7 +1576,7 @@ class ChangePointIntervalTest(TestCase):
         self.assertEqual(len(previous_int), len(previous_seq))
 
         current_int = ChangePointInterval(
-            cp_start=self.current_start, cp_end=self.current_end
+            self.current_start, self.current_end
         )
         current_int.data = self.current
         current_int.previous_interval = previous_int
@@ -1643,12 +1642,12 @@ class PercentageChangeTest(TestCase):
         self.current_end = current_seq[-1]
 
         previous_int = ChangePointInterval(
-            cp_start=previous_seq[0], cp_end=(previous_seq[-1] + timedelta(days=1))
+            previous_seq[0], (previous_seq[-1] + timedelta(days=1))
         )
         previous_int.data = self.previous
 
         current_int = ChangePointInterval(
-            cp_start=current_seq[0], cp_end=(current_seq[-1] + timedelta(days=1))
+            current_seq[0], (current_seq[-1] + timedelta(days=1))
         )
         current_int.data = self.current
         current_int.previous_interval = previous_int
@@ -1676,7 +1675,7 @@ class PercentageChangeTest(TestCase):
         )
 
         second_int = ChangePointInterval(
-            cp_start=previous_seq[0], cp_end=previous_seq[-1]
+            previous_seq[0], previous_seq[-1]
         )
         second_int.data = second
 
@@ -1688,7 +1687,7 @@ class PercentageChangeTest(TestCase):
         # test the edge case when one of the intervals
         # contains a single data point
         current_int_2 = ChangePointInterval(
-            cp_start=current_seq[0], cp_end=current_seq[1]
+            current_seq[0], current_seq[1]
         )
 
         current_int_2.data = self.current
@@ -1762,14 +1761,13 @@ class MultiChangePointIntervalTest(TestCase):
         # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
-        previous_int = MultiChangePointInterval(
-            cp_start=self.prev_start, cp_end=self.prev_end
-        )
+        previous_int = MultiChangePointInterval(self.prev_start, self.prev_end)
         previous_int.data = self.previous
 
         # tests whether data is clipped property to start and end dates
         for i in range(num_seq):
             self.assertEqual(
+                # pyre-fixme[16]: Optional type has no attribute `__getitem__`.
                 previous_int.data[:, i].tolist(), previous_values[i][0:10].tolist()
             )
 
@@ -1778,11 +1776,9 @@ class MultiChangePointIntervalTest(TestCase):
         previous_int.end_time = previous_seq[-1]
         previous_int.extend_data(previous_extend)
 
-        self.assertEqual(len(previous_int), len(previous_seq))
+        self.assertEqual(len(previous_int) + 1, len(previous_seq))
 
-        current_int = MultiChangePointInterval(
-            cp_start=self.current_start, cp_end=self.current_end
-        )
+        current_int = MultiChangePointInterval(self.current_start, self.current_end)
         current_int.data = self.current
         current_int.previous_interval = previous_int
 
@@ -1813,6 +1809,7 @@ class MultiChangePointIntervalTest(TestCase):
         self.assertEqual(len(spike_array), num_seq)
 
         for i in range(num_seq):
+            # pyre-fixme[16]: `SingleSpike` has no attribute `__getitem__`.
             self.assertEqual(spike_array[i][0].value, 100 * (i + 1))
             self.assertEqual(
                 spike_array[i][0].time_str,
@@ -1873,14 +1870,9 @@ class MultiPercentageChangeTest(TestCase):
         # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
-        previous_int = MultiChangePointInterval(
-            cp_start=previous_seq[0], cp_end=previous_seq[-1]
-        )
+        previous_int = MultiChangePointInterval(previous_seq[0], previous_seq[-1])
         previous_int.data = self.previous
-
-        current_int = MultiChangePointInterval(
-            cp_start=current_seq[0], cp_end=current_seq[-1]
-        )
+        current_int = MultiChangePointInterval(current_seq[0], current_seq[-1])
         current_int.data = self.current
         current_int.previous_interval = previous_int
 
@@ -1893,8 +1885,10 @@ class MultiPercentageChangeTest(TestCase):
 
         # test the ratios
         ratio_val = current_mean / previous_mean
+        # pyre-fixme[16]: `float` has no attribute `tolist`.
         self.assertEqual(perc_change_1.ratio_estimate.tolist(), ratio_val.tolist())
 
+        # pyre-fixme[16]: `float` has no attribute `__iter__`.
         for r in perc_change_1.ratio_estimate:
             self.assertAlmostEqual(r, 10.0, 0)
 
@@ -1904,6 +1898,8 @@ class MultiPercentageChangeTest(TestCase):
         self.assertEqual(perc_change_1.direction.tolist(), ["up"] * num_seq)
         self.assertEqual(perc_change_1.stat_sig.tolist(), [True] * num_seq)
 
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `float`.
         for p_value, score in zip(perc_change_1.p_value, perc_change_1.score):
             self.assertLess(p_value, 0.05)
             self.assertLess(1.96, score)
@@ -1922,13 +1918,13 @@ class MultiPercentageChangeTest(TestCase):
             )
         )
 
-        second_int = MultiChangePointInterval(
-            cp_start=previous_seq[0], cp_end=previous_seq[-1]
-        )
+        second_int = MultiChangePointInterval(previous_seq[0], previous_seq[-1])
         second_int.data = second
 
         perc_change_2 = MultiPercentageChange(current=current_int, previous=second_int)
         for stat_sig, p_value, score in zip(
+            # pyre-fixme[6]: Expected `Iterable[Variable[_T2]]` for 2nd param but
+            #  got `float`.
             perc_change_2.stat_sig, perc_change_2.p_value, perc_change_2.score
         ):
             self.assertFalse(stat_sig)
@@ -1952,21 +1948,19 @@ class MultiPercentageChangeTest(TestCase):
             )
         )
 
-        third_int = MultiChangePointInterval(
-            cp_start=previous_seq[0], cp_end=previous_seq[-1]
-        )
+        third_int = MultiChangePointInterval(previous_seq[0], previous_seq[-1])
         third_int.data = third
 
         perc_change_3 = MultiPercentageChange(current=current_int, previous=third_int)
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `float`.
         for p_value, score in zip(perc_change_3.p_value, perc_change_3.score):
             self.assertLess(p_value, 0.05)
             self.assertLess(score, -1.96)
 
         # test the edge case when one of the intervals
         # contains a single data point
-        current_int_single_point = MultiChangePointInterval(
-            cp_start=current_seq[0], cp_end=current_seq[1]
-        )
+        current_int_single_point = MultiChangePointInterval(current_seq[0], current_seq[1])
 
         current_int_single_point.data = self.current
 
@@ -1975,6 +1969,8 @@ class MultiPercentageChangeTest(TestCase):
         )
 
         for p_value, score in zip(
+            # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but
+            #  got `float`.
             perc_change_single_point.p_value, perc_change_single_point.score
         ):
             self.assertLess(p_value, 0.05)
@@ -2190,6 +2186,7 @@ class TestMultiAnomalyResponse(TestCase):
 
         response.update(
             time=new_date,
+            # pyre-fixme[6]: Expected `ndarray` for 2nd param but got `float`.
             score=common_val,
             ci_upper=common_val,
             ci_lower=common_val - 0.1,
@@ -2279,7 +2276,7 @@ class TestMultiAnomalyResponse(TestCase):
                 response.response_objects[response.key_mapping[i]].scores.value.iloc[
                     -1
                 ],
-                # pyre-fixme[16]: `float` has no attribute `__getitem__`.
+                # pyre-ignore[16]: `float` has no attribute `__getitem__`.
                 common_val[i],
             )
             self.assertEqual(
