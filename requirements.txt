@@ -1,4 +1,5 @@
 LunarCalendar>=0.0.9
+attrs>=21.2.0
 ax-platform
 convertdate>=2.1.2
 fbprophet==0.7
