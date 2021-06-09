@@ -1,0 +1,13 @@
+load("@fbcode_macros//build_defs:sphinx_wiki.bzl", "sphinx_wiki")
+
+sphinx_wiki(
+    name = "docs",
+    srcs = ["README.rst"],
+    apidoc_modules = {
+        "kats": "api",
+    },
+    python_library_deps = [
+        "//kats:kats",
+    ],
+    wiki_root_path = "Infrastructure_Data_Science/Project_Kats/Documentation/",
+)
