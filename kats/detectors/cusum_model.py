@@ -31,7 +31,7 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -48,7 +48,6 @@ from kats.utils.decomposition import TimeSeriesDecomposition
 NORMAL_TOLERENCE = 1  # number of window
 CHANGEPOINT_RETENTION = 7 * 24 * 60 * 60  # in seconds
 MAX_CHANGEPOINT = 10
-
 
 def percentage_change(
     data: TimeSeriesData, pre_mean: float, **kwargs: Any
@@ -94,11 +93,17 @@ class CusumScoreFunction(Enum):
     percentage_change = "percentage_change"
     z_score = "z_score"
 
-
+# Score Function Constants
 SCORE_FUNC_DICT = {
     CusumScoreFunction.change.value: change,
     CusumScoreFunction.percentage_change.value: percentage_change,
     CusumScoreFunction.z_score.value: z_score,
+}
+DEFAULT_SCORE_FUNCTION = CusumScoreFunction.change
+STR_TO_SCORE_FUNC = { # Used for param tuning
+    "change": CusumScoreFunction.change,
+    "percentage_change": CusumScoreFunction.percentage_change,
+    "z_score": CusumScoreFunction.z_score,
 }
 
 
@@ -139,7 +144,7 @@ class CUSUMDetectorModel(DetectorModel):
         magnitude_quantile: float = CUSUM_DEFAULT_ARGS["magnitude_quantile"],
         magnitude_ratio: float = CUSUM_DEFAULT_ARGS["magnitude_ratio"],
         change_directions: List[str] = CUSUM_DEFAULT_ARGS["change_directions"],
-        score_func: CusumScoreFunction = CusumScoreFunction.change,
+        score_func: Union[str, CusumScoreFunction] = DEFAULT_SCORE_FUNCTION,
         remove_seasonality: bool = CUSUM_DEFAULT_ARGS["remove_seasonality"],
     ):
         if serialized_model:
@@ -178,8 +183,16 @@ class CUSUMDetectorModel(DetectorModel):
             self.magnitude_quantile = magnitude_quantile
             self.magnitude_ratio = magnitude_ratio
             self.change_directions = change_directions
-            self.score_func = score_func.value
             self.remove_seasonality = remove_seasonality
+
+            # We allow score_function to be a str for compatibility with param tuning
+            if isinstance(score_func, str):
+                if score_func in STR_TO_SCORE_FUNC:
+                    score_func = STR_TO_SCORE_FUNC[score_func]
+                else:
+                    score_func = DEFAULT_SCORE_FUNCTION
+            self.score_func = score_func.value
+
         else:
             raise ValueError(
                 """
