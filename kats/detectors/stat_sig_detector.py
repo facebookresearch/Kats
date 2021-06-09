@@ -400,16 +400,9 @@ class StatSigDetectorModel(DetectorModel):
             test_end_dt,
         ) = self._get_start_end_dates(data)
 
-        self.test_interval = ChangePointInterval(
-            cp_start=test_start_dt, cp_end=test_end_dt
-        )
-
+        self.test_interval = ChangePointInterval(test_start_dt, test_end_dt)
         self.test_interval.data = self.data_history
-
-        self.control_interval = ChangePointInterval(
-            cp_start=control_start_dt, cp_end=control_end_dt
-        )
-
+        self.control_interval = ChangePointInterval(control_start_dt, control_end_dt)
         self.control_interval.data = self.data_history
 
     def _update_control_test(self, data: TimeSeriesData):
@@ -424,15 +417,11 @@ class StatSigDetectorModel(DetectorModel):
             test_end_dt,
         ) = self._get_start_end_dates(data)
 
-        self.test_interval = ChangePointInterval(
-            cp_start=test_start_dt, cp_end=test_end_dt
-        )
+        self.test_interval = ChangePointInterval(test_start_dt, test_end_dt)
 
         self.test_interval.data = self.data_history
 
-        self.control_interval = ChangePointInterval(
-            cp_start=control_start_dt, cp_end=control_end_dt
-        )
+        self.control_interval = ChangePointInterval(control_start_dt, control_end_dt)
 
         self.control_interval.data = self.data_history
 
@@ -671,16 +660,9 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             test_end_dt,
         ) = self._get_start_end_dates(data)
 
-        self.test_interval = MultiChangePointInterval(
-            cp_start=test_start_dt, cp_end=test_end_dt
-        )
-
+        self.test_interval = MultiChangePointInterval(test_start_dt, test_end_dt)
         self.test_interval.data = self.data_history
-
-        self.control_interval = MultiChangePointInterval(
-            cp_start=control_start_dt, cp_end=control_end_dt
-        )
-
+        self.control_interval = MultiChangePointInterval(control_start_dt, control_end_dt)
         self.control_interval.data = self.data_history
 
     def _update_control_test(self, data: TimeSeriesData):
@@ -694,14 +676,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             test_end_dt,
         ) = self._get_start_end_dates(data)
 
-        self.test_interval = MultiChangePointInterval(
-            cp_start=test_start_dt, cp_end=test_end_dt
-        )
-
+        self.test_interval = MultiChangePointInterval(test_start_dt, test_end_dt)
         self.test_interval.data = self.data_history
-
-        self.control_interval = MultiChangePointInterval(
-            cp_start=control_start_dt, cp_end=control_end_dt
-        )
-
+        self.control_interval = MultiChangePointInterval(control_start_dt, control_end_dt)
         self.control_interval.data = self.data_history
