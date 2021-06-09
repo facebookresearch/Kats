@@ -8,7 +8,6 @@ import math
 import os
 import random
 import re
-import time
 import unittest
 from collections import Counter
 from datetime import datetime, timedelta
@@ -1562,12 +1561,12 @@ class ChangePointIntervalTest(TestCase):
         self.current_end = current_seq[-1] + timedelta(days=1)
 
         previous_int = ChangePointInterval(
-            cp_start=self.prev_start, cp_end=self.prev_end
+            self.prev_start, self.prev_end
         )
         previous_int.data = self.previous
 
         # tests whether data is clipped property to start and end dates
-        self.assertEqual(previous_int.data.tolist(), previous_values[0:9].tolist())
+        np.testing.assert_array_equal(previous_values[0:9], previous_int.data)
 
         # test extending the data
         # now the data is extended to include the whole sequence
@@ -1577,7 +1576,7 @@ class ChangePointIntervalTest(TestCase):
         self.assertEqual(len(previous_int), len(previous_seq))
 
         current_int = ChangePointInterval(
-            cp_start=self.current_start, cp_end=self.current_end
+            self.current_start, self.current_end
         )
         current_int.data = self.current
         current_int.previous_interval = previous_int
@@ -1643,12 +1642,12 @@ class PercentageChangeTest(TestCase):
         self.current_end = current_seq[-1]
 
         previous_int = ChangePointInterval(
-            cp_start=previous_seq[0], cp_end=(previous_seq[-1] + timedelta(days=1))
+            previous_seq[0], (previous_seq[-1] + timedelta(days=1))
         )
         previous_int.data = self.previous
 
         current_int = ChangePointInterval(
-            cp_start=current_seq[0], cp_end=(current_seq[-1] + timedelta(days=1))
+            current_seq[0], (current_seq[-1] + timedelta(days=1))
         )
         current_int.data = self.current
         current_int.previous_interval = previous_int
@@ -1676,7 +1675,7 @@ class PercentageChangeTest(TestCase):
         )
 
         second_int = ChangePointInterval(
-            cp_start=previous_seq[0], cp_end=previous_seq[-1]
+            previous_seq[0], previous_seq[-1]
         )
         second_int.data = second
 
@@ -1688,7 +1687,7 @@ class PercentageChangeTest(TestCase):
         # test the edge case when one of the intervals
         # contains a single data point
         current_int_2 = ChangePointInterval(
-            cp_start=current_seq[0], cp_end=current_seq[1]
+            current_seq[0], current_seq[1]
         )
 
         current_int_2.data = self.current
@@ -1762,14 +1761,13 @@ class MultiChangePointIntervalTest(TestCase):
         # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
-        previous_int = MultiChangePointInterval(
-            cp_start=self.prev_start, cp_end=self.prev_end
-        )
+        previous_int = MultiChangePointInterval(self.prev_start, self.prev_end)
         previous_int.data = self.previous
 
         # tests whether data is clipped property to start and end dates
         for i in range(num_seq):
             self.assertEqual(
+                # pyre-fixme[16]: Optional type has no attribute `__getitem__`.
                 previous_int.data[:, i].tolist(), previous_values[i][0:10].tolist()
             )
 
@@ -1778,11 +1776,9 @@ class MultiChangePointIntervalTest(TestCase):
         previous_int.end_time = previous_seq[-1]
         previous_int.extend_data(previous_extend)
 
-        self.assertEqual(len(previous_int), len(previous_seq))
+        self.assertEqual(len(previous_int) + 1, len(previous_seq))
 
-        current_int = MultiChangePointInterval(
-            cp_start=self.current_start, cp_end=self.current_end
-        )
+        current_int = MultiChangePointInterval(self.current_start, self.current_end)
         current_int.data = self.current
         current_int.previous_interval = previous_int
 
@@ -1813,6 +1809,7 @@ class MultiChangePointIntervalTest(TestCase):
         self.assertEqual(len(spike_array), num_seq)
 
         for i in range(num_seq):
+            # pyre-fixme[16]: `SingleSpike` has no attribute `__getitem__`.
             self.assertEqual(spike_array[i][0].value, 100 * (i + 1))
             self.assertEqual(
                 spike_array[i][0].time_str,
@@ -1873,14 +1870,9 @@ class MultiPercentageChangeTest(TestCase):
         # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
-        previous_int = MultiChangePointInterval(
-            cp_start=previous_seq[0], cp_end=previous_seq[-1]
-        )
+        previous_int = MultiChangePointInterval(previous_seq[0], previous_seq[-1])
         previous_int.data = self.previous
-
-        current_int = MultiChangePointInterval(
-            cp_start=current_seq[0], cp_end=current_seq[-1]
-        )
+        current_int = MultiChangePointInterval(current_seq[0], current_seq[-1])
         current_int.data = self.current
         current_int.previous_interval = previous_int
 
@@ -1893,8 +1885,10 @@ class MultiPercentageChangeTest(TestCase):
 
         # test the ratios
         ratio_val = current_mean / previous_mean
+        # pyre-fixme[16]: `float` has no attribute `tolist`.
         self.assertEqual(perc_change_1.ratio_estimate.tolist(), ratio_val.tolist())
 
+        # pyre-fixme[16]: `float` has no attribute `__iter__`.
         for r in perc_change_1.ratio_estimate:
             self.assertAlmostEqual(r, 10.0, 0)
 
@@ -1904,6 +1898,8 @@ class MultiPercentageChangeTest(TestCase):
         self.assertEqual(perc_change_1.direction.tolist(), ["up"] * num_seq)
         self.assertEqual(perc_change_1.stat_sig.tolist(), [True] * num_seq)
 
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `float`.
         for p_value, score in zip(perc_change_1.p_value, perc_change_1.score):
             self.assertLess(p_value, 0.05)
             self.assertLess(1.96, score)
@@ -1922,13 +1918,13 @@ class MultiPercentageChangeTest(TestCase):
             )
         )
 
-        second_int = MultiChangePointInterval(
-            cp_start=previous_seq[0], cp_end=previous_seq[-1]
-        )
+        second_int = MultiChangePointInterval(previous_seq[0], previous_seq[-1])
         second_int.data = second
 
         perc_change_2 = MultiPercentageChange(current=current_int, previous=second_int)
         for stat_sig, p_value, score in zip(
+            # pyre-fixme[6]: Expected `Iterable[Variable[_T2]]` for 2nd param but
+            #  got `float`.
             perc_change_2.stat_sig, perc_change_2.p_value, perc_change_2.score
         ):
             self.assertFalse(stat_sig)
@@ -1952,21 +1948,19 @@ class MultiPercentageChangeTest(TestCase):
             )
         )
 
-        third_int = MultiChangePointInterval(
-            cp_start=previous_seq[0], cp_end=previous_seq[-1]
-        )
+        third_int = MultiChangePointInterval(previous_seq[0], previous_seq[-1])
         third_int.data = third
 
         perc_change_3 = MultiPercentageChange(current=current_int, previous=third_int)
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `float`.
         for p_value, score in zip(perc_change_3.p_value, perc_change_3.score):
             self.assertLess(p_value, 0.05)
             self.assertLess(score, -1.96)
 
         # test the edge case when one of the intervals
         # contains a single data point
-        current_int_single_point = MultiChangePointInterval(
-            cp_start=current_seq[0], cp_end=current_seq[1]
-        )
+        current_int_single_point = MultiChangePointInterval(current_seq[0], current_seq[1])
 
         current_int_single_point.data = self.current
 
@@ -1975,6 +1969,8 @@ class MultiPercentageChangeTest(TestCase):
         )
 
         for p_value, score in zip(
+            # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but
+            #  got `float`.
             perc_change_single_point.p_value, perc_change_single_point.score
         ):
             self.assertLess(p_value, 0.05)
@@ -2190,6 +2186,7 @@ class TestMultiAnomalyResponse(TestCase):
 
         response.update(
             time=new_date,
+            # pyre-fixme[6]: Expected `ndarray` for 2nd param but got `float`.
             score=common_val,
             ci_upper=common_val,
             ci_lower=common_val - 0.1,
@@ -2279,7 +2276,7 @@ class TestMultiAnomalyResponse(TestCase):
                 response.response_objects[response.key_mapping[i]].scores.value.iloc[
                     -1
                 ],
-                # pyre-fixme[16]: `float` has no attribute `__getitem__`.
+                # pyre-ignore[16]: `float` has no attribute `__getitem__`.
                 common_val[i],
             )
             self.assertEqual(
@@ -3058,6 +3055,33 @@ class TestProphetDetector(TestCase):
         sim.add_noise(magnitude=0.1 * magnitude * np.random.rand())
         return sim.stl_sim()
 
+    def create_multi_seasonality_ts(self, seed, length, freq, min_val, max_val, signal_to_noise_ratio):
+        np.random.seed(seed)
+
+        sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
+        magnitude = (max_val - min_val) / 2
+
+        sim.add_trend(-0.2 * magnitude)
+        sim.add_seasonality(
+            magnitude * (2/3) *np.random.rand() * 2,
+            period=timedelta(days=1),
+        )
+        sim.add_seasonality(
+            magnitude * (1/3) *np.random.rand(),
+            period=timedelta(days=0.5),
+        )
+        sim.add_seasonality(
+            magnitude * 0.2 *np.random.rand(),
+            period=timedelta(days=7),
+        )
+        sim.add_noise(magnitude=signal_to_noise_ratio*magnitude)
+
+        sim_ts = sim.stl_sim()
+
+        self.add_trend_shift(sim_ts, length, freq, 1250)
+
+        return sim_ts
+
     def add_smooth_anomaly(self, ts, seed, start_index, length, magnitude):
         # Add an anomaly that is half of a sine wave
         # start time and freq don't matter, since we only care about the values
@@ -3070,6 +3094,107 @@ class TestProphetDetector(TestCase):
         anomaly_ts = anomaly_sim.stl_sim()
         for i in range(0, length):
             ts.value.iloc[start_index + i] += anomaly_ts.value[i]
+
+    def truncate(self, ts, start_index, end_index):
+        # Set all values outside the range [start_index, end_index) to 0
+        ts.value.iloc[:start_index] *= 0
+        ts.value.iloc[end_index:] *= 0
+
+
+    def add_trend_shift(self, ts, length, freq, magnitude):
+        ts_df = ts.to_dataframe()
+        sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
+        elevation = sim.trend_shift_sim(
+            cp_arr=[0, 1], trend_arr=[0, 0, 0], noise=0, seasonal_period=1, seasonal_magnitude=0, intercept=magnitude
+        )
+        elevation_df = elevation.to_dataframe()
+
+        ts_df_elevated = (
+            ts_df.set_index("time") + elevation_df.set_index("time")
+        ).reset_index()
+
+        elevated_ts = TimeSeriesData(df=ts_df_elevated)
+        ts.value = elevated_ts.value
+
+    def horiz_translate(self, ts, periods):
+        ts.value = ts.value.shift(periods=periods, fill_value=0)
+
+    def add_multiplicative_noise(self, ts, magnitude):
+        # Multiply all the values in ts by a number in the range [1-magnitude, 1+magnitude]
+        ts.value *= np.random.rand(len(ts)) * magnitude * 2 + 1 - magnitude
+
+    def merge_ts(self, ts1, ts2):
+        ts1_df, ts2_df = ts1.to_dataframe(), ts2.to_dataframe()
+        merged_df = (
+            ts1_df.set_index("time") + ts2_df.set_index("time")
+        ).reset_index()
+        merged_ts = TimeSeriesData(df=merged_df)
+        return merged_ts
+
+    def add_multi_event(self, baseline_ts, seed, length, freq, min_val, max_val, signal_to_noise_ratio, event_start_ratio, event_end_ratio, event_relative_magnitude):
+
+        np.random.seed(seed)
+        sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
+
+        event_start = int(length* event_start_ratio)
+        event_end = int(length * event_end_ratio)
+        duration = event_end - event_start
+
+        magnitude = (max_val - min_val) / 2
+        event_magnitude = 2 * magnitude * event_relative_magnitude * (signal_to_noise_ratio + 1)
+
+        event1_start = event_start + int(duration / 4)
+        event1_end = event_end
+        event1_magnitude = event_magnitude / 2
+        event1_duration = event1_end - event1_start
+
+        event2_start = event_start
+        event2_end = event_start + int(duration / 3)
+        event2_magnitude = event_magnitude / 2 / 2
+        event2_duration = event2_end - event2_start
+
+        event3_start = event_start
+        event3_end = event_start + 2 * int(duration / 3)
+        event3_magnitude = event_magnitude / duration / 4
+        event3_duration = event3_end - event3_start
+        event3_peak = event3_start + int(event3_duration/2)
+
+        # create event ts
+
+        event1_ts = sim.level_shift_sim(
+            seasonal_period=event1_duration/2, seasonal_magnitude=event1_magnitude, noise=signal_to_noise_ratio*magnitude
+        )
+
+        event2_ts = sim.level_shift_sim(
+            seasonal_period=event2_duration/2, seasonal_magnitude=event2_magnitude, noise=signal_to_noise_ratio*magnitude
+        )
+
+        event3_ts = sim.trend_shift_sim(
+            cp_arr=[event3_start, event3_peak, event3_end], trend_arr=[0, -event3_magnitude, +event3_magnitude, 0], seasonal_period=duration, seasonal_magnitude=0, intercept=0, noise=signal_to_noise_ratio*magnitude
+        )
+
+        self.horiz_translate(event1_ts, event1_start - int(3*event1_duration/4))
+        self.horiz_translate(event2_ts, event2_start - int(3*event2_duration/4))
+
+        self.add_trend_shift(event1_ts, length, freq, event1_magnitude)
+        self.add_trend_shift(event2_ts, length, freq, event2_magnitude)
+
+        self.truncate(event1_ts, event1_start, event1_end)
+        self.truncate(event2_ts, event2_start, event2_end)
+        self.truncate(event3_ts, event3_start, event3_end)
+
+        self.add_multiplicative_noise(event1_ts, 0.35)
+        self.add_multiplicative_noise(event2_ts, 0.35)
+        self.add_multiplicative_noise(event3_ts, 0.35)
+
+        # merge the events
+        events12_ts = self.merge_ts(event1_ts, event2_ts)
+        event_ts = self.merge_ts(events12_ts, event3_ts)
+
+        # merge baseline and event ts
+        merged_ts = self.merge_ts(baseline_ts, event_ts)
+
+        return merged_ts
 
     def test_no_anomaly(self) -> None:
         # Prophet should not find any anomalies on a well formed synthetic time series
@@ -3139,6 +3264,61 @@ class TestProphetDetector(TestCase):
 
         self.assertGreaterEqual(len(ts_df), len(filtered_ts_df))
         self.assertGreaterEqual(len(filtered_ts_df), len(aggressively_filtered_ts_df))
+
+    def test_outlier_removal_efficacy(self):
+        def _subtest(
+            baseline_ts, seed, length, freq, min_val, max_val, signal_to_noise_ratio, event_start_ratio, event_end_ratio, event_relative_magnitude
+        ):
+            model = ProphetDetectorModel()
+
+            test_ts = self.add_multi_event(baseline_ts, seed, length, freq, min_val, max_val, signal_to_noise_ratio, event_start_ratio, event_end_ratio, event_relative_magnitude)
+
+            # Train on all data up to 0.5 days after the event
+            event_end_idx = int(length * event_end_ratio)
+            train_idx = (
+                test_ts.time
+                >= test_ts.time.iloc[event_end_idx] + timedelta(hours=12)
+            ).idxmax()
+
+            test_df = test_ts.to_dataframe()
+            train_ts = TimeSeriesData(df=test_df.iloc[:train_idx])
+            pred_ts_df_map = {}
+            for remove_outliers in [False, True]:
+                model.remove_outliers = remove_outliers
+                # Test on all the remaining data
+                pred_ts_df_map[remove_outliers] = model.fit_predict(test_ts, train_ts)
+
+            # Model trained without outliers should have lower RMSE
+            rmse_w_outliers = (
+                (pred_ts_df_map[False].predicted_ts.value - test_ts.value) ** 2
+            ).mean() ** 0.5
+            rmse_no_outliers = (
+                (pred_ts_df_map[True].predicted_ts.value - test_ts.value) ** 2
+            ).mean() ** 0.5
+            self.assertGreaterEqual(
+                rmse_w_outliers,
+                rmse_no_outliers,
+                "Expected removing outliers when training model to lower prediciton RMSE",
+            )
+
+        baseline_ts = self.create_multi_seasonality_ts(0, 960, "15min", 0, 1000, 0.1)
+
+        with self.subTest("Testing with early event"):
+            _subtest(baseline_ts, 0, 960, "15min", 0, 1000, 0.1, 0.15, 0.3, 1.5)
+
+        with self.subTest("Testing with late event"):
+            _subtest(baseline_ts, 0, 960, "15min", 0, 1000, 0.1, 0.72, 0.85, -2)
+
+        with self.subTest("Testing with spiky event"):
+            _subtest(baseline_ts, 0, 960, "15min", 0, 1000, 0.1, 0.5, 0.55, 5)
+
+        with self.subTest("Testing with prolonged event"):
+            _subtest(baseline_ts, 0, 960, "15min", 0, 1000, 0.1, 0.35, 0.62, -1.5)
+
+        noisy_ts = self.create_multi_seasonality_ts(0, 960, "15min", 0, 1000, 0.5)
+
+        with self.subTest("Testing with noisy underlying data"):
+            _subtest(noisy_ts, 0, 960, "15min", 0, 1000, 0.5, 0.5, 0.55, 5)
 
 class TestChangepointEvaluator(TestCase):
     def test_eval_agg(self) -> None:
