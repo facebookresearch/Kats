@@ -49,6 +49,14 @@ default_model_params = {
         ],
         "numerical_idx": [],
     },
+    "cusum": {
+        "categorical_idx": ["score_func"],
+        "numerical_idx": ["delta_std_ratio", "scan_window", "historical_window"],
+    },
+    "statsig": {
+        "categorical_idx": [],
+        "numerical_idx": ["n_control", "n_test"],
+    }
 }
 
 default_model_networks = {
@@ -77,6 +85,16 @@ default_model_networks = {
         "n_hidden_shared": [40],
         "n_hidden_cat_combo": [[5], [5], [2], [3], [5], [5], [5]],
         "n_hidden_num": [],
+    },
+    "cusum": {
+        "n_hidden_shared": [20],
+        "n_hidden_cat_combo": [[3]],
+        "n_hidden_num": [5, 5, 5],
+    },
+    "statsig": {
+        "n_hidden_shared": [20],
+        "n_hidden_cat_combo": [],
+        "n_hidden_num": [5, 5],
     },
 }
 
@@ -163,7 +181,7 @@ class MetaLearnHPT:
                     numerical_idx = default_model_params[default_model]["numerical_idx"]
 
                 else:
-                    msg = f"default_model={default_model} is not available! Please choose one from 'prophet', 'arima', 'sarima', 'holtwinters', stlf, 'theta'"
+                    msg = f"default_model={default_model} is not available! Please choose one from 'prophet', 'arima', 'sarima', 'holtwinters', 'stlf', 'theta', 'cusum', 'statsig'"
                     logging.error(msg)
                     raise ValueError(msg)
 
@@ -385,7 +403,7 @@ class MetaLearnHPT:
             else None
         )
         y_num = (
-            torch.from_numpy(self._target_num[train_idx, :]).float()
+            torch.from_numpy(self._target_num[train_idx, :].astype('float')).float()
             if self.numerical_idx
             else None
         )
@@ -398,7 +416,7 @@ class MetaLearnHPT:
             else None
         )
         y_num_val = (
-            torch.from_numpy(self._target_num[val_idx, :]).float()
+            torch.from_numpy(self._target_num[val_idx, :].astype('float')).float()
             if self.numerical_idx
             else None
         )

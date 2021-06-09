@@ -60,9 +60,16 @@ class MetaLearnModelSelect:
     def __init__(
         self, metadata: Optional[List[Dict[str, Any]]] = None, load_model: bool = False
     ) -> None:
-        if not load_model and metadata is not None:
+        if not load_model:
+            # pyre-fixme[6]: Expected `Sized` for 1st param but got
+            #  `Optional[List[typing.Any]]`.
             if len(metadata) <= 30:
-                msg = f"metadata size should be greater than 30 but receives {len(metadata)}."
+                msg = "Dataset is too small to train a meta learner!"
+                logging.error(msg)
+                raise ValueError(msg)
+
+            if metadata is None:
+                msg = "Missing metadata!"
                 logging.error(msg)
                 raise ValueError(msg)
 

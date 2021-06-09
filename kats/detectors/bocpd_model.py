@@ -9,23 +9,21 @@ This file implements the Bayesian Online Changepoint Detection
 algorithm as a DetectorModel, to provide a common interface.
 """
 
-from typing import Optional
-import pandas as pd
 import json
+from typing import Optional
 
-from kats.detectors.detector import DetectorModel
-
+import pandas as pd
 from kats.consts import TimeSeriesData
-
 from kats.detectors.bocpd import (
     BOCPDetector,
     BOCPDModelType,
 )
-
+from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (
     AnomalyResponse,
     ConfidenceBand,
 )
+
 
 class BocpdDetectorModel(DetectorModel):
     """Implements the Bayesian Online Changepoint Detection as a DetectorModel.
@@ -43,16 +41,25 @@ class BocpdDetectorModel(DetectorModel):
     >>> anom = bocpd_detector.fit_predict(data=level_ts)
     """
 
-    def __init__(self, serialized_model: Optional[bytes] = None, slow_drift: bool = False):
+    def __init__(
+        self,
+        serialized_model: Optional[bytes] = None,
+        slow_drift: bool = False,
+        threshold: Optional[float] = None,
+    ):
         if serialized_model is None:
             self.slow_drift = slow_drift
+            self.threshold = threshold
         else:
             model_dict = json.loads(serialized_model)
-            if 'slow_drift' in model_dict:
-                self.slow_drift = model_dict['slow_drift']
+            if "slow_drift" in model_dict:
+                self.slow_drift = model_dict["slow_drift"]
             else:
                 self.slow_drift = slow_drift
-
+            if "threshold" in model_dict:
+                self.threshold = model_dict["threshold"]
+            else:
+                self.threshold = threshold
 
     def serialize(self) -> bytes:
         """Returns the serialzed model.
@@ -64,7 +71,7 @@ class BocpdDetectorModel(DetectorModel):
             json containing information about serialized model.
         """
 
-        model_dict = {'slow_drift': self.slow_drift}
+        model_dict = {"slow_drift": self.slow_drift}
         return json.dumps(model_dict).encode("utf-8")
 
     def _handle_missing_data_extend(
@@ -76,10 +83,7 @@ class BocpdDetectorModel(DetectorModel):
         # but we will remove the interpolated data when we
         # evaluate, to make sure that the anomaly score is
         # the same length as data
-        original_time_list = (
-            list(historical_data.time)
-            + list(data.time)
-        )
+        original_time_list = list(historical_data.time) + list(data.time)
 
         if historical_data.is_data_missing():
             historical_data = historical_data.interpolate()
@@ -90,19 +94,26 @@ class BocpdDetectorModel(DetectorModel):
 
         # extend has been done, now remove the interpolated data
         data = TimeSeriesData(
-            pd.DataFrame({
-                'time':[
-                    historical_data.time.iloc[i] for i in range(len(historical_data))
-                    if historical_data.time.iloc[i] in original_time_list],
-                'value':[
-                    historical_data.value.iloc[i] for i in range(len(historical_data))
-                    if historical_data.time.iloc[i] in original_time_list]
-            }),
-            use_unix_time=True, unix_time_units="s", tz="US/Pacific"
+            pd.DataFrame(
+                {
+                    "time": [
+                        historical_data.time.iloc[i]
+                        for i in range(len(historical_data))
+                        if historical_data.time.iloc[i] in original_time_list
+                    ],
+                    "value": [
+                        historical_data.value.iloc[i]
+                        for i in range(len(historical_data))
+                        if historical_data.time.iloc[i] in original_time_list
+                    ],
+                }
+            ),
+            use_unix_time=True,
+            unix_time_units="s",
+            tz="US/Pacific",
         )
 
         return data
-
 
     # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
     #  inconsistently.
@@ -129,7 +140,7 @@ class BocpdDetectorModel(DetectorModel):
         # pyre-fixme[16]: `BocpdDetectorModel` has no attribute `last_N`.
         self.last_N = len(data)
 
-        #if there is historical data
+        # if there is historical data
         # we prepend it to data, and run
         # the detector as if we only saw data
         if historical_data is not None:
@@ -138,20 +149,39 @@ class BocpdDetectorModel(DetectorModel):
         bocpd_model = BOCPDetector(data=data)
 
         if not self.slow_drift:
-            _ = bocpd_model.detector(
-                model=BOCPDModelType.NORMAL_KNOWN_MODEL, choose_priors=True,
-                agg_cp=True
-            )
+
+            if self.threshold is not None:
+                _ = bocpd_model.detector(
+                    model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+                    choose_priors=True,
+                    agg_cp=True,
+                    threshold=self.threshold,
+                )
+            else:
+                _ = bocpd_model.detector(
+                    model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+                    choose_priors=True,
+                    agg_cp=True,
+                )
         else:
-            _ = bocpd_model.detector(
-                model=BOCPDModelType.TREND_CHANGE_MODEL, choose_priors=False,
-                agg_cp=True
-            )
+            if self.threshold is not None:
+                _ = bocpd_model.detector(
+                    model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+                    choose_priors=True,
+                    agg_cp=True,
+                    threshold=self.threshold,
+                )
+            else:
+                _ = bocpd_model.detector(
+                    model=BOCPDModelType.TREND_CHANGE_MODEL,
+                    choose_priors=False,
+                    agg_cp=True,
+                )
 
         change_prob_dict = bocpd_model.get_change_prob()
         change_prob = list(change_prob_dict.values())[0]
 
-        #construct the object
+        # construct the object
         N = len(data)
         default_ts = TimeSeriesData(time=data.time, value=pd.Series(N * [0.0]))
         score_ts = TimeSeriesData(time=data.time, value=pd.Series(change_prob))

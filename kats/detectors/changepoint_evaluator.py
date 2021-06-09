@@ -416,8 +416,6 @@ class TuringEvaluator(BenchmarkEvaluator):
         this_ts = df_row['time_series']
         this_anno = df_row['annotation']
 
-        print(this_dataset)
-
         this_anno_json_acc = this_anno.replace("'", "\"")
         this_anno_dict = json.loads(this_anno_json_acc)
 
