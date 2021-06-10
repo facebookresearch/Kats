@@ -9,7 +9,7 @@ Defines the base class for detectors.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -24,6 +24,9 @@ class Detector(ABC):
         data: The input time series data from TimeSeriesData
     """
 
+    iter: Optional[TimeSeriesIterator] = None
+    outliers: Optional[List[Any]] = None
+
     def __init__(self, data: TimeSeriesData) -> None:
         self.data = data
         self.__type__ = "detector"
@@ -35,7 +38,7 @@ class Detector(ABC):
         # TODO
         return
 
-    def remover(self, interpolate: bool = False):
+    def remover(self, interpolate: bool = False) -> TimeSeriesData:
         """Remove the outlier in time series
 
         Args:
@@ -44,15 +47,17 @@ class Detector(ABC):
         Returns:
             A TimeSeriesData with outlier removed.
         """
+        outliers = self.outliers
+        if outliers is None:
+          return self.data
+
         df = []
         self.detector()
-        # pyre-fixme[16]: `Detector` has no attribute `iter`.
-        # pyre-fixme[16]: `Detector` has no attribute `iter`.
-        self.iter = TimeSeriesIterator(self.data)
+        it = TimeSeriesIterator(self.data)
+        self.iter = it
         i = 0
-        for ts in self.iter:
-            # pyre-fixme[16]: `Detector` has no attribute `outliers`.
-            ts.loc[self.outliers[i], "y"] = np.nan
+        for ts in it:
+            ts.loc[outliers[i], "y"] = np.nan
             df.append(ts)
             i = i + 1
         # Need to make this a ts object
@@ -60,8 +65,8 @@ class Detector(ABC):
 
         if interpolate:
             df_final.interpolate(method="linear", limit_direction="both", inplace=True)
-        # may contian multiple time series y
-        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
+        # may contain multiple time series y
+        # pyre-ignore[16]: `DataFrame` has no attribute `columns`.
         df_final.columns = [f"y_{i}" for i in range(i)]
         df_final["time"] = df_final.index
         ts_out = TimeSeriesData(df_final)

@@ -12,7 +12,7 @@ otherwise it simiply leverage individual forecasting models and ensembling. We p
 weighted average and median ensembling.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import annotations
 from copy import copy
 import logging
 import sys
@@ -20,7 +20,7 @@ import math
 import pandas as pd
 import numpy as np
 import multiprocessing
-from typing import Dict, Tuple, Callable, Any
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 from multiprocessing import cpu_count
 
 import kats.models.model as mm
@@ -44,6 +44,9 @@ from kats.detectors.seasonality import ACFDetector
 # STL decomposition
 from kats.utils.decomposition import TimeSeriesDecomposition
 
+# from numpy.typing import ArrayLike
+ArrayLike = Union[Sequence[float], np.ndarray]
+
 # models that can fit de_seasonal component
 MODELS = {
     "arima": arima.ARIMAModel,
@@ -62,10 +65,32 @@ SMODELS = {
     # "sarima": sarima.SARIMAModel,
 }
 
+
+def _logged_error(msg: str) -> ValueError:
+    """Log and raise an error."""
+    logging.error(msg)
+    return ValueError(msg)
+
+
 class KatsEnsemble:
     """Decomposition based ensemble model in Kats
     This is the holistic ensembling class based on decomposition when seasonality presents
     """
+    seasonality: bool = False
+    sea_data: Optional[TimeSeriesData] = None
+    desea_data: Optional[TimeSeriesData] = None
+    steps: int = -1
+    decomposition_method: str = ""
+    model_params: Optional[EnsembleParams] = None
+    fitted: Optional[Dict[Any, Any]] = None
+    weights: Optional[Dict[str, float]] = None
+    predicted: Optional[Dict[str, pd.DataFrame]] = None
+    err: Optional[Dict[str, float]] = None
+    dates: Optional[pd.DatetimeIndex] = None
+    fcst_dates: Optional[ArrayLike] = None
+    fcst_df: Optional[pd.DataFrame] = None
+    errors: Optional[Dict[Any, Any]] = None
+
     def __init__(
         self,
         data: TimeSeriesData,
@@ -79,12 +104,9 @@ class KatsEnsemble:
     def validate_params(self):
         # validate aggregation method
         if self.params["aggregation"] not in ("median", "weightedavg"):
-            msg = "Only support `median` or `weightedavg` ensemble,\
-            but get {method}.".format(
-                method=self.params["aggregation"]
-            )
-            logging.error(msg)
-            raise ValueError(msg)
+            method = self.params["aggregation"]
+            msg = f"Only support `median` or `weightedavg` ensemble, but got {method}."
+            raise _logged_error(msg)
 
         # validate decomposition method
         if self.params["decomposition_method"] in ("additive", "multiplicative"):
@@ -99,8 +121,7 @@ class KatsEnsemble:
     (self.params["seasonality_length"] > int(len(self.data.time) // 2)):
             msg = "seasonality_length value cannot be larger than"
             "1/2 of the length of give time series"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _logged_error(msg)
 
         # check customized forecastExecutor
         if ("forecastExecutor" in self.params.keys()) and\
@@ -129,12 +150,11 @@ class KatsEnsemble:
 
         detector = ACFDetector(data)
         detector.detector()
-        # pyre-fixme[16]: `ACFDetector` has no attribute `seasonality_detected`.
         seasonality = detector.seasonality_detected
         return seasonality
 
     @staticmethod
-    def deseasonalize(data: TimeSeriesData, decomposition_method: str) -> Tuple:
+    def deseasonalize(data: TimeSeriesData, decomposition_method: str) -> Tuple[TimeSeriesData, TimeSeriesData]:
         """STL decomposition to given TimeSeriesData
 
         Static method to perform decomposition on the input data
@@ -252,8 +272,7 @@ class KatsEnsemble:
             data : TimeSeriesData,
             models : EnsembleParams,
             should_auto_backtest: bool = False,
-    # pyre-fixme[31]: Expression `Dict[(str, float)])` is not a valid type.
-    ) -> (Dict[str, Model], Dict[str, float]):
+    ) -> Tuple[Dict[Any, Any], Optional[Dict[str, float]]]:
         """callable forecast executor
 
         This is native implementation with Python's multiprocessing
@@ -296,21 +315,19 @@ class KatsEnsemble:
         weights = self.backTestExecutor() if should_auto_backtest else None
         return fitted, weights
 
-    def fit(self) -> None:
+    def fit(self) -> KatsEnsemble:
         """Fit individual forecasting models via calling fitExecutor
 
         This is the fit methdo to fit individual forecasting model
         """
 
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `seasonality`.
         self.seasonality = KatsEnsemble.seasonality_detector(self.data)
 
         # check if self.params["seasonality_length"] is given
-        if (self.seasonality) and (self.params["seasonality_length"] is None):
+        if self.seasonality and self.params["seasonality_length"] is None:
             msg = "The given time series contains seasonality,\
-            a `seasonality_length` must be given in params"
-            logging.error(msg)
-            raise ValueError(msg)
+            a `seasonality_length` must be given in params."
+            raise _logged_error(msg)
 
         # set up auto backtesting flag
         auto_backtesting = False if self.params["aggregation"] == "median" else True
@@ -321,14 +338,12 @@ class KatsEnsemble:
 
         if self.seasonality:
             # STL decomposition
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `sea_data`.
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `desea_data`.
-            self.sea_data, self.desea_data = KatsEnsemble.deseasonalize(
+            sea_data, desea_data = KatsEnsemble.deseasonalize(
                 self.data,
-                # pyre-fixme[16]: `KatsEnsemble` has no attribute
-                #  `decomposition_method`.
                 self.decomposition_method
             )
+            self.sea_data = sea_data
+            self.desea_data = desea_data
 
             # we created extra models
             given_models = copy(self.params["models"].models)
@@ -338,28 +353,23 @@ class KatsEnsemble:
                     tmp.model_name = m.model_name + "_smodel"
                     given_models.append(tmp)
 
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `model_params`.
-            # pyre-fixme[16]: Module `kats` has no attribute `models`.
-            self.model_params = EnsembleParams(given_models)
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `fitted`.
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `weights`.
+            self.model_params = model_params = EnsembleParams(given_models)
             self.fitted, self.weights = fitExecutor(
-                data=self.desea_data,
-                models=self.model_params,
+                data=desea_data,
+                models=model_params,
                 should_auto_backtest=auto_backtesting,
             )
         else:
             # fit models on the original data
-            self.model_params = EnsembleParams(self.params["models"].models)
+            self.model_params = model_params = EnsembleParams(self.params["models"].models)
             self.fitted, self.weights = fitExecutor(
                 data=self.data,
-                models=self.model_params,
+                models=model_params,
                 should_auto_backtest=auto_backtesting,
             )
-        # pyre-fixme[7]: Expected `None` but got `KatsEnsemble`.
         return self
 
-    def predict(self, steps: int) -> None:
+    def predict(self, steps: int) -> KatsEnsemble:
         """Predit future for each individual model
 
         Args:
@@ -369,13 +379,16 @@ class KatsEnsemble:
             None
         """
 
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `steps`.
+        fitted = self.fitted
+        if fitted is None:
+            raise _logged_error("fit must be called before predict.")
+
         self.steps = steps
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `seasonality`.
         if self.seasonality:
+            sea_data = self.sea_data
+            assert sea_data is not None
             # we should pred two types of model
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `fitted`.
-            desea_fitted = {k: v for k, v in self.fitted.items() if "_smodel" not in k}
+            desea_fitted = {k: v for k, v in fitted.items() if "_smodel" not in k}
             desea_predict = {
                 k: v.predict(self.steps).set_index("time")
                 for k, v in desea_fitted.items()
@@ -383,30 +396,26 @@ class KatsEnsemble:
 
             # re-seasonalize
             predicted = KatsEnsemble.reseasonalize(
-                # pyre-fixme[16]: `KatsEnsemble` has no attribute `sea_data`.
-                sea_data=self.sea_data,
+                sea_data=sea_data,
                 desea_predict=desea_predict,
-                # pyre-fixme[16]: `KatsEnsemble` has no attribute
-                #  `decomposition_method`.
                 decomposition_method=self.decomposition_method,
                 seasonality_length=self.params["seasonality_length"],
                 steps=self.steps,
             )
 
             # add extra model prediction results from smodels
-            fitted_smodel = {k: v for k, v in self.fitted.items() if "_smodel" in k}
+            fitted_smodel = {k: v for k, v in fitted.items() if "_smodel" in k}
             extra_predict = {
                 k: v.predict(self.steps).set_index("time")
                 for k, v in fitted_smodel.items()
             }
 
             predicted.update(extra_predict)
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `predicted`.
             self.predicted = predicted
         else:
             predicted = {
                 k: v.predict(self.steps).set_index("time")
-                for k, v in self.fitted.items()
+                for k, v in fitted.items()
             }
 
             # add dummy C.I if the model doesn't have native C.I
@@ -421,10 +430,9 @@ class KatsEnsemble:
                     tmp_v["fcst_upper"] = np.nan
                     predicted[k] = tmp_v
             self.predicted = predicted
-        # pyre-fixme[7]: Expected `None` but got `KatsEnsemble`.
         return self
 
-    def forecast(self, steps: int) -> Tuple[Dict[str, pd.DataFrame], Dict[str, float]]:
+    def forecast(self, steps: int) -> Tuple[Dict[str, pd.DataFrame], Optional[Dict[str, float]]]:
         """Holistic forecast method in Kats ensemble
 
         combine fit and predict methods to produce forecasted results
@@ -437,35 +445,30 @@ class KatsEnsemble:
         Returns:
             Tuple of predicted values and weights
         """
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `steps`.
         self.steps = steps
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `seasonality`.
         self.seasonality = KatsEnsemble.seasonality_detector(self.data)
 
         # check if self.params["seasonality_length"] is given
         if (self.seasonality) and (self.params["seasonality_length"] is None):
             msg = "The given time series contains seasonality,\
-            a `seasonality_length` must be given in params"
-            logging.error(msg)
-            raise ValueError(msg)
+            a `seasonality_length` must be given in params."
+            raise _logged_error(msg)
 
         # set up auto backtesting flag
         auto_backtesting = False if self.params["aggregation"] == "median" else True
 
         if self.seasonality:
             # call forecastExecutor and move to next steps
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `sea_data`.
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `desea_data`.
-            self.sea_data, self.desea_data = KatsEnsemble.deseasonalize(
+            sea_data, desea_data = KatsEnsemble.deseasonalize(
                 self.data,
-                # pyre-fixme[16]: `KatsEnsemble` has no attribute
-                #  `decomposition_method`.
                 self.decomposition_method
             )
+            self.sea_data = sea_data
+            self.desea_data = desea_data
 
             # call forecasterExecutor with self.desea_data
             desea_predict, desea_err = self.forecastExecutor(
-                data=self.desea_data,
+                data=desea_data,
                 models=self.params["models"],
                 steps=steps,
                 should_auto_backtest=auto_backtesting,
@@ -473,7 +476,7 @@ class KatsEnsemble:
             # update the desea_predict with adding seasonality component
             # re-seasonalize
             predicted = KatsEnsemble.reseasonalize(
-                sea_data=self.sea_data,
+                sea_data=sea_data,
                 desea_predict=desea_predict,
                 decomposition_method=self.decomposition_method,
                 seasonality_length=self.params["seasonality_length"],
@@ -500,21 +503,23 @@ class KatsEnsemble:
 
             # combine with predict
             predicted.update(extra_predict)
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `predicted`.
             self.predicted = predicted
 
             if self.params["aggregation"] == "weightedavg":
-                desea_err.update(extra_error)
-                # pyre-fixme[16]: `KatsEnsemble` has no attribute `err`.
-                self.err = desea_err
+                if desea_err is None:
+                    desea_err = extra_error
+                elif extra_error is not None:
+                    desea_err.update(extra_error)
+                self.err = forecast_error = desea_err
         else:
             # no seasonality detected
-            predicted, self.err = self.forecastExecutor(
+            predicted, forecast_error = self.forecastExecutor(
                 data=self.data,
                 models=self.params["models"],
                 steps=self.steps,
                 should_auto_backtest=auto_backtesting,
             )
+            self.err = forecast_error
 
             # same as in predict method above
             # add dummy C.I if the model doesn't have native C.I
@@ -533,27 +538,25 @@ class KatsEnsemble:
 
         # we need to transform err to weights if it's weighted avg
         if self.params["aggregation"] == "weightedavg":
+            assert forecast_error is not None
             original_weights = {
                 model: 1 / (err + sys.float_info.epsilon)
-                for model, err in self.err.items()
+                for model, err in forecast_error.items()
             }
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `weights`.
             self.weights = {
                 model: err / sum(original_weights.values())
                 for model, err in original_weights.items()
             }
         else:
             self.weights = None
-        return self.predicted, self.weights
+        return predicted, self.weights
 
     def forecastExecutor(self,
                          data : TimeSeriesData,
                          models : EnsembleParams,
                          steps: int,
                          should_auto_backtest: bool = False,
-                         # pyre-fixme[31]: Expression `Dict[(str, float)])` is not a
-                         #  valid type.
-                         ) -> (Dict[str, pd.DataFrame], Dict[str, float]):
+                         ) -> Tuple[Dict[str, pd.DataFrame], Optional[Dict[str, float]]]:
         """Forecast Executor
 
         This is a callable execution function to
@@ -597,10 +600,9 @@ class KatsEnsemble:
             predicted[model_name] = model_fitted.predict(steps).set_index("time")
 
         # if auto back testing
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `model_params`.
         self.model_params = models  # used by _backtester_all
         if should_auto_backtest:
-            weights, errors = self._backtester_all()
+            _, errors = self._backtester_all()
         else:
             errors = None
 
@@ -615,31 +617,30 @@ class KatsEnsemble:
         Returns:
             final results in pd.DataFrame
         """
+        predicted = self.predicted
+        if predicted is None:
+            raise _logged_error("predict must be called before aggregate.")
 
         # create future dates
         last_date = self.data.time.max()
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `steps`.
         dates = pd.date_range(start=last_date, periods=self.steps + 1, freq=self.freq)
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `dates`.
-        self.dates = dates[dates != last_date]
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `fcst_dates`.
-        self.fcst_dates = self.dates.to_pydatetime()
+        self.dates = dates = dates[dates != last_date]
+        self.fcst_dates = dates.to_pydatetime()
 
         # collect the fcst, fcst_lower, and fcst_upper into dataframes
         fcsts = {}
         for col in ["fcst", "fcst_lower", "fcst_upper"]:
             fcsts[col] = pd.concat(
-                # pyre-fixme[16]: `KatsEnsemble` has no attribute `predicted`.
-                [x[col].reset_index(drop=True) for x in self.predicted.values()], axis=1
+                # pyre-ignore[6]: Expected `Union[typing.Iterable[pd.core.frame.DataFr...
+                [x[col].reset_index(drop=True) for x in predicted.values()], axis=1
             )
-            fcsts[col].columns = self.predicted.keys()
+            fcsts[col].columns = predicted.keys()
 
         if self.params["aggregation"].lower() == "median":
             # clean up dataframes with C.I as np.nan or zero
             fcsts = self.clean_dummy_CI(fcsts, use_zero=False)
-            # pyre-fixme[16]: `KatsEnsemble` has no attribute `fcst_df`.
-            self.fcst_df = pd.DataFrame({
-                "time": self.dates,
+            self.fcst_df = fcst_df = pd.DataFrame({
+                "time": dates,
                 "fcst": fcsts["fcst"].median(axis=1),
                 "fcst_lower": fcsts["fcst_lower"].median(axis=1),
                 "fcst_upper": fcsts["fcst_upper"].median(axis=1),
@@ -647,21 +648,20 @@ class KatsEnsemble:
         else:
             if fcsts["fcst_lower"].isnull().values.any() or\
                fcsts["fcst_upper"].isnull().values.any():
-                msg = "Conf. interval contains NaN, please check individual model"
-                logging.error(msg)
-                raise ValueError(msg)
-            self.fcst_df = pd.DataFrame({
-                "time": self.dates,
-                # pyre-fixme[16]: `KatsEnsemble` has no attribute `weights`.
-                "fcst": fcsts["fcst"].dot(np.array(list(self.weights.values()))),
-                "fcst_lower": fcsts["fcst_lower"]
-                .dot(np.array(list(self.weights.values()))),
-                "fcst_upper": fcsts["fcst_upper"]
-                .dot(np.array(list(self.weights.values()))),
+                msg = "Conf. interval contains NaN, please check individual model."
+                raise _logged_error(msg)
+            weights = self.weights
+            assert weights is not None
+            weights = np.array(list(weights.values()))
+            self.fcst_df = fcst_df = pd.DataFrame({
+                "time": dates,
+                "fcst": fcsts["fcst"].dot(weights),
+                "fcst_lower": fcsts["fcst_lower"].dot(weights),
+                "fcst_upper": fcsts["fcst_upper"].dot(weights),
             })
 
-        logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
-        return self.fcst_df
+        logging.debug("Return forecast data: {fcst_df}".format(fcst_df=fcst_df))
+        return fcst_df
 
     @staticmethod
     def clean_dummy_CI(
@@ -698,8 +698,7 @@ class KatsEnsemble:
             The dict of backtesting results
         """
 
-        weights, errors = self._backtester_all()
-        # pyre-fixme[7]: Expected `Dict[str, float]` but got `str`.
+        weights, _ = self._backtester_all()
         return weights
 
     def _fit_single(self,
@@ -759,7 +758,7 @@ class KatsEnsemble:
     def _backtester_all(
         self,
         err_method: str = "mape",
-    ) -> Dict[str, float]:
+    ) -> Tuple[Dict[str, float], Dict[str, float]]:
         """Private method to run all backtesting process
 
         Args:
@@ -769,6 +768,9 @@ class KatsEnsemble:
         Returns:
             Dict of errors from each model
         """
+        model_params = self.model_params
+        if model_params is None:
+            raise _logged_error("fit must be called before backtesting.")
 
         num_process = min(len(MODELS.keys()), (cpu_count() - 1) // 2)
         if num_process < 1:
@@ -776,8 +778,7 @@ class KatsEnsemble:
         # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
         pool = multiprocessing.Manager().Pool(processes=(num_process), maxtasksperchild=1000)
         backtesters = {}
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `model_params`.
-        for model in self.model_params.models:
+        for model in model_params.models:
             backtesters[model.model_name] = pool.apply_async(
                 self._backtester_single,
                 args=(
@@ -788,22 +789,23 @@ class KatsEnsemble:
             )
         pool.close()
         pool.join()
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `errors`.
-        self.errors = {model: res.get() for model, res in backtesters.items()}
+        self.errors = errors = {model: res.get() for model, res in backtesters.items()}
         original_weights = {
             model: 1 / (err + sys.float_info.epsilon)
-            for model, err in self.errors.items()
+            for model, err in errors.items()
         }
         weights = {
             model: err / sum(original_weights.values())
             for model, err in original_weights.items()
         }
-        return weights, self.errors
+        return weights, errors
 
     def plot(self) -> None:
         """plot forecast results
         """
+        fcst_df = self.fcst_df
+        if fcst_df is None:
+            raise _logged_error("forecast must be called before plot.")
+
         logging.info("Generating chart for forecast result from Ensemble model.")
-        # pyre-fixme[16]: Module `kats` has no attribute `models`.
-        # pyre-fixme[16]: `KatsEnsemble` has no attribute `fcst_df`.
-        mm.Model.plot(self.data, self.fcst_df)
+        mm.Model.plot(self.data, fcst_df)
