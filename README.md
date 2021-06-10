@@ -12,11 +12,12 @@
 </div>
 
 ## Description
+
 Kats is a toolkit to analyze time series data, a lightweight, easy-to-use, and generalizable framework to perform time series analysis. Time series analysis is an essential component of Data Science and Engineering work at industry, from understanding the key statistics and characteristics, detecting regressions and anomalies, to forecasting future trends. Kats aims to provide the one-stop shop for time series analysis, including detection, forecasting, feature extraction/embedding, multivariate analysis, etc. Kats is released by Facebook's Infrastructure Strategy team. It is available for download on [PyPI](https://pypi.python.org/pypi/kats/).
 
 ## Important links
 
-- Homepage: https://facebook.github.io/kats/web/
+- Homepage: https://facebookresearch.github.io/Kats/
 - Source code repository: https://github.com/facebookresearch/kats
 - Contributing: https://github.com/facebookresearch/Kats/blob/master/CONTRIBUTING.md
 - Tutorials: https://github.com/facebookresearch/Kats/tree/master/tutorials
@@ -38,10 +39,13 @@ pip install -r ~/Kats/requirements.txt
 ```
 
 ## Examples
+
 Here are a few sample snippets from a subset of Kats offerings:
 
 ### Forecasting
+
 Using `Prophet` model to forecast the `air_passengers` data set.
+
 ```python
 from kats.consts import TimeSeriesData
 from kats.models.prophet import ProphetModel, ProphetParams
@@ -64,7 +68,9 @@ fcst = m.predict(steps=30, freq="MS")
 ```
 
 ### Detection
+
 Using `CUSUM` detection algorithm on simulated data set.
+
 ```python
 # import packages
 from kats.consts import TimeSeriesData
@@ -87,7 +93,9 @@ change_points = CUSUMDetector(timeseries).detector()
 ```
 
 ### TSFeatures
+
 We can extract meaningful features from the given time series data
+
 ```python
 # Initiate feature extraction class
 from kats.tsfeatures.tsfeatures import TsFeatures
