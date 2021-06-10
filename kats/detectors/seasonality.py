@@ -24,7 +24,7 @@ Typical usage example:
 """
 
 import logging
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 import plotly.graph_objs as go
 
 import matplotlib.pyplot as plt
@@ -39,6 +39,9 @@ from kats.utils.decomposition import TimeSeriesDecomposition
 from scipy.signal import find_peaks  # @manual
 from statsmodels.tsa.stattools import acf
 
+# from numpy.typing import ArrayLike
+ArrayLike = Union[np.ndarray, Sequence[float]]
+
 
 class ACFDetector(Detector):
     """ Autocorrelation function seasonality detector.
@@ -51,6 +54,12 @@ class ACFDetector(Detector):
             seasonal and residual.
     """
 
+    ts_diff: Optional[ArrayLike] = None
+    lags: Optional[int] = None
+    seasonality: Optional[List[int]] = None
+    seasonality_detected: bool = False
+    decompose: Optional[TimeSeriesDecomposition] = None
+
     def __init__(self, data: TimeSeriesData):
         super().__init__(data=data)
         if not isinstance(self.data.value, pd.Series):
@@ -61,7 +70,7 @@ class ACFDetector(Detector):
             raise ValueError(msg)
         self.decomposed = False
 
-    def _get_seasonality_length(self, d):
+    def _get_seasonality_length(self, d: List[int]) -> List[int]:
         out = []
         while d:
             k = d.pop(0)
@@ -69,7 +78,13 @@ class ACFDetector(Detector):
             out.append(k)
         return out
 
-    def detector(self, lags=None, diff=1, alpha=0.01):
+    # pyre-fixme[14]: Inconsistent override [14]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Could not find parameter `method` in overriding signature.
+    # pyre-fixme[14]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Returned type `Dict[str, typing.Any]` is not a subtype of the overridden return `None`.
+    # pyre-fixme[15]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Returned type `Dict[str, typing.Any]` is not a subtype of the overridden return `None`
+    def detector(self,
+                 lags: Optional[int]=None,
+                 diff: int=1,
+                 alpha: Optional[float]=0.01) -> Dict[str, Any]:
         """Detect seasonality
 
         This method runs acf and returns if seasonality detected in the given time series
@@ -112,7 +127,7 @@ class ACFDetector(Detector):
             "seasonalities": self.seasonality,
         }
 
-    def plot(self):
+    def plot(self) -> None:
         """Plot detection results.
 
         Args:
@@ -124,12 +139,17 @@ class ACFDetector(Detector):
         sm.graphics.tsa.plot_acf(self.ts_diff, lags=self.lags)
         plt.show()
         if self.decomposed:
-            self.decompose.plot()
+            decompose = self.decompose
+            assert decompose is not None
+            decompose.plot()
         plt.show()
 
-    def remover(
-        self, decom=TimeSeriesDecomposition, model="additive", decompose_any_way=False
-    ):
+    # pyre-fixme[14]: `kats.detectors.seasonality.ACFDetector.remover` overrides method defined in `Detector` inconsistently. Could not find parameter `interpolate` in overriding signature.
+    # pyre-fixme[15]: `kats.detectors.seasonality.ACFDetector.remover` overrides method defined in `Detector` inconsistently. Returned type `Optional[Dict[str, typing.Any]]` is not a subtype of the overridden return `TimeSeriesData`.
+    def remover(self,
+                decom: Type=TimeSeriesDecomposition,
+                model: str="additive",
+                decompose_any_way: bool=False) -> Optional[Dict[str, Any]]:
         """Remove the seasonality in the time series
 
         Args:
@@ -143,8 +163,8 @@ class ACFDetector(Detector):
         """
 
         if decompose_any_way or self.seasonality_detected:
-            self.decompose = decom(self.data, model)
-            result = self.decompose.decomposer()
+            self.decompose = decompose = decom(self.data, model)
+            result = decompose.decomposer()
             self.decomposed = True
             return result
         else:
