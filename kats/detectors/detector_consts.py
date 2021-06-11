@@ -168,7 +168,12 @@ class ChangePointInterval:
 
 # Percentage Change Object
 class PercentageChange:
-    def __init__(self, current: ChangePointInterval, previous: ChangePointInterval):
+    def __init__(
+        self,
+        current: ChangePointInterval,
+        previous: ChangePointInterval,
+        method="fdr_bh",
+    ):
         self.current = current
         self.previous = previous
 
@@ -177,6 +182,8 @@ class PercentageChange:
         self._t_score = None
         self._p_value = None
         self.alpha = 0.05
+        self.method = method
+        self.num_series = self.current.num_series
 
     @property
     def ratio_estimate(self) -> Union[float, np.ndarray]:
@@ -200,17 +207,25 @@ class PercentageChange:
         return (self.lower - 1) * 100.0
 
     @property
-    def direction(self) -> str:
-        if self.perc_change > 0.0:
+    def direction(self) -> Union[str, ArrayLike]:
+        if self.num_series > 1:
+            return np.vectorize(lambda x: "up" if x > 0 else "down")(self.perc_change)
+        elif self.perc_change > 0.0:
             return "up"
         else:
             return "down"
 
     @property
-    def stat_sig(self) -> bool:
+    def stat_sig(self) -> Union[bool, ArrayLike]:
         if self.upper is None:
             self._delta_method()
-
+        if self.num_series > 1:
+            return np.array(
+                [
+                    False if self.upper[i] > 1.0 and self.lower[i] < 1 else True
+                    for i in range(self.current.num_series)
+                ]
+            )
         # not stat sig e.g. [0.88, 1.55]
         return not (self.upper > 1.0 and self.lower < 1.0)
 
@@ -309,6 +324,10 @@ class PercentageChange:
         return t_score, p_value
 
     def _ttest(self) -> None:
+        if self.num_series > 1:
+            self._ttest_multivariate()
+            return
+
         n_1 = len(self.previous)
         n_2 = len(self.current)
 
@@ -330,6 +349,44 @@ class PercentageChange:
         # Always use ttest_manual because we changed the std to not include
         # np.sqrt((1. / n_1) + (1./ n_2))
         self._t_score, self._p_value = self._ttest_manual()
+
+    def _ttest_multivariate(self) -> None:
+        num_series = self.num_series
+        p_value_start = np.zeros(num_series)
+        t_value_start = np.zeros(num_series)
+
+        n_1 = len(self.previous)
+        n_2 = len(self.current)
+
+        if n_1 == 1 and n_2 == 1:
+            self._t_score = np.inf * np.ones(num_series)
+            self._p_value = np.zeros(num_series)
+            return
+        elif n_1 == 1 or n_2 == 1:
+            t_value_start, p_value_start = self._ttest_manual()
+        else:
+            current_data = self.current.data
+            prev_data = self.previous.data
+            if current_data is None or prev_data is None:
+                raise ValueError("Interval data not set")
+            for i in range(num_series):
+                current_slice = current_data[:, i]
+                prev_slice = prev_data[:, i]
+                t_value_start[i], p_value_start[i] = ttest_ind(
+                    current_slice, prev_slice, equal_var=True, nan_policy="omit"
+                )
+
+        # The new p-values are the old p-values rescaled so that self.alpha is still the threshold for rejection
+        _, self._p_value, _, _ = multitest.multipletests(
+            p_value_start, alpha=self.alpha, method=self.method
+        )
+        self._t_score = np.zeros(num_series)
+        # We are using a two-sided test here, so we take inverse_tcdf(self._p_value / 2) with df = len(self.current) + len(self.previous) - 2
+        for i in range(self.current.num_series):
+            if t_value_start[i] < 0:
+                self._t_score[i] = t.ppf(self._p_value[i] / 2, self._get_df())
+            else:
+                self._t_score[i] = t.ppf(1 - self._p_value[i] / 2, self._get_df())
 
     def _calc_cov(self) -> float:
         """
@@ -370,71 +427,6 @@ class PercentageChange:
         self.upper = self.ratio_estimate - norm.ppf(self.alpha / 2) * np.sqrt(
             abs(sigma_sq_ratio)
         )
-
-
-# Multivariable Percentage Change Object
-class MultiPercentageChange(PercentageChange):
-    def __init__(
-        self,
-        current: ChangePointInterval,
-        previous: ChangePointInterval,
-        method="fdr_bh",
-    ):
-        PercentageChange.__init__(self, current, previous)
-        self.method = method
-
-    @property
-    def direction(self) -> ArrayLike:
-        return np.vectorize(lambda x: "up" if x > 0 else "down")(self.perc_change)
-
-    @property
-    def stat_sig(self) -> ArrayLike:
-        if self.upper is None:
-            self._delta_method()
-        return np.array(
-            [
-                False if self.upper[i] > 1.0 and self.lower[i] < 1 else True
-                for i in range(self.current.num_series)
-            ]
-        )
-
-    def _ttest(self) -> None:
-        num_series = self.current.num_series
-        p_value_start = np.zeros(num_series)
-        t_value_start = np.zeros(num_series)
-
-        n_1 = len(self.previous)
-        n_2 = len(self.current)
-
-        if n_1 == 1 and n_2 == 1:
-            self._t_score = np.inf * np.ones(num_series)
-            self._p_value = np.zeros(num_series)
-            return
-        elif n_1 == 1 or n_2 == 1:
-            t_value_start, p_value_start = self._ttest_manual()
-        else:
-            current_data = self.current.data
-            prev_data = self.previous.data
-            if current_data is None or prev_data is None:
-                raise ValueError("Interval data not set")
-            for i in range(num_series):
-                current_slice = current_data[:, i]
-                prev_slice = prev_data[:, i]
-                t_value_start[i], p_value_start[i] = ttest_ind(
-                    current_slice, prev_slice, equal_var=True, nan_policy="omit"
-                )
-
-        # The new p-values are the old p-values rescaled so that self.alpha is still the threshold for rejection
-        _, self._p_value, _, _ = multitest.multipletests(
-            p_value_start, alpha=self.alpha, method=self.method
-        )
-        self._t_score = np.zeros(num_series)
-        # We are using a two-sided test here, so we take inverse_tcdf(self._p_value / 2) with df = len(self.current) + len(self.previous) - 2
-        for i in range(self.current.num_series):
-            if t_value_start[i] < 0:
-                self._t_score[i] = t.ppf(self._p_value[i] / 2, self._get_df())
-            else:
-                self._t_score[i] = t.ppf(1 - self._p_value[i] / 2, self._get_df())
 
 
 @dataclass
