@@ -204,9 +204,6 @@ class TimeSeriesData:
                 )
                 # Sorting by time if necessary
                 if sort_by_time:
-                    # pyre-fixme[6]: Expected `Union[typing_extensions.Literal[0],
-                    #  typing_extensions.Literal['index']]` for 1st param but got
-                    #  `str`.
                     df.sort_values(self.time_col_name, inplace=True)
                     df.reset_index(inplace=True, drop=True)
                 else:
@@ -215,8 +212,6 @@ class TimeSeriesData:
                         + "'sort_by_time' as True."
                     )
                 self.time = df[self.time_col_name]
-                # pyre-fixme[6]: Expected `Optional[typing.Hashable]` for 1st param
-                #  but got `List[typing.Any]`.
                 self.value = df[[x for x in df.columns if x != self.time_col_name]]
                 self._set_univariate_values_to_series()
 
@@ -574,8 +569,6 @@ class TimeSeriesData:
         if not isinstance(other, TimeSeriesData):
             raise TypeError("extend must take another TimeSeriesData object")
         # Concatenate times
-        # pyre-fixme[8]: Attribute has type `Series`; used as
-        #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         self.time = pd.concat([self.time, other.time], ignore_index=True).reset_index(
             drop=True
         )
@@ -587,9 +580,6 @@ class TimeSeriesData:
         if isinstance(other.value, pd.Series):
             other_value = pd.DataFrame(other_value)
         # Concatenate values
-        # pyre-fixme[6]: Expected `Union[typing.Iterable[pd.core.frame.DataFrame],
-        #  typing.Mapping[Optional[typing.Hashable], pd.core.frame.DataFrame]]` for 1st
-        #  param but got `List[Union[pd.core.frame.DataFrame, pd.core.series.Series]]`.
         self.value = pd.concat([cur_value, other_value], ignore_index=True).reset_index(
             drop=True
         )
@@ -725,7 +715,6 @@ class TimeSeriesData:
             else:
                 output_df[DEFAULT_VALUE_NAME] = self.value
         elif isinstance(self.value, pd.DataFrame):
-            # pyre-fixme[6]: Expected `Union[typing.Iterable[pd.core.frame.DataFrame]...
             output_df = pd.concat([output_df, self.value], axis=1).reset_index(
                 drop=True
             )

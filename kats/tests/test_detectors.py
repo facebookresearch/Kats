@@ -1586,8 +1586,10 @@ class ChangePointIntervalTest(TestCase):
 
         # check spike detection
         spike_list = current_int.spikes
+        # pyre-fixme[16]: `List` has no attribute `value`.
         self.assertEqual(spike_list[0].value, 100.0)
         self.assertEqual(
+            # pyre-fixme[16]: `List` has no attribute `time_str`.
             spike_list[0].time_str, datetime.strftime(self.current_start, "%Y-%m-%d")
         )
 
@@ -1614,6 +1616,7 @@ class ChangePointIntervalTest(TestCase):
         for i in range(num_seq):
             current_values[i][0] = 100 * (i + 1)
 
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `previous`.
         self.previous = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1623,6 +1626,7 @@ class ChangePointIntervalTest(TestCase):
             )
         )
 
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current`.
         self.current = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1641,11 +1645,15 @@ class ChangePointIntervalTest(TestCase):
             )
         )
 
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `prev_start`.
         self.prev_start = previous_seq[0]
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `prev_end`.
         self.prev_end = previous_seq[9]
 
         #  `current_start`.
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current_start`.
         self.current_start = current_seq[0]
+        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current_end`.
         self.current_end = current_seq[-1] + timedelta(days=1)
 
         previous_int = ChangePointInterval(self.prev_start, self.prev_end)
@@ -1699,6 +1707,7 @@ class ChangePointIntervalTest(TestCase):
         )
 
         self.assertEqual(
+            # pyre-fixme[16]: `float` has no attribute `tolist`.
             current_int.mean_val.tolist(),
             [np.mean(current_values[i]) for i in range(num_seq)],
         )
@@ -1777,6 +1786,8 @@ class PercentageChangeTest(TestCase):
         # test the ratios
         ratio_val = current_mean / previous_mean
         self.assertEqual(perc_change_1.ratio_estimate, ratio_val)
+        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
+        #  np.ndarray]`.
         self.assertAlmostEqual(perc_change_1.ratio_estimate, 10.0, 0)
 
         self.assertEqual(perc_change_1.perc_change, (ratio_val - 1) * 100)
@@ -1918,6 +1929,8 @@ class MultiPercentageChangeTest(TestCase):
         perc_change_2 = MultiPercentageChange(current=current_int, previous=second_int)
         for stat_sig, p_value, score in zip(
             perc_change_2.stat_sig,
+            # pyre-fixme[6]: Expected `Iterable[Variable[_T2]]` for 2nd param but
+            #  got `float`.
             perc_change_2.p_value,
             perc_change_2.score,
         ):
@@ -3513,15 +3526,15 @@ class TestChangepointEvaluator(TestCase):
             "time_unit": "sec",
         }
 
-        # pyre-fixme[6]: Expected `Detector` for 1st param but got
-        #  `Type[StatSigDetectorModel]`.
         turing_8 = TuringEvaluator(
+            # pyre-fixme[6]: Expected `Detector` for 1st param but got
+            #  `Type[StatSigDetectorModel]`.
             detector=StatSigDetectorModel, is_detector_model=True
         )
-        # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
-        #  `Dict[str, typing.Union[int, str]]`.
         eval_agg_8_df = turing_8.evaluate(
             data=eg_df,
+            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
+            #  `Dict[str, typing.Union[int, str]]`.
             model_params=statsig_model_params,
             alert_style_cp=False,
             threshold_low=-5.0,
@@ -3585,10 +3598,10 @@ class TestChangepointEvaluator(TestCase):
         # pyre-fixme[6]: Expected `Detector` for 1st param but got
         #  `Type[CUSUMDetectorModel]`.
         turing_9 = TuringEvaluator(detector=CUSUMDetectorModel, is_detector_model=True)
-        # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
-        #  `Dict[str, typing.Union[typing.List[str], CusumScoreFunction, float]]`.
         eval_agg_9_df = turing_9.evaluate(
             data=eg_df_daily,
+            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
+            #  `Dict[str, typing.Union[typing.List[str], CusumScoreFunction, float]]`.
             model_params=cusum_model_params,
             alert_style_cp=True,
             threshold_low=-0.1,

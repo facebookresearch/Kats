@@ -600,7 +600,6 @@ class MetaLearnHPT:
         # To have a consistent type with orginal HPT methods' output.
         res = [["0_0", "unknown", 0, 0.0, 0, pred_res]]
         res = pd.DataFrame(res)
-        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         res.columns = [
             "arm_name",
             "metric_name",

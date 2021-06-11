@@ -133,7 +133,6 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
         fcst_all = pd.concat(
             [x.fcst.reset_index(drop=True) for x in pred_dict.values()], axis=1
         )
-        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         fcst_all.columns = pred_dict.keys()
         # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `fcst_weighted`.
         # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `weights`.
