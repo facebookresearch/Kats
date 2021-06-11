@@ -44,7 +44,6 @@ from kats.detectors.detector_consts import (
     ChangePointInterval,
     ConfidenceBand,
     MultiAnomalyResponse,
-    MultiChangePointInterval,
     MultiPercentageChange,
     PercentageChange,
     SingleSpike,
@@ -79,29 +78,21 @@ statsmodels_ver = float(
 
 if "kats/tests" in os.getcwd():
     data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/air_passengers.csv"
-            )
-        )
+        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
+    )
 
     daily_data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/peyton_manning.csv"
-            )
-        )
+        os.path.join(os.path.dirname("__file__"), "../", "data/peyton_manning.csv")
+    )
 
     multi_data_path = os.path.abspath(
         os.path.join(
             os.path.dirname("__file__"),
             "../",
-            "data/multivariate_anomaly_simulated_data.csv"
-            )
+            "data/multivariate_anomaly_simulated_data.csv",
         )
-elif "/home/runner/work/" in os.getcwd(): # for Github Action
+    )
+elif "/home/runner/work/" in os.getcwd():  # for Github Action
     data_path = "kats/data/air_passengers.csv"
     daily_data_path = "kats/data/peyton_manning.csv"
     multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
@@ -1560,9 +1551,7 @@ class ChangePointIntervalTest(TestCase):
         # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current_end`.
         self.current_end = current_seq[-1] + timedelta(days=1)
 
-        previous_int = ChangePointInterval(
-            self.prev_start, self.prev_end
-        )
+        previous_int = ChangePointInterval(self.prev_start, self.prev_end)
         previous_int.data = self.previous
 
         # tests whether data is clipped property to start and end dates
@@ -1575,9 +1564,7 @@ class ChangePointIntervalTest(TestCase):
 
         self.assertEqual(len(previous_int), len(previous_seq))
 
-        current_int = ChangePointInterval(
-            self.current_start, self.current_end
-        )
+        current_int = ChangePointInterval(self.current_start, self.current_end)
         current_int.data = self.current
         current_int.previous_interval = previous_int
 
@@ -1603,6 +1590,136 @@ class ChangePointIntervalTest(TestCase):
         self.assertEqual(
             spike_list[0].time_str, datetime.strftime(self.current_start, "%Y-%m-%d")
         )
+
+    def test_multichangepoint(self) -> None:
+        # test for multivariate time series
+        np.random.seed(100)
+
+        date_start_str = "2020-03-01"
+        date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
+
+        previous_seq = [date_start + timedelta(days=x) for x in range(15)]
+
+        current_length = 10
+
+        current_seq = [
+            previous_seq[10] + timedelta(days=x) for x in range(current_length)
+        ]
+
+        num_seq = 5
+        previous_values = [np.random.randn(len(previous_seq)) for _ in range(num_seq)]
+        current_values = [np.random.randn(len(current_seq)) for _ in range(num_seq)]
+
+        # add a very large value to detect spikes
+        for i in range(num_seq):
+            current_values[i][0] = 100 * (i + 1)
+
+        self.previous = TimeSeriesData(
+            pd.DataFrame(
+                {
+                    **{"time": previous_seq},
+                    **{f"value_{i}": previous_values[i] for i in range(num_seq)},
+                }
+            )
+        )
+
+        self.current = TimeSeriesData(
+            pd.DataFrame(
+                {
+                    **{"time": current_seq},
+                    **{f"value_{i}": current_values[i] for i in range(num_seq)},
+                }
+            )
+        )
+
+        previous_extend = TimeSeriesData(
+            pd.DataFrame(
+                {
+                    **{"time": previous_seq[9:]},
+                    **{f"value_{i}": previous_values[i][9:] for i in range(num_seq)},
+                }
+            )
+        )
+
+        self.prev_start = previous_seq[0]
+        self.prev_end = previous_seq[9]
+
+        #  `current_start`.
+        self.current_start = current_seq[0]
+        self.current_end = current_seq[-1] + timedelta(days=1)
+
+        previous_int = ChangePointInterval(self.prev_start, self.prev_end)
+        previous_int.data = self.previous
+
+        # tests whether data is clipped property to start and end dates
+        for i in range(num_seq):
+            self.assertEqual(
+                # pyre-fixme[16]: Optional type has no attribute `__getitem__`.
+                previous_int.data[:, i].tolist(),
+                previous_values[i][0:9].tolist(),
+            )
+
+        # test extending the data
+        # now the data is extended to include the whole sequence except the last point
+        previous_int.end_time = previous_seq[-1] # + timedelta(days=1)
+        previous_int.extend_data(previous_extend)
+        self.assertEqual(len(previous_int)+1, len(previous_seq))
+
+
+        # let's repeat this except without truncating the final point
+        previous_int2 = ChangePointInterval(self.prev_start, self.prev_end)
+        previous_int2.data = self.previous
+        previous_int2.end_time = previous_seq[-1]  + timedelta(days=1)
+        previous_int2.extend_data(previous_extend)
+        self.assertEqual(len(previous_int2), len(previous_seq))
+
+        # let's extend the date range so it's longer than the data
+        # this should not change the results
+        previous_int3 = ChangePointInterval(self.prev_start, self.prev_end)
+        previous_int3.data = self.previous
+        previous_int3.end_time = previous_seq[-1]  + timedelta(days=2)
+        previous_int3.extend_data(previous_extend)
+        self.assertEqual(len(previous_int3), len(previous_seq))
+
+        # let's construct the current ChangePointInterval
+        current_int = ChangePointInterval(self.current_start, self.current_end)
+        current_int.data = self.current
+        current_int.previous_interval = previous_int
+
+        # check all the properties
+        self.assertEqual(current_int.start_time, self.current_start)
+        self.assertEqual(current_int.end_time, self.current_end)
+        self.assertEqual(current_int.num_series, num_seq)
+        self.assertEqual(
+            current_int.start_time_str,
+            datetime.strftime(self.current_start, "%Y-%m-%d"),
+        )
+        self.assertEqual(
+            current_int.end_time_str, datetime.strftime(self.current_end, "%Y-%m-%d")
+        )
+
+        self.assertEqual(
+            current_int.mean_val.tolist(),
+            [np.mean(current_values[i]) for i in range(num_seq)],
+        )
+        self.assertEqual(
+            current_int.variance_val.tolist(),
+            [np.var(current_values[i]) for i in range(num_seq)],
+        )
+        self.assertEqual(len(current_int), current_length)
+        self.assertEqual(current_int.previous_interval, previous_int)
+
+        # check spike detection
+        spike_array = current_int.spikes
+        self.assertEqual(len(spike_array), num_seq)
+
+        for i in range(num_seq):
+            # pyre-fixme[16]: `SingleSpike` has no attribute `__getitem__`.
+            self.assertEqual(spike_array[i][0].value, 100 * (i + 1))
+            self.assertEqual(
+                spike_array[i][0].time_str,
+                datetime.strftime(self.current_start, "%Y-%m-%d"),
+            )
 
 
 class PercentageChangeTest(TestCase):
@@ -1674,9 +1791,7 @@ class PercentageChangeTest(TestCase):
             pd.DataFrame({"time": previous_seq, "value": second_values})
         )
 
-        second_int = ChangePointInterval(
-            previous_seq[0], previous_seq[-1]
-        )
+        second_int = ChangePointInterval(previous_seq[0], previous_seq[-1])
         second_int.data = second
 
         perc_change_2 = PercentageChange(current=current_int, previous=second_int)
@@ -1686,9 +1801,7 @@ class PercentageChangeTest(TestCase):
 
         # test the edge case when one of the intervals
         # contains a single data point
-        current_int_2 = ChangePointInterval(
-            current_seq[0], current_seq[1]
-        )
+        current_int_2 = ChangePointInterval(current_seq[0], current_seq[1])
 
         current_int_2.data = self.current
 
@@ -1696,125 +1809,6 @@ class PercentageChangeTest(TestCase):
         self.assertTrue(perc_change_3.score > 1.96)
 
         # TODO delta method tests
-
-
-class MultiChangePointIntervalTest(TestCase):
-    def test_multichangepoint(self) -> None:
-        np.random.seed(100)
-
-        date_start_str = "2020-03-01"
-        date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
-
-        previous_seq = [date_start + timedelta(days=x) for x in range(15)]
-
-        current_length = 10
-
-        current_seq = [
-            previous_seq[10] + timedelta(days=x) for x in range(current_length)
-        ]
-
-        num_seq = 5
-        previous_values = [np.random.randn(len(previous_seq)) for _ in range(num_seq)]
-        current_values = [np.random.randn(len(current_seq)) for _ in range(num_seq)]
-
-        # add a very large value to detect spikes
-        for i in range(num_seq):
-            current_values[i][0] = 100 * (i + 1)
-
-        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `previous`.
-        self.previous = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": previous_seq},
-                    **{f"value_{i}": previous_values[i] for i in range(num_seq)},
-                }
-            )
-        )
-
-        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `current`.
-        self.current = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": current_seq},
-                    **{f"value_{i}": current_values[i] for i in range(num_seq)},
-                }
-            )
-        )
-
-        previous_extend = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": previous_seq[10:]},
-                    **{f"value_{i}": previous_values[i][10:] for i in range(num_seq)},
-                }
-            )
-        )
-
-        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `prev_start`.
-        self.prev_start = previous_seq[0]
-        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `prev_end`.
-        self.prev_end = previous_seq[9]
-
-        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute
-        #  `current_start`.
-        self.current_start = current_seq[0]
-        # pyre-fixme[16]: `MultiChangePointIntervalTest` has no attribute `current_end`.
-        self.current_end = current_seq[-1]
-
-        previous_int = MultiChangePointInterval(self.prev_start, self.prev_end)
-        previous_int.data = self.previous
-
-        # tests whether data is clipped property to start and end dates
-        for i in range(num_seq):
-            self.assertEqual(
-                # pyre-fixme[16]: Optional type has no attribute `__getitem__`.
-                previous_int.data[:, i].tolist(), previous_values[i][0:10].tolist()
-            )
-
-        # test extending the data
-        # now the data is extended to include the whole sequence
-        previous_int.end_time = previous_seq[-1]
-        previous_int.extend_data(previous_extend)
-
-        self.assertEqual(len(previous_int) + 1, len(previous_seq))
-
-        current_int = MultiChangePointInterval(self.current_start, self.current_end)
-        current_int.data = self.current
-        current_int.previous_interval = previous_int
-
-        # check all the properties
-        self.assertEqual(current_int.start_time, self.current_start)
-        self.assertEqual(current_int.end_time, self.current_end)
-        self.assertEqual(
-            current_int.start_time_str,
-            datetime.strftime(self.current_start, "%Y-%m-%d"),
-        )
-        self.assertEqual(
-            current_int.end_time_str, datetime.strftime(self.current_end, "%Y-%m-%d")
-        )
-
-        self.assertEqual(
-            current_int.mean_val.tolist(),
-            [np.mean(current_values[i]) for i in range(num_seq)],
-        )
-        self.assertEqual(
-            current_int.variance_val.tolist(),
-            [np.var(current_values[i]) for i in range(num_seq)],
-        )
-        self.assertEqual(len(current_int), current_length)
-        self.assertEqual(current_int.previous_interval, previous_int)
-
-        # check spike detection
-        spike_array = current_int.spikes
-        self.assertEqual(len(spike_array), num_seq)
-
-        for i in range(num_seq):
-            # pyre-fixme[16]: `SingleSpike` has no attribute `__getitem__`.
-            self.assertEqual(spike_array[i][0].value, 100 * (i + 1))
-            self.assertEqual(
-                spike_array[i][0].time_str,
-                datetime.strftime(self.current_start, "%Y-%m-%d"),
-            )
 
 
 class MultiPercentageChangeTest(TestCase):
@@ -1870,9 +1864,9 @@ class MultiPercentageChangeTest(TestCase):
         # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
-        previous_int = MultiChangePointInterval(previous_seq[0], previous_seq[-1])
+        previous_int = ChangePointInterval(previous_seq[0], previous_seq[-1] + timedelta(days=1))
         previous_int.data = self.previous
-        current_int = MultiChangePointInterval(current_seq[0], current_seq[-1])
+        current_int = ChangePointInterval(current_seq[0], current_seq[-1] + timedelta(days=1))
         current_int.data = self.current
         current_int.previous_interval = previous_int
 
@@ -1918,14 +1912,14 @@ class MultiPercentageChangeTest(TestCase):
             )
         )
 
-        second_int = MultiChangePointInterval(previous_seq[0], previous_seq[-1])
+        second_int = ChangePointInterval(previous_seq[0], previous_seq[-1])
         second_int.data = second
 
         perc_change_2 = MultiPercentageChange(current=current_int, previous=second_int)
         for stat_sig, p_value, score in zip(
-            # pyre-fixme[6]: Expected `Iterable[Variable[_T2]]` for 2nd param but
-            #  got `float`.
-            perc_change_2.stat_sig, perc_change_2.p_value, perc_change_2.score
+            perc_change_2.stat_sig,
+            perc_change_2.p_value,
+            perc_change_2.score,
         ):
             self.assertFalse(stat_sig)
             self.assertLess(0.05, p_value)
@@ -1948,7 +1942,7 @@ class MultiPercentageChangeTest(TestCase):
             )
         )
 
-        third_int = MultiChangePointInterval(previous_seq[0], previous_seq[-1])
+        third_int = ChangePointInterval(previous_seq[0], previous_seq[-1])
         third_int.data = third
 
         perc_change_3 = MultiPercentageChange(current=current_int, previous=third_int)
@@ -1960,7 +1954,9 @@ class MultiPercentageChangeTest(TestCase):
 
         # test the edge case when one of the intervals
         # contains a single data point
-        current_int_single_point = MultiChangePointInterval(current_seq[0], current_seq[1])
+        current_int_single_point = ChangePointInterval(
+            current_seq[0], current_seq[1]
+        )
 
         current_int_single_point.data = self.current
 
@@ -1971,7 +1967,8 @@ class MultiPercentageChangeTest(TestCase):
         for p_value, score in zip(
             # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but
             #  got `float`.
-            perc_change_single_point.p_value, perc_change_single_point.score
+            perc_change_single_point.p_value,
+            perc_change_single_point.score,
         ):
             self.assertLess(p_value, 0.05)
             self.assertLess(1.96, score)
@@ -2964,7 +2961,7 @@ class TestCUSUMDetectorModel(TestCase):
         elif statsmodels_ver >= 0.12:
             self.assertEqual((score_tsd.value > 0.01).sum(), 168)
         else:
-            raise ValueError('statsmodels version incorrect')
+            raise ValueError("statsmodels version incorrect")
         # make sure the time series time are the same
         self.assertTrue((score_tsd.time.values == tsd.time.values).all())
         # make sure the time series name are the same
@@ -3055,7 +3052,9 @@ class TestProphetDetector(TestCase):
         sim.add_noise(magnitude=0.1 * magnitude * np.random.rand())
         return sim.stl_sim()
 
-    def create_multi_seasonality_ts(self, seed, length, freq, min_val, max_val, signal_to_noise_ratio):
+    def create_multi_seasonality_ts(
+        self, seed, length, freq, min_val, max_val, signal_to_noise_ratio
+    ):
         np.random.seed(seed)
 
         sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
@@ -3063,18 +3062,18 @@ class TestProphetDetector(TestCase):
 
         sim.add_trend(-0.2 * magnitude)
         sim.add_seasonality(
-            magnitude * (2/3) *np.random.rand() * 2,
+            magnitude * (2 / 3) * np.random.rand() * 2,
             period=timedelta(days=1),
         )
         sim.add_seasonality(
-            magnitude * (1/3) *np.random.rand(),
+            magnitude * (1 / 3) * np.random.rand(),
             period=timedelta(days=0.5),
         )
         sim.add_seasonality(
-            magnitude * 0.2 *np.random.rand(),
+            magnitude * 0.2 * np.random.rand(),
             period=timedelta(days=7),
         )
-        sim.add_noise(magnitude=signal_to_noise_ratio*magnitude)
+        sim.add_noise(magnitude=signal_to_noise_ratio * magnitude)
 
         sim_ts = sim.stl_sim()
 
@@ -3100,12 +3099,16 @@ class TestProphetDetector(TestCase):
         ts.value.iloc[:start_index] *= 0
         ts.value.iloc[end_index:] *= 0
 
-
     def add_trend_shift(self, ts, length, freq, magnitude):
         ts_df = ts.to_dataframe()
         sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
         elevation = sim.trend_shift_sim(
-            cp_arr=[0, 1], trend_arr=[0, 0, 0], noise=0, seasonal_period=1, seasonal_magnitude=0, intercept=magnitude
+            cp_arr=[0, 1],
+            trend_arr=[0, 0, 0],
+            noise=0,
+            seasonal_period=1,
+            seasonal_magnitude=0,
+            intercept=magnitude,
         )
         elevation_df = elevation.to_dataframe()
 
@@ -3125,23 +3128,35 @@ class TestProphetDetector(TestCase):
 
     def merge_ts(self, ts1, ts2):
         ts1_df, ts2_df = ts1.to_dataframe(), ts2.to_dataframe()
-        merged_df = (
-            ts1_df.set_index("time") + ts2_df.set_index("time")
-        ).reset_index()
+        merged_df = (ts1_df.set_index("time") + ts2_df.set_index("time")).reset_index()
         merged_ts = TimeSeriesData(df=merged_df)
         return merged_ts
 
-    def add_multi_event(self, baseline_ts, seed, length, freq, min_val, max_val, signal_to_noise_ratio, event_start_ratio, event_end_ratio, event_relative_magnitude):
+    def add_multi_event(
+        self,
+        baseline_ts,
+        seed,
+        length,
+        freq,
+        min_val,
+        max_val,
+        signal_to_noise_ratio,
+        event_start_ratio,
+        event_end_ratio,
+        event_relative_magnitude,
+    ):
 
         np.random.seed(seed)
         sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
 
-        event_start = int(length* event_start_ratio)
+        event_start = int(length * event_start_ratio)
         event_end = int(length * event_end_ratio)
         duration = event_end - event_start
 
         magnitude = (max_val - min_val) / 2
-        event_magnitude = 2 * magnitude * event_relative_magnitude * (signal_to_noise_ratio + 1)
+        event_magnitude = (
+            2 * magnitude * event_relative_magnitude * (signal_to_noise_ratio + 1)
+        )
 
         event1_start = event_start + int(duration / 4)
         event1_end = event_end
@@ -3157,24 +3172,33 @@ class TestProphetDetector(TestCase):
         event3_end = event_start + 2 * int(duration / 3)
         event3_magnitude = event_magnitude / duration / 4
         event3_duration = event3_end - event3_start
-        event3_peak = event3_start + int(event3_duration/2)
+        event3_peak = event3_start + int(event3_duration / 2)
 
         # create event ts
 
         event1_ts = sim.level_shift_sim(
-            seasonal_period=event1_duration/2, seasonal_magnitude=event1_magnitude, noise=signal_to_noise_ratio*magnitude
+            seasonal_period=event1_duration / 2,
+            seasonal_magnitude=event1_magnitude,
+            noise=signal_to_noise_ratio * magnitude,
         )
 
         event2_ts = sim.level_shift_sim(
-            seasonal_period=event2_duration/2, seasonal_magnitude=event2_magnitude, noise=signal_to_noise_ratio*magnitude
+            seasonal_period=event2_duration / 2,
+            seasonal_magnitude=event2_magnitude,
+            noise=signal_to_noise_ratio * magnitude,
         )
 
         event3_ts = sim.trend_shift_sim(
-            cp_arr=[event3_start, event3_peak, event3_end], trend_arr=[0, -event3_magnitude, +event3_magnitude, 0], seasonal_period=duration, seasonal_magnitude=0, intercept=0, noise=signal_to_noise_ratio*magnitude
+            cp_arr=[event3_start, event3_peak, event3_end],
+            trend_arr=[0, -event3_magnitude, +event3_magnitude, 0],
+            seasonal_period=duration,
+            seasonal_magnitude=0,
+            intercept=0,
+            noise=signal_to_noise_ratio * magnitude,
         )
 
-        self.horiz_translate(event1_ts, event1_start - int(3*event1_duration/4))
-        self.horiz_translate(event2_ts, event2_start - int(3*event2_duration/4))
+        self.horiz_translate(event1_ts, event1_start - int(3 * event1_duration / 4))
+        self.horiz_translate(event2_ts, event2_start - int(3 * event2_duration / 4))
 
         self.add_trend_shift(event1_ts, length, freq, event1_magnitude)
         self.add_trend_shift(event2_ts, length, freq, event2_magnitude)
@@ -3248,15 +3272,11 @@ class TestProphetDetector(TestCase):
 
     def test_outlier_removal_threshold(self):
         ts = self.create_random_ts(0, 365, 10, 2)
-        ts_df = pd.DataFrame(
-        {"ds": ts.time, "y": ts.value}
-        )
+        ts_df = pd.DataFrame({"ds": ts.time, "y": ts.value})
 
         model = ProphetDetectorModel()
 
-        filtered_ts_df = model._remove_outliers(
-            ts_df, outlier_ci_threshold=0.99
-        )
+        filtered_ts_df = model._remove_outliers(ts_df, outlier_ci_threshold=0.99)
 
         aggressively_filtered_ts_df = model._remove_outliers(
             ts_df, outlier_ci_threshold=0.8
@@ -3267,17 +3287,36 @@ class TestProphetDetector(TestCase):
 
     def test_outlier_removal_efficacy(self):
         def _subtest(
-            baseline_ts, seed, length, freq, min_val, max_val, signal_to_noise_ratio, event_start_ratio, event_end_ratio, event_relative_magnitude
+            baseline_ts,
+            seed,
+            length,
+            freq,
+            min_val,
+            max_val,
+            signal_to_noise_ratio,
+            event_start_ratio,
+            event_end_ratio,
+            event_relative_magnitude,
         ):
             model = ProphetDetectorModel()
 
-            test_ts = self.add_multi_event(baseline_ts, seed, length, freq, min_val, max_val, signal_to_noise_ratio, event_start_ratio, event_end_ratio, event_relative_magnitude)
+            test_ts = self.add_multi_event(
+                baseline_ts,
+                seed,
+                length,
+                freq,
+                min_val,
+                max_val,
+                signal_to_noise_ratio,
+                event_start_ratio,
+                event_end_ratio,
+                event_relative_magnitude,
+            )
 
             # Train on all data up to 0.5 days after the event
             event_end_idx = int(length * event_end_ratio)
             train_idx = (
-                test_ts.time
-                >= test_ts.time.iloc[event_end_idx] + timedelta(hours=12)
+                test_ts.time >= test_ts.time.iloc[event_end_idx] + timedelta(hours=12)
             ).idxmax()
 
             test_df = test_ts.to_dataframe()
@@ -3319,6 +3358,7 @@ class TestProphetDetector(TestCase):
 
         with self.subTest("Testing with noisy underlying data"):
             _subtest(noisy_ts, 0, 960, "15min", 0, 1000, 0.5, 0.5, 0.55, 5)
+
 
 class TestChangepointEvaluator(TestCase):
     def test_eval_agg(self) -> None:
@@ -3467,18 +3507,26 @@ class TestChangepointEvaluator(TestCase):
 
         # test Statsig
         num_secs_in_month = 86400 * 30
-        statsig_model_params = {"n_control": 7 * num_secs_in_month,
-                                "n_test": 7 * num_secs_in_month,
-                                "time_unit": "sec"}
+        statsig_model_params = {
+            "n_control": 7 * num_secs_in_month,
+            "n_test": 7 * num_secs_in_month,
+            "time_unit": "sec",
+        }
 
         # pyre-fixme[6]: Expected `Detector` for 1st param but got
         #  `Type[StatSigDetectorModel]`.
-        turing_8 = TuringEvaluator(detector=StatSigDetectorModel, is_detector_model=True)
+        turing_8 = TuringEvaluator(
+            detector=StatSigDetectorModel, is_detector_model=True
+        )
         # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
         #  `Dict[str, typing.Union[int, str]]`.
-        eval_agg_8_df = turing_8.evaluate(data=eg_df, model_params=statsig_model_params,
-                                          alert_style_cp=False, threshold_low=-5.0,
-                                          threshold_high=5.0)
+        eval_agg_8_df = turing_8.evaluate(
+            data=eg_df,
+            model_params=statsig_model_params,
+            alert_style_cp=False,
+            threshold_low=-5.0,
+            threshold_high=5.0,
+        )
 
         self.assertEqual(eval_agg_8_df.shape[0], eg_df.shape[0])
 
@@ -3489,8 +3537,13 @@ class TestChangepointEvaluator(TestCase):
 
         date_range_daily = pd.date_range(start="2020-03-01", end="2020-03-31", freq="D")
         date_range_start_daily = [x + timedelta(days=1) for x in date_range_daily]
-        y_m_d_str_daily = [datetime.strftime(x, "%Y-%m-%d") for x in date_range_start_daily]
-        int_daily = [(eg_start_unix_time + x * num_secs_in_day) for x in range(len(date_range_start_daily))]
+        y_m_d_str_daily = [
+            datetime.strftime(x, "%Y-%m-%d") for x in date_range_start_daily
+        ]
+        int_daily = [
+            (eg_start_unix_time + x * num_secs_in_day)
+            for x in range(len(date_range_start_daily))
+        ]
         int_str_daily = [str(x) for x in int_daily]
 
         val_daily = np.random.randn(len(date_range_start_daily))
@@ -3519,22 +3572,28 @@ class TestChangepointEvaluator(TestCase):
             ]
         )
 
-        cusum_model_params = {"scan_window": 8 * num_secs_in_day,
-                              "historical_window": 8 * num_secs_in_day,
-                              "threshold": 0.01,
-                              "delta_std_ratio": 1.0,
-                              "change_directions": ["increase", "decrease"],
-                              "score_func": CusumScoreFunction.percentage_change,
-                              "remove_seasonality": False}
+        cusum_model_params = {
+            "scan_window": 8 * num_secs_in_day,
+            "historical_window": 8 * num_secs_in_day,
+            "threshold": 0.01,
+            "delta_std_ratio": 1.0,
+            "change_directions": ["increase", "decrease"],
+            "score_func": CusumScoreFunction.percentage_change,
+            "remove_seasonality": False,
+        }
 
         # pyre-fixme[6]: Expected `Detector` for 1st param but got
         #  `Type[CUSUMDetectorModel]`.
         turing_9 = TuringEvaluator(detector=CUSUMDetectorModel, is_detector_model=True)
         # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
         #  `Dict[str, typing.Union[typing.List[str], CusumScoreFunction, float]]`.
-        eval_agg_9_df = turing_9.evaluate(data=eg_df_daily, model_params=cusum_model_params,
-                                          alert_style_cp=True, threshold_low=-0.1,
-                                          threshold_high=0.1)
+        eval_agg_9_df = turing_9.evaluate(
+            data=eg_df_daily,
+            model_params=cusum_model_params,
+            alert_style_cp=True,
+            threshold_low=-0.1,
+            threshold_high=0.1,
+        )
 
         self.assertEqual(eval_agg_9_df.shape[0], eg_df_daily.shape[0])
 

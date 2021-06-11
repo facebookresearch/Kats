@@ -20,7 +20,6 @@ from kats.detectors.detector_consts import (
     ChangePointInterval,
     ConfidenceBand,
     MultiAnomalyResponse,
-    MultiChangePointInterval,
     MultiPercentageChange,
     PercentageChange,
 )
@@ -660,9 +659,9 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             test_end_dt,
         ) = self._get_start_end_dates(data)
 
-        self.test_interval = MultiChangePointInterval(test_start_dt, test_end_dt)
+        self.test_interval = ChangePointInterval(test_start_dt, test_end_dt)
         self.test_interval.data = self.data_history
-        self.control_interval = MultiChangePointInterval(control_start_dt, control_end_dt)
+        self.control_interval = ChangePointInterval(control_start_dt, control_end_dt)
         self.control_interval.data = self.data_history
 
     def _update_control_test(self, data: TimeSeriesData):
@@ -676,7 +675,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             test_end_dt,
         ) = self._get_start_end_dates(data)
 
-        self.test_interval = MultiChangePointInterval(test_start_dt, test_end_dt)
+        self.test_interval = ChangePointInterval(test_start_dt, test_end_dt)
         self.test_interval.data = self.data_history
-        self.control_interval = MultiChangePointInterval(control_start_dt, control_end_dt)
+        self.control_interval = ChangePointInterval(control_start_dt, control_end_dt)
         self.control_interval.data = self.data_history
