@@ -44,7 +44,6 @@ from kats.detectors.detector_consts import (
     ChangePointInterval,
     ConfidenceBand,
     MultiAnomalyResponse,
-    MultiPercentageChange,
     PercentageChange,
     SingleSpike,
 )
@@ -1590,7 +1589,8 @@ class ChangePointIntervalTest(TestCase):
         self.assertEqual(spike_list[0].value, 100.0)
         self.assertEqual(
             # pyre-fixme[16]: `List` has no attribute `time_str`.
-            spike_list[0].time_str, datetime.strftime(self.current_start, "%Y-%m-%d")
+            spike_list[0].time_str,
+            datetime.strftime(self.current_start, "%Y-%m-%d"),
         )
 
     def test_multichangepoint(self) -> None:
@@ -1669,15 +1669,14 @@ class ChangePointIntervalTest(TestCase):
 
         # test extending the data
         # now the data is extended to include the whole sequence except the last point
-        previous_int.end_time = previous_seq[-1] # + timedelta(days=1)
+        previous_int.end_time = previous_seq[-1]  # + timedelta(days=1)
         previous_int.extend_data(previous_extend)
-        self.assertEqual(len(previous_int)+1, len(previous_seq))
-
+        self.assertEqual(len(previous_int) + 1, len(previous_seq))
 
         # let's repeat this except without truncating the final point
         previous_int2 = ChangePointInterval(self.prev_start, self.prev_end)
         previous_int2.data = self.previous
-        previous_int2.end_time = previous_seq[-1]  + timedelta(days=1)
+        previous_int2.end_time = previous_seq[-1] + timedelta(days=1)
         previous_int2.extend_data(previous_extend)
         self.assertEqual(len(previous_int2), len(previous_seq))
 
@@ -1685,7 +1684,7 @@ class ChangePointIntervalTest(TestCase):
         # this should not change the results
         previous_int3 = ChangePointInterval(self.prev_start, self.prev_end)
         previous_int3.data = self.previous
-        previous_int3.end_time = previous_seq[-1]  + timedelta(days=2)
+        previous_int3.end_time = previous_seq[-1] + timedelta(days=2)
         previous_int3.extend_data(previous_extend)
         self.assertEqual(len(previous_int3), len(previous_seq))
 
@@ -1821,9 +1820,8 @@ class PercentageChangeTest(TestCase):
 
         # TODO delta method tests
 
-
-class MultiPercentageChangeTest(TestCase):
     def test_multi_perc_change(self) -> None:
+        # test for multivariate time series
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -1875,15 +1873,17 @@ class MultiPercentageChangeTest(TestCase):
         # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
-        previous_int = ChangePointInterval(previous_seq[0], previous_seq[-1] + timedelta(days=1))
+        previous_int = ChangePointInterval(
+            previous_seq[0], previous_seq[-1] + timedelta(days=1)
+        )
         previous_int.data = self.previous
-        current_int = ChangePointInterval(current_seq[0], current_seq[-1] + timedelta(days=1))
+        current_int = ChangePointInterval(
+            current_seq[0], current_seq[-1] + timedelta(days=1)
+        )
         current_int.data = self.current
         current_int.previous_interval = previous_int
 
-        perc_change_1 = MultiPercentageChange(
-            current=current_int, previous=previous_int
-        )
+        perc_change_1 = PercentageChange(current=current_int, previous=previous_int)
 
         previous_mean = np.array([np.mean(previous_values[i]) for i in range(num_seq)])
         current_mean = np.array([np.mean(current_values[i]) for i in range(num_seq)])
@@ -1900,7 +1900,9 @@ class MultiPercentageChangeTest(TestCase):
         self.assertEqual(
             perc_change_1.perc_change.tolist(), ((ratio_val - 1) * 100).tolist()
         )
+        # pyre-fixme[16]: str has no attribute tolist.
         self.assertEqual(perc_change_1.direction.tolist(), ["up"] * num_seq)
+        # pyre-fixme[16]: bool has no attribute tolist.
         self.assertEqual(perc_change_1.stat_sig.tolist(), [True] * num_seq)
 
         # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
@@ -1926,11 +1928,11 @@ class MultiPercentageChangeTest(TestCase):
         second_int = ChangePointInterval(previous_seq[0], previous_seq[-1])
         second_int.data = second
 
-        perc_change_2 = MultiPercentageChange(current=current_int, previous=second_int)
+        perc_change_2 = PercentageChange(current=current_int, previous=second_int)
         for stat_sig, p_value, score in zip(
+            # pyre-fixme[6]: Expected typing.Iterable[Variable[_T1]] for 1st positional
+            # only parameter to call zip but got typing.Union[bool, np.ndarray].
             perc_change_2.stat_sig,
-            # pyre-fixme[6]: Expected `Iterable[Variable[_T2]]` for 2nd param but
-            #  got `float`.
             perc_change_2.p_value,
             perc_change_2.score,
         ):
@@ -1958,7 +1960,7 @@ class MultiPercentageChangeTest(TestCase):
         third_int = ChangePointInterval(previous_seq[0], previous_seq[-1])
         third_int.data = third
 
-        perc_change_3 = MultiPercentageChange(current=current_int, previous=third_int)
+        perc_change_3 = PercentageChange(current=current_int, previous=third_int)
         # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
         #  `float`.
         for p_value, score in zip(perc_change_3.p_value, perc_change_3.score):
@@ -1967,13 +1969,11 @@ class MultiPercentageChangeTest(TestCase):
 
         # test the edge case when one of the intervals
         # contains a single data point
-        current_int_single_point = ChangePointInterval(
-            current_seq[0], current_seq[1]
-        )
+        current_int_single_point = ChangePointInterval(current_seq[0], current_seq[1])
 
         current_int_single_point.data = self.current
 
-        perc_change_single_point = MultiPercentageChange(
+        perc_change_single_point = PercentageChange(
             current=current_int_single_point, previous=previous_int
         )
 
@@ -3529,7 +3529,8 @@ class TestChangepointEvaluator(TestCase):
         turing_8 = TuringEvaluator(
             # pyre-fixme[6]: Expected `Detector` for 1st param but got
             #  `Type[StatSigDetectorModel]`.
-            detector=StatSigDetectorModel, is_detector_model=True
+            detector=StatSigDetectorModel,
+            is_detector_model=True,
         )
         eval_agg_8_df = turing_8.evaluate(
             data=eg_df,

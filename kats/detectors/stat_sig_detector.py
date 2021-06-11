@@ -20,7 +20,6 @@ from kats.detectors.detector_consts import (
     ChangePointInterval,
     ConfidenceBand,
     MultiAnomalyResponse,
-    MultiPercentageChange,
     PercentageChange,
 )
 
@@ -632,7 +631,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         """
         updates the current response with data from date
         """
-        perc_change = MultiPercentageChange(
+        perc_change = PercentageChange(
             current=self.test_interval,
             previous=self.control_interval,
             method=self.method,
