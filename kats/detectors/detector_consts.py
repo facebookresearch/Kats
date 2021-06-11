@@ -63,7 +63,6 @@ class ChangePointInterval:
             self._ts_cols = list(data.value.columns)
             self.num_series = len(self._ts_cols)
         all_data_df = data.to_dataframe()
-        # pyre-ignore[16]: `DataFrame` has no attribute `columns`.
         all_data_df.columns = ["time"] + self._ts_cols
         all_data_df["time"] = pd.to_datetime(all_data_df["time"])
         all_data_df = all_data_df.loc[
@@ -89,6 +88,7 @@ class ChangePointInterval:
         else:
             spikes = []
             for i, c in enumerate(self._ts_cols):
+                # pyre-fixme[16]: `float` has no attribute `__getitem__`.
                 df[f"z_score_{c}"] = (df[c] - self.mean_val[i]) / np.sqrt(
                     self.variance_val[i]
                 )
@@ -115,7 +115,6 @@ class ChangePointInterval:
         extends the data.
         """
         new_data_df = data.to_dataframe()
-        # pyre-ignore[16]: `DataFrame` has no attribute `columns`.
         new_data_df.columns = ["time"] + self._ts_cols
         df = self.data_df
         if df is not None:
@@ -235,6 +234,8 @@ class PercentageChange:
 
     @property
     def mean_difference(self) -> Union[float, np.ndarray]:
+        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
+        #  np.ndarray]`.
         _mean_diff = self.current.mean_val - self.previous.mean_val
         return _mean_diff
 

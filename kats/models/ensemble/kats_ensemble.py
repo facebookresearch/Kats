@@ -631,7 +631,6 @@ class KatsEnsemble:
         fcsts = {}
         for col in ["fcst", "fcst_lower", "fcst_upper"]:
             fcsts[col] = pd.concat(
-                # pyre-ignore[6]: Expected `Union[typing.Iterable[pd.core.frame.DataFr...
                 [x[col].reset_index(drop=True) for x in predicted.values()], axis=1
             )
             fcsts[col].columns = predicted.keys()

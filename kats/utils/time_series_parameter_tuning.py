@@ -400,8 +400,6 @@ class TimeSeriesParameterTuning(ABC):
         ]
         transform.drop(columns="parameters", level=0, inplace=True)
         new_cols = new_cols.drop(labels=filter(lambda x: "parameters" in x, new_cols))
-        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
-        # pyre-fixme[16]: `Series` has no attribute `columns`.
         transform.columns = ["trial_index", "arm_name"] + [
             "_".join(tpl) for tpl in new_cols[2:]
         ]

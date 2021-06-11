@@ -44,29 +44,21 @@ TSData_short = TimeSeriesData(DATA.iloc[:8, :])
 # TS which has constant values only
 DATA_const = DATA.copy()
 DATA_const["y"] = 1
-# pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param but got
-#  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
 TSData_const = TimeSeriesData(DATA_const)
 
 # TS which has NAN values
 DATA_nan = DATA.copy()
 DATA_nan.iloc[10, 1] = np.nan
-# pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param but got
-#  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
 TSData_nan = TimeSeriesData(DATA_nan)
 
 # TS which has INF values
 DATA_inf = DATA.copy()
 DATA_inf.iloc[10, 1] = np.inf
-# pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param but got
-#  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
 TSData_inf = TimeSeriesData(DATA_inf)
 
 # TS which doesn't have constant frequency
 DATA_gap = DATA.copy()
 DATA_gap = DATA_gap.drop([3, 4])
-# pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param but got
-#  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
 TSData_gap = TimeSeriesData(DATA_gap)
 
 # TS which is not univariate

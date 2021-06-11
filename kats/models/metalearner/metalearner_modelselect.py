@@ -198,7 +198,6 @@ class MetaLearnModelSelect:
         """
 
         combined = pd.concat([self.metadataX.iloc[i], self.metadataX.iloc[j]], axis=1)
-        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         combined.columns = [
             str(self.metadataY.iloc[i]) + " model",
             str(self.metadataY.iloc[j]) + " model",
@@ -524,7 +523,6 @@ class RandomDownSampler:
             resampled_hpt += list(self.hpt.iloc[np.asarray(idx_dict[key])])
 
         resampled_x = pd.DataFrame(resampled_x)
-        # pyre-fixme[16]: `DataFrame` has no attribute `columns`.
         resampled_x.columns = self.col_namesX
 
         resampled_y = pd.Series(resampled_y, name="y")
