@@ -13,7 +13,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from abc import ABC, abstractmethod
 
 import matplotlib.pyplot as plt
@@ -60,8 +60,7 @@ class BOCPDMetadata:
             is being run.
     """
 
-    # pyre-fixme[9]: ts_name has type `str`; used as `None`.
-    def __init__(self, model: BOCPDModelType, ts_name: str = None):
+    def __init__(self, model: BOCPDModelType, ts_name: Optional[str] = None):
         self._detector_type = BOCPDetector
         self._model = model
         self._ts_name = ts_name
@@ -93,6 +92,7 @@ class BOCPDModelParameters(ABC):
             for the hyperparameter tuning library. Allowed values
             are 'random' and 'gridsearch'.
     """
+    data: Optional[TimeSeriesData] = None
 
     prior_choice: Dict[str, List[float]] = field(
         default_factory=lambda: {'cp_prior': [0.001, 0.002, 0.005, 0.01, 0.02]}
@@ -188,8 +188,7 @@ class TrendChangeParameters(BOCPDModelParameters):
             debug.
     """
 
-    # pyre-fixme[8]: Attribute has type `ndarray`; used as `None`.
-    mu_prior: np.ndarray = None
+    mu_prior: Optional[np.ndarray] = None
     num_likelihood_samples: int = 100
     num_points_prior: int = _MIN_POINTS
     readjust_sigma_prior: bool = False
@@ -235,20 +234,12 @@ class BOCPDetector(Detector):
     def __init__(self, data: TimeSeriesData) -> None:
         self.data = data
 
-        # pyre-fixme[8]: Attribute has type `Dict[BOCPDModelType,
-        #  _PredictiveModel]`; used as `Dict[BOCPDModelType,
-        #  typing.Type[Union[_BayesianLinReg, _NormalKnownPrec,
-        #  _PoissonProcessModel]]]`.
-        self.models: Dict[BOCPDModelType, _PredictiveModel] = {
+        self.models: Dict[BOCPDModelType, Type[_PredictiveModel]] = {
             BOCPDModelType.NORMAL_KNOWN_MODEL: _NormalKnownPrec,
             BOCPDModelType.TREND_CHANGE_MODEL: _BayesianLinReg,
             BOCPDModelType.POISSON_PROCESS_MODEL: _PoissonProcessModel,
         }
-        # pyre-fixme[8]: Attribute has type `Dict[BOCPDModelType,
-        #  BOCPDModelParameters]`; used as `Dict[BOCPDModelType,
-        #  typing.Type[Union[NormalKnownParameters, PoissonModelParameters,
-        #  TrendChangeParameters]]]`.
-        self.parameter_type: Dict[BOCPDModelType, BOCPDModelParameters] = {
+        self.parameter_type: Dict[BOCPDModelType, Type[BOCPDModelParameters]] = {
             BOCPDModelType.NORMAL_KNOWN_MODEL: NormalKnownParameters,
             BOCPDModelType.TREND_CHANGE_MODEL: TrendChangeParameters,
             BOCPDModelType.POISSON_PROCESS_MODEL: PoissonModelParameters,
@@ -343,23 +334,16 @@ class BOCPDetector(Detector):
         ), f"Requested model {model} not currently supported. Please choose one from: {self.available_models}"
 
         if model_parameters is None:
-            # pyre-fixme[29]: `BOCPDModelParameters` is not a function.
             model_parameters = self.parameter_type[model]()
 
         assert isinstance(
-            # pyre-fixme[6]: Expected `Union[typing.Type[typing.Any],
-            #  typing.Tuple[typing.Type[typing.Any], ...]]` for 2nd param but got
-            #  `BOCPDModelParameters`.
             model_parameters, self.parameter_type[model]
         ), f"Expected parameter type {self.parameter_type[model]}, but got {model_parameters}"
 
         if choose_priors:
-            # pyre-fixme[23]: Unable to unpack `BOCPDModelParameters` into 2 values.
             changepoint_prior, model_parameters = self._choose_priors(model, model_parameters)
 
-        if (
-            hasattr(model_parameters, "data") and model_parameters.data is None
-        ):  # replace any None data parameters with self.data, I check to make sure it has the attribute just in case future BOCPDModelParameter classes don't
+        if getattr(model_parameters, "data", 0) is None:
             model_parameters.data = self.data
 
         logging.debug(f"Newest model parameters: {model_parameters}")
@@ -373,7 +357,7 @@ class BOCPDetector(Detector):
             raise ValueError(msg)
 
         # parameters_dict = dataclasses.asdict(model_parameters)
-        # pyre-fixme[29]: `_PredictiveModel` is not a function.
+        # pyre-fixme[45]: Cannot instantiate abstract class `_PredictiveModel` with `__init__`, `is_multivariate`, `pred_mean` and 4 additional abstract methods.Pyre
         underlying_model = self.models[model](data=self.data, parameters=model_parameters)
         underlying_model.setup()
 
@@ -419,8 +403,7 @@ class BOCPDetector(Detector):
     def plot(
         self,
         change_points: List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]],
-        # pyre-fixme[9]: ts_names has type `List[str]`; used as `None`.
-        ts_names: List[str] = None
+        ts_names: Optional[List[str]] = None
     ) -> None:
         """Plots the change points, along with the time series.
 
@@ -439,9 +422,7 @@ class BOCPDetector(Detector):
 
         # Group changepoints together
         change_points_per_ts = self.group_changepoints_by_timeseries(change_points)
-        # pyre-fixme[9]: ts_names has type `List[str]`; used as `Union[List[str],
-        #  typing.KeysView[str]]`.
-        ts_names = ts_names or change_points_per_ts.keys()
+        ts_names = ts_names or list(change_points_per_ts.keys())
 
         data_df = self.data.to_dataframe()
 
@@ -460,7 +441,7 @@ class BOCPDetector(Detector):
             plt.show()
 
     def _choose_priors(self, model: BOCPDModelType,
-                       params: BOCPDModelParameters) -> BOCPDModelParameters:
+                       params: BOCPDModelParameters) -> Tuple[Any, BOCPDModelParameters]:
         """Chooses priors which are defined by the model parameters.
 
         Chooses priors which are defined by the model parameters.
@@ -530,8 +511,6 @@ class BOCPDetector(Detector):
 
         best_cp_prior = best_params['cp_prior']
 
-        # pyre-fixme[7]: Expected `BOCPDModelParameters` but got `Tuple[typing.Any,
-        #  BOCPDModelParameters]`.
         return best_cp_prior, params
 
     def _get_eval_function(self, model: BOCPDModelType,
@@ -546,7 +525,7 @@ class BOCPDetector(Detector):
             model_parameters.set_prior(params_to_eval)
             logging.debug(model_parameters)
             logging.debug(params_to_eval)
-            # pyre-fixme[29]: `_PredictiveModel` is not a function.
+            # pyre-fixme[45]: Cannot instantiate abstract class `_PredictiveModel` with `__init__`, `is_multivariate`, `pred_mean` and 4 additional abstract methods.Pyre
             underlying_model = self.models[model](data=self.data, parameters=model_parameters)
             change_point = _BayesOnlineChangePoint(data=self.data, lag=3, debug=False)
             change_point.detector(model=underlying_model,
@@ -674,6 +653,10 @@ class _BayesOnlineChangePoint(Detector):
         will be the aggregation of run-length posterior by fetching
         maximum values diagonally.
     """
+    rt_posterior: Optional[np.ndarray] = None
+    pred_mean_arr: Optional[np.ndarray] = None
+    pred_std_arr: Optional[np.ndarray] = None
+    next_pred_prob: Optional[np.ndarray] = None
 
     def __init__(self, data: TimeSeriesData, lag: int = 10, debug: bool = False, agg_cp: bool = False):
         self.data = data
@@ -731,7 +714,6 @@ class _BayesOnlineChangePoint(Detector):
             self.threshold = np.repeat(threshold, self.P)
         if isinstance(changepoint_prior, float):
             changepoint_prior = np.repeat(changepoint_prior, self.P)
-        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `rt_posterior`.
         self.rt_posterior = self._find_posterior(model, changepoint_prior)
         return self._construct_output(self.threshold, lag=self.lag)
 
@@ -771,11 +753,8 @@ class _BayesOnlineChangePoint(Detector):
         m_ptr = -1
 
         # set up arrays for debugging
-        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `pred_mean_arr`.
         self.pred_mean_arr = np.zeros(self._posterior_shape)
-        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `pred_std_arr`.
         self.pred_std_arr = np.zeros(self._posterior_shape)
-        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `next_pred_prob`.
         self.next_pred_prob = np.zeros(self._posterior_shape)
 
         # Calculate the log priors once outside the for-loop.
@@ -803,6 +782,7 @@ class _BayesOnlineChangePoint(Detector):
             if self.debug:
                 pred_mean = model.pred_mean(t=i, x=this_pt)
                 pred_std = model.pred_std(t=i, x=this_pt)
+                # pyre-fixme[16]: `Optional` has no attribute `__setitem__`.
                 self.pred_mean_arr[i, 0:i, self._ts_slice] = pred_mean
                 self.pred_std_arr[i, 0:i, self._ts_slice] = pred_std
                 self.next_pred_prob[i, 0:i, self._ts_slice] = pred_arr
@@ -875,15 +855,13 @@ class _BayesOnlineChangePoint(Detector):
 
         return rt_posterior
 
-    # pyre-fixme[9]: threshold has type `float`; used as `None`.
-    # pyre-fixme[9]: lag has type `int`; used as `None`.
-    # pyre-fixme[9]: ts_names has type `List[str]`; used as `None`.
-    def plot(self, threshold: float = None, lag: int = None, ts_names: List[str] = None):
+    def plot(self, threshold: Optional[Union[float, np.ndarray]] = None, lag: Optional[int] = None, ts_names: Optional[List[str]] = None):
         """Plots the changepoints along with the timeseries.
 
         Args:
             threshold: between 0 and 1. probability values above the threshold will be
                 determined to be changepoints.
+            lag: lags to use. If None, use the lags this was initialized with.
             ts_names: list of names of the time series. Useful when there are multiple
                 time series.
 
@@ -931,13 +909,10 @@ class _BayesOnlineChangePoint(Detector):
             # if in debugging mode, plot the mean and variance as well
             if self.debug:
                 x_debug = list(range(lag + 1, self.T))
-                # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute
-                #  `pred_mean_arr`.
+                # pyre-fixme[16]: `Optional` has no attribute `__getitem__`.
                 y_debug_mean = self.pred_mean_arr[lag + 1 : self.T, lag, ts_ix]
                 y_debug_uv = (
                     self.pred_mean_arr[lag + 1 : self.T, lag, ts_ix]
-                    # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute
-                    #  `pred_std_arr`.
                     + self.pred_std_arr[lag + 1 : self.T, lag, ts_ix]
                 )
 
@@ -953,7 +928,6 @@ class _BayesOnlineChangePoint(Detector):
             ax2 = plt.subplot(212, sharex=ax1)
 
             cp_plot_x = list(range(0, self.T - lag))
-            # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `rt_posterior`.
             cp_plot_y = np.copy(self.rt_posterior[lag : self.T, lag, ts_ix])
             # handle the fact that first point is not a changepoint
             cp_plot_y[0] = 0.0
@@ -967,8 +941,6 @@ class _BayesOnlineChangePoint(Detector):
                 plt.figure(figsize=(10, 4))
                 plt.plot(
                     list(range(lag + 1, self.T)),
-                    # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute
-                    #  `next_pred_prob`.
                     self.next_pred_prob[lag + 1 : self.T, lag, ts_ix],
                     "k-",
                 )
@@ -977,24 +949,24 @@ class _BayesOnlineChangePoint(Detector):
                 plt.title("Debugging: Predicted Probabilities")
 
     def _calc_agg_cppprob(self, t: int) -> np.ndarray:
-        # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute `rt_posterior`.
-        run_length_pos = self.rt_posterior[:,:,t]
+        rt_posterior = self.rt_posterior
+        assert rt_posterior is not None
+        run_length_pos = rt_posterior[:,:,t]
         np.fill_diagonal(run_length_pos, 0.0)
         change_prob = np.zeros(self.T)
         for i in range(self.T):
             change_prob[i] = np.max(run_length_pos[i:,:(self.T-i)].diagonal())
         return change_prob
 
-    # pyre-fixme[11]: Annotation `array` is not defined as a type.
-    def _construct_output(self, threshold: np.array, lag: int) -> Dict[str, Any]:
+    def _construct_output(self, threshold: np.ndarray, lag: int) -> Dict[str, Any]:
         output = {}
+        rt_posterior = self.rt_posterior
+        assert rt_posterior is not None
 
         for t, t_name in enumerate(self._ts_names):
             if not self.agg_cp:
                 # till lag, prob = 0, so prepend array with zeros
-                # pyre-fixme[16]: `_BayesOnlineChangePoint` has no attribute
-                #  `rt_posterior`.
-                change_prob = np.hstack((self.rt_posterior[lag : self.T, lag, t], np.zeros(lag)))
+                change_prob = np.hstack((rt_posterior[lag : self.T, lag, t], np.zeros(lag)))
                 # handle the fact that the first point is not a changepoint
                 change_prob[0] = 0.
             elif self.agg_cp:
@@ -1004,12 +976,12 @@ class _BayesOnlineChangePoint(Detector):
             output[t_name] = {
                 "change_prob": change_prob,
                 "change_points": change_points,
-                "run_length_prob": self.rt_posterior[:,:,t]
+                "run_length_prob": rt_posterior[:,:,t]
             }
 
         return output
 
-    def adjust_parameters(self, threshold: float, lag: int) -> Dict[str, Any]:
+    def adjust_parameters(self, threshold: np.ndarray, lag: int) -> Dict[str, Any]:
         """Adjust the parameters.
 
         If the preset parameters are not giving the desired result,
@@ -1330,6 +1302,8 @@ class _BayesianLinReg(_PredictiveModel):
         data: TimeSeriesData object, on which algorithm is run
         parameters: Specifying all the priors.
     """
+    mu_prior: Optional[np.ndarray] = None
+    prior_regression_numpoints: Optional[int] = None
 
     def __init__(
         self,
@@ -1391,8 +1365,6 @@ class _BayesianLinReg(_PredictiveModel):
         # Set up linear regression prior
         if mu_prior is None:
             if data is not None:
-                # pyre-fixme[16]: `_BayesianLinReg` has no attribute
-                #  `prior_regression_numpoints`.
                 self.prior_regression_numpoints = num_points_prior
 
                 time = self.all_time[: self.prior_regression_numpoints]
@@ -1402,8 +1374,7 @@ class _BayesianLinReg(_PredictiveModel):
 
                 # Compute basic linear regression
                 slope, intercept, r_value, p_value, std_err = linregress(time, vals)
-                # pyre-fixme[16]: `_BayesianLinReg` has no attribute `mu_prior`.
-                self.mu_prior = np.array([intercept, slope])  # Set up mu_prior
+                self.mu_prior = mu_prior = np.array([intercept, slope])  # Set up mu_prior
 
                 if readjust_sigma_prior:
                     logging.info("Readjusting the prior for Inv-Gamma for sigma^2.")
@@ -1422,7 +1393,7 @@ class _BayesianLinReg(_PredictiveModel):
                     )
                     self.b_0 = sigma_squared_distribution_mean * (self.a_0 - 1)
             else:
-                self.mu_prior = np.zeros(2)
+                self.mu_prior = mu_prior = np.zeros(2)
                 logging.warning("No data provided -- reverting to default mu_prior.")
         else:
             self.mu_prior = mu_prior
@@ -1431,7 +1402,7 @@ class _BayesianLinReg(_PredictiveModel):
         logging.info(f"Obtained a_0, b_0 values of {self.a_0}, {self.b_0}")
 
         if plot_regression_prior:
-            intercept, slope = self.mu_prior
+            intercept, slope = tuple(mu_prior)
             _BayesianLinReg._plot_regression(self.all_time, self.all_vals, intercept, slope)
 
     @staticmethod
@@ -1571,9 +1542,8 @@ class _BayesianLinReg(_PredictiveModel):
         self._mean_arr[t] = []
         self._std_arr[t] = []
 
-        pred_arr = [log_post_pred(y=x, t=t, rl=rl) for rl in range(t)]
+        pred_arr = np.array([log_post_pred(y=x, t=t, rl=rl) for rl in range(t)])
 
-        # pyre-fixme[7]: Expected `ndarray` but got `List[typing.Any]`.
         return pred_arr
 
     # pyre-fixme[15]: `pred_mean` overrides method defined in `_PredictiveModel`
