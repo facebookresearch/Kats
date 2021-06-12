@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from kats.consts import TimeSeriesData
-from kats.tsfeatures.tsfeatures import TsFeatures
+from kats.tsfeatures import TsFeatures
 from sklearn import metrics
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.model_selection import train_test_split

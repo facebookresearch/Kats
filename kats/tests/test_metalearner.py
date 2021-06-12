@@ -27,7 +27,7 @@ from kats.models.prophet import ProphetModel
 from kats.models.sarima import SARIMAModel
 from kats.models.stlf import STLFModel
 from kats.models.theta import ThetaModel
-from kats.tsfeatures.tsfeatures import TsFeatures
+from kats.tsfeatures import TsFeatures
 
 
 DATA = pd.DataFrame(

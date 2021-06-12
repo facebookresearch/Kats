@@ -29,13 +29,13 @@ Kats is a toolkit to analyze time series data, a lightweight, easy-to-use, and g
 Kats is on PyPI, so you can use `pip` to install it.
 
 ```bash
-pip install kats
+pip install -U kats
 ```
 
-You can then use `pip` to install the requirements for Kats.
+To install from a copy of this source code, in the Kats directory run
 
 ```bash
-pip install -r ~/Kats/requirements.txt
+pip install -e .
 ```
 
 ## Examples
@@ -98,7 +98,7 @@ We can extract meaningful features from the given time series data
 
 ```python
 # Initiate feature extraction class
-from kats.tsfeatures.tsfeatures import TsFeatures
+from kats.tsfeatures import TsFeatures
 
 features = TsFeatures().transform(air_passengers_ts)
 ```

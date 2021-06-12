@@ -28,7 +28,7 @@ from kats.models.prophet import ProphetModel, ProphetParams
 from kats.models.sarima import SARIMAModel, SARIMAParams
 from kats.models.stlf import STLFModel, STLFParams
 from kats.models.theta import ThetaModel, ThetaParams
-from kats.tsfeatures.tsfeatures import TsFeatures
+from kats.tsfeatures import TsFeatures
 
 
 candidate_models = {

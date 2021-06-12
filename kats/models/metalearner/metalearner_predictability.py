@@ -18,7 +18,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.tsfeatures.tsfeatures import TsFeatures
+from kats.tsfeatures import TsFeatures
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.metrics import precision_recall_curve, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split

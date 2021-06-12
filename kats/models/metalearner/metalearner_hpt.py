@@ -22,7 +22,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from kats.consts import TimeSeriesData
-from kats.tsfeatures.tsfeatures import TsFeatures
+from kats.tsfeatures import TsFeatures
 from sklearn.model_selection import train_test_split
 
 default_model_params = {

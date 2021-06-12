@@ -12,7 +12,7 @@ import statsmodels
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.tsfeatures.tsfeatures import TsFeatures
+from kats.tsfeatures import TsFeatures
 
 if "kats/tests" in os.getcwd():
     DATA_FILE = os.path.abspath(
