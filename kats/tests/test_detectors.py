@@ -53,7 +53,10 @@ from kats.detectors.outlier import (
     MultivariateAnomalyDetectorType,
     OutlierDetector,
 )
-from kats.detectors.prophet_detector import ProphetDetectorModel
+from kats.detectors.prophet_detector import (
+    ProphetDetectorModel,
+    ProphetScoreFunction
+)
 from kats.detectors.robust_stat_detection import RobustStatDetector
 from kats.detectors.seasonality import ACFDetector, FFTDetector
 from kats.detectors.stat_sig_detector import (
@@ -3064,6 +3067,13 @@ class TestProphetDetector(TestCase):
         sim.add_noise(magnitude=0.1 * magnitude * np.random.rand())
         return sim.stl_sim()
 
+    def create_ts(self, length=100, magnitude=10, signal_to_noise_ratio=0.1):
+        sim = Simulator(n=length, freq="1D", start=pd.to_datetime("2020-01-01"))
+
+        sim.add_seasonality(magnitude, period=timedelta(days=7))
+        sim.add_noise(magnitude=signal_to_noise_ratio * magnitude)
+        return sim.stl_sim()
+
     def create_multi_seasonality_ts(
         self, seed, length, freq, min_val, max_val, signal_to_noise_ratio
     ):
@@ -3232,6 +3242,23 @@ class TestProphetDetector(TestCase):
 
         return merged_ts
 
+    def calc_stds(self, predicted_val, upper_bound, lower_bound):
+        actual_upper_std = (50 ** 0.5) * (upper_bound - predicted_val) / 0.8
+        actual_lower_std = (50 ** 0.5) * (predicted_val - lower_bound) / 0.8
+
+        upper_std = max(actual_upper_std, 1e-9)
+        lower_std = max(actual_lower_std, 1e-9)
+
+        return upper_std, lower_std
+
+    def calc_z_score(self, actual_val, predicted_val, upper_bound, lower_bound):
+        upper_std, lower_std = self.calc_stds(predicted_val, upper_bound, lower_bound)
+
+        if actual_val > predicted_val:
+            return (actual_val - predicted_val) / upper_std
+        else:
+            return (actual_val - predicted_val) / lower_std
+
     def test_no_anomaly(self) -> None:
         # Prophet should not find any anomalies on a well formed synthetic time series
         for i in range(0, 5):
@@ -3371,6 +3398,89 @@ class TestProphetDetector(TestCase):
         with self.subTest("Testing with noisy underlying data"):
             _subtest(noisy_ts, 0, 960, "15min", 0, 1000, 0.5, 0.5, 0.55, 5)
 
+    def test_score_parameter(self):
+        """Tests the behavior of the score_func parameter.
+
+        This test verifies:
+        (1) the default implementation of ProphetDetectorModel
+        uses the 'deviation_from_predicted_val' scoring function;
+        (2) passing "z_score" as the 'score_func' results in
+        ProphetDetectorModel implementing the 'z_score' scoring function;
+        (3) the anomaly scores returned by each of these functions
+        are identical to the actual deviation and actual z_score.
+        """
+        ts = self.create_ts()
+
+        # add anomaly at index 95
+        ts.value[95] += 100
+
+        deviation_model = ProphetDetectorModel()
+        deviation_response = deviation_model.fit_predict(ts[90:], ts[:90])
+        self.assertEqual(
+            deviation_response.scores.value[5],
+            abs(
+                (ts.value[95] - deviation_response.predicted_ts.value[5])
+                / deviation_response.predicted_ts.value[5]
+            ),
+        )
+
+        z_score_model = ProphetDetectorModel(score_func="z_score")
+        z_score_response = z_score_model.fit_predict(ts[90:], ts[:90])
+        actual_z_score = self.calc_z_score(
+            ts.value[95],
+            z_score_response.predicted_ts.value[5],
+            z_score_response.confidence_band.upper.value[5],
+            z_score_response.confidence_band.lower.value[5],
+        )
+        self.assertAlmostEqual(
+            z_score_response.scores.value[5], actual_z_score, places=15
+        )
+
+    def test_flat_signal(self):
+        """Tests the behavior of the z-score strategy on flat signals.
+
+        This test verifies that the model's z_scores of flat signals
+        with and without anomalies are identical to the actual z_scores.
+        It ensures no division by zero errors occur when
+        the signal has no seasonality or level shifts.
+        """
+        ts = self.create_ts(magnitude=0, signal_to_noise_ratio=0)
+
+        for anomaly_magnitude in (0, 100):
+            ts.value[95] += anomaly_magnitude
+
+            model = ProphetDetectorModel(score_func="z_score")
+            response = model.fit_predict(ts[90:], ts[:90])
+            actual_z_score = self.calc_z_score(
+                ts.value[95],
+                response.predicted_ts.value[5],
+                response.confidence_band.upper.value[5],
+                response.confidence_band.lower.value[5],
+            )
+            self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
+
+    def test_zero_noise_signal(self):
+        """Tests the behavior of the z-score strategy on zero-noise signals.
+
+        This test verifies that the model's z_scores of zero-noise signals
+        with and without anomalies areidentical to the actual z_scores.
+        It ensures no division by zero errors occur when the signal has
+        no noise and the standard deviation of the training data is zero.
+        """
+        ts = self.create_ts(signal_to_noise_ratio=0)
+
+        for anomaly_magnitude in (0, 100):
+            ts.value[95] += anomaly_magnitude
+
+            model = ProphetDetectorModel(score_func="z_score")
+            response = model.fit_predict(ts[90:], ts[:90])
+            actual_z_score = self.calc_z_score(
+                ts.value[95],
+                response.predicted_ts.value[5],
+                response.confidence_band.upper.value[5],
+                response.confidence_band.lower.value[5],
+            )
+            self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
 
 class TestChangepointEvaluator(TestCase):
     def test_eval_agg(self) -> None:
