@@ -3067,8 +3067,8 @@ class TestProphetDetector(TestCase):
         sim.add_noise(magnitude=0.1 * magnitude * np.random.rand())
         return sim.stl_sim()
 
-    def create_ts(self, length=100, magnitude=10, signal_to_noise_ratio=0.1):
-        sim = Simulator(n=length, freq="1D", start=pd.to_datetime("2020-01-01"))
+    def create_ts(self, length=100, magnitude=10, signal_to_noise_ratio=0.1, freq="1D"):
+        sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
 
         sim.add_seasonality(magnitude, period=timedelta(days=7))
         sim.add_noise(magnitude=signal_to_noise_ratio * magnitude)
@@ -3481,6 +3481,93 @@ class TestProphetDetector(TestCase):
                 response.confidence_band.lower.value[5],
             )
             self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
+
+    def test_heteroscedastic_noise_signal(self):
+        """Tests the z-score strategy on signals with heteroscedastic noise
+
+        This test creates synthetic data with heteroscedastic noise. Then, it adds
+        anomalies of identical magnitudes to segments with different noise. Finally, it
+        verifies that anomalies in low-noise segments have higher z-scores than those
+        in high-noise segments. This occurs because low noise segments will have lower
+        standard deviations, which result in higher z-scores.
+        """
+        ts = self.create_ts(length=100 * 24, signal_to_noise_ratio=0, freq="1h")
+
+        # add heteroscedastic noise to the data
+
+        ts.value *= (
+            (
+                (ts.time - pd.to_datetime("2020-01-01")) % timedelta(days=7)
+                > timedelta(days=3.5)
+            )
+            * np.random.rand(100 * 24)
+            * 0.5
+            * 2
+            + 1
+            - 0.5
+        )
+
+        ts.value[93 * 24] += 100
+        ts.value[96 * 24] += 100
+
+        model = ProphetDetectorModel(score_func="z_score")
+        response = model.fit_predict(ts[90 * 24 :], ts[: 90 * 24])
+
+        self.assertGreater(response.scores.value[3 * 24], response.scores.value[6 * 24])
+
+    def test_z_score_proportional_to_anomaly_magnitude(self):
+        """Tests the z-score strategy on signals with different-sized anomalies
+
+        This test verifies that larger anomalies result in higher z-scores awhen all
+        other variables are unchanged.
+        """
+        ts = self.create_ts(length=100 * 24, freq="1h")
+
+        ts.value[93 * 24] += 40
+        ts.value[96 * 24] += 30
+
+        model = ProphetDetectorModel(score_func="z_score")
+        response = model.fit_predict(ts[90 * 24 :], ts[: 90 * 24])
+
+        self.assertGreater(response.scores.value[3 * 24], response.scores.value[6 * 24])
+
+    def test_asymmetric_noise_signal(self):
+        """Tests the z-score strategy on signals with asymmetric noise
+
+        This test verifies that the asymmetric z-scores function as expected when
+        exposed to asymmetric noise. The test makes predictions on test data containing
+        anomalies based on training data with only positive noise and with only negative
+        noise, and checks that training on data with positive noise results in lower
+        z-scores for positive anomalies, and that training on data with negative noise
+        results in lower z-scores for negative anomalies.
+        """
+        np.random.seed(0)
+        test_ts = self.create_ts(length=100 * 24, freq="1h", signal_to_noise_ratio=0)
+        ts1 = self.create_ts(length=100 * 24, freq="1h", signal_to_noise_ratio=0)
+        ts2 = self.create_ts(length=100 * 24, freq="1h", signal_to_noise_ratio=0)
+
+        noise = (np.random.rand(100 * 24) - 0.5) * (np.random.rand(100 * 24) > 2 / 3)
+        noise *= noise > 0
+
+        # add strictly positive noise to ts1 and strictly negative noise to ts2
+        ts1.value += abs(ts1.value * noise)
+        ts2.value -= abs(ts2.value * noise)
+
+        ts1.value[93 * 24] += 20
+        ts1.value[96 * 24] -= 20
+        ts2.value[93 * 24] += 20
+        ts2.value[96 * 24] -= 20
+
+        model = ProphetDetectorModel(score_func="z_score")
+        response1 = model.fit_predict(test_ts[90 * 24 :], ts1[: 90 * 24])
+        response2 = model.fit_predict(test_ts[90 * 24 :], ts2[: 90 * 24])
+
+        self.assertGreater(
+            response2.scores.value[3 * 24], response1.scores.value[3 * 24]
+        )
+        self.assertGreater(
+            response2.scores.value[6 * 24], response1.scores.value[6 * 24]
+        )
 
 class TestChangepointEvaluator(TestCase):
     def test_eval_agg(self) -> None:
