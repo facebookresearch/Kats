@@ -9,6 +9,7 @@ This module contains code to implement the Prophet algorithm
 as a Detector Model.
 """
 
+from enum import Enum
 from typing import Optional
 
 import numpy as np
@@ -27,6 +28,8 @@ PROPHET_VALUE_COLUMN = "y"
 PROPHET_YHAT_COLUMN = "yhat"
 PROPHET_YHAT_LOWER_COLUMN = "yhat_lower"
 PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
+
+MIN_STDEV = 1e-9
 
 
 def timeseries_to_prophet_df(ts_data: TimeSeriesData) -> pd.DataFrame:
@@ -50,6 +53,65 @@ def timeseries_to_prophet_df(ts_data: TimeSeriesData) -> pd.DataFrame:
     )
 
 
+def deviation_from_predicted_val(
+    data: TimeSeriesData,
+    predict_df: pd.DataFrame,
+    ci_threshold: Optional[float] = None,
+    uncertainty_samples: Optional[float] = None,
+):
+    return (data.value - predict_df[PROPHET_YHAT_COLUMN]) / predict_df[
+        PROPHET_YHAT_COLUMN
+    ].abs()
+
+
+def z_score(
+    data: TimeSeriesData,
+    predict_df: pd.DataFrame,
+    ci_threshold: float = 0.8,
+    uncertainty_samples: float = 50,
+):
+    # asymmetric confidence band => points above the prediction use upper bound in calculation, points below the prediction use lower bound
+
+    actual_upper_std = (
+        (uncertainty_samples ** 0.5)
+        * (predict_df[PROPHET_YHAT_UPPER_COLUMN] - predict_df[PROPHET_YHAT_COLUMN])
+        / ci_threshold
+    )
+    actual_lower_std = (
+        (uncertainty_samples ** 0.5)
+        * (predict_df[PROPHET_YHAT_COLUMN] - predict_df[PROPHET_YHAT_LOWER_COLUMN])
+        / ci_threshold
+    )
+
+    # if std is 0, set it to a very small value to prevent division by zero in next step
+    upper_std = np.maximum(actual_upper_std, MIN_STDEV)
+    lower_std = np.maximum(actual_lower_std, MIN_STDEV)
+
+    upper_score = (
+        (data.value > predict_df[PROPHET_YHAT_COLUMN])
+        * (data.value - predict_df[PROPHET_YHAT_COLUMN])
+        / upper_std
+    )
+    lower_score = (
+        (data.value < predict_df[PROPHET_YHAT_COLUMN])
+        * (data.value - predict_df[PROPHET_YHAT_COLUMN])
+        / lower_std
+    )
+
+    return upper_score + lower_score
+
+
+class ProphetScoreFunction(Enum):
+    deviation_from_predicted_val = "deviation_from_predicted_val"
+    z_score = "z_score"
+
+
+SCORE_FUNC_DICT = {
+    ProphetScoreFunction.deviation_from_predicted_val.value: deviation_from_predicted_val,
+    ProphetScoreFunction.z_score.value: z_score,
+}
+
+
 class ProphetDetectorModel(DetectorModel):
     """Prophet based anomaly detection model.
 
@@ -70,18 +132,18 @@ class ProphetDetectorModel(DetectorModel):
         strictness_factor: float = 0.8,
         uncertainty_samples: float = 50,
         serialized_model: Optional[bytes] = None,
-        country_code="US",
         remove_outliers=False,
+        score_func: ProphetScoreFunction = ProphetScoreFunction.deviation_from_predicted_val.value,
     ) -> None:
         if serialized_model:
             self.model = model_from_json(serialized_model)
         else:
             self.model = None
-            self.strictness_factor = strictness_factor
-            self.uncertainty_samples = uncertainty_samples
-            self.country_code = country_code
-            self.remove_outliers = remove_outliers
 
+        self.strictness_factor = strictness_factor
+        self.uncertainty_samples = uncertainty_samples
+        self.remove_outliers = remove_outliers
+        self.score_func = score_func
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -180,8 +242,12 @@ class ProphetDetectorModel(DetectorModel):
         response = AnomalyResponse(
             scores=TimeSeriesData(
                 time=data.time,
-                value=(data.value - predict_df[PROPHET_YHAT_COLUMN])
-                / predict_df[PROPHET_YHAT_COLUMN].abs(),
+                value=SCORE_FUNC_DICT[self.score_func](
+                    data=data,
+                    predict_df=predict_df,
+                    ci_threshold=self.model.interval_width,
+                    uncertainty_samples=self.uncertainty_samples,
+                ),
             ),
             confidence_band=ConfidenceBand(
                 upper=TimeSeriesData(
@@ -203,7 +269,7 @@ class ProphetDetectorModel(DetectorModel):
     def _remove_outliers(
         ts_df: pd.DataFrame,
         outlier_ci_threshold: float = 0.99,
-        country_code: str = "US",
+        uncertainty_samples: float = 50,
     ) -> pd.DataFrame:
         """
         Remove outliers from the time series by fitting a Prophet model to the time series
@@ -211,16 +277,18 @@ class ProphetDetectorModel(DetectorModel):
         of the model.
         """
 
-        ts_dates_df = pd.DataFrame({PROPHET_TIME_COLUMN : ts_df.iloc[:, 0]})
+        ts_dates_df = pd.DataFrame({PROPHET_TIME_COLUMN: ts_df.iloc[:, 0]})
 
         model = Prophet(
-            interval_width=outlier_ci_threshold,
+            interval_width=outlier_ci_threshold, uncertainty_samples=uncertainty_samples
         )
         model_pass1 = model.fit(ts_df)
 
         forecast = model_pass1.predict(ts_dates_df)
 
-        is_outlier = (ts_df[PROPHET_VALUE_COLUMN] < forecast[PROPHET_YHAT_LOWER_COLUMN]) | (ts_df[PROPHET_VALUE_COLUMN] > forecast[PROPHET_YHAT_UPPER_COLUMN])
+        is_outlier = (
+            ts_df[PROPHET_VALUE_COLUMN] < forecast[PROPHET_YHAT_LOWER_COLUMN]
+        ) | (ts_df[PROPHET_VALUE_COLUMN] > forecast[PROPHET_YHAT_UPPER_COLUMN])
 
         ts_df = ts_df[~is_outlier]
 
