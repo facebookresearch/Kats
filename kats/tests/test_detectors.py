@@ -595,7 +595,6 @@ class MultiCUSUMDetectorTest(TestCase):
 
         for m1, m2 in zip(metadata.mu0, metadata.mu1):
             self.assertLess(m1, m2)
-
         for d, diff in zip(metadata.delta, metadata.mu1 - metadata.mu0):
             self.assertEqual(d, diff)
         self.assertTrue(metadata.regression_detected)
@@ -3527,6 +3526,9 @@ class TestChangepointEvaluator(TestCase):
         }
 
         turing_8 = TuringEvaluator(
+            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
+            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
+            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
             # pyre-fixme[6]: Expected `Detector` for 1st param but got
             #  `Type[StatSigDetectorModel]`.
             detector=StatSigDetectorModel,
