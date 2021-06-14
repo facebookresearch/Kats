@@ -26,6 +26,11 @@ from kats.models.nowcasting.feature_extraction import (
     MA,
     ROC,
     MACD,
+    BBANDS,
+    TRIX,
+    EMA,
+    TSI,
+    RSI
 )
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.models.quadratic_model import (
@@ -768,6 +773,77 @@ class testNowcasting(TestCase):
             )
         )
         self.assertLessEqual(error3, error_threshold, "MACDdiff_1_21 produces errors!")
+
+    def test_BBANDS(self) -> None:
+        error_threshold = 0.0001
+
+        # Bollinger Band 1
+        target_1 = np.array(
+            [5.656854249492381, 1.885618083164127, 1.131370849898476, 0.8081220356417687]
+        )
+        error_1 = np.sum(
+            np.abs(
+                np.array(list(BBANDS(pd.DataFrame(list(range(5)), columns=["y"]), 2)['BollingerBand1_2'][1:])) - target_1
+            )
+        )
+        self.assertLessEqual(error_1, error_threshold, "BollingerBand1_2 produces errors!")
+
+        # Bolinger Band 2
+        target_2 = np.array(
+            [0.6767766952966369, 0.6767766952966369,0.6767766952966369,0.6767766952966369]
+        )
+        error_2 = np.sum(
+            np.abs(
+                np.array(list(BBANDS(pd.DataFrame(list(range(5)), columns=["y"]), 2)['BollingerBand2_2'][1:])) - target_2
+            )
+        )
+        self.assertLessEqual(error_2, error_threshold, "BollingerBand2_2 produces errors!")
+
+    def test_EMA(self) -> None:
+        error_threshold = 0.0001
+        target = np.array(
+            [0.0, 0.7499999999999999, 1.6153846153846152, 2.55, 3.5206611570247937]
+        )
+        error = np.sum(
+            np.abs(
+                np.array(list(EMA(pd.DataFrame(list(range(5)), columns=["y"]), 2)["EMA_2"])) - target
+            )
+        )
+        self.assertLessEqual(error, error_threshold, "EMA_2 produces errors!")
+
+    def test_TRIX(self) -> None:
+        error_threshold = 0.0001
+        target = np.array(
+            [0.0, 0.421875, 0.42337953352973806, 0.372572902464051, 0.3100591536021331]
+        )
+        error = np.sum(
+            np.abs(
+                np.array(list(TRIX(pd.DataFrame(list(range(1, 6)), columns=["y"]), 2)['TRIX_2'])) - target
+            )
+        )
+        self.assertLessEqual(error, error_threshold, "TRIX_2 produces errors!")
+
+    def test_TSI(self) -> None:
+        error_threshold = 0.0001
+        target = np.array([1.0, 1.0, 1.0])
+        error = np.sum(
+            np.abs(
+                np.array(list(TSI(pd.DataFrame(list(range(5, 10)), columns=["y"]), 2, 3)['TSI_2_3'])[2:]) - target
+            )
+        )
+        self.assertLessEqual(error, error_threshold, "TSI_2_3 produces errors!")
+
+    def test_RSI(self) -> None:
+        error_threshold = 0.0001
+        target = np.array(
+            [100.0, 100.0, 100.0, 100.0]
+        )
+        error = np.sum(
+            np.abs(
+                np.array(list(RSI(pd.DataFrame(list(range(5, 10)), columns=["y"]), 2)['RSI_2'])[1:]) - target
+            )
+        )
+        self.assertLessEqual(error, error_threshold, "RSI_2 produces errors!")
 
 
 class testHarmonicRegression(TestCase):
