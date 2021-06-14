@@ -88,10 +88,12 @@ class ChangePointInterval:
         else:
             spikes = []
             for i, c in enumerate(self._ts_cols):
-                # pyre-fixme[16]: `float` has no attribute `__getitem__`.
-                df[f"z_score_{c}"] = (df[c] - self.mean_val[i]) / np.sqrt(
-                    self.variance_val[i]
-                )
+                mean_val, variance_val = self.mean_val, self.variance_val
+                if isinstance(mean_val, float) or isinstance(variance_val, float):
+                    raise ValueError(
+                        f"num_series = {self.num_series} so mean_val and variance_val should have type ArrayLike."
+                    )
+                df[f"z_score_{c}"] = (df[c] - mean_val[i]) / np.sqrt(variance_val[i])
 
                 spike_df = df.query(f"z_score_{c} >={self.spike_std_threshold}")
 
@@ -249,7 +251,7 @@ class PercentageChange:
 
     @property
     def mean_difference(self) -> Union[float, np.ndarray]:
-        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
+        # pyre-ignore[6]: Expected `float` for 1st param but got `Union[float,
         #  np.ndarray]`.
         _mean_diff = self.current.mean_val - self.previous.mean_val
         return _mean_diff

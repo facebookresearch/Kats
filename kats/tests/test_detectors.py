@@ -10,6 +10,7 @@ import random
 import re
 import unittest
 from collections import Counter
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from unittest import TestCase
 
@@ -53,10 +54,7 @@ from kats.detectors.outlier import (
     MultivariateAnomalyDetectorType,
     OutlierDetector,
 )
-from kats.detectors.prophet_detector import (
-    ProphetDetectorModel,
-    ProphetScoreFunction
-)
+from kats.detectors.prophet_detector import ProphetDetectorModel
 from kats.detectors.robust_stat_detection import RobustStatDetector
 from kats.detectors.seasonality import ACFDetector, FFTDetector
 from kats.detectors.stat_sig_detector import (
@@ -1787,9 +1785,10 @@ class PercentageChangeTest(TestCase):
         # test the ratios
         ratio_val = current_mean / previous_mean
         self.assertEqual(perc_change_1.ratio_estimate, ratio_val)
-        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
-        #  np.ndarray]`.
-        self.assertAlmostEqual(perc_change_1.ratio_estimate, 10.0, 0)
+
+        ratio_estimate = perc_change_1.ratio_estimate
+        assert isinstance(ratio_estimate, float)
+        self.assertAlmostEqual(ratio_estimate, 10.0, 0)
 
         self.assertEqual(perc_change_1.perc_change, (ratio_val - 1) * 100)
         self.assertEqual(perc_change_1.direction, "up")
@@ -1892,24 +1891,31 @@ class PercentageChangeTest(TestCase):
 
         # test the ratios
         ratio_val = current_mean / previous_mean
-        # pyre-fixme[16]: `float` has no attribute `tolist`.
-        self.assertEqual(perc_change_1.ratio_estimate.tolist(), ratio_val.tolist())
+        ratio_estimate = perc_change_1.ratio_estimate
+        assert isinstance(ratio_estimate, np.ndarray)
+        self.assertEqual(ratio_estimate.tolist(), ratio_val.tolist())
 
-        # pyre-fixme[16]: `float` has no attribute `__iter__`.
-        for r in perc_change_1.ratio_estimate:
+        for r in ratio_estimate:
             self.assertAlmostEqual(r, 10.0, 0)
 
+        perc_change = perc_change_1.perc_change
+        assert isinstance(perc_change, np.ndarray)
         self.assertEqual(
-            perc_change_1.perc_change.tolist(), ((ratio_val - 1) * 100).tolist()
+            perc_change.tolist(), ((ratio_val - 1) * 100).tolist()
         )
-        # pyre-fixme[16]: str has no attribute tolist.
-        self.assertEqual(perc_change_1.direction.tolist(), ["up"] * num_seq)
-        # pyre-fixme[16]: bool has no attribute tolist.
-        self.assertEqual(perc_change_1.stat_sig.tolist(), [True] * num_seq)
 
-        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
-        #  `float`.
-        for p_value, score in zip(perc_change_1.p_value, perc_change_1.score):
+        direction = perc_change_1.direction
+        assert isinstance(direction, np.ndarray)
+        self.assertEqual(direction.tolist(), ["up"] * num_seq)
+
+        stat_sig = perc_change_1.stat_sig
+        assert isinstance(stat_sig, np.ndarray)
+        self.assertEqual(stat_sig.tolist(), [True] * num_seq)
+
+        p_value_list, score_list = perc_change_1.p_value, perc_change_1.score
+        assert isinstance(p_value_list, Iterable)
+        assert isinstance(score_list, Iterable)
+        for p_value, score in zip(p_value_list, score_list):
             self.assertLess(p_value, 0.05)
             self.assertLess(1.96, score)
 
@@ -1931,13 +1937,17 @@ class PercentageChangeTest(TestCase):
         second_int.data = second
 
         perc_change_2 = PercentageChange(current=current_int, previous=second_int)
-        for stat_sig, p_value, score in zip(
-            # pyre-fixme[6]: Expected typing.Iterable[Variable[_T1]] for 1st positional
-            # only parameter to call zip but got typing.Union[bool, np.ndarray].
+
+        stat_sig_list, p_value_list, score_list = (
             perc_change_2.stat_sig,
             perc_change_2.p_value,
             perc_change_2.score,
-        ):
+        )
+        assert isinstance(stat_sig_list, Iterable)
+        assert isinstance(p_value_list, Iterable)
+        assert isinstance(score_list, Iterable)
+
+        for stat_sig, p_value, score in zip(stat_sig_list, p_value_list, score_list):
             self.assertFalse(stat_sig)
             self.assertLess(0.05, p_value)
             self.assertLess(score, 1.96)
@@ -1963,9 +1973,11 @@ class PercentageChangeTest(TestCase):
         third_int.data = third
 
         perc_change_3 = PercentageChange(current=current_int, previous=third_int)
-        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
-        #  `float`.
-        for p_value, score in zip(perc_change_3.p_value, perc_change_3.score):
+
+        p_value_list, score_list = perc_change_3.p_value, perc_change_3.score
+        assert isinstance(p_value_list, Iterable)
+        assert isinstance(score_list, Iterable)
+        for p_value, score in zip(p_value_list, score_list):
             self.assertLess(p_value, 0.05)
             self.assertLess(score, -1.96)
 
@@ -1979,12 +1991,11 @@ class PercentageChangeTest(TestCase):
             current=current_int_single_point, previous=previous_int
         )
 
-        for p_value, score in zip(
-            # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but
-            #  got `float`.
-            perc_change_single_point.p_value,
-            perc_change_single_point.score,
-        ):
+        p_value_list, score_list = perc_change_single_point.p_value, perc_change_single_point.score
+        assert isinstance(p_value_list, Iterable)
+        assert isinstance(score_list, Iterable)
+
+        for p_value, score in zip(p_value_list, score_list):
             self.assertLess(p_value, 0.05)
             self.assertLess(1.96, score)
 
@@ -3568,6 +3579,7 @@ class TestProphetDetector(TestCase):
         self.assertGreater(
             response2.scores.value[6 * 24], response1.scores.value[6 * 24]
         )
+
 
 class TestChangepointEvaluator(TestCase):
     def test_eval_agg(self) -> None:
