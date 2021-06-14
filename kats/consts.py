@@ -179,8 +179,8 @@ class TimeSeriesData:
                 )
             # If empty DataFrame is passed then create an empty object
             if df.empty:
-                self.time = pd.Series([], name=time_col_name)
-                self.value = pd.Series([], name=DEFAULT_VALUE_NAME)
+                self.time = pd.Series([], name=time_col_name, dtype=float)
+                self.value = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
                 logging.warning("Initializing empty TimeSeriesData object")
             # Otherwise initialize TimeSeriesData from DataFrame
             else:
