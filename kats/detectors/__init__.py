@@ -1,6 +1,5 @@
 from . import bocpd_model  # noqa
 from . import bocpd  # noqa
-from . import change_point  # noqa
 from . import changepoint_evaluator   # noqa
 from . import cusum_detection   # noqa
 from . import cusum_model   # noqa

@@ -11,11 +11,12 @@ algorithm that determines outliers based on joint distribution of metrics
 """
 
 import datetime as dt
+from importlib import import_module
 import logging
 import sys
 import traceback
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,8 +24,6 @@ from datetime import datetime
 import pandas as pd
 from kats.consts import Params, TimeSeriesData, TimeSeriesIterator
 from kats.detectors.detector import Detector
-from kats.models.bayesian_var import BayesianVAR
-from kats.models.var import VARModel
 from scipy import stats
 from scipy.spatial import distance
 from statsmodels.tsa.seasonal import seasonal_decompose
@@ -40,6 +39,7 @@ class OutlierDetector(Detector):
         decomp : 'additive' or 'multiplicative' decomposition
         iqr_mult : iqr_mult * inter quartile range is used to classify outliers
     """
+    outliers_index: Optional[List] = None
 
     def __init__(
         self, data: TimeSeriesData, decomp: str = "additive", iqr_mult: float = 3.0
@@ -98,9 +98,8 @@ class OutlierDetector(Detector):
         limits = resid_q + (self.iqr_mult * iqr * np.array([-1, 1]))
 
         outliers = resid[(resid >= limits[1]) | (resid <= limits[0])]
-        # pyre-fixme[16]: `OutlierDetector` has no attribute `outliers_index`.
-        self.outliers_index = list(outliers.index)
-        return list(outliers.index)
+        self.outliers_index = outliers_index = list(outliers.index)
+        return outliers_index
 
     def detector(self):
         """
@@ -123,8 +122,8 @@ class OutlierDetector(Detector):
 
 
 class MultivariateAnomalyDetectorType(Enum):
-    VAR = 0
-    BAYESIAN_VAR = 1
+    VAR = 'var.VARModel'
+    BAYESIAN_VAR = 'bayesian_var.BayesianVAR'
 
 
 class MultivariateAnomalyDetector(Detector):
@@ -140,11 +139,9 @@ class MultivariateAnomalyDetector(Detector):
                     If less than a day, specify as fraction of a day
         model_type: The type of multivariate anomaly detector (currently 'BAYESIAN_VAR' and 'VAR' options available)
     """
-
-    DETECTOR_CONVERSION = {
-        MultivariateAnomalyDetectorType.VAR: VARModel,
-        MultivariateAnomalyDetectorType.BAYESIAN_VAR: BayesianVAR,
-    }
+    resid: Optional[pd.DataFrame] = None
+    sigma_u: Optional[pd.DataFrame] = None
+    anomaly_score_df: Optional[pd.DataFrame] = None
 
     def __init__(
         self,
@@ -172,9 +169,7 @@ class MultivariateAnomalyDetector(Detector):
             )
 
         self.training_days = training_days
-        self.detector_model = MultivariateAnomalyDetector.DETECTOR_CONVERSION[
-            model_type
-        ]
+        self.detector_model = model_type
 
     def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -208,6 +203,11 @@ class MultivariateAnomalyDetector(Detector):
         """
         return np.all(np.linalg.eigvals(mat) > 0)
 
+    def _create_model(self, data: TimeSeriesData, params: Params) -> Any:
+        model_name = f"kats.models.{self.detector_model.value}"
+        module_name, model_name = model_name.rsplit(".", 1)
+        return getattr(import_module(module_name), model_name)(data, params)
+
     def _generate_forecast(self, t: datetime) -> pd.DataFrame:
         """
         Fit VAR model and generate 1 step ahead forecasts (t+1)
@@ -224,17 +224,15 @@ class MultivariateAnomalyDetector(Detector):
         train_clean = self._clean_data(train)
 
         # fit VAR
-        model = self.detector_model(
+        model = self._create_model(
             TimeSeriesData(train_clean.reset_index()), self.params
         )
         model.fit()
         lag_order = model.k_ar
         logging.info(f"Fitted VAR model of order {lag_order}")
-        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute `resid`.
         self.resid = model.resid
-        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute `sigma_u`.
-        self.sigma_u = model.sigma_u
-        if ~(self._is_pos_def(self.sigma_u)):
+        self.sigma_u = sigma_u = model.sigma_u
+        if ~(self._is_pos_def(sigma_u)):
             msg = f"Fitted Covariance matrix at time {t} is not positive definite"
             logging.error(msg)
             raise RuntimeError(msg)
@@ -263,25 +261,25 @@ class MultivariateAnomalyDetector(Detector):
         """
 
         # individual anomaly scores
-        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute `sigma_u`.
         cov = self.sigma_u
+        resid = self.resid
+        assert cov is not None and resid is not None
         residual_score = {}
         rt = pred_df["est"] - pred_df["actual"]
         for col in cov.columns:
-            # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute `resid`.
-            residual_mean = self.resid[col].mean()
-            residual_var = self.resid[col].var()
+            residual_mean = resid[col].mean()
+            residual_var = resid[col].var()
             residual_score[col] = np.abs((rt[col] - residual_mean)) / np.sqrt(residual_var)
 
         # overall anomaly score
-        cov_inv = np.linalg.inv(self.sigma_u.values)
+        cov_inv = np.linalg.inv(cov.values)
         overall_anomaly_score = distance.mahalanobis(
-            rt.values, self.resid.mean().values, cov_inv
+            rt.values, resid.mean().values, cov_inv
         )
         residual_score["overall_anomaly_score"] = overall_anomaly_score
         # calculate p-values
         dof = len(self.df.columns)
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
+        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
         residual_score['p_value']= stats.chi2.sf(overall_anomaly_score, df=dof)
 
         return residual_score
@@ -309,8 +307,6 @@ class MultivariateAnomalyDetector(Detector):
             anomaly_scores_t = pd.DataFrame(anomaly_scores_t, index=[fcstTime])
             anomaly_score_df = anomaly_score_df.append(anomaly_scores_t)
 
-        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute
-        #  `anomaly_score_df`.
         self.anomaly_score_df = anomaly_score_df
         return anomaly_score_df
 
@@ -325,11 +321,12 @@ class MultivariateAnomalyDetector(Detector):
         Returns:
             List of time instants when the system of metrics show anomalous behavior
         """
+        anomaly_score_df = self.anomaly_score_df
+        if anomaly_score_df is None:
+            raise ValueError("detector() must be called before get_anomaly_timepoints()")
 
-        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute
-        #  `anomaly_score_df`.
-        flag = self.anomaly_score_df.p_value < alpha
-        anomaly_ts = self.anomaly_score_df[flag].index
+        flag = anomaly_score_df.p_value < alpha
+        anomaly_ts = anomaly_score_df[flag].index
 
         return list(anomaly_ts)
 
@@ -344,10 +341,11 @@ class MultivariateAnomalyDetector(Detector):
         Returns:
             DataFrame with metrics and their corresponding anomaly score
         """
+        anomaly_score_df = self.anomaly_score_df
+        if anomaly_score_df is None:
+            raise ValueError("detector() must be called before get_anomalous_metrics()")
 
-        # pyre-fixme[16]: `MultivariateAnomalyDetector` has no attribute
-        #  `anomaly_score_df`.
-        residual_scores = self.anomaly_score_df.drop(columns="overall_anomaly_score")
+        residual_scores = anomaly_score_df.drop(columns="overall_anomaly_score")
         residual_scores_t = (
             residual_scores.loc[t, :].sort_values(ascending=False).reset_index()
         )
