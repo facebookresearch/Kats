@@ -24,12 +24,11 @@ For more information, check out the Kats tutorial notebook on backtesting!
 import logging
 import multiprocessing as mp
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Type
 
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
-from kats.models.model import Model as mm
 
 
 # Constant to indicate error types supported
@@ -66,7 +65,7 @@ class BackTesterParent(ABC):
         error_methods: List[str],
         data: TimeSeriesData,
         params: Params,
-        model_class: mm,
+        model_class: Type,
         multi: bool,
         offset=0,
         **kwargs
@@ -266,7 +265,7 @@ class BackTesterParent(ABC):
         self,
         training_data_indices: Tuple[int, int],
         testing_data_indices: Tuple[int, int],
-    ) -> Optional[Tuple[np.ndarray, np.ndarray, mm, np.ndarray]]:
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, Type, np.ndarray]]:
         """
         Trains model, evaluates it, and stores results in results list.
         """
@@ -333,7 +332,6 @@ class BackTesterParent(ABC):
             raise ValueError("Not enough testing data")
 
         logging.info("Training model")
-        # pyre-fixme[29]: `mm` is not a function.
         train_model = self.model_class(data=training_data, params=self.params)
         train_model.fit()
 
@@ -450,7 +448,7 @@ class BackTesterSimple(BackTesterParent):
         params: Params,
         train_percentage: float,
         test_percentage: float,
-        model_class: mm,
+        model_class: Type,
         **kwargs
     ):
         logging.info("Initializing train/test percentages")
@@ -569,7 +567,7 @@ class BackTesterExpandingWindow(BackTesterParent):
         end_train_percentage: float,
         test_percentage: float,
         expanding_steps: int,
-        model_class: mm,
+        model_class: Type,
         multi=True,
         **kwargs
     ):
@@ -735,7 +733,7 @@ class BackTesterRollingWindow(BackTesterParent):
         train_percentage: float,
         test_percentage: float,
         sliding_steps: int,
-        model_class: mm,
+        model_class: Type,
         multi=True,
         **kwargs
     ):
@@ -864,7 +862,7 @@ class BackTesterFixedWindow(BackTesterParent):
         train_percentage: float,
         test_percentage: float,
         window_percentage: int,
-        model_class: mm,
+        model_class: Type,
         **kwargs
     ):
         logging.info("Initializing train/test percentages")
@@ -991,7 +989,7 @@ class CrossValidation:
         train_percentage: float,
         test_percentage: float,
         num_folds: int,
-        model_class: mm,
+        model_class: Type,
         rolling_window=False,
         multi=True,
     ):
