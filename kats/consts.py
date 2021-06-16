@@ -87,6 +87,7 @@ class TimeSeriesData:
 
     Initialization. :class:`TimeSeriesData` can be initialized from the
     following data sources:
+
       - `pandas.DataFrame`
       - `pandas.Series`
       - `pandas.DatetimeIndex`
@@ -98,6 +99,7 @@ class TimeSeriesData:
 
     Initialization arguments (all optional, but must choose one way to
     initialize e.g. `pandas.DataFrame`):
+
       - df: A `pandas.DataFrame` storing the time series (default None).
       - sort_by_time: A boolean indicating whether the :class:`TimeSeriesData`
         should be sorted by time (default True).
@@ -126,6 +128,7 @@ class TimeSeriesData:
 
     Operations. Many operations that you can do with `pandas.DataFrame` objects
     are also applicable to :class:`TimeSeriesData`. For example:
+
       >>> ts[0:2] # Slicing
       >>> ts_1 == ts_2 # Equality
       >>> ts_1.extend(ts_2) # Extend
@@ -134,6 +137,7 @@ class TimeSeriesData:
     Utility Functions. Many utility functions for converting
     :class:`TimeSeriesData` objects to other common data structures exist.
     For example:
+
       >>> ts.to_dataframe() # Convert to pandas.DataFrame
       >>> ts.to_array() # Convert to numpy.ndarray
 

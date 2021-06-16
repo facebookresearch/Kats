@@ -437,23 +437,37 @@ class ConfidenceBand:
     upper: TimeSeriesData
 
 
-@dataclass
 class AnomalyResponse:
-    scores: TimeSeriesData
-    confidence_band: ConfidenceBand
-    predicted_ts: TimeSeriesData
-    anomaly_magnitude_ts: TimeSeriesData
-    stat_sig_ts: TimeSeriesData
+    def __init__(
+        self,
+        scores: TimeSeriesData,
+        confidence_band: ConfidenceBand,
+        predicted_ts: TimeSeriesData,
+        anomaly_magnitude_ts: TimeSeriesData,
+        stat_sig_ts: TimeSeriesData,
+    ):
+        self.scores = scores
+        self.confidence_band = confidence_band
+        self.predicted_ts = predicted_ts
+        self.anomaly_magnitude_ts = anomaly_magnitude_ts
+        self.stat_sig_ts = stat_sig_ts
+
+        self.key_mapping = []
+        self.num_series = 1
+
+        if not self.scores.is_univariate():
+            self.num_series = len(scores.value.columns)
+            self.key_mapping = list(scores.value.columns)
 
     def update(
         self,
         time: datetime,
-        score: float,
-        ci_upper: float,
-        ci_lower: float,
-        pred: float,
-        anom_mag: float,
-        stat_sig: float,
+        score: Union[float, ArrayLike],
+        ci_upper: Union[float, ArrayLike],
+        ci_lower: Union[float, ArrayLike],
+        pred: Union[float, ArrayLike],
+        anom_mag: Union[float, ArrayLike],
+        stat_sig: Union[float, ArrayLike],
     ) -> None:
         """
         Add one more point and remove the last point
@@ -471,23 +485,46 @@ class AnomalyResponse:
         self.stat_sig_ts = self._update_ts_slice(self.stat_sig_ts, time, stat_sig)
 
     def _update_ts_slice(
-        self, ts: TimeSeriesData, time: datetime, value: float
+        self, ts: TimeSeriesData, time: datetime, value: Union[float, ArrayLike]
     ) -> TimeSeriesData:
         time = ts.time.iloc[1:].append(pd.Series(time))
         time.reset_index(drop=True, inplace=True)
-        value = ts.value.iloc[1:].append(pd.Series(value))
-        value.reset_index(drop=True, inplace=True)
-        return TimeSeriesData(time=time, value=value)
+        if self.num_series == 1:
+            value = ts.value.iloc[1:].append(pd.Series(value))
+            value.reset_index(drop=True, inplace=True)
+            return TimeSeriesData(time=time, value=value)
+        else:
+            if isinstance(value, float):
+                raise ValueError(
+                    f"num_series = {self.num_series} so value should have type ArrayLike."
+                )
+            value_dict = {}
+            for i, value_col in enumerate(self.key_mapping):
+                value_dict[value_col] = (
+                    ts.value[value_col].iloc[1:].append(pd.Series(value[i]))
+                )
+                value_dict[value_col].reset_index(drop=True, inplace=True)
+            return TimeSeriesData(
+                pd.DataFrame(
+                    {
+                        **{"time": time},
+                        **{
+                            value_col: value_dict[value_col]
+                            for value_col in self.key_mapping
+                        },
+                    }
+                )
+            )
 
     def inplace_update(
         self,
         time: datetime,
-        score: float,
-        ci_upper: float,
-        ci_lower: float,
-        pred: float,
-        anom_mag: float,
-        stat_sig: float,
+        score: Union[float, ArrayLike],
+        ci_upper: Union[float, ArrayLike],
+        ci_lower: Union[float, ArrayLike],
+        pred: Union[float, ArrayLike],
+        anom_mag: Union[float, ArrayLike],
+        stat_sig: Union[float, ArrayLike],
     ) -> None:
         """
         Add one more point and remove the last point
@@ -501,9 +538,12 @@ class AnomalyResponse:
         self._inplace_update_ts(self.stat_sig_ts, time, stat_sig)
 
     def _inplace_update_ts(
-        self, ts: TimeSeriesData, time: datetime, value: float
+        self, ts: TimeSeriesData, time: datetime, value: Union[float, ArrayLike]
     ) -> None:
-        ts.value.loc[ts.time == time] = value
+        if self.num_series == 1:
+            ts.value.loc[ts.time == time] = value
+        else:
+            ts.value.loc[ts.time == time] = pd.DataFrame(value)
 
     def get_last_n(self, N: int) -> AnomalyResponse:
         """
@@ -529,258 +569,6 @@ class AnomalyResponse:
         Lower Confidence Bound: {self.confidence_band.lower.value.values},
         Predicted Time Series: {self.predicted_ts.value.values},
         stat_sig:{self.stat_sig_ts.value.values}
-        """
-
-        return str_ret
-
-
-class MultiAnomalyResponse:
-    def __init__(
-        self,
-        scores: TimeSeriesData,
-        confidence_band: ConfidenceBand,
-        predicted_ts: TimeSeriesData,
-        anomaly_magnitude_ts: TimeSeriesData,
-        stat_sig_ts: TimeSeriesData,
-    ):
-        self.scores = scores
-        self.key_mapping = {
-            index: key for index, key in enumerate(scores.value.columns)
-        }
-        self.response_objects = {}
-        for key in scores.value.columns:
-            self.response_objects[key] = AnomalyResponse(
-                scores=TimeSeriesData(
-                    pd.DataFrame({"time": scores.time, "value": scores.value[key]})
-                ),
-                confidence_band=ConfidenceBand(
-                    upper=TimeSeriesData(
-                        pd.DataFrame(
-                            {
-                                "time": confidence_band.upper.time,
-                                "value": confidence_band.upper.value[key],
-                            }
-                        )
-                    ),
-                    lower=TimeSeriesData(
-                        pd.DataFrame(
-                            {
-                                "time": confidence_band.lower.time,
-                                "value": confidence_band.lower.value[key],
-                            }
-                        )
-                    ),
-                ),
-                predicted_ts=TimeSeriesData(
-                    pd.DataFrame(
-                        {"time": predicted_ts.time, "value": predicted_ts.value[key]}
-                    )
-                ),
-                anomaly_magnitude_ts=TimeSeriesData(
-                    pd.DataFrame(
-                        {
-                            "time": anomaly_magnitude_ts.time,
-                            "value": anomaly_magnitude_ts.value[key],
-                        }
-                    )
-                ),
-                stat_sig_ts=TimeSeriesData(
-                    pd.DataFrame(
-                        {"time": stat_sig_ts.time, "value": stat_sig_ts.value[key]}
-                    )
-                ),
-            )
-
-    def update(
-        self,
-        time: datetime,
-        score: ArrayLike,
-        ci_upper: ArrayLike,
-        ci_lower: ArrayLike,
-        pred: ArrayLike,
-        anom_mag: ArrayLike,
-        stat_sig: ArrayLike,
-    ) -> None:
-        """
-        Add one more point and remove the last point
-        """
-        for i in range(len(score)):
-            self.response_objects[self.key_mapping[i]].update(
-                time,
-                score[i],
-                ci_upper[i],
-                ci_lower[i],
-                pred[i],
-                anom_mag[i],
-                stat_sig[i],
-            )
-
-    def inplace_update(
-        self,
-        time: datetime,
-        score: ArrayLike,
-        ci_upper: ArrayLike,
-        ci_lower: ArrayLike,
-        pred: ArrayLike,
-        anom_mag: ArrayLike,
-        stat_sig: ArrayLike,
-    ) -> None:
-        """
-        Add one more point and remove the last point
-        """
-        for i in range(len(score)):
-            self.response_objects[self.key_mapping[i]].inplace_update(
-                time,
-                score[i],
-                ci_upper[i],
-                ci_lower[i],
-                pred[i],
-                anom_mag[i],
-                1.0 if stat_sig[i] else 0.0,
-            )
-
-    def _get_time_series_data_components(
-        self,
-    ) -> Tuple[
-        datetime,
-        TimeSeriesData,
-        TimeSeriesData,
-        TimeSeriesData,
-        TimeSeriesData,
-        TimeSeriesData,
-        TimeSeriesData,
-    ]:
-
-        time = next(iter(self.response_objects.values())).scores.time
-
-        score_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": time},
-                    **{
-                        key: self.response_objects[key].scores.value
-                        for key in self.response_objects
-                    },
-                }
-            )
-        )
-
-        upper_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": time},
-                    **{
-                        key: self.response_objects[key].confidence_band.upper.value
-                        for key in self.response_objects
-                    },
-                }
-            )
-        )
-
-        lower_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": time},
-                    **{
-                        key: self.response_objects[key].confidence_band.lower.value
-                        for key in self.response_objects
-                    },
-                }
-            )
-        )
-
-        predicted_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": time},
-                    **{
-                        key: self.response_objects[key].predicted_ts.value
-                        for key in self.response_objects
-                    },
-                }
-            )
-        )
-
-        anomaly_magnitude_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": time},
-                    **{
-                        key: self.response_objects[key].anomaly_magnitude_ts.value
-                        for key in self.response_objects
-                    },
-                }
-            )
-        )
-
-        stat_sig_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": time},
-                    **{
-                        key: self.response_objects[key].stat_sig_ts.value
-                        for key in self.response_objects
-                    },
-                }
-            )
-        )
-
-        return (
-            time,
-            score_ts,
-            upper_ts,
-            lower_ts,
-            predicted_ts,
-            anomaly_magnitude_ts,
-            stat_sig_ts,
-        )
-
-    def get_last_n(self, N: int) -> MultiAnomalyResponse:
-        """
-        returns the response for the last N days
-        """
-
-        (
-            _,
-            score_ts,
-            upper_ts,
-            lower_ts,
-            predicted_ts,
-            anomaly_magnitude_ts,
-            stat_sig_ts,
-        ) = self._get_time_series_data_components()
-
-        return MultiAnomalyResponse(
-            scores=score_ts[-N:],
-            confidence_band=ConfidenceBand(upper=upper_ts[-N:], lower=lower_ts[-N:]),
-            predicted_ts=predicted_ts[-N:],
-            anomaly_magnitude_ts=anomaly_magnitude_ts[-N:],
-            stat_sig_ts=stat_sig_ts[-N:],
-        )
-
-    def get_anomaly_response(self) -> AnomalyResponse:
-        (
-            time,
-            score_ts,
-            upper_ts,
-            lower_ts,
-            predicted_ts,
-            anomaly_magnitude_ts,
-            stat_sig_ts,
-        ) = self._get_time_series_data_components()
-
-        return AnomalyResponse(
-            scores=score_ts,
-            confidence_band=ConfidenceBand(upper=upper_ts, lower=lower_ts),
-            predicted_ts=predicted_ts,
-            anomaly_magnitude_ts=anomaly_magnitude_ts,
-            stat_sig_ts=stat_sig_ts,
-        )
-
-    def __str__(self) -> str:
-        str_ret = f"""
-        Time: {self.scores.time.values},
-        Scores: {self.scores.value.values}
         """
 
         return str_ret

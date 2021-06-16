@@ -5,8 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import List, Any, Tuple, Dict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 
@@ -23,6 +24,12 @@ class Pipeline:
     We also offer api to sklearn, once feature extraction using TsFeatures is performed,
     users can feed the results directly to an sklearn machine learning model.
     """
+
+    remove: bool = False
+    useFeatures: bool = False
+    extra_fitting_params: Optional[Dict[str, Any]] = None
+    y: Optional[Union[np.ndarray, pd.Series]] = None
+
     def __init__(self, steps: List[Tuple[str, Any]]):
         """
         inputs:
@@ -84,10 +91,10 @@ class Pipeline:
             if s.__subtype__ == "outlier":
                 extra_params["pipe"] = True
             metadata.append(s.detector(**extra_params))
-            # pyre-fixme[16]: `Pipeline` has no attribute `remove`.
-            # pyre-fixme[16]: `Pipeline` has no attribute `remove`.
-            if self.remove and s.__subtype__ == "outlier": # outlier removal when the step is outlier detector,
-            # and user required us to remove outlier
+            if (
+                self.remove and s.__subtype__ == "outlier"
+            ):  # outlier removal when the step is outlier detector,
+                # and user required us to remove outlier
                 data[i] = s.remover(interpolate=True)
         return data, metadata
 
@@ -116,7 +123,6 @@ class Pipeline:
         metadata = []
         for s, d in zip(steps, data):
             metadata.append(s.transform(d))
-        # pyre-fixme[16]: `Pipeline` has no attribute `useFeatures`.
         if self.useFeatures:
             return metadata, metadata
         else:
@@ -178,12 +184,8 @@ class Pipeline:
             type(data[0]) == dict
         ), "Require data preprocessed by TsFeatures, please set useFeatures = True"
         assert y is not None, "Missing dependent variable"
-        # pyre-fixme[9]: data has type `List[Dict[str, typing.Any]]`; used as
-        #  `DataFrame`.
-        data = pd.DataFrame(data).dropna(axis=1)
-        # pyre-fixme[16]: `List` has no attribute `values`.
-        # pyre-fixme[16]: `Pipeline` has no attribute `y`.
-        X_train, y_train = data.values, self.y
+        df = pd.DataFrame(data).dropna(axis=1)
+        X_train, y_train = df.values, self.y
         step.fit(X_train, y_train)
         return step
 
@@ -214,22 +216,19 @@ class Pipeline:
         if (
             str(s.__class__).split()[1][1:8] == "sklearn"
         ):  # if current step is a scikit-learn model
-            # pyre-fixme[16]: `Pipeline` has no attribute `y`.
             return self._fit_sklearn_(s, data, self.y)
 
         _steps_ = [s for _ in range(len(data))]
         Type = s.__type__
 
-        # pyre-fixme[16]: `Pipeline` has no attribute `extra_fitting_params`.
-        extra_params = self.extra_fitting_params.get(n, {})
+        extra_params = (self.extra_fitting_params or {}).get(n, {})
         data, metadata = self.functions[Type](_steps_, data, extra_params)
         if metadata is not None:
-            self.metadata[n] = metadata # saving the metadata of the current step into
+            self.metadata[n] = metadata  # saving the metadata of the current step into
             # the dictionary of {"user_defined_method_name": corresponding_metadata}
         return data
 
-    # pyre-fixme[9]: params has type `Dict[str, typing.Any]`; used as `None`.
-    def fit(self, data: Any, params: Dict[str, Any] = None, **kwargs) -> Any:
+    def fit(self, data: Any, params: Optional[Dict[str, Any]] = None, **kwargs) -> Any:
         """
         This function is the external function for user to fit the pipeline
 
@@ -259,33 +258,33 @@ class Pipeline:
         if params is None:
             params = {}
 
-        # pyre-fixme[16]: `Pipeline` has no attribute `extra_fitting_params`.
         # Judging if extra functions needed
         ####
-        # pyre-fixme[16]: `Pipeline` has no attribute `remove`.
         self.remove = kwargs.get("remove", False)  # remove outliers or not
-        # pyre-fixme[16]: `Pipeline` has no attribute `useFeatures`.
         self.useFeatures = kwargs.get(
             "useFeatures", False
         )  # do you want to use tsfeatures as transformation or analyzer
-        # pyre-fixme[16]: `Pipeline` has no attribute `y`.
         self.y = kwargs.get("y", None)
         ####
         # Extra parameters for specific method of each step
-        # pyre-fixme[16]: `Pipeline` has no attribute `extra_fitting_params`.
         self.extra_fitting_params = params
 
-        if type(data) != list: # Since we support multiple timeseries in a list,
-        # when data is univariate, we put them in a list
+        if type(data) != list:  # Since we support multiple timeseries in a list,
+            # when data is univariate, we put them in a list
             self.univariate = True
             data = [data]
 
-        for n, s in self.steps: # Iterate through each step and perform the internal fitting
-        # function
+        for (
+            n,
+            s,
+        ) in self.steps:  # Iterate through each step and perform the internal fitting
+            # function
             data = self.__fit__(n, s, data)
 
-        if self.univariate: # When input data is one univariate time series, we directly
-        # present the output (not in a list)
+        if (
+            self.univariate
+        ):  # When input data is one univariate time series, we directly
+            # present the output (not in a list)
             return data[0]
         else:
             return data

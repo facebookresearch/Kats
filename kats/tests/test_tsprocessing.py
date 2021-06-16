@@ -6,18 +6,14 @@
 
 import os
 import unittest
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from kats.utils.simulator import Simulator
 from kats.consts import TimeSeriesData
-from kats.detectors.residual_translation import KDEResidualTranslator
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
-# pyre-fixme[21]: Could not find name `ks_2samp` in `scipy.stats`.
-from scipy.stats import ks_2samp  # @manual
 
 if "kats/tests" in os.getcwd():
     data_path = os.path.abspath(

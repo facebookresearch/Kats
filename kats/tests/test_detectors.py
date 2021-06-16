@@ -44,7 +44,6 @@ from kats.detectors.detector_consts import (
     AnomalyResponse,
     ChangePointInterval,
     ConfidenceBand,
-    MultiAnomalyResponse,
     PercentageChange,
     SingleSpike,
 )
@@ -68,7 +67,7 @@ from kats.models.var import VARParams
 from kats.utils.simulator import Simulator
 from scipy.special import expit  # @manual
 
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-ignore[21]: Could not find name `chi2` in `scipy.stats`.
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
 
@@ -254,9 +253,11 @@ class CUSUMDetectorTest(TestCase):
         self.assertLessEqual(abs(metadata.cp_index - 29), 1)
         self.assertEqual(metadata.direction, "increase")
         self.assertLess(metadata.mu0, metadata.mu1)
+        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
+        #  np.ndarray]`.
         self.assertEqual(metadata.delta, metadata.mu1 - metadata.mu0)
         self.assertTrue(metadata.regression_detected)
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
+        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(metadata.p_value, 1 - chi2.cdf(metadata.llr, 2))
         self.assertTrue(np.isnan(metadata.p_value_int))
         self.assertEqual(metadata.llr_int, np.inf)
@@ -426,7 +427,7 @@ class CUSUMDetectorTest(TestCase):
         self.assertEqual(len(change_points), 1)
         change_meta = change_points[0][1]
         self.assertGreaterEqual(change_meta.cp_index, periodicity * (total_cycles - 1))
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
+        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(change_meta.p_value_int, 1 - chi2.cdf(change_meta.llr_int, 2))
 
     def test_logging(self) -> None:
@@ -594,12 +595,18 @@ class MultiCUSUMDetectorTest(TestCase):
         metadata = change_points[0][1]
         self.assertLessEqual(abs(metadata.cp_index - 59), 1)
 
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `Union[float, np.ndarray]`.
         for m1, m2 in zip(metadata.mu0, metadata.mu1):
             self.assertLess(m1, m2)
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `Union[float, np.ndarray]`.
+        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
+        #  np.ndarray]`.
         for d, diff in zip(metadata.delta, metadata.mu1 - metadata.mu0):
             self.assertEqual(d, diff)
         self.assertTrue(metadata.regression_detected)
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
+        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(metadata.p_value, 1 - chi2.cdf(metadata.llr, D + 1))
         self.assertTrue(np.isnan(metadata.p_value_int))
         self.assertEqual(metadata.llr_int, np.inf)
@@ -630,13 +637,19 @@ class MultiCUSUMDetectorTest(TestCase):
 
         self.assertLessEqual(abs(metadata.cp_index - 59), 1)
 
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `Union[float, np.ndarray]`.
         for m1, m2 in zip(metadata.mu0, metadata.mu1):
             self.assertGreater(m1, m2)
 
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `Union[float, np.ndarray]`.
+        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
+        #  np.ndarray]`.
         for d, diff in zip(metadata.delta, metadata.mu1 - metadata.mu0):
             self.assertEqual(d, diff)
         self.assertTrue(metadata.regression_detected)
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
+        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(metadata.p_value, 1 - chi2.cdf(metadata.llr, D + 1))
         self.assertTrue(np.isnan(metadata.p_value_int))
         self.assertEqual(metadata.llr_int, np.inf)
@@ -1844,7 +1857,7 @@ class PercentageChangeTest(TestCase):
             [10.0 + 0.0001 * np.random.randn(len(current_seq)) for _ in range(num_seq)]
         )
 
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `previous`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `previous`.
         self.previous = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1854,7 +1867,7 @@ class PercentageChangeTest(TestCase):
             )
         )
 
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current`.
         self.current = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1864,14 +1877,14 @@ class PercentageChangeTest(TestCase):
             )
         )
 
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `prev_start`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_start`.
         self.prev_start = previous_seq[0]
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `prev_end`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_end`.
         self.prev_end = previous_seq[9]
 
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_start`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_start`.
         self.current_start = current_seq[0]
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_end`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
         previous_int = ChangePointInterval(
@@ -1900,9 +1913,7 @@ class PercentageChangeTest(TestCase):
 
         perc_change = perc_change_1.perc_change
         assert isinstance(perc_change, np.ndarray)
-        self.assertEqual(
-            perc_change.tolist(), ((ratio_val - 1) * 100).tolist()
-        )
+        self.assertEqual(perc_change.tolist(), ((ratio_val - 1) * 100).tolist())
 
         direction = perc_change_1.direction
         assert isinstance(direction, np.ndarray)
@@ -1991,7 +2002,10 @@ class PercentageChangeTest(TestCase):
             current=current_int_single_point, previous=previous_int
         )
 
-        p_value_list, score_list = perc_change_single_point.p_value, perc_change_single_point.score
+        p_value_list, score_list = (
+            perc_change_single_point.p_value,
+            perc_change_single_point.score,
+        )
         assert isinstance(p_value_list, Iterable)
         assert isinstance(score_list, Iterable)
 
@@ -2053,6 +2067,9 @@ class TestAnomalyResponse(TestCase):
             stat_sig_ts=stat_sig_ts,
         )
 
+        #  Ensure that num_series is properly populated - this response object is univariate
+        self.assertEqual(response.num_series, 1)
+
         # test update
         new_date = previous_seq[-1] + timedelta(days=1)
         common_val = 1.23
@@ -2113,9 +2130,8 @@ class TestAnomalyResponse(TestCase):
             response_last_n.scores.value.values.tolist(), score_list[-n_val:]
         )
 
-
-class TestMultiAnomalyResponse(TestCase):
     def test_multi_response(self) -> None:
+        # test anomaly response for multivariate time series
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -2195,7 +2211,7 @@ class TestMultiAnomalyResponse(TestCase):
             )
         )
 
-        response = MultiAnomalyResponse(
+        response = AnomalyResponse(
             scores=score_ts,
             confidence_band=conf_band,
             predicted_ts=pred_ts,
@@ -2203,13 +2219,15 @@ class TestMultiAnomalyResponse(TestCase):
             stat_sig_ts=stat_sig_ts,
         )
 
+        # Ensure that num_series is properly populated
+        self.assertEqual(response.num_series, num_seq)
+
         # test update
         new_date = previous_seq[-1] + timedelta(days=1)
         common_val = 1.23 * np.ones(num_seq)
 
         response.update(
             time=new_date,
-            # pyre-fixme[6]: Expected `ndarray` for 2nd param but got `float`.
             score=common_val,
             ci_upper=common_val,
             ci_lower=common_val - 0.1,
@@ -2218,141 +2236,75 @@ class TestMultiAnomalyResponse(TestCase):
             stat_sig=np.zeros(num_seq),
         )
 
+        N = len(previous_seq)
+
         # assert that all the lengths of the time series are preserved
+        self.assertEqual(len(response.scores), N)
+        self.assertEqual(len(response.confidence_band.upper), N)
+        self.assertEqual(len(response.confidence_band.lower), N)
+        self.assertEqual(len(response.predicted_ts), N)
+        self.assertEqual(len(response.anomaly_magnitude_ts), N)
+        self.assertEqual(len(response.stat_sig_ts), N)
 
-        for i in response.key_mapping:
-            N = len(previous_seq)
-            self.assertEqual(
-                len(response.response_objects[response.key_mapping[i]].scores), N
-            )
-            self.assertEqual(
-                len(
-                    response.response_objects[
-                        response.key_mapping[i]
-                    ].confidence_band.upper
-                ),
-                N,
-            )
-            self.assertEqual(
-                len(
-                    response.response_objects[
-                        response.key_mapping[i]
-                    ].confidence_band.lower
-                ),
-                N,
-            )
-            self.assertEqual(
-                len(response.response_objects[response.key_mapping[i]].predicted_ts), N
-            )
-            self.assertEqual(
-                len(
-                    response.response_objects[
-                        response.key_mapping[i]
-                    ].anomaly_magnitude_ts
-                ),
-                N,
-            )
-            self.assertEqual(
-                len(response.response_objects[response.key_mapping[i]].stat_sig_ts), N
-            )
+        # assert that each time series has moved one point forward
+        self.assertEqual(
+            response.scores.value.iloc[0].tolist(), score_ts.value.iloc[1].tolist()
+        )
+        self.assertEqual(
+            response.confidence_band.upper.value.iloc[0].tolist(),
+            conf_band.upper.value.iloc[1].tolist(),
+        )
+        self.assertEqual(
+            response.confidence_band.lower.value.iloc[0].tolist(),
+            conf_band.lower.value.iloc[1].tolist(),
+        )
+        self.assertEqual(
+            response.predicted_ts.value.iloc[0].tolist(), pred_ts.value.iloc[1].tolist()
+        )
+        self.assertEqual(
+            response.anomaly_magnitude_ts.value.iloc[0].tolist(),
+            mag_ts.value.iloc[1].tolist(),
+        )
+        self.assertEqual(
+            response.stat_sig_ts.value.iloc[0].tolist(),
+            stat_sig_ts.value.iloc[1].tolist(),
+        )
 
-            # assert that each time series has moved one point forward
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .scores.value[:-1]
-                .tolist(),
-                score_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .confidence_band.upper.value[:-1]
-                .tolist(),
-                upper_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .confidence_band.lower.value[:-1]
-                .tolist(),
-                lower_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .predicted_ts.value[:-1]
-                .tolist(),
-                pred_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .anomaly_magnitude_ts.value[:-1]
-                .tolist(),
-                mag_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .stat_sig_ts.value[:-1]
-                .tolist(),
-                stat_sig_ts.value.iloc[1:, i].tolist(),
-            )
+        # assert that a new point has been added to the end
+        assert isinstance(common_val, np.ndarray)
+        self.assertEqual(response.scores.value.iloc[-1].tolist(), common_val.tolist())
+        self.assertEqual(
+            response.confidence_band.upper.value.iloc[-1].tolist(), common_val.tolist()
+        )
+        self.assertEqual(
+            response.confidence_band.lower.value.iloc[-1].tolist(),
+            (common_val - 0.1).tolist(),
+        )
+        self.assertEqual(
+            response.predicted_ts.value.iloc[-1].tolist(), common_val.tolist()
+        )
+        self.assertEqual(
+            response.anomaly_magnitude_ts.value.iloc[-1].tolist(), common_val.tolist()
+        )
+        self.assertEqual(
+            response.stat_sig_ts.value.iloc[-1].tolist(), np.zeros(num_seq).tolist()
+        )
 
-            # assert that a new point has been added to the end
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]].scores.value.iloc[
-                    -1
-                ],
-                # pyre-ignore[16]: `float` has no attribute `__getitem__`.
-                common_val[i],
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].confidence_band.upper.value.iloc[-1],
-                common_val[i],
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].confidence_band.lower.value.iloc[-1],
-                common_val[i] - 0.1,
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].predicted_ts.value.iloc[-1],
-                common_val[i],
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].anomaly_magnitude_ts.value.iloc[-1],
-                common_val[i],
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].stat_sig_ts.value.iloc[-1],
-                0,
-            )
+        # assert that we return the last N values
+        n_val = 10
 
-            # assert that we return the last N values
-            score_list = response.response_objects[
-                response.key_mapping[i]
-            ].scores.value.values.tolist()
+        score_array = response.scores.value.values
+        response_last_n = response.get_last_n(n_val)
+        self.assertEqual(len(response_last_n.scores), n_val)
+        self.assertEqual(len(response_last_n.confidence_band.upper), n_val)
+        self.assertEqual(len(response_last_n.confidence_band.lower), n_val)
+        self.assertEqual(len(response_last_n.predicted_ts), n_val)
+        self.assertEqual(len(response_last_n.anomaly_magnitude_ts), n_val)
+        self.assertEqual(len(response_last_n.stat_sig_ts), n_val)
 
-            n_val = 10
-            response_last_n_object = response.get_last_n(n_val)
-            response_last_n = response_last_n_object.response_objects[
-                response_last_n_object.key_mapping[i]
-            ]
-            self.assertEqual(len(response_last_n.scores), n_val)
-            self.assertEqual(len(response_last_n.confidence_band.upper), n_val)
-            self.assertEqual(len(response_last_n.confidence_band.lower), n_val)
-            self.assertEqual(len(response_last_n.predicted_ts), n_val)
-            self.assertEqual(len(response_last_n.anomaly_magnitude_ts), n_val)
-            self.assertEqual(len(response_last_n.stat_sig_ts), n_val)
-
-            self.assertEqual(
-                response_last_n.scores.value.values.tolist(), score_list[-n_val:]
-            )
+        self.assertEqual(
+            response_last_n.scores.value.values.tolist(), score_array[-n_val:].tolist()
+        )
 
 
 class TestStatSigDetector(TestCase):
@@ -3703,7 +3655,6 @@ class TestChangepointEvaluator(TestCase):
         # pyre-fixme[6]: Expected `Detector` for 1st param but got
         #  `Type[RobustStatDetector]`.
         turing_5 = TuringEvaluator(detector=RobustStatDetector)
-        # pyre-fixme[6]: Expected `DataFrame` for 1st param but got `None`.
         eval_agg_5_df = turing_5.evaluate(data=None, model_params=model_params)
         self.assertTrue(eval_agg_5_df.shape[0] > 0)
 
@@ -3722,7 +3673,6 @@ class TestChangepointEvaluator(TestCase):
         # pyre-fixme[6]: Expected `Detector` for 1st param but got
         #  `Type[BocpdDetectorModel]`.
         turing_7 = TuringEvaluator(detector=BocpdDetectorModel, is_detector_model=True)
-        # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
         eval_agg_7_df = turing_7.evaluate(data=eg_df, model_params=None)
         self.assertEqual(eval_agg_7_df.shape[0], eg_df.shape[0])
 
@@ -3735,9 +3685,6 @@ class TestChangepointEvaluator(TestCase):
         }
 
         turing_8 = TuringEvaluator(
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
             # pyre-fixme[6]: Expected `Detector` for 1st param but got
             #  `Type[StatSigDetectorModel]`.
             detector=StatSigDetectorModel,
@@ -3745,8 +3692,8 @@ class TestChangepointEvaluator(TestCase):
         )
         eval_agg_8_df = turing_8.evaluate(
             data=eg_df,
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
-            #  `Dict[str, typing.Union[int, str]]`.
+            # pyre-fixme[6]: Expected `Optional[typing.Dict[str, float]]` for 2nd
+            #  param but got `Dict[str, typing.Union[int, str]]`.
             model_params=statsig_model_params,
             alert_style_cp=False,
             threshold_low=-5.0,
@@ -3812,8 +3759,9 @@ class TestChangepointEvaluator(TestCase):
         turing_9 = TuringEvaluator(detector=CUSUMDetectorModel, is_detector_model=True)
         eval_agg_9_df = turing_9.evaluate(
             data=eg_df_daily,
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
-            #  `Dict[str, typing.Union[typing.List[str], CusumScoreFunction, float]]`.
+            # pyre-fixme[6]: Expected `Optional[typing.Dict[str, float]]` for 2nd
+            #  param but got `Dict[str, typing.Union[typing.List[str],
+            #  CusumScoreFunction, float]]`.
             model_params=cusum_model_params,
             alert_style_cp=True,
             threshold_low=-0.1,

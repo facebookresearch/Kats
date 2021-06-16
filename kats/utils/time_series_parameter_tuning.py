@@ -44,6 +44,7 @@ from kats.consts import SearchMethodEnum
 # Maximum number of worker processes used to evaluate trial arms in parallel
 MAX_NUM_PROCESSES = 50
 
+
 class Final(type):
     """A helper class to ensure a class cannot be inherited.
 
@@ -121,7 +122,7 @@ class TimeSeriesEvaluationMetric(Metric):
         return True
 
     def evaluate_arm(self, arm) -> Dict:
-        """ Evaluates the performance of an arm.
+        """Evaluates the performance of an arm.
 
         Takes an arm object, gets its parameter values, runs
         evaluation_function and returns what that function returns
@@ -214,15 +215,19 @@ class TimeSeriesParameterTuning(ABC):
         outcome_constraints: Constraints set on the outcome of the objective.
     """
 
+    evaluation_function: Optional[Callable] = None
+    outcome_constraints: Optional[List[OutcomeConstraint]] = None
+
     def __init__(
         self,
-        # pyre-fixme[9]: parameters has type `List[Dict[typing.Any, typing.Any]]`;
-        parameters: List[Dict] = None,
+        parameters: Optional[List[Dict]] = None,
         experiment_name: Optional[str] = None,
         objective_name: Optional[str] = None,
         outcome_constraints: Optional[List[str]] = None,
         multiprocessing: bool = False,
     ) -> None:
+        if parameters is None:
+            parameters = [{}]
         self.logger = logging.getLogger(__name__)
         self.logger.info(
             "Parameter tuning search space dimensions: {}".format(parameters)
@@ -306,8 +311,7 @@ class TimeSeriesParameterTuning(ABC):
                 )
 
     def get_search_space(self):
-        """Getter of search space attribute of the private attribute, _exp.
-        """
+        """Getter of search space attribute of the private attribute, _exp."""
 
         return self._exp.search_space
 
@@ -321,16 +325,15 @@ class TimeSeriesParameterTuning(ABC):
             generator_run: Generator_run object that is used to populate new arms
         """
 
-        # pyre-fixme[16]: `TimeSeriesParameterTuning` has no attribute
-        #  `evaluation_function`.
         self.evaluation_function = evaluation_function
-        if self.outcome_constraints:
+        outcome_constraints = self.outcome_constraints
+        if outcome_constraints:
             # Convert dummy base Metrics to TimeseriesEvaluationMetrics
             self.outcome_constraints = [
                 OutcomeConstraint(
                     TimeSeriesEvaluationMetric(
                         name=oc.metric.name,
-                        evaluation_function=self.evaluation_function,
+                        evaluation_function=evaluation_function,
                         logger=self.logger,
                         multiprocessing=self.multiprocessing,
                     ),
@@ -338,7 +341,7 @@ class TimeSeriesParameterTuning(ABC):
                     bound=oc.bound,
                     relative=oc.relative,
                 )
-                for oc in self.outcome_constraints
+                for oc in outcome_constraints
             ]
         self._exp.optimization_config = OptimizationConfig(
             objective=Objective(
@@ -358,9 +361,14 @@ class TimeSeriesParameterTuning(ABC):
         self._exp.new_batch_trial(generator_run=generator_run)
         # We run the most recent batch trial as we only run candidate trials
         self._exp.trials[max(self._exp.trials)].run()
-        # pyre-fixme[6]: Expected `Iterable[ax.core.data.Data]` for 1st param but
-        #  got `Iterable[ax.core.abstract_data.AbstractDataFrameData]`.
-        self._trial_data = Data.from_multiple_data([self._trial_data, self._exp.fetch_trials_data(trial_indices=[max(self._exp.trials)])])
+        self._trial_data = Data.from_multiple_data(
+            # pyre-fixme[6]: Expected `Iterable[ax.core.data.Data]` for 1st param
+            #  but got `Iterable[ax.core.abstract_data.AbstractDataFrameData]`.
+            [
+                self._trial_data,
+                self._exp.fetch_trials_data(trial_indices=[max(self._exp.trials)]),
+            ]
+        )
 
     @abstractmethod
     def generate_evaluate_new_parameter_values(
@@ -484,8 +492,7 @@ class TimeSeriesParameterTuning(ABC):
 
 
 class SearchMethodFactory(metaclass=Final):
-    """Generates and returns  search strategy object.
-    """
+    """Generates and returns  search strategy object."""
 
     def __init__(self):
         raise TypeError(
@@ -497,20 +504,13 @@ class SearchMethodFactory(metaclass=Final):
     def create_search_method(
         parameters: List[Dict],
         selected_search_method: SearchMethodEnum = SearchMethodEnum.GRID_SEARCH,
-        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
-        experiment_name: str = None,
-        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
-        objective_name: str = None,
-        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
-        outcome_constraints: List[str] = None,
-        # pyre-fixme[9]: seed has type `int`; used as `None`.
-        seed: int = None,
+        experiment_name: Optional[str] = None,
+        objective_name: Optional[str] = None,
+        outcome_constraints: Optional[List[str]] = None,
+        seed: Optional[int] = None,
         bootstrap_size: int = 5,
-        # pyre-fixme[9]: evaluation_function has type `(...) -> Any`; used as `None`.
-        evaluation_function: Callable = None,
-        # pyre-fixme[9]: bootstrap_arms_for_bayes_opt has type
-        #  `List[Dict[typing.Any, typing.Any]]`; used as `None`.
-        bootstrap_arms_for_bayes_opt: List[dict] = None,
+        evaluation_function: Optional[Callable] = None,
+        bootstrap_arms_for_bayes_opt: Optional[List[dict]] = None,
         multiprocessing: bool = False,
     ) -> TimeSeriesParameterTuning:
         """The static method of factory class that creates the search method
@@ -610,12 +610,9 @@ class GridSearch(TimeSeriesParameterTuning):
     def __init__(
         self,
         parameters: List[Dict],
-        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
-        experiment_name: str = None,
-        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
-        objective_name: str = None,
-        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
-        outcome_constraints: List[str] = None,
+        experiment_name: Optional[str] = None,
+        objective_name: Optional[str] = None,
+        outcome_constraints: Optional[List[str]] = None,
         multiprocessing: bool = False,
         **kwargs,
     ) -> None:
@@ -682,14 +679,11 @@ class RandomSearch(TimeSeriesParameterTuning):
     def __init__(
         self,
         parameters: List[Dict],
-        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
-        experiment_name: str = None,
-        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
-        objective_name: str = None,
+        experiment_name: Optional[str] = None,
+        objective_name: Optional[str] = None,
         seed: Optional[int] = None,
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
-        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
-        outcome_constraints: List[str] = None,
+        outcome_constraints: Optional[List[str]] = None,
         multiprocessing: bool = False,
         **kwargs,
     ) -> None:
@@ -775,19 +769,19 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             'metric2 < 5]
     """
 
+    # pyre-fixme[11]: Annotation `BOTORCH` is not defined as a type.
+    _bayes_opt_model: Optional[Models.BOTORCH] = None
+
     def __init__(
         self,
         parameters: List[Dict],
         evaluation_function: Callable,
-        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
-        experiment_name: str = None,
-        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
-        objective_name: str = None,
+        experiment_name: Optional[str] = None,
+        objective_name: Optional[str] = None,
         bootstrap_size: int = 5,
         seed: Optional[int] = None,
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
-        # pyre-fixme[9]: outcome_constraints has type `List[str]`; used as `None`.
-        outcome_constraints: List[str] = None,
+        outcome_constraints: Optional[List[str]] = None,
         multiprocessing: bool = False,
         **kwargs,
     ) -> None:
@@ -852,7 +846,6 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         scenarios. We re-initiate BOTORCH model on each call.
         """
 
-        # pyre-fixme[16]: `BayesianOptSearch` has no attribute `_bayes_opt_model`.
         self._bayes_opt_model = Models.BOTORCH(
             experiment=self._exp,
             data=self._trial_data,
@@ -868,12 +861,9 @@ class SearchForMultipleSpaces:
         self,
         parameters: Dict[str, List[Dict]],
         search_method: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
-        # pyre-fixme[9]: experiment_name has type `str`; used as `None`.
-        experiment_name: str = None,
-        # pyre-fixme[9]: objective_name has type `str`; used as `None`.
-        objective_name: str = None,
-        # pyre-fixme[9]: seed has type `int`; used as `None`.
-        seed: int = None,
+        experiment_name: Optional[str] = None,
+        objective_name: Optional[str] = None,
+        seed: Optional[int] = None,
     ) -> None:
         """Search class that runs search for multiple search spaces.
 
@@ -927,8 +917,7 @@ class SearchForMultipleSpaces:
         )
 
     def list_parameter_value_scores(
-        # pyre-fixme[9]: selected_model has type `str`; used as `None`.
-        self, selected_model: str = None
+        self, selected_model: Optional[str] = None
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         """Calls list_parameter_value_scores() for the model that the name is given
         or calls for every model otherwise.

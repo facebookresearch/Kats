@@ -13,7 +13,7 @@ the time horizon, under the assumption that longer horizon has larger S.E.
 """
 
 import logging
-from typing import List
+from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,7 +27,7 @@ ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
 class EmpConfidenceInt:
-    """"class for empirical confidence interval
+    """ "class for empirical confidence interval
 
     The steps are listed as follows:
     1. Run K-fold CV for a given model and data,
@@ -49,6 +49,12 @@ class EmpConfidenceInt:
         multi: flag to use multiprocessing, the default is True
         confidence_level: the confidence level for the prediction interval
     """
+
+    freq: Optional[str] = None
+    dates: Optional[pd.DatetimeIndex] = None
+    predicted: Optional[np.ndarray] = None
+    coefs: Optional[np.ndarray] = None
+    df: Optional[pd.DataFrame] = None
 
     def __init__(
         self,
@@ -146,7 +152,9 @@ class EmpConfidenceInt:
         backtester.run_backtest()
         self.SE = pd.DataFrame(backtester.raw_errors).transpose().std(axis=1)
 
-    def get_lr(self,):
+    def get_lr(
+        self,
+    ):
         """Fit linear regression model
 
         Fit linear regression model for
@@ -179,13 +187,10 @@ class EmpConfidenceInt:
             The dataframe of forecasted values with prediction intervals
         """
 
-        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `freq`.
-        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `freq`.
         self.freq = kwargs.get("freq", "D")
         # get dates
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
-        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
 
         self.run_cv()
@@ -194,24 +199,20 @@ class EmpConfidenceInt:
         # run model with all data
         m = self.model_class(self.data, self.params)
         m.fit()
-        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `predicted`.
-        self.predicted = m.predict(steps, freq=self.freq)
+        self.predicted = predicted = m.predict(steps, freq=self.freq)
 
         # get margin of error
         horizons = np.array([x + 1 for x in range(steps)])
-        me = stats.norm.ppf(self.confidence_level) * (
-            # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `df`.
-            # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `coefs`.
-            horizons * self.coefs[0] + self.coefs[1]
-        )
+        coefs = self.coefs
+        assert coefs is not None
+        me = stats.norm.ppf(self.confidence_level) * (horizons * coefs[0] + coefs[1])
 
-        # pyre-fixme[16]: `EmpConfidenceInt` has no attribute `df`.
         self.df = pd.DataFrame(
             {
-                "time": self.predicted.time,
-                "fcst": self.predicted.fcst,
-                "fcst_lower": self.predicted.fcst - me,
-                "fcst_upper": self.predicted.fcst + me,
+                "time": predicted.time,
+                "fcst": predicted.fcst,
+                "fcst_lower": predicted.fcst - me,
+                "fcst_upper": predicted.fcst + me,
             }
         )
         return self.df
