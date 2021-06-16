@@ -9,7 +9,7 @@ This module implements a simulator for generating synthetic time series data.
 """
 
 from datetime import timedelta
-from typing import List, Any, Union, Callable
+from typing import Any, Callable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -238,9 +238,10 @@ class Simulator:
         return to_offset(period).nanos / 1e9
 
     def _add_component(
-        # pyre-fixme[9]: time_scale has type `float`; used as `None`.
-        # pyre-fixme[9]: time_scale has type `float`; used as `None`.
-        self, component_gen: Callable, multiply: bool, time_scale: float = None
+        self,
+        component_gen: Callable,
+        multiply: bool,
+        time_scale: Optional[float] = None,
     ):
         """
         Add a new component to the target time series.
@@ -294,22 +295,25 @@ class Simulator:
     def _get_level_shift_y_val(
         self,
         random_seed: int = 100,
-        # pyre-fixme[9]: level_arr has type `List[float]`; used as `None`.
-        # pyre-fixme[9]: cp_arr has type `List[int]`; used as `None`.
-        cp_arr: List[int] = None,
-        # pyre-fixme[9]: level_arr has type `List[float]`; used as `None`.
-        level_arr: List[float] = None,
+        cp_arr: Optional[List[int]] = None,
+        level_arr: Optional[List[float]] = None,
         noise: float = 30,
         seasonal_period: int = 7,
         seasonal_magnitude: float = 3.0,
-        # pyre-fixme[9]: anomaly_arr has type `List[int]`; used as `None`.
-        anomaly_arr: List[int] = None,
-        # pyre-fixme[9]: z_score_arr has type `List[float]`; used as `None`.
-        z_score_arr: List[float] = None,
+        anomaly_arr: Optional[List[int]] = None,
+        z_score_arr: Optional[List[float]] = None,
     ) -> pd.Series:
         """
         generates values of a time series with multiple level shifts
         """
+        if cp_arr is None:
+            cp_arr = [100, 200, 350]
+        if level_arr is None:
+            level_arr = [1.35, 1.05, 1.35, 1.2]
+        if anomaly_arr is None:
+            anomaly_arr = []
+        if z_score_arr is None:
+            z_score_arr = []
 
         np.random.seed(seed=random_seed)
 
@@ -360,7 +364,7 @@ class Simulator:
             seg_idx = 0
             while y_idx > cp_arr[seg_idx]:
                 seg_idx += 1
-            y_val[y_idx] = level_arr[seg_idx-1] + z_score_arr[arr_idx] * noise
+            y_val[y_idx] = level_arr[seg_idx - 1] + z_score_arr[arr_idx] * noise
 
         # add seasonality
         y_val += seasonal_magnitude * np.sin(
@@ -372,19 +376,13 @@ class Simulator:
     def level_shift_sim(
         self,
         random_seed: int = 100,
-        # pyre-fixme[9]: anomaly_arr has type `List[int]`; used as `None`.
-        # pyre-fixme[9]: cp_arr has type `List[int]`; used as `None`.
-        # pyre-fixme[9]: z_score_arr has type `List[float]`; used as `None`.
-        cp_arr: List[int] = None,
-        # pyre-fixme[9]: level_arr has type `List[float]`; used as `None`.
-        level_arr: List[float] = None,
+        cp_arr: Optional[List[int]] = None,
+        level_arr: Optional[List[float]] = None,
         noise: float = 30.0,
         seasonal_period: int = 7,
         seasonal_magnitude: float = 3.0,
-        # pyre-fixme[9]: anomaly_arr has type `List[int]`; used as `None`.
-        anomaly_arr: List[int] = None,
-        # pyre-fixme[9]: z_score_arr has type `List[float]`; used as `None`.
-        z_score_arr: List[float] = None,
+        anomaly_arr: Optional[List[int]] = None,
+        z_score_arr: Optional[List[float]] = None,
     ) -> TimeSeriesData:
         """Produces a time series with level shifts.
 
@@ -453,17 +451,13 @@ class Simulator:
 
     def level_shift_multivariate_indep_sim(
         self,
-        # pyre-fixme[9]: cp_arr has type `List[int]`; used as `None`.
-        cp_arr: List[int] = None,
-        # pyre-fixme[9]: level_arr has type `List[float]`; used as `None`.
-        level_arr: List[float] = None,
+        cp_arr: Optional[List[int]] = None,
+        level_arr: Optional[List[float]] = None,
         noise: float = 30.0,
         seasonal_period: int = 7,
         seasonal_magnitude: float = 3.0,
-        # pyre-fixme[9]: anomaly_arr has type `List[int]`; used as `None`.
-        anomaly_arr: List[int] = None,
-        # pyre-fixme[9]: z_score_arr has type `List[float]`; used as `None`.
-        z_score_arr: List[float] = None,
+        anomaly_arr: Optional[List[int]] = None,
+        z_score_arr: Optional[List[float]] = None,
         dim: int = 3,
     ) -> TimeSeriesData:
         """Produces a multivariate time series with level shifts.
@@ -527,18 +521,14 @@ class Simulator:
     def trend_shift_sim(
         self,
         random_seed: int = 15,
-        # pyre-fixme[9]: cp_arr has type `List[int]`; used as `None`.
-        cp_arr: List[int] = None,
-        # pyre-fixme[9]: trend_arr has type `List[float]`; used as `None`.
-        trend_arr: List[float] = None,
+        cp_arr: Optional[List[int]] = None,
+        trend_arr: Optional[List[float]] = None,
         intercept: float = 100.0,
         noise: float = 30.0,
         seasonal_period: int = 7,
         seasonal_magnitude: float = 3.0,
-        # pyre-fixme[9]: anomaly_arr has type `List[int]`; used as `None`.
-        anomaly_arr: List[int] = None,
-        # pyre-fixme[9]: z_score_arr has type `List[int]`; used as `None`.
-        z_score_arr: List[int] = None,
+        anomaly_arr: Optional[List[int]] = None,
+        z_score_arr: Optional[List[int]] = None,
     ) -> TimeSeriesData:
         """Produces a time series with multiple trend shifts and seasonality.
 
@@ -585,6 +575,7 @@ class Simulator:
             trend_arr = [3.0, 30.0]
         if anomaly_arr is None:
             anomaly_arr = []
+        if z_score_arr is None:
             z_score_arr = []
 
         # if cp_arr is not sorted, sort it
@@ -608,14 +599,12 @@ class Simulator:
         cp_arr.append(self.n)
         cp_arr.insert(0, 0)
 
-        y_val = intercept * np.ones(self.n)
+        y_val = np.full(self.n, intercept, dtype=float)
 
         for i in range(len(cp_arr) - 1):
             cp_begin = cp_arr[i]
             cp_end = cp_arr[i + 1]
 
-            # pyre-fixme[16]: `float` has no attribute `__setitem__`.
-            # pyre-fixme[16]: `float` has no attribute `__getitem__`.
             y_val[cp_begin:cp_end] = y_val[cp_begin:cp_end] + trend_arr[i] * np.arange(
                 cp_begin, cp_end
             )
