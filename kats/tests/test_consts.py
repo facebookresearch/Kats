@@ -12,7 +12,7 @@ import pandas as pd
 import pytz
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
-from pandas.util.testing import (
+from pandas.testing import (
     assert_frame_equal,
     assert_index_equal,
     assert_series_equal,
