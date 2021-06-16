@@ -24,6 +24,7 @@ class TimeSeriesDecomposition:
         method: `STL decompostion` or `seasonal_decompose`
     Specific arguments to seasonal_decompose and STL functions can be passed via kwargs
     """
+
     def __init__(
         self, data: TimeSeriesData, decomposition="additive", method="STL", **kwargs
     ) -> None:
@@ -68,9 +69,7 @@ class TimeSeriesDecomposition:
         """
 
         original = pd.DataFrame(
-                list(self.data.value),
-                index=self.data.time,
-                columns=["y"]
+            list(self.data.value), index=self.data.time, columns=["y"]
         )
 
         original.columns = ["y"]
@@ -94,15 +93,22 @@ class TimeSeriesDecomposition:
         return original
 
     def __decompose_seasonal(self, original):
-        """Internal function to call seasonal_decompose to do the decomposition.
-        """
+        """Internal function to call seasonal_decompose to do the decomposition."""
         if self.period is not None:
-            result = seasonal_decompose(original, model=self.decomposition, period=self.period)
+            result = seasonal_decompose(
+                original, model=self.decomposition, period=self.period
+            )
         else:
-            if 'T' in self.freq:
-                result = seasonal_decompose(original, model=self.decomposition, period=2)
-                logging.warning("Seasonal Decompose cannot handle sub day level granularity")
-                logging.warning("Please consider setting period yourself based on the input data")
+            if "T" in self.freq:
+                result = seasonal_decompose(
+                    original, model=self.decomposition, period=2
+                )
+                logging.warning(
+                    "Seasonal Decompose cannot handle sub day level granularity"
+                )
+                logging.warning(
+                    "Please consider setting period yourself based on the input data"
+                )
                 logging.warning("Defaulting to a period of 2")
             else:
                 result = seasonal_decompose(original, model=self.decomposition)
@@ -120,9 +126,11 @@ class TimeSeriesDecomposition:
 
         The arguments to STL can be passed in the class via kwargs
         """
-        if 'T' in self.freq and self.period is None:
+        if "T" in self.freq and self.period is None:
             logging.warning("STL cannot handle sub day level granularity")
-            logging.warning("Please consider setting period yourself based on the input data")
+            logging.warning(
+                "Please consider setting period yourself based on the input data"
+            )
             logging.warning("Defaulting to a period of 2")
             self.period = 2
         if self.decomposition == "additive":
@@ -182,9 +190,15 @@ class TimeSeriesDecomposition:
             output = self.__decompose_seasonal(original)
 
         return {
-            "trend": TimeSeriesData(output["trend"].reset_index(), time_col_name=self.data.time_col_name),
-            "seasonal": TimeSeriesData(output["seasonal"].reset_index(), time_col_name=self.data.time_col_name),
-            "rem": TimeSeriesData(output["resid"].reset_index(), time_col_name=self.data.time_col_name),
+            "trend": TimeSeriesData(
+                output["trend"].reset_index(), time_col_name=self.data.time_col_name
+            ),
+            "seasonal": TimeSeriesData(
+                output["seasonal"].reset_index(), time_col_name=self.data.time_col_name
+            ),
+            "rem": TimeSeriesData(
+                output["resid"].reset_index(), time_col_name=self.data.time_col_name
+            ),
         }
 
     def decomposer(self):
@@ -205,8 +219,7 @@ class TimeSeriesDecomposition:
         return self.results
 
     def plot(self):
-        """Plot the original time series and the three decomposed components.
-        """
+        """Plot the original time series and the three decomposed components."""
 
         fig, ax = plt.subplots(nrows=4, ncols=1, figsize=(20, 10), sharex=True)
 
