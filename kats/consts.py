@@ -17,11 +17,13 @@ that gives uses access to a host of forecasting, detection, and utility
 algorithms right at the user's fingertips.
 """
 
+from __future__ import annotations
+
 import copy
 import datetime
 import logging
 from enum import Enum, auto, unique
-from typing import List, Optional, Union, cast, Any
+from typing import List, Optional, Union, cast
 
 import dateutil
 import matplotlib.pyplot as plt
@@ -46,10 +48,16 @@ INTERPOLATION_METHODS = {
 }  # List of possible interpolation methods
 
 
+def _log_error(msg: str) -> ValueError:
+    logging.error(msg)
+    return ValueError(msg)
+
+
 class TimeSeriesChangePoint:
     """Object returned by detector classes.
 
     Attributes:
+
         start_time: Start time of the change.
         end_time: End time of the change.
         confidence: The confidence of the change point.
@@ -73,10 +81,16 @@ class TimeSeriesChangePoint:
         return self._confidence
 
     def __repr__(self):
-        return f"TimeSeriesChangePoint(start_time: {self.start_time}, end_time: {self.end_time}, confidence: {self.confidence})"
+        return (
+            f"TimeSeriesChangePoint(start_time: {self.start_time}, end_time: "
+            f"{self.end_time}, confidence: {self.confidence})"
+        )
 
     def __str__(self):
-        return f"TimeSeriesChangePoint(start_time: {self.start_time}, end_time: {self.end_time}, confidence: {self.confidence})"
+        return (
+            f"TimeSeriesChangePoint(start_time: {self.start_time}, end_time: "
+            f"{self.end_time}, confidence: {self.confidence})"
+        )
 
 
 class TimeSeriesData:
@@ -88,38 +102,39 @@ class TimeSeriesData:
     Initialization. :class:`TimeSeriesData` can be initialized from the
     following data sources:
 
-      - `pandas.DataFrame`
-      - `pandas.Series`
-      - `pandas.DatetimeIndex`
+        - `pandas.DataFrame`
+        - `pandas.Series`
+        - `pandas.DatetimeIndex`
 
     Typical usage example for initialization:
-      >>> import pandas as pd
-      >>> df = pd.read_csv("/kats/data/air_passengers.csv")
-      >>> ts = TimeSeriesData(df=df, time_col_name="ds")
+
+    >>> import pandas as pd
+    >>> df = pd.read_csv("/kats/data/air_passengers.csv")
+    >>> ts = TimeSeriesData(df=df, time_col_name="ds")
 
     Initialization arguments (all optional, but must choose one way to
     initialize e.g. `pandas.DataFrame`):
 
-      - df: A `pandas.DataFrame` storing the time series (default None).
-      - sort_by_time: A boolean indicating whether the :class:`TimeSeriesData`
+    - df: A `pandas.DataFrame` storing the time series (default None).
+    - sort_by_time: A boolean indicating whether the :class:`TimeSeriesData`
         should be sorted by time (default True).
-      - time: a `pandas.Series` or `pandas.DatetimeIndex` storing the time
-          values (default None).
-      - value: A pandas.Series or pandas.DataFrame storing the series value(s)
+    - time: a `pandas.Series` or `pandas.DatetimeIndex` storing the time
+        values (default None).
+    - value: A pandas.Series or pandas.DataFrame storing the series value(s)
         (default None).
-      - time_col_name: A string representing the value of the time column (
-          default "time")
-      - date_format: A string specifying the format of the date/time in the
+    - time_col_name: A string representing the value of the time column (
+        default "time")
+    - date_format: A string specifying the format of the date/time in the
         time column. Useful for faster parsing, and required
         `pandas.to_datetime()` cannot parse the column otherwise (default None).
-      - use_unix_time: A boolean indicating if the time is represented as
+    - use_unix_time: A boolean indicating if the time is represented as
         unix time (default False).
-      - unix_time_units: A string indicating the units of the unix time -- only
+    - unix_time_units: A string indicating the units of the unix time -- only
         used if `use_unix_time=True` (default "ns").
-      - tz: A string representing the timezone of the time values (default None).
-      - tz_ambiguous: A string representing how to handle ambiguous timezones
+    - tz: A string representing the timezone of the time values (default None).
+    - tz_ambiguous: A string representing how to handle ambiguous timezones
         (default "raise").
-      - tz_nonexistant: A string representing how to handle nonexistant timezone
+    - tz_nonexistant: A string representing how to handle nonexistant timezone
         values (default "raise").
 
     Raises:
@@ -152,6 +167,8 @@ class TimeSeriesData:
       max: A float or `pandas.Series` representing the max value(s) of the
         time series.
     """
+    _min: float = np.nan
+    _max: float = np.nan
 
     def __init__(  # noqa C901
         self,
@@ -168,32 +185,27 @@ class TimeSeriesData:
         tz_nonexistent: str = "raise",
     ) -> None:
         """Initializes :class:`TimeSeriesData` class with arguments provided."""
-
         self.time_col_name = time_col_name
 
         # If DataFrame is passed
         if df is not None:
             if not isinstance(df, pd.DataFrame):
-                logging.error(
-                    "Argument df needs to be a pandas.DataFrame but is of "
-                    + f"type {type(df)}"
+                msg = (
+                    "Argument df needs to be a pandas.DataFrame but is of type "
+                    f"{type(df)}."
                 )
-                raise ValueError(
-                    "Incorrect object types passed to initialize TimeSeriesData"
-                )
+                raise _log_error(msg)
             # If empty DataFrame is passed then create an empty object
             if df.empty:
-                self.time = pd.Series([], name=time_col_name, dtype=float)
-                self.value = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
+                self._time = pd.Series([], name=time_col_name, dtype=float)
+                self._value = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
                 logging.warning("Initializing empty TimeSeriesData object")
             # Otherwise initialize TimeSeriesData from DataFrame
             else:
                 # Ensuring time column is present in DataFrame
                 if self.time_col_name not in df.columns:
-                    logging.error(
-                        f"Time column: {self.time_col_name}, not in DataFrame"
-                    )
-                    raise ValueError("No time column found in dataframe")
+                    msg = f"Time column {self.time_col_name} not in DataFrame"
+                    raise _log_error(msg)
                 # Parsing time column into correct format
                 df = df.copy()
                 df.reset_index(inplace=True, drop=True)
@@ -212,11 +224,13 @@ class TimeSeriesData:
                     df.reset_index(inplace=True, drop=True)
                 else:
                     logging.warning(
-                        "Please make sure the time series is sorted by time or set "
-                        + "'sort_by_time' as True."
+                        (
+                            "Please make sure the time series is sorted by time or "
+                            "set 'sort_by_time' as True."
+                        )
                     )
-                self.time = df[self.time_col_name]
-                self.value = df[[x for x in df.columns if x != self.time_col_name]]
+                self._time = df[self.time_col_name]
+                self._value = df[[x for x in df.columns if x != self.time_col_name]]
                 self._set_univariate_values_to_series()
 
         # If separate objects are passed
@@ -231,29 +245,22 @@ class TimeSeriesData:
                     or isinstance(value, pd.DataFrame)
                 )
             ):
-                logging.error(
+                msg = (
                     f"Invalid types: time is {type(time)} when it must be a "
                     + "pandas.Series or pandas.DatetimeIndex and value is "
                     + f"{type(value)} when it must be a pandas.DataFrame or "
                     + "pandas.Series"
                 )
-                raise ValueError(
-                    "Incorrect object types passed to initialize TimeSeriesData"
-                )
+                raise _log_error(msg)
             if isinstance(time, pd.DatetimeIndex):
-                self.time = pd.Series(time)
+                self._time = pd.Series(time)
             else:
-                self.time = time
-            self.value = value
+                self._time = cast(pd.Series, time.reset_index(drop=True))
+            self._value = value.reset_index(drop=True)
             self._set_univariate_values_to_series()
             # Set time col name
             if time.name:
                 self.time_col_name = time.name
-            # Resetting indices
-            # pyre-fixme[8]: Attribute has type `Series`; used as
-            #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
-            self.time = self.time.reset_index(drop=True)
-            self.value = self.value.reset_index(drop=True)
             # Checking for emptiness
             if self.time.empty and self.value.empty:
                 logging.warning("Initializing empty TimeSeriesData object")
@@ -266,36 +273,33 @@ class TimeSeriesData:
                     )
             # Raise exception if only one of time and value is empty
             elif self.time.empty or self.value.empty:
-                logging.error(
-                    "Series objects for time and value must both be empty or both have values"
-                )
-                raise ValueError("One of time or value is empty while the other is not")
+                msg = "One of time or value is empty while the other is not"
+                raise _log_error(msg)
             # If time values are passed then standardizing format
             else:
-                # pyre-fixme[8]: Attribute has type `Series`; used as
-                #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
-                self.time = self._set_time_format(
-                    self.time,
-                    date_format=date_format,
-                    use_unix_time=use_unix_time,
-                    unix_time_units=unix_time_units,
-                    tz=tz,
-                    tz_ambiguous=tz_ambiguous,
-                    tz_nonexistent=tz_nonexistent,
-                ).reset_index(drop=True)
+                self.time = cast(
+                    pd.Series,
+                    self._set_time_format(
+                        self.time,
+                        date_format=date_format,
+                        use_unix_time=use_unix_time,
+                        unix_time_units=unix_time_units,
+                        tz=tz,
+                        tz_ambiguous=tz_ambiguous,
+                        tz_nonexistent=tz_nonexistent,
+                    ).reset_index(drop=True),
+                )
 
         # If None is passed
         elif not time and not value:
-            self.time = pd.Series([], name=time_col_name)
-            self.value = pd.Series([], name=DEFAULT_VALUE_NAME)
+            self._time = pd.Series([], name=time_col_name)
+            self._value = pd.Series([], name=DEFAULT_VALUE_NAME)
             logging.warning("Initializing empty TimeSeriesData object")
 
         # Error if only one of time or value is None
         else:
-            logging.error(
-                "Objects for time and value must both be None or both have values"
-            )
-            raise ValueError("One of time or value is empty while the other is not")
+            msg = "One of time or value is empty while the other is not"
+            raise _log_error(msg)
 
         # Validate values
         if not self.value.empty and not (
@@ -308,11 +312,8 @@ class TimeSeriesData:
                 and all(is_numeric_dtype(self.value[col]) for col in self.value)
             )
         ):
-            raise ValueError("Data for time series is not a numeric type")
-            logging.error("Values passed are not of a numeric type")
-            logging.debug(
-                f"dtype of values was {self.value.dtype} which is not numeric"
-            )
+            msg = f"Time series data is type {self.value.dtype} but must be numeric"
+            raise _log_error(msg)
 
         self._calc_min_max_values()
 
@@ -323,8 +324,6 @@ class TimeSeriesData:
         Returns:
           A `pandas.Series` representing the time values of the time series.
         """
-
-        # pyre-fixme[16]: `TimeSeriesData` has no attribute `_time`.
         return self._time
 
     @time.setter
@@ -333,11 +332,7 @@ class TimeSeriesData:
 
         Args:
           time_values. A `pandas.Series` with the updated time values.
-
-        Returns:
-          None.
         """
-
         self._time = time_values
 
     @property
@@ -348,8 +343,6 @@ class TimeSeriesData:
           A `pandas.Series` or `pandas.DataFrame` representing the value(s) of the
           time series.
         """
-
-        # pyre-fixme[16]: `TimeSeriesData` has no attribute `_value`.
         return self._value
 
     @value.setter
@@ -359,9 +352,6 @@ class TimeSeriesData:
         Args:
           values: A `pandas.Series` or `pandas.DataFrame` with the updated
           values(s).
-
-        Returns:
-          None.
         """
 
         self._value = values
@@ -376,36 +366,17 @@ class TimeSeriesData:
           A `pandas.Series` or float representing the min value(s) of the
           time series.
         """
-
-        # pyre-fixme[16]: `TimeSeriesData` has no attribute `_min`.
         return self._min
 
     @property
     def max(self) -> Union[pd.Series, float]:
-        # pyre-fixme[16]: `TimeSeriesData` has no attribute `_max`.
-        return self._max
         """Returns the max value(s) of the series.
 
         Returns:
           A `pandas.Series` or float representing the max value(s) of the
           time series.
         """
-
-    @min.setter
-    def min(self, min: Any):
-        """Setting min directly is not permitted."""
-
-        msg = "Assigning mininum value to TimeSeriesData is not allowed."
-        logging.error(msg)
-        raise ValueError(msg)
-
-    @max.setter  # we do not allow setting max directly
-    def max(self, max: Any):
-        """Setting max directly is not permitted."""
-
-        msg = "Assigning maximum value to TimeSeriesData is not allowed."
-        logging.error(msg)
-        raise ValueError(msg)
+        return self._max
 
     def __eq__(self, other: object) -> bool:
         # Currently "__eq__" only works with other TimeSeriesData objects.
@@ -448,22 +419,22 @@ class TimeSeriesData:
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
-    def __sub__(self, other: object) -> "TimeSeriesData":
+    def __sub__(self, other: object) -> TimeSeriesData:
         return self._perform_op(other, OperationsEnum.SUB)
 
-    def __truediv__(self, other: object) -> "TimeSeriesData":
+    def __truediv__(self, other: object) -> TimeSeriesData:
         return self._perform_op(other, OperationsEnum.DIV)
 
-    def __add__(self, other: object) -> "TimeSeriesData":
+    def __add__(self, other: object) -> TimeSeriesData:
         return self._perform_op(other, OperationsEnum.ADD)
 
-    def __mul__(self, other: object) -> "TimeSeriesData":
+    def __mul__(self, other: object) -> TimeSeriesData:
         return self._perform_op(other, OperationsEnum.MUL)
 
     def __len__(self) -> int:
         return len(self.value)
 
-    def __getitem__(self, sliced) -> "TimeSeriesData":
+    def __getitem__(self, sliced) -> TimeSeriesData:
         return TimeSeriesData(
             time=self.time[sliced],
             value=self.value[sliced],
@@ -735,7 +706,7 @@ class TimeSeriesData:
 
         return self.to_dataframe().to_numpy()
 
-    def _get_binary_op_other_arg(self, other: object) -> "TimeSeriesData":
+    def _get_binary_op_other_arg(self, other: object) -> TimeSeriesData:
         if isinstance(other, float) or isinstance(other, int):
             if isinstance(self.value, pd.Series):
                 return TimeSeriesData(
@@ -754,13 +725,11 @@ class TimeSeriesData:
 
         if not isinstance(other, TimeSeriesData):
             raise TypeError("Binary op must take another TimeSeriesData object")
-        # pyre-fixme[22]: The cast is redundant.
-        other = cast(TimeSeriesData, other)
         if not self.time.equals(other.time):
             raise ValueError("BBinary op must take a TimeSeriesData with same time")
         return other
 
-    def _perform_op(self, other: object, op_type: "OperationsEnum") -> "TimeSeriesData":
+    def _perform_op(self, other: object, op_type: "OperationsEnum") -> TimeSeriesData:
         # Extract DataFrames with same time column name for joining
         self_df = self.to_dataframe(standard_time_col_name=True)
         other_df = self._get_binary_op_other_arg(other).to_dataframe(
@@ -840,7 +809,7 @@ class TimeSeriesData:
         freq: Optional[Union[str, pd.Timedelta]] = None,
         method: str = "linear",
         remove_duplicate_time=False,
-    ) -> "TimeSeriesData":
+    ) -> TimeSeriesData:
         """
         Interpolate missing date if `time` doesn't have constant frequency.
 
@@ -860,7 +829,8 @@ class TimeSeriesData:
             values, as interpolation in this case due to the need to index
             on time (default False).
 
-        Returns: A new :class:`TimeSeriesData` object with interpolated data.
+        Returns:
+            A new :class:`TimeSeriesData` object with interpolated data.
         """
 
         if not freq:
@@ -907,9 +877,6 @@ class TimeSeriesData:
 
         Args:
           cols: List of variables (strings) to plot (against time).
-
-        Returns:
-          None.
         """
 
         if self.is_empty():
@@ -933,7 +900,7 @@ class TimeSeriesData:
             )
         ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)
         fig.tight_layout()
-        # pyre-fixme[29]: `CachedAccessor` is not a function.
+        # pyre-ignore[29]: `pd.core.accessor.CachedAccessor` is not a function.
         self.to_dataframe().plot(x=self.time_col_name, y=cols, ax=ax)
 
 
@@ -1045,3 +1012,15 @@ class OperationsEnum(Enum):
     SUB = auto()
     DIV = auto()
     MUL = auto()
+
+
+__all__ = [
+    ModelEnum,
+    OperationsEnum,
+    Params,
+    SearchMethodEnum,
+    TimeSeriesChangePoint,
+    TimeSeriesData,
+    TimeSeriesIterator,
+    TSIterator,
+]
