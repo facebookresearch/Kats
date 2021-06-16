@@ -19,7 +19,6 @@ from kats.detectors.detector_consts import (
     AnomalyResponse,
     ChangePointInterval,
     ConfidenceBand,
-    MultiAnomalyResponse,
     PercentageChange,
 )
 
@@ -560,7 +559,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         # when there is no need to update
         # just return the initial response of zeros
         if not self._should_update(data=data, historical_data=historical_data):
-            return self.response.get_last_n(self.last_N).get_anomaly_response()
+            return self.response.get_last_n(self.last_N)
 
         # handle cases where there is either no historical  data, or
         # not enough historical data
@@ -595,7 +594,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             self._update_control_test(ts_pt)
             self._update_response(ts_pt.time.iloc[0])
 
-        return self.response.get_last_n(self.last_N).get_anomaly_response()
+        return self.response.get_last_n(self.last_N)
 
     def _init_response(self, data: TimeSeriesData):
 
@@ -617,7 +616,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             )
         )
 
-        self.response = MultiAnomalyResponse(
+        self.response = AnomalyResponse(
             scores=zeros_ts,
             confidence_band=ConfidenceBand(upper=init_ts, lower=init_ts),
             predicted_ts=init_ts,
