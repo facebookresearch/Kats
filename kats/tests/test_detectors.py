@@ -67,7 +67,7 @@ from kats.models.var import VARParams
 from kats.utils.simulator import Simulator
 from scipy.special import expit  # @manual
 
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
+# pyre-ignore[21]: Could not find name `chi2` in `scipy.stats`.
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
 
@@ -253,9 +253,11 @@ class CUSUMDetectorTest(TestCase):
         self.assertLessEqual(abs(metadata.cp_index - 29), 1)
         self.assertEqual(metadata.direction, "increase")
         self.assertLess(metadata.mu0, metadata.mu1)
+        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
+        #  np.ndarray]`.
         self.assertEqual(metadata.delta, metadata.mu1 - metadata.mu0)
         self.assertTrue(metadata.regression_detected)
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
+        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(metadata.p_value, 1 - chi2.cdf(metadata.llr, 2))
         self.assertTrue(np.isnan(metadata.p_value_int))
         self.assertEqual(metadata.llr_int, np.inf)
@@ -425,7 +427,7 @@ class CUSUMDetectorTest(TestCase):
         self.assertEqual(len(change_points), 1)
         change_meta = change_points[0][1]
         self.assertGreaterEqual(change_meta.cp_index, periodicity * (total_cycles - 1))
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
+        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(change_meta.p_value_int, 1 - chi2.cdf(change_meta.llr_int, 2))
 
     def test_logging(self) -> None:
@@ -593,12 +595,18 @@ class MultiCUSUMDetectorTest(TestCase):
         metadata = change_points[0][1]
         self.assertLessEqual(abs(metadata.cp_index - 59), 1)
 
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `Union[float, np.ndarray]`.
         for m1, m2 in zip(metadata.mu0, metadata.mu1):
             self.assertLess(m1, m2)
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `Union[float, np.ndarray]`.
+        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
+        #  np.ndarray]`.
         for d, diff in zip(metadata.delta, metadata.mu1 - metadata.mu0):
             self.assertEqual(d, diff)
         self.assertTrue(metadata.regression_detected)
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
+        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(metadata.p_value, 1 - chi2.cdf(metadata.llr, D + 1))
         self.assertTrue(np.isnan(metadata.p_value_int))
         self.assertEqual(metadata.llr_int, np.inf)
@@ -629,13 +637,19 @@ class MultiCUSUMDetectorTest(TestCase):
 
         self.assertLessEqual(abs(metadata.cp_index - 59), 1)
 
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `Union[float, np.ndarray]`.
         for m1, m2 in zip(metadata.mu0, metadata.mu1):
             self.assertGreater(m1, m2)
 
+        # pyre-fixme[6]: Expected `Iterable[Variable[_T1]]` for 1st param but got
+        #  `Union[float, np.ndarray]`.
+        # pyre-fixme[6]: Expected `float` for 1st param but got `Union[float,
+        #  np.ndarray]`.
         for d, diff in zip(metadata.delta, metadata.mu1 - metadata.mu0):
             self.assertEqual(d, diff)
         self.assertTrue(metadata.regression_detected)
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
+        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
         self.assertEqual(metadata.p_value, 1 - chi2.cdf(metadata.llr, D + 1))
         self.assertTrue(np.isnan(metadata.p_value_int))
         self.assertEqual(metadata.llr_int, np.inf)
@@ -1843,7 +1857,7 @@ class PercentageChangeTest(TestCase):
             [10.0 + 0.0001 * np.random.randn(len(current_seq)) for _ in range(num_seq)]
         )
 
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `previous`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `previous`.
         self.previous = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1853,7 +1867,7 @@ class PercentageChangeTest(TestCase):
             )
         )
 
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current`.
         self.current = TimeSeriesData(
             pd.DataFrame(
                 {
@@ -1863,14 +1877,14 @@ class PercentageChangeTest(TestCase):
             )
         )
 
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `prev_start`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_start`.
         self.prev_start = previous_seq[0]
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `prev_end`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_end`.
         self.prev_end = previous_seq[9]
 
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_start`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_start`.
         self.current_start = current_seq[0]
-        # pyre-fixme[16]: `MultiPercentageChangeTest` has no attribute `current_end`.
+        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_end`.
         self.current_end = current_seq[-1]
 
         previous_int = ChangePointInterval(
@@ -3641,7 +3655,6 @@ class TestChangepointEvaluator(TestCase):
         # pyre-fixme[6]: Expected `Detector` for 1st param but got
         #  `Type[RobustStatDetector]`.
         turing_5 = TuringEvaluator(detector=RobustStatDetector)
-        # pyre-fixme[6]: Expected `DataFrame` for 1st param but got `None`.
         eval_agg_5_df = turing_5.evaluate(data=None, model_params=model_params)
         self.assertTrue(eval_agg_5_df.shape[0] > 0)
 
@@ -3660,7 +3673,6 @@ class TestChangepointEvaluator(TestCase):
         # pyre-fixme[6]: Expected `Detector` for 1st param but got
         #  `Type[BocpdDetectorModel]`.
         turing_7 = TuringEvaluator(detector=BocpdDetectorModel, is_detector_model=True)
-        # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
         eval_agg_7_df = turing_7.evaluate(data=eg_df, model_params=None)
         self.assertEqual(eval_agg_7_df.shape[0], eg_df.shape[0])
 
@@ -3673,9 +3685,6 @@ class TestChangepointEvaluator(TestCase):
         }
 
         turing_8 = TuringEvaluator(
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got `None`.
             # pyre-fixme[6]: Expected `Detector` for 1st param but got
             #  `Type[StatSigDetectorModel]`.
             detector=StatSigDetectorModel,
@@ -3683,8 +3692,8 @@ class TestChangepointEvaluator(TestCase):
         )
         eval_agg_8_df = turing_8.evaluate(
             data=eg_df,
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
-            #  `Dict[str, typing.Union[int, str]]`.
+            # pyre-fixme[6]: Expected `Optional[typing.Dict[str, float]]` for 2nd
+            #  param but got `Dict[str, typing.Union[int, str]]`.
             model_params=statsig_model_params,
             alert_style_cp=False,
             threshold_low=-5.0,
@@ -3750,8 +3759,9 @@ class TestChangepointEvaluator(TestCase):
         turing_9 = TuringEvaluator(detector=CUSUMDetectorModel, is_detector_model=True)
         eval_agg_9_df = turing_9.evaluate(
             data=eg_df_daily,
-            # pyre-fixme[6]: Expected `Dict[str, float]` for 2nd param but got
-            #  `Dict[str, typing.Union[typing.List[str], CusumScoreFunction, float]]`.
+            # pyre-fixme[6]: Expected `Optional[typing.Dict[str, float]]` for 2nd
+            #  param but got `Dict[str, typing.Union[typing.List[str],
+            #  CusumScoreFunction, float]]`.
             model_params=cusum_model_params,
             alert_style_cp=True,
             threshold_low=-0.1,

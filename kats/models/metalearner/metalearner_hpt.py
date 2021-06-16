@@ -99,6 +99,11 @@ default_model_networks = {
 }
 
 
+def _log_error(msg: str) -> ValueError:
+    logging.error(msg)
+    return ValueError(msg)
+
+
 class MetaLearnHPT:
     """A class for meta-learner framework on hyper-parameters tuning.
 
@@ -142,13 +147,9 @@ class MetaLearnHPT:
     ) -> None:
         if not load_model:
             if data_x is None:
-                msg = "data_x is necessary to initialize a new model!"
-                logging.error(msg)
-                raise ValueError(msg)
+                raise _log_error("data_x is necessary to initialize a new model!")
             if data_y is None:
-                msg = "data_y is necessary to initialize a new model!"
-                logging.error(msg)
-                raise ValueError(msg)
+                raise _log_error("data_y is necessary to initialize a new model!")
 
             data_x.fillna(0, inplace=True)
             self.dataX = np.asarray(data_x)
@@ -171,8 +172,7 @@ class MetaLearnHPT:
                          'categorical_idx=None' and 'numerical_idx=None' to initialize a default model,
                          or set 'default_model=None' to initialize a customized model!
                          """
-                    logging.error(msg)
-                    raise ValueError(msg)
+                    raise _log_error(msg)
 
                 if default_model in default_model_params:
                     categorical_idx = default_model_params[default_model][
@@ -182,13 +182,11 @@ class MetaLearnHPT:
 
                 else:
                     msg = f"default_model={default_model} is not available! Please choose one from 'prophet', 'arima', 'sarima', 'holtwinters', 'stlf', 'theta', 'cusum', 'statsig'"
-                    logging.error(msg)
-                    raise ValueError(msg)
+                    raise _log_error(msg)
 
             if (not numerical_idx) and (not categorical_idx):
                 msg = "At least one of numerical_idx and categorical_idx should be a non-empty list."
-                logging.error(msg)
-                raise ValueError(msg)
+                raise _log_error(msg)
 
             self.categorical_idx = categorical_idx
             self.numerical_idx = numerical_idx
@@ -210,9 +208,9 @@ class MetaLearnHPT:
                 self.x_std = x_std
                 self.dataX = (self.dataX - self.x_mean) / self.x_std
 
-        self.n_hidden_shared = 0
-        self.n_hidden_cat_combo = 0
-        self.n_hidden_num = 0
+        self.n_hidden_shared = [0]
+        self.n_hidden_cat_combo = [0]
+        self.n_hidden_num = [0]
 
     def _get_target_cat(self) -> None:
         # List of number of classes (dim of output) of each categorical variable
@@ -236,7 +234,7 @@ class MetaLearnHPT:
         )
         self.dim_output_cat = n_cat
 
-    def get_default_model(self):
+    def get_default_model(self) -> Optional[str]:
         """Get the name of default_model. It the instance is a customized model, return None.
 
         Returns:
@@ -245,7 +243,7 @@ class MetaLearnHPT:
 
         return self.__default_model
 
-    def _validate_data(self):
+    def _validate_data(self) -> None:
         """Validate input data."""
 
         n_cat = len(self.categorical_idx) if self.categorical_idx is not None else 0
@@ -253,24 +251,21 @@ class MetaLearnHPT:
         dim = self.dataY.shape[1]
         if n_cat + n_num != dim:
             msg = f"Dimensions of data_y (dim={dim}) and the input variables (dim={n_cat}+{n_num}) do not agree!"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error(msg)
 
         for i, var in enumerate(self.categorical_idx):
             if self.dim_output_cat[i] == 1:
                 msg = f"Column {var} only has one class, not able to train a model!"
-                logging.error(msg)
-                raise ValueError(msg)
+                raise _log_error(msg)
 
         if self.dataX.shape[0] <= 30:
             msg = "Dataset is too small to train a model!"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error(msg)
 
     @staticmethod
     def _get_hidden_and_output_cat_combo(
         n_hidden_cat_combo: List[List[int]], out_dim_cat: List[int]
-    ) -> List[List]:
+    ) -> List[List[int]]:
         # The length of n_hidden_cat_combo and out_dim_cat should be same
         # If there is no categorical variable, out_dim_cat = []
         if not out_dim_cat:
@@ -281,7 +276,7 @@ class MetaLearnHPT:
         return res
 
     @staticmethod
-    def _get_hidden_and_output_num(n_hidden_num: List[int], out_dim_num: int) -> List:
+    def _get_hidden_and_output_num(n_hidden_num: List[int], out_dim_num: int) -> List[int]:
         # If there is no numerical variable, out_dim_num = []
         if not out_dim_num:
             return []
@@ -327,8 +322,7 @@ class MetaLearnHPT:
         if default_model is not None:
             if not network_structure:
                 msg = f"A default model structure ({default_model}) is initiated and cannot accept the customized network structure!"
-                logging.error(msg)
-                raise ValueError(msg)
+                raise _log_error(msg)
 
             if default_model in default_model_networks:
                 n_hidden_shared = default_model_networks[default_model][
@@ -340,27 +334,22 @@ class MetaLearnHPT:
                 n_hidden_num = default_model_networks[default_model]["n_hidden_num"]
             else:
                 msg = f"Default neural network for model {default_model} is not implemented!"
-                logging.error(msg)
-                raise ValueError(msg)
+                raise _log_error(msg)
             msg = f"Default neural network for model {default_model} is built."
             logging.info(msg)
         elif n_hidden_shared is None:
             msg = "n_hidden_shared is missing!"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error(msg)
         elif n_hidden_cat_combo is None:
             msg = "n_hidden_cat_combo is missing!"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error(msg)
         elif n_hidden_num is None:
             msg = "n_hidden_num is missing!"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error(msg)
 
         if len(n_hidden_cat_combo) != len(self.dim_output_cat):
             msg = "Unmatched dimension!"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error(msg)
         # Add input dim before n_hidden_shared.
         # Add output dim at the end of n_hidden_cat_combo.
         # Add output dim at the end of n_hidden_num.
@@ -479,9 +468,7 @@ class MetaLearnHPT:
         """
 
         if self.model is None:
-            msg = "Haven't built a model. Please build a model first!"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error("Haven't built a model. Please build a model first!")
 
         if method == "SGD":
             optimizer = torch.optim.SGD(
@@ -490,14 +477,10 @@ class MetaLearnHPT:
         elif method == "Adam":
             optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         else:
-            msg = "Only support SGD and Adam optimaizer. Please use 'SGD' or 'Adam'."
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error("Only support SGD and Adam optimaizer. Please use 'SGD' or 'Adam'.")
 
         if val_size <= 0 or val_size >= 1:
-            msg = "Illegal validation size."
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error("Illegal validation size.")
 
         # get training tensors
         x_fs, y_cat, y_num, x_fs_val, y_cat_val, y_num_val = self._prepare_data(
@@ -506,9 +489,7 @@ class MetaLearnHPT:
 
         # validate batch size
         if batch_size >= x_fs.size()[0]:
-            msg = f"batch_size {batch_size} is larger than training data size {x_fs.size()[0]}!"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error(f"batch_size {batch_size} is larger than training data size {x_fs.size()[0]}!")
 
         # variables for early stopping
         min_val_loss = np.inf
@@ -574,9 +555,7 @@ class MetaLearnHPT:
         ts = TimeSeriesData(pd.DataFrame(source_ts.to_dataframe().copy()))
 
         if self.model is None:
-            msg = "Haven't trained a model. Please train a model or load a model before predicting."
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error("Haven't trained a model. Please train a model or load a model before predicting.")
 
         if ts_scale:
             # scale time series to make ts features more stable
@@ -623,9 +602,7 @@ class MetaLearnHPT:
         """
 
         if self.model is None:
-            msg = "Haven't trained a model. Please train a model or load a model before predicting."
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error("Haven't trained a model. Please train a model or load a model before predicting.")
         if isinstance(source_x, List):
             x = np.row_stack(source_x)
         elif isinstance(source_x, pd.DataFrame):
@@ -633,9 +610,7 @@ class MetaLearnHPT:
         elif isinstance(source_x, np.ndarray):
             x = source_x.copy()
         else:
-            msg = f"In valid source_x type: {type(source_x)}."
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error(f"In valid source_x type: {type(source_x)}.")
         x[np.isnan(x)] = 0.0
         if self.scale:
             x = (x - self.x_mean) / self.x_std
@@ -674,9 +649,7 @@ class MetaLearnHPT:
         """
 
         if self.model is None:
-            msg = "Haven't trained a model."
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error("Haven't trained a model.")
         else:
             joblib.dump(self.__dict__, file_path)
             logging.info("Successfully saved the trained model!")
@@ -694,9 +667,7 @@ class MetaLearnHPT:
         try:
             self.__dict__ = joblib.load(file_path)
         except Exception as e:
-            msg = f"Fail to load model from {file_path}, and error message is: {e}"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error(f"Fail to load model from {file_path}, and error message is: {e}")
 
     def plot(self):
         """Plot loss paths of classification/regression on both training and validation set."""
@@ -705,9 +676,7 @@ class MetaLearnHPT:
             not self._loss_path["LOSS_train_cat"]
             and not self._loss_path["LOSS_train_num"]
         ):
-            msg = "Using a loaded model or no trained model!"
-            logging.error(msg)
-            raise ValueError(msg)
+            raise _log_error("Using a loaded model or no trained model!")
 
         plt.figure(figsize=(15, 7))
         plt.subplot(1, 2, 1)

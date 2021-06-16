@@ -9,11 +9,11 @@ Detectors based on predictors, basically work as follows:
 calculate the residual (i.e., difference between predicted and current value),
 and translate it into a false-alarm probability by how large it is.
 This is often done by assuming that residuals are distributed normally.
-In practice, the residuals are often non-normal (sometimes even being asymmetric).
-This module “learns” the distribution of the residual (using kernel density estimation),
-and outputs a false-alarm probability based on it.
+In practice, the residuals are often non-normal (sometimes even being
+asymmetric). This module “learns” the distribution of the residual (using kernel
+density estimation), and outputs a false-alarm probability based on it.
 """
-
+from __future__ import annotations
 from typing import Optional
 
 import numpy as np
@@ -24,40 +24,45 @@ from sklearn.neighbors import KernelDensity
 
 
 class KDEResidualTranslator:
-    """
-    Translates residuals (difference between outcome and prediction)
-    to false-alarm probability using kernel density estimation
-    on the residuals.
-
-    Arguments:
-        ignore_below_frac: Lower quantile to ignore during training
-            (makes the translator more robust to outliers); default 0.
-        ignore_above_frac: Upper quantile to ignore during training
-            (makes the translator more robust to outliers); default 1.
-
-    Examples:
-        # ts_data is some data
-        y = ts_data
-        # We create a prediction by a rolling window of length 7
-        yhat = pd.DataFrame({"value": self._y.value.rolling(7).mean().shift(1),
-            "time": self._y.time})
-        yhat = TimeSeriesData(yhat)
-
-        trn = KDEResidualTranslator()
-
-        # We can transform outcomes to probabilities using y and y_hat
-        trn = trn.fit(y=y, yhat=yhat)
-        proba = trn.predict(y)
-
-        # We can transform outcomes to probabilities using residuals
-        residual = self._y - self._yhat
-        trn = trn.fit(residual=residual)
-        proba = trn.predict(residual=residual)
-    """
+    _kde: Optional[KernelDensity] = None
 
     def __init__(
         self, ignore_below_frac: float = 0, ignore_above_frac: float = 1
     ) -> None:
+        """
+        Translates residuals (difference between outcome and prediction)
+        to false-alarm probability using kernel density estimation
+        on the residuals.
+
+        Args:
+            ignore_below_frac: Lower quantile to ignore during training
+                (makes the translator more robust to outliers); default 0.
+            ignore_above_frac: Upper quantile to ignore during training
+                (makes the translator more robust to outliers); default 1.
+
+        Examples:
+
+        .. code-block:: py
+
+            # ts_data is some data
+            y = ts_data
+            # We create a prediction by a rolling window of length 7
+            yhat = pd.DataFrame({
+                "value": self._y.value.rolling(7).mean().shift(1),
+                "time": self._y.time})
+            yhat = TimeSeriesData(yhat)
+
+            trn = KDEResidualTranslator()
+
+            # We can transform outcomes to probabilities using y and y_hat
+            trn = trn.fit(y=y, yhat=yhat)
+            proba = trn.predict(y)
+
+            # We can transform outcomes to probabilities using residuals
+            residual = self._y - self._yhat
+            trn = trn.fit(residual=residual)
+            proba = trn.predict(residual=residual)
+        """
         if ignore_below_frac < 0 or ignore_above_frac > 1:
             raise ValueError("Illegal ignore fractions")
         if ignore_below_frac > ignore_above_frac:
@@ -72,15 +77,17 @@ class KDEResidualTranslator:
         yhat_lower: Optional[TimeSeriesData] = None,
         yhat_upper: Optional[TimeSeriesData] = None,
         residual: Optional[TimeSeriesData] = None,
-    ) -> "KDEResidualTranslator":
+    ) -> KDEResidualTranslator:
         """
         Fits a dataframe to a model of the residuals.
 
-        Arguments:
+        Args:
             df: A pandas DataFrame containg the following columns:
+
                 1. Either
                     a. `residual`, or
-                    b. `y` and `yhat` with optionally both `yhat_lower` and `yhat_upper`
+                    b. `y` and `yhat` with optionally both `yhat_lower` and
+                       `yhat_upper`
                 2. At most one of `ds` and `ts`
         """
         residual = self._get_residual(y, yhat, yhat_lower, yhat_upper, residual)
@@ -104,17 +111,15 @@ class KDEResidualTranslator:
         best_params = search.fit(value.to_frame()).best_params_
         kde = KernelDensity(**best_params)
         kde.fit(value.to_frame())
-        # pyre-fixme[16]: `KDEResidualTranslator` has no attribute `_kde`.
         self._kde = kde
         return self
 
     @property
-    def kde_(self) -> KernelDensity:
+    def kde_(self) -> Optional[KernelDensity]:
         """
         Returns:
             KernelDensity object fitted to the residuals.
         """
-        # pyre-fixme[16]: `KDEResidualTranslator` has no attribute `_kde`.
         return self._kde
 
     def predict_proba(
@@ -128,11 +133,13 @@ class KDEResidualTranslator:
         """
         Predicts the probability of a residual
 
-        Arguments:
+        Args:
             df: A pandas DataFrame containg the following columns:
+
                 1. Either
                     a. `residual`, or
-                    b. `y` and `yhat` with optionally both `yhat_lower` and `yhat_upper`
+                    b. `y` and `yhat` with optionally both `yhat_lower` and
+                        `yhat_upper`
                 2. At most one of `ds` and `ts`
 
         Returns:
@@ -154,11 +161,13 @@ class KDEResidualTranslator:
         """
         Predicts the natural-log probability of a residual
 
-        Arguments:
+        Args:
             df: A pandas DataFrame containg the following columns:
+
                 1. Either
                     a. `residual`, or
-                    b. `y` and `yhat` with optionally both `yhat_lower` and `yhat_upper`
+                    b. `y` and `yhat` with optionally both `yhat_lower` and
+                        `yhat_upper`
                 2. At most one of `ds` and `ts`
 
         Returns:

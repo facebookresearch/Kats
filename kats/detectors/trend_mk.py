@@ -24,10 +24,12 @@ dt = NewType("dt", datetime.datetime)  # create a new typing type for datetime
 pd.options.plotting.matplotlib.register_converters = True
 
 """Mann-Kendall (MK) Trend Detector Module
-This module includes detectors based on the Mann-Kendall Test, which is a non-parametric test for
-monotonic trends.  Right now, this module includes detectors based on the original MK Test and the
-Multivariate MK Test.  Neither detector has any distribution requirement for the data, but there should
-not be any serial correlation.
+
+This module includes detectors based on the Mann-Kendall Test, which is a
+non-parametric test for monotonic trends.  Right now, this module includes
+detectors based on the original MK Test and the Multivariate MK Test.  Neither
+detector has any distribution requirement for the data, but there should not be
+any serial correlation.
 """
 
 
@@ -35,11 +37,15 @@ class MKMetadata:
     """Metadata object for changepoint of MKDetector
 
     Attributes:
-        detector_type: Detector, Type of detector changepoint is for.  Right now, this is always MKDetector.
-        is_multivariate: boolean, Whether this is a changepoint for a multivariate time series
-        trend_direction: string, Direction of trend, either 'increasing' or 'decreasing'
+        detector_type: Detector, Type of detector changepoint is for.  Right
+            now, this is always MKDetector.
+        is_multivariate: boolean, Whether this is a changepoint for a
+            multivariate time series.
+        trend_direction: string, Direction of trend, either 'increasing' or
+            'decreasing'.
         Tau: float or Dict, Kendall's Tau value for changepoint.
-            This is a  float in the univariate case and a Dict in the multivarite case
+            This is a float in the univariate case and a Dict in the
+                multivariate case.
     """
 
     def __init__(
@@ -76,20 +82,22 @@ class MKMetadata:
 
 class MKDetector(Detector):
     """
-    MKDetector (MK stands for Mann-Kendall) is a non-parametric statistical test used to
-    determine whether there is a monotonic trend in a given time series.
-    See https://vsp.pnnl.gov/help/vsample/Design_Trend_Mann_Kendall.htm for details.
+    MKDetector (MK stands for Mann-Kendall) is a non-parametric statistical test
+    used to determine whether there is a monotonic trend in a given time series.
+    See https://vsp.pnnl.gov/help/vsample/Design_Trend_Mann_Kendall.htm for
+    details.
 
     The basic idea is to check whether there is a monotonic trend based on a
     look back number of time steps (window_size).
 
     Parameters:
+
         data: TimeSeriesData, this is time series data at one-day granularity.
             This time series can be either univariate or multivariate.
             We require more than training_days points in each time series.
         threshold: float, threshold for trend intensity; higher threshold gives
-            trend with high intensity (0.8 by default).  If we only want to use the
-            p-value to determine changepoints, set threshold = 0.
+            trend with high intensity (0.8 by default).  If we only want to use
+            the p-value to determine changepoints, set threshold = 0.
         alpha: float, significance level (0.05 by default)
         multivariate: bool, whether the input time series is multivariate
 
@@ -98,9 +106,10 @@ class MKDetector(Detector):
         >>> import pandas as pd
         >>> from kats.consts import TimeSeriesData
         >>> from kats.detectors.trend_mk import MKDetector
-        >>> # read data and rename the two columns required by TimeSeriesData structure
-        >>> data = pd.read_csv("../filename.csv") # this file does not exist, just a demo
-        >>> TSdata = TimeSeriesData(data) # check TimeSeriesData to see the requirements of data
+        >>> # read data and rename the two columns required by TimeSeriesData
+        >>> # structure
+        >>> data = pd.read_csv("../filename.csv") # demo file does not exist
+        >>> TSdata = TimeSeriesData(data)
         >>> # create MKDetector with given data and params
         >>> d = MKDetector(data=TSdata)
         >>> # call detector method to fit model
@@ -127,15 +136,11 @@ class MKDetector(Detector):
         # Assume univariate but multivariate data is detected
         if self.data is not None:
             if not self.data.is_univariate() and not self.multivariate:
-                logging.warning(
-                    "Your data is multivariate. A multivariate MK test will be performed."
-                )
+                logging.warning("Using multivariate MK test for univariate data.")
                 self.multivariate = True
             # Assume multivariate but univariate data is detected
             elif self.data.is_univariate() and self.multivariate:
-                logging.warning(
-                    "Your data is univariate. A univariate MK test will be performed."
-                )
+                logging.warning("Using univariate MK test on multivariate data.")
 
     # pyre-fixme[9]: freq has type `str`; used as `None`.
     def _remove_seasonality(self, ts: pd.DataFrame, freq: str = None) -> pd.DataFrame:
@@ -149,7 +154,7 @@ class MKDetector(Detector):
         return ts
 
     def _smoothing(self, ts: pd.DataFrame) -> pd.DataFrame:
-        """Remove noise in the time series using holt-winters model."""
+        """Remove noise in the time series using Holt-Winters model."""
 
         smoothed_ts = pd.DataFrame()
         for c in ts.columns:
@@ -187,9 +192,9 @@ class MKDetector(Detector):
 
         # checks the dimension of the data
         if dim == 2:  # dim should always be 2
-            (n, c) = x.shape  # n is # of obs = window_size, and c is # of metrics
+            (n, c) = x.shape  # n is # of obs = window_size; c is # of metrics
             if c == 1:  # univariate case
-                dim = 1  # converts x from 2-dim array (n, 1) to 1-dim array (n,)
+                dim = 1  # convert x from 2-dim array (n, 1) to 1-dim array (n,)
                 x = x.flatten()
         else:
             msg = f"dim = 2 is expected but your data has dim = {dim}."
@@ -213,13 +218,18 @@ class MKDetector(Detector):
 
     def MKtest(self, ts: pd.DataFrame) -> Tuple[dt, str, float, float]:
         """
-        This functions performs the Mann-Kendall (MK) test for trend detection (Mann 1945, Kendall 1975, Gilbert 1987).
+        This function performs the Mann-Kendall (MK) test for trend detection
+        (Mann 1945, Kendall 1975, Gilbert 1987).
+
         Args:
+
             ts: the dataframe of input data with time as index.
                 This time series should not present seasonality for MK test.
 
         Returns:
-            anchor_date: the last time point in ts; the date for which alert is triggered
+
+            anchor_date: the last time point in ts; the date for which alert is
+                triggered
             trend: tells the trend (decreasing, increasing, or no trend)
             p: p-value of the significance test
             Tau: Kendall Tau-b statistic (https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient#Tau-b)
@@ -238,22 +248,30 @@ class MKDetector(Detector):
 
     def multivariate_MKtest(self, ts: pd.DataFrame) -> Tuple[dt, str, float, Dict]:
         """
-        This function performs the Multivariate Mann-Kendall (MK) test proposed by R. M. Hirsch and J. R. Slack (1984).
+        This function performs the Multivariate Mann-Kendall (MK) test proposed
+        by R. M. Hirsch and J. R. Slack (1984).
+
         Args:
-            ts: the dataframe of input data with time as index.  This time series should not present seasonality for MK test.
+
+            ts: the dataframe of input data with time as index.  This time
+                series should not present seasonality for MK test.
+
         Returns:
-            anchor_date: the last time point in ts; the date for which alert is triggered
-            trend:_dict: tells the trend (decreasing, increasing, or no trend) for each metric
-            p: p-value of the significance test
-            Tau_dict: Dictionary of Kendall Tau-b statistics for each univariate time series, and Tau_dict["overall"] gives the Tau-b statistic for the multivariate time series
+
+            anchor_date: the last time point in ts; the date for which alert is
+                triggered.
+            trend:_dict: tells the trend (decreasing, increasing, or no trend)
+                for each metric.
+            p: p-value of the significance test.
+            Tau_dict: Dictionary of Kendall Tau-b statistics for each univariate
+                time series, and Tau_dict["overall"] gives the Tau-b statistic
+                for the multivariate time series.
         """
 
         anchor_date = ts.index[-1]
 
-        Tau_dict = {}  # this Tau_dict contains score for individual cluster and overall
-        trend_dict = (
-            {}
-        )  # this trend_dict contains trend for individual cluster and overall
+        Tau_dict = {}  # contains score for individual cluster and overall
+        trend_dict = {}  # contains trend for individual cluster and overall
 
         x, c = self._preprocessing(ts)
 
@@ -281,11 +299,18 @@ class MKDetector(Detector):
 
     def runDetector(self, ts: pd.DataFrame) -> Dict:
         """
-        This function runs MK test for a time point in the input data, and saves its related statistics to a dict.
+        This function runs MK test for a time point in the input data, and saves
+        its related statistics to a dict.
+
         Args:
-            ts: the dataframe of input data with noise and seasonality removed.  Its index is time.
+
+            ts: the dataframe of input data with noise and seasonality removed.
+                Its index is time.
+
         Returns:
-            a dictionary consists of MK test statistics for the anchor time point, including trend, p-value and Kendall Tau.
+
+            a dictionary consists of MK test statistics for the anchor time
+                point, including trend, p-value and Kendall Tau.
         """
 
         # run MK test
@@ -308,8 +333,9 @@ class MKDetector(Detector):
         freq: str = None,
     ) -> List[Tuple[TimeSeriesChangePoint, MKMetadata]]:
         """
-        This function runs MK test sequentially. It finds the trend and calculates
-            the related statistics for all time points in a given time series.
+        This function runs MK test sequentially. It finds the trend and
+        calculates the related statistics for all time points in a given time
+        series.
 
         Args:
             window_size: int, the number of look back days for checking trend
@@ -317,12 +343,12 @@ class MKDetector(Detector):
 
             training_days: int, the number of days for time series smoothing;
                 should be greater or equal to window_size (None by default)
-                If training_days is None, we will perform trend detection on the whole
-                time series; otherwise, we will perform trend detection only for the
-                anchor point using the previous training_days data.
+                If training_days is None, we will perform trend detection on the
+                whole time series; otherwise, we will perform trend detection
+                only for the anchor point using the previous training_days data.
 
-            direction: string, the direction of the trend to be detected, choose from
-                {"down", "up", "both"}  ("both" by default)
+            direction: string, the direction of the trend to be detected, choose
+                from {"down", "up", "both"}  ("both" by default)
 
             freq: str, the type of seasonality shown in the time series,
                 choose from {'weekly','monthly','yearly'} (None by default)
@@ -349,21 +375,21 @@ class MKDetector(Detector):
             # check validity of the input value
             if len(ts) < self.window_size:
                 raise ValueError(
-                    f"For the whole time series analysis, data must have at least"
-                    f"window_size={self.window_size} points."
+                    f"For the whole time series analysis, data must have at "
+                    f"least window_size={self.window_size} points."
                 )
 
         else:
             logging.info(
-                f"Performing trend detection for the anchor date {ts.index[-1]} with "
-                f"training_days={self.training_days}..."
+                f"Performing trend detection for the anchor date {ts.index[-1]}"
+                f" with training_days={self.training_days}..."
             )
 
             # check validity of the input value
             if self.training_days < self.window_size:
                 raise ValueError(
-                    f"For the anchor date analysis, training days should have at "
-                    f"least window_size={self.window_size} points."
+                    f"For the anchor date analysis, training days should have "
+                    f"at least window_size={self.window_size} points."
                 )
 
             if len(ts) < self.training_days:
@@ -377,10 +403,10 @@ class MKDetector(Detector):
 
         if self.training_days is not None:  # anchor date analysis for real-time setting
             # only look back training_days for noise and seasonality removal
-            ts = ts.loc[
-                (ts.index[-1] - timedelta(days=self.training_days)) : ts.index[-1], :
-            ]
-            ts_deseas = self._remove_seasonality(ts, freq=self.freq)  # deseasonzation
+            start = ts.index[-1] - timedelta(days=self.training_days)
+            ts = ts.loc[start : ts.index[-1], :]
+            # deseasonalization
+            ts_deseas = self._remove_seasonality(ts, freq=self.freq)
             ts_smoothed = self._smoothing(ts_deseas)  # smoothing
             # append MK statistics to MK_statistics dataframe
             MK_statistics = MK_statistics.append(
@@ -392,7 +418,8 @@ class MKDetector(Detector):
             ts_deseas = self._remove_seasonality(ts, freq=self.freq)
             ts_smoothed = self._smoothing(ts_deseas)
 
-            # run detector sequentially with sliding_window for the whole time series
+            # run detector sequentially with sliding_window for the whole time
+            # series
             for t in ts_smoothed.index[
                 self.window_size :
             ]:  # look back window_size day for trend detection
@@ -449,7 +476,8 @@ class MKDetector(Detector):
         self, MK_results: pd.DataFrame
     ) -> List[Tuple[TimeSeriesChangePoint, MKMetadata]]:
         """
-        Convert the dataframe of detected_tps and Tau into desired format by Kat's convention
+        Convert the dataframe of detected_tps and Tau into desired format by
+        Kat's convention.
         """
 
         converted = []
@@ -480,13 +508,18 @@ class MKDetector(Detector):
     # pyre-fixme[9]: top_k has type `int`; used as `None`.
     def get_top_k_metrics(self, time_point: dt, top_k: int = None) -> pd.DataFrame:
         """
-        This function obtains k metrics that shows the most significant trend at a time point.  Only works for multivariate data.
+        This function obtains k metrics that shows the most significant trend at
+        a time point.  Only works for multivariate data.
 
         Args:
-            time_point: the time point to be investigated
-            top_k: the number of top metrics
+
+            time_point: the time point to be investigated.
+            top_k: the number of top metrics.
+
         Returns:
-            a dataframe consists of top_k metrics and their corresponding Kendall Tau and trend
+
+            a dataframe consists of top_k metrics and their corresponding
+                Kendall Tau and trend.
         """
 
         Tau_df, trend_df = self._metrics_analysis()
@@ -521,16 +554,18 @@ class MKDetector(Detector):
             )
 
         if top_k is None:
-            return (
-                top_metrics  # if top_k not specified, return all metrics ranked by Tau
-            )
+            # if top_k not specified, return all metrics ranked by Tau
+            return top_metrics
 
         return top_metrics.iloc[:top_k]
 
     def plot_heat_map(self) -> pd.DataFrame:
         """
-        This function plots the Tau of each metric in a heatmap
-        Returns: a dataframe contains Tau for all metrics at all time points
+        This function plots the Tau of each metric in a heatmap.
+
+        Returns:
+
+            a dataframe contains Tau for all metrics at all time points.
         """
 
         import plotly.graph_objects as go
@@ -580,7 +615,8 @@ class MKDetector(Detector):
         self, detected_time_points: List[Tuple[TimeSeriesChangePoint, MKMetadata]]
     ) -> None:
         """
-        This function plots the original time series data, and the detected time points.
+        This function plots the original time series data, and the detected time
+        points.
         """
 
         plt.figure(figsize=(14, 5))
