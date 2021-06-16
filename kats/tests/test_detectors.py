@@ -44,7 +44,6 @@ from kats.detectors.detector_consts import (
     AnomalyResponse,
     ChangePointInterval,
     ConfidenceBand,
-    MultiAnomalyResponse,
     PercentageChange,
     SingleSpike,
 )
@@ -1900,9 +1899,7 @@ class PercentageChangeTest(TestCase):
 
         perc_change = perc_change_1.perc_change
         assert isinstance(perc_change, np.ndarray)
-        self.assertEqual(
-            perc_change.tolist(), ((ratio_val - 1) * 100).tolist()
-        )
+        self.assertEqual(perc_change.tolist(), ((ratio_val - 1) * 100).tolist())
 
         direction = perc_change_1.direction
         assert isinstance(direction, np.ndarray)
@@ -1991,7 +1988,10 @@ class PercentageChangeTest(TestCase):
             current=current_int_single_point, previous=previous_int
         )
 
-        p_value_list, score_list = perc_change_single_point.p_value, perc_change_single_point.score
+        p_value_list, score_list = (
+            perc_change_single_point.p_value,
+            perc_change_single_point.score,
+        )
         assert isinstance(p_value_list, Iterable)
         assert isinstance(score_list, Iterable)
 
@@ -2053,6 +2053,9 @@ class TestAnomalyResponse(TestCase):
             stat_sig_ts=stat_sig_ts,
         )
 
+        #  Ensure that num_series is properly populated - this response object is univariate
+        self.assertEqual(response.num_series, 1)
+
         # test update
         new_date = previous_seq[-1] + timedelta(days=1)
         common_val = 1.23
@@ -2113,9 +2116,8 @@ class TestAnomalyResponse(TestCase):
             response_last_n.scores.value.values.tolist(), score_list[-n_val:]
         )
 
-
-class TestMultiAnomalyResponse(TestCase):
     def test_multi_response(self) -> None:
+        # test anomaly response for multivariate time series
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -2195,7 +2197,7 @@ class TestMultiAnomalyResponse(TestCase):
             )
         )
 
-        response = MultiAnomalyResponse(
+        response = AnomalyResponse(
             scores=score_ts,
             confidence_band=conf_band,
             predicted_ts=pred_ts,
@@ -2203,13 +2205,15 @@ class TestMultiAnomalyResponse(TestCase):
             stat_sig_ts=stat_sig_ts,
         )
 
+        # Ensure that num_series is properly populated
+        self.assertEqual(response.num_series, num_seq)
+
         # test update
         new_date = previous_seq[-1] + timedelta(days=1)
         common_val = 1.23 * np.ones(num_seq)
 
         response.update(
             time=new_date,
-            # pyre-fixme[6]: Expected `ndarray` for 2nd param but got `float`.
             score=common_val,
             ci_upper=common_val,
             ci_lower=common_val - 0.1,
@@ -2218,141 +2222,75 @@ class TestMultiAnomalyResponse(TestCase):
             stat_sig=np.zeros(num_seq),
         )
 
+        N = len(previous_seq)
+
         # assert that all the lengths of the time series are preserved
+        self.assertEqual(len(response.scores), N)
+        self.assertEqual(len(response.confidence_band.upper), N)
+        self.assertEqual(len(response.confidence_band.lower), N)
+        self.assertEqual(len(response.predicted_ts), N)
+        self.assertEqual(len(response.anomaly_magnitude_ts), N)
+        self.assertEqual(len(response.stat_sig_ts), N)
 
-        for i in response.key_mapping:
-            N = len(previous_seq)
-            self.assertEqual(
-                len(response.response_objects[response.key_mapping[i]].scores), N
-            )
-            self.assertEqual(
-                len(
-                    response.response_objects[
-                        response.key_mapping[i]
-                    ].confidence_band.upper
-                ),
-                N,
-            )
-            self.assertEqual(
-                len(
-                    response.response_objects[
-                        response.key_mapping[i]
-                    ].confidence_band.lower
-                ),
-                N,
-            )
-            self.assertEqual(
-                len(response.response_objects[response.key_mapping[i]].predicted_ts), N
-            )
-            self.assertEqual(
-                len(
-                    response.response_objects[
-                        response.key_mapping[i]
-                    ].anomaly_magnitude_ts
-                ),
-                N,
-            )
-            self.assertEqual(
-                len(response.response_objects[response.key_mapping[i]].stat_sig_ts), N
-            )
+        # assert that each time series has moved one point forward
+        self.assertEqual(
+            response.scores.value.iloc[0].tolist(), score_ts.value.iloc[1].tolist()
+        )
+        self.assertEqual(
+            response.confidence_band.upper.value.iloc[0].tolist(),
+            conf_band.upper.value.iloc[1].tolist(),
+        )
+        self.assertEqual(
+            response.confidence_band.lower.value.iloc[0].tolist(),
+            conf_band.lower.value.iloc[1].tolist(),
+        )
+        self.assertEqual(
+            response.predicted_ts.value.iloc[0].tolist(), pred_ts.value.iloc[1].tolist()
+        )
+        self.assertEqual(
+            response.anomaly_magnitude_ts.value.iloc[0].tolist(),
+            mag_ts.value.iloc[1].tolist(),
+        )
+        self.assertEqual(
+            response.stat_sig_ts.value.iloc[0].tolist(),
+            stat_sig_ts.value.iloc[1].tolist(),
+        )
 
-            # assert that each time series has moved one point forward
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .scores.value[:-1]
-                .tolist(),
-                score_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .confidence_band.upper.value[:-1]
-                .tolist(),
-                upper_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .confidence_band.lower.value[:-1]
-                .tolist(),
-                lower_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .predicted_ts.value[:-1]
-                .tolist(),
-                pred_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .anomaly_magnitude_ts.value[:-1]
-                .tolist(),
-                mag_ts.value.iloc[1:, i].tolist(),
-            )
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]]
-                .stat_sig_ts.value[:-1]
-                .tolist(),
-                stat_sig_ts.value.iloc[1:, i].tolist(),
-            )
+        # assert that a new point has been added to the end
+        assert isinstance(common_val, np.ndarray)
+        self.assertEqual(response.scores.value.iloc[-1].tolist(), common_val.tolist())
+        self.assertEqual(
+            response.confidence_band.upper.value.iloc[-1].tolist(), common_val.tolist()
+        )
+        self.assertEqual(
+            response.confidence_band.lower.value.iloc[-1].tolist(),
+            (common_val - 0.1).tolist(),
+        )
+        self.assertEqual(
+            response.predicted_ts.value.iloc[-1].tolist(), common_val.tolist()
+        )
+        self.assertEqual(
+            response.anomaly_magnitude_ts.value.iloc[-1].tolist(), common_val.tolist()
+        )
+        self.assertEqual(
+            response.stat_sig_ts.value.iloc[-1].tolist(), np.zeros(num_seq).tolist()
+        )
 
-            # assert that a new point has been added to the end
-            self.assertEqual(
-                response.response_objects[response.key_mapping[i]].scores.value.iloc[
-                    -1
-                ],
-                # pyre-ignore[16]: `float` has no attribute `__getitem__`.
-                common_val[i],
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].confidence_band.upper.value.iloc[-1],
-                common_val[i],
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].confidence_band.lower.value.iloc[-1],
-                common_val[i] - 0.1,
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].predicted_ts.value.iloc[-1],
-                common_val[i],
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].anomaly_magnitude_ts.value.iloc[-1],
-                common_val[i],
-            )
-            self.assertEqual(
-                response.response_objects[
-                    response.key_mapping[i]
-                ].stat_sig_ts.value.iloc[-1],
-                0,
-            )
+        # assert that we return the last N values
+        n_val = 10
 
-            # assert that we return the last N values
-            score_list = response.response_objects[
-                response.key_mapping[i]
-            ].scores.value.values.tolist()
+        score_array = response.scores.value.values
+        response_last_n = response.get_last_n(n_val)
+        self.assertEqual(len(response_last_n.scores), n_val)
+        self.assertEqual(len(response_last_n.confidence_band.upper), n_val)
+        self.assertEqual(len(response_last_n.confidence_band.lower), n_val)
+        self.assertEqual(len(response_last_n.predicted_ts), n_val)
+        self.assertEqual(len(response_last_n.anomaly_magnitude_ts), n_val)
+        self.assertEqual(len(response_last_n.stat_sig_ts), n_val)
 
-            n_val = 10
-            response_last_n_object = response.get_last_n(n_val)
-            response_last_n = response_last_n_object.response_objects[
-                response_last_n_object.key_mapping[i]
-            ]
-            self.assertEqual(len(response_last_n.scores), n_val)
-            self.assertEqual(len(response_last_n.confidence_band.upper), n_val)
-            self.assertEqual(len(response_last_n.confidence_band.lower), n_val)
-            self.assertEqual(len(response_last_n.predicted_ts), n_val)
-            self.assertEqual(len(response_last_n.anomaly_magnitude_ts), n_val)
-            self.assertEqual(len(response_last_n.stat_sig_ts), n_val)
-
-            self.assertEqual(
-                response_last_n.scores.value.values.tolist(), score_list[-n_val:]
-            )
+        self.assertEqual(
+            response_last_n.scores.value.values.tolist(), score_array[-n_val:].tolist()
+        )
 
 
 class TestStatSigDetector(TestCase):
