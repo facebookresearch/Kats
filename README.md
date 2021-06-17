@@ -49,6 +49,8 @@ from kats.models.prophet import ProphetModel, ProphetParams
 
 # take `air_passengers` data as an example
 air_passengers_df = pd.read_csv("../kats/data/air_passengers.csv")
+
+# convert to TimeSeriesData object
 air_passengers_ts = TimeSeriesData(air_passengers_df)
 
 # create a model param instance
@@ -97,6 +99,13 @@ We can extract meaningful features from the given time series data
 # Initiate feature extraction class
 from kats.tsfeatures.tsfeatures import TsFeatures
 
+# take `air_passengers` data as an example
+air_passengers_df = pd.read_csv("../kats/data/air_passengers.csv")
+
+# convert to TimeSeriesData object
+air_passengers_ts = TimeSeriesData(air_passengers_df)
+
+# calculate the TsFeatures
 features = TsFeatures().transform(air_passengers_ts)
 ```
 
