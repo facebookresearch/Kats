@@ -2934,12 +2934,7 @@ class TestCUSUMDetectorModel(TestCase):
         self.assertEqual(score_tsd.value[-72:].sum(), 0)
         # the increase regression is detected and is on for about 7 days
         # statsmodels version difference will result in different STL results
-        if statsmodels_ver < 0.12:
-            self.assertEqual((score_tsd.value > 0.01).sum(), 162)
-        elif statsmodels_ver >= 0.12:
-            self.assertEqual((score_tsd.value > 0.01).sum(), 168)
-        else:
-            raise ValueError("statsmodels version incorrect")
+        self.assertLess(np.abs((score_tsd.value > 0.01).sum()-168), 10)
         # make sure the time series time are the same
         self.assertTrue((score_tsd.time.values == tsd.time.values).all())
         # make sure the time series name are the same
