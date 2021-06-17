@@ -17,7 +17,7 @@ with open('requirements.txt', 'r') as f:
 setup(
   name = 'kats',
   packages = find_packages(),
-  version = '0.1',
+  version = '0.1.0',
   license='MIT',
   description = 'kats: kit to analyze time series',
   author = 'facebook',

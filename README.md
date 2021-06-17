@@ -1,12 +1,12 @@
 <div align="center">
-<img src="kats_logo.svg" width="30%"/>
+<img src="kats_logo.svg" width="40%"/>
 </div>
 
 <div align="center">
   <a href="https://github.com/facebookresearch/Kats/actions">
   <img alt="Github Actions" src="https://github.com/facebookresearch/Kats/actions/workflows/build_and_test.yml/badge.svg"/>
   </a>
-  <a href="https://pypi.python.org/pypi/prophet">
+  <a href="https://pypi.python.org/pypi/kats">
   <img alt="PyPI Version" src="https://img.shields.io/pypi/v/kats.svg"/>
   </a>
   <a href="https://github.com/facebookresearch/Kats/blob/master/CONTRIBUTING.md">
@@ -21,17 +21,18 @@ Kats is a toolkit to analyze time series data, a lightweight, easy-to-use, and g
 ## Important links
 
 - Homepage: https://facebookresearch.github.io/Kats/
+- Kats Python package: https://pypi.org/project/kats/0.1.0/
+- Facebook Engineering Blog Post: https://engineering.fb.com/2021/06/21/open-source/kats/
 - Source code repository: https://github.com/facebookresearch/kats
 - Contributing: https://github.com/facebookresearch/Kats/blob/master/CONTRIBUTING.md
 - Tutorials: https://github.com/facebookresearch/Kats/tree/master/tutorials
-- Kats Python package: https://pypi.org/project/kats/0.1/
-- Kats website: https://facebookresearch.github.io/Kats/
 
-## Installation in Python [TODO]
+## Installation in Python
 
 Kats is on PyPI, so you can use `pip` to install it.
 
 ```bash
+pip install --upgrade pip
 pip install kats
 ```
 
