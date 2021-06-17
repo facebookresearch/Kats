@@ -4,7 +4,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 # read long description from README
 with open('README.md', 'r', encoding='utf-8') as f:
@@ -16,7 +16,7 @@ with open('requirements.txt', 'r') as f:
 
 setup(
   name = 'kats',
-  packages = ['kats'],
+  packages = find_packages(),
   version = '0.1',
   license='MIT',
   description = 'kats: kit to analyze time series',
@@ -31,7 +31,6 @@ setup(
     'Intended Audience :: Science/Research',
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
     'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
   ],

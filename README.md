@@ -6,6 +6,9 @@
   <a href="https://github.com/facebookresearch/Kats/actions">
   <img alt="Github Actions" src="https://github.com/facebookresearch/Kats/actions/workflows/build_and_test.yml/badge.svg"/>
   </a>
+  <a href="https://pypi.python.org/pypi/prophet">
+  <img alt="PyPI Version" src="https://img.shields.io/pypi/v/kats.svg"/>
+  </a>
   <a href="https://github.com/facebookresearch/Kats/blob/master/CONTRIBUTING.md">
   <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"/>
   </a>
@@ -21,21 +24,15 @@ Kats is a toolkit to analyze time series data, a lightweight, easy-to-use, and g
 - Source code repository: https://github.com/facebookresearch/kats
 - Contributing: https://github.com/facebookresearch/Kats/blob/master/CONTRIBUTING.md
 - Tutorials: https://github.com/facebookresearch/Kats/tree/master/tutorials
-- Kats Python package: TODO
-- Release blogpost: TODO
+- Kats Python package: https://pypi.org/project/kats/0.1/
+- Kats website: https://facebookresearch.github.io/Kats/
 
 ## Installation in Python [TODO]
 
 Kats is on PyPI, so you can use `pip` to install it.
 
 ```bash
-pip install -U kats
-```
-
-To install from a copy of this source code, in the Kats directory run
-
-```bash
-pip install -e .
+pip install kats
 ```
 
 ## Examples
@@ -111,4 +108,4 @@ features = TsFeatures().transform(air_passengers_ts)
 
 ## License
 
-Kats is licensed under the [MIT license](TODO).
+Kats is licensed under the [MIT license](LICENSE).
