@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://facebookresearch.github.io/Kats/blog</id>
+    <title>Kats Blog</title>
+    <updated>2021-06-13T00:00:00.000Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://facebookresearch.github.io/Kats/blog"/>
+    <subtitle>Kats Blog</subtitle>
+    <icon>https://facebookresearch.github.io/Kats/img/KatsHeroLogo.png</icon>
+    <entry>
+        <title type="html"><![CDATA[Hydra 1.1]]></title>
+        <id>Hydra 1.1</id>
+        <link href="https://facebookresearch.github.io/Kats/blog/2021/06/13/Hydra_1.1"/>
+        <updated>2021-06-13T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[After many months and a lot of hard work by many people, Hydra 1.1 is finally out!]]></summary>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Hydra Ray Launcher]]></title>
+        <id>Hydra Ray Launcher</id>
+        <link href="https://facebookresearch.github.io/Kats/blog/2020/12/22/Hydra_Ray_Launcher"/>
+        <updated>2020-12-22T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[We are happy to announce that we are adding a Ray Launcher to the Hydra Launchers family.]]></summary>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Hydra 1.0]]></title>
+        <id>Hydra 1.0</id>
+        <link href="https://facebookresearch.github.io/Kats/blog/2020/09/03/Hydra_1.0"/>
+        <updated>2020-09-03T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[After many months and a lot of hard work by many people, Hydra 1.0 is finally out!]]></summary>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[New Hydra blog]]></title>
+        <id>New Hydra blog</id>
+        <link href="https://facebookresearch.github.io/Kats/blog/2020/05/04/New-blog"/>
+        <updated>2020-05-04T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Welcome to the Hydra blog.]]></summary>
+    </entry>
+</feed>
