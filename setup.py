@@ -23,8 +23,8 @@ setup(
   author = 'facebook',
   author_email = 'iamxiaodong@fb.com',
   url = 'https://github.com/facebookresearch/Kats',
-  download_url = '',
-  keywords = ['time series', 'forecasting', 'anomaly detection', 'tsfeatures'],
+  download_url = 'https://github.com/facebookresearch/Kats/archive/refs/tags/v0.1.tar.gz',
+  keywords = ['time series', 'forecasting', 'anomaly detection', 'tsfeatures', 'temporal embedding'],
   install_requires=install_requires,
   classifiers=[
     'Development Status :: 3 - Alpha',
