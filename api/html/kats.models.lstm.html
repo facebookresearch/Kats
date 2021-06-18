@@ -1,0 +1,277 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.models.lstm module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.models.metalearner package" href="kats.models.metalearner.html" />
+    <link rel="prev" title="kats.models.linear_model module" href="kats.models.linear_model.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.models.lstm">
+<span id="kats-models-lstm-module"></span><h1>kats.models.lstm module<a class="headerlink" href="#module-kats.models.lstm" title="Permalink to this headline">¶</a></h1>
+<p>The LSTM model stands for Long short-term memory, it is a recurrent neural network model that can be used for sequential data.</p>
+<p>More information for the model can be found: <a class="reference external" href="https://en.wikipedia.org/wiki/Long_short-term_memory">https://en.wikipedia.org/wiki/Long_short-term_memory</a>
+We directly adopt the PyTorch implementation and apply the model for time series forecast. More details for the PyTorch modules are here: <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html">https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html</a></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMForecast">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.lstm.</span></span><span class="sig-name descname"><span class="pre">LSTMForecast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.lstm.LSTMParams" title="kats.models.lstm.LSTMParams"><span class="pre">kats.models.lstm.LSTMParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/lstm.html#LSTMForecast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.lstm.LSTMForecast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Torch forecast class for time series LSTM model</p>
+<p>This is the forecast class for time series LSTM model inherited from the PyTorch module, detailed implementation for the core LSTM and Linear modules can be gound here:
+<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html">https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html</a>
+<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Linear.html">https://pytorch.org/docs/stable/generated/torch.nn.Linear.html</a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMForecast.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.lstm.LSTMForecast.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>A LSTMParams instance for parameters</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMForecast.input_size">
+<span class="sig-name descname"><span class="pre">input_size</span></span><a class="headerlink" href="#kats.models.lstm.LSTMForecast.input_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Input unit feature size for the LSTM layer</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMForecast.output_size">
+<span class="sig-name descname"><span class="pre">output_size</span></span><a class="headerlink" href="#kats.models.lstm.LSTMForecast.output_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output unit feature size from the output Linear layer</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMForecast.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_seq</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">torch.Tensor</span><a class="reference internal" href="_modules/kats/models/lstm.html#LSTMForecast.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.lstm.LSTMForecast.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>The forward method for the LSTM forecast PyTorch module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_seq</strong> – A torch tensor contains the input data sequence for the LSTM layer</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A torch tensor contains the output prediction from the output Linear layer</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>prediction</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.lstm.</span></span><span class="sig-name descname"><span class="pre">LSTMModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.lstm.LSTMParams" title="kats.models.lstm.LSTMParams"><span class="pre">kats.models.lstm.LSTMParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/lstm.html#LSTMModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.lstm.LSTMModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>Kats model class for time series LSTM model</p>
+<p>This is the Kats model class for time series forecast using the LSTM model</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMModel.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.lstm.LSTMModel.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, the input data</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMModel.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.lstm.LSTMModel.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>A LSTMParams object for the parameters</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/lstm.html#LSTMModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.lstm.LSTMModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit the LSTM forecast model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The fitted LSTM model object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMModel.get_parameter_search_space">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/lstm.html#LSTMModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.lstm.LSTMModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default parameter search space for the LSTM model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary with the default LSTM parameter search space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/lstm.html#LSTMModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.lstm.LSTMModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot forecast results from the LSTM model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/lstm.html#LSTMModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.lstm.LSTMModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prediction function for a multi-step forecast</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>steps</strong> – number of steps for the forecast</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A pd.DataFrame that includes the forecast and confidence interval</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.lstm.</span></span><span class="sig-name descname"><span class="pre">LSTMParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hidden_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_window</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_epochs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/lstm.html#LSTMParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.lstm.LSTMParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>Parameter class for time series LSTM model</p>
+<p>This is the parameter class for time series LSTM model, it currently contains three parameters</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMParams.hidden_size">
+<span class="sig-name descname"><span class="pre">hidden_size</span></span><a class="headerlink" href="#kats.models.lstm.LSTMParams.hidden_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>LSTM hidden unit size</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMParams.time_window">
+<span class="sig-name descname"><span class="pre">time_window</span></span><a class="headerlink" href="#kats.models.lstm.LSTMParams.time_window" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time series sequence length that feeds into the model</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.lstm.LSTMParams.num_epochs">
+<span class="sig-name descname"><span class="pre">num_epochs</span></span><a class="headerlink" href="#kats.models.lstm.LSTMParams.num_epochs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of epochs for the training process</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="kats.models.html">kats.models package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kats.models.arima.html">kats.models.arima module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.bayesian_var.html">kats.models.bayesian_var module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.ensemble.html">kats.models.ensemble package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.harmonic_regression.html">kats.models.harmonic_regression module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.holtwinters.html">kats.models.holtwinters module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.linear_model.html">kats.models.linear_model module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">kats.models.lstm module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.metalearner.html">kats.models.metalearner package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.model.html">kats.models.model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.nowcasting.html">kats.models.nowcasting package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.prophet.html">kats.models.prophet module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.quadratic_model.html">kats.models.quadratic_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.reconciliation.html">kats.models.reconciliation package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.sarima.html">kats.models.sarima module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="kats.models.html">kats.models package</a><ul>
+      <li>Previous: <a href="kats.models.linear_model.html" title="previous chapter">kats.models.linear_model module</a></li>
+      <li>Next: <a href="kats.models.metalearner.html" title="next chapter">kats.models.metalearner package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.models.lstm.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

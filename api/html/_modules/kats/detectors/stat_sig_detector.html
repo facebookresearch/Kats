@@ -1,0 +1,784 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.detectors.stat_sig_detector &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.detectors.stat_sig_detector</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">TimeSeriesData</span>
+<span class="kn">from</span> <span class="nn">kats.detectors.detector</span> <span class="kn">import</span> <span class="n">DetectorModel</span>
+<span class="kn">from</span> <span class="nn">kats.detectors.detector_consts</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AnomalyResponse</span><span class="p">,</span>
+    <span class="n">ChangePointInterval</span><span class="p">,</span>
+    <span class="n">ConfidenceBand</span><span class="p">,</span>
+    <span class="n">PercentageChange</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="sd">&quot;&quot;&quot;Statistical Significance Detector Module</span>
+<span class="sd">This module contains simple detectors that apply a t-test over a rolling window to compare</span>
+<span class="sd">check if there is a statistically significant increase or decrease between the control and test</span>
+<span class="sd">time periods.  In addition to the univariate version of this test, this module includes a</span>
+<span class="sd">multivariate version that uses a false discovery rate (FDR) controlling procedure to reduce noise.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="to_datetime"><a class="viewcode-back" href="../../../kats.detectors.stat_sig_detector.html#kats.detectors.stat_sig_detector.to_datetime">[docs]</a><span class="k">def</span> <span class="nf">to_datetime</span><span class="p">(</span><span class="n">dt</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function to convert from np.datetime64 which</span>
+<span class="sd">    is used by pandas pd.to_datetime to datetime in datetime</span>
+<span class="sd">    library</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="o">/</span> <span class="mf">1e9</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="StatSigDetectorModel"><a class="viewcode-back" href="../../../kats.detectors.stat_sig_detector.html#kats.detectors.stat_sig_detector.StatSigDetectorModel">[docs]</a><span class="k">class</span> <span class="nc">StatSigDetectorModel</span><span class="p">(</span><span class="n">DetectorModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    StatSigDetectorModel is a simple detector, which compares a control and test period.</span>
+<span class="sd">    The detector assumes that the time series data comes from a iid normal distribution,</span>
+<span class="sd">    and applies a t-test to check if the means between the control and test period are</span>
+<span class="sd">    significantly different.</span>
+
+<span class="sd">    We start with the history data, and then as for the current data, we apply a rolling</span>
+<span class="sd">    window, adding one data point at a time from the current data, and detecting significant</span>
+<span class="sd">    change. We return the t-statistic as a score, which reflects the severity of the</span>
+<span class="sd">    change.</span>
+<span class="sd">    We suggest using n_control &gt;= 30 to get good estimates</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        n_control: number of data points(or time units) of history to compare with</span>
+<span class="sd">        n_test: number of points(or time_units) to compare the history with</span>
+<span class="sd">        serialized_model: serialized json containing the parameters</span>
+<span class="sd">        time_units: units of time used to measure the intervals. If not provided</span>
+<span class="sd">                    we infer it from the provided data.</span>
+
+<span class="sd">    &gt;&gt;&gt; # Example usage:</span>
+<span class="sd">    &gt;&gt;&gt; # history and ts_pt are TimeSeriesData objects and history is larger</span>
+<span class="sd">    &gt;&gt;&gt; # than (n_control + n_test) so that we have sufficient history to</span>
+<span class="sd">    &gt;&gt;&gt; # run the detector</span>
+<span class="sd">    &gt;&gt;&gt; n_control = 28</span>
+<span class="sd">    &gt;&gt;&gt; n_test = 7</span>
+<span class="sd">    &gt;&gt;&gt; import random</span>
+<span class="sd">    &gt;&gt;&gt; control_time = pd.date_range(start=&#39;2018-01-01&#39;, freq=&#39;D&#39;, periods=(n_control + n_test))</span>
+<span class="sd">    &gt;&gt;&gt; test_time = pd.date_range(start=&#39;2018-02-05&#39;, freq=&#39;D&#39;, periods=n_test)</span>
+<span class="sd">    &gt;&gt;&gt; control_val = [random.normalvariate(100,10) for _ in range(n_control + n_test)]</span>
+<span class="sd">    &gt;&gt;&gt; test_val = [random.normalvariate(120,10) for _ in range(n_test)]</span>
+<span class="sd">    &gt;&gt;&gt; hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))</span>
+<span class="sd">    &gt;&gt;&gt; data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))</span>
+<span class="sd">    &gt;&gt;&gt; ss_detect = StatSigDetectorModel(n_control=n_control, n_test=n_test)</span>
+<span class="sd">    &gt;&gt;&gt; anom = ss_detect.fit_predict(data=data_ts, historical_data=hist_ts)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_control</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_test</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">serialized_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="c1"># pyre-fixme[9]: time_unit has type `str`; used as `None`.</span>
+        <span class="n">time_unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">serialized_model</span><span class="p">:</span>
+            <span class="n">model_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">serialized_model</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_test</span> <span class="o">=</span> <span class="n">model_dict</span><span class="p">[</span><span class="s2">&quot;n_test&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_control</span> <span class="o">=</span> <span class="n">model_dict</span><span class="p">[</span><span class="s2">&quot;n_control&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span> <span class="o">=</span> <span class="n">model_dict</span><span class="p">[</span><span class="s2">&quot;time_unit&quot;</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_test</span> <span class="o">=</span> <span class="n">n_test</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_control</span> <span class="o">=</span> <span class="n">n_control</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span> <span class="o">=</span> <span class="n">time_unit</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_control</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_test</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            You must either provide serialized model or values for control and test</span>
+<span class="sd">            intervals.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_initialized</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># flag on whether initialized or not</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_N</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># this is the size of the last chunk of data we saw</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="StatSigDetectorModel.serialize"><a class="viewcode-back" href="../../../kats.detectors.stat_sig_detector.html#kats.detectors.stat_sig_detector.StatSigDetectorModel.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Serializes by putting model parameters in a json</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">model_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;n_control&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_control</span><span class="p">,</span>
+            <span class="s2">&quot;n_test&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_test</span><span class="p">,</span>
+            <span class="s2">&quot;time_unit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">model_dict</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span></div>
+
+    <span class="c1"># pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`</span>
+    <span class="c1">#  inconsistently.</span>
+<div class="viewcode-block" id="StatSigDetectorModel.fit_predict"><a class="viewcode-back" href="../../../kats.detectors.stat_sig_detector.html#kats.detectors.stat_sig_detector.StatSigDetectorModel.fit_predict">[docs]</a>    <span class="k">def</span> <span class="nf">fit_predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">historical_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnomalyResponse</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the main working function.</span>
+<span class="sd">        The function returns an AnomalyResponse object of length</span>
+<span class="sd">        equal to the length of the data.</span>
+<span class="sd">        We require len(historical_data) &gt; (n_control + n_test).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: TimeSeriesData, A univariate TimeSeriesData for which we are running the StatSigDetectorModel</span>
+<span class="sd">            historical_data: Optional[TimeSeriesData] Historical data used to do detection for initial points in data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="o">.</span><span class="n">is_univariate</span><span class="p">():</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Input is multivariate but StatSigDetector expected univariate input.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got</span>
+        <span class="c1">#  `Optional[TimeSeriesData]`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_time_unit</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span><span class="o">=</span><span class="n">historical_data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># this ensures we start with a default response of</span>
+        <span class="c1"># the size of the data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_response</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># when there is no need to update</span>
+        <span class="c1"># just return the initial response of zeros</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_update</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span><span class="o">=</span><span class="n">historical_data</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">response</span>
+
+        <span class="c1"># handle cases where there is either no historical  data, or</span>
+        <span class="c1"># not enough historical data</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_not_enough_history</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="c1"># pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got</span>
+            <span class="c1">#  `Optional[TimeSeriesData]`.</span>
+            <span class="n">historical_data</span><span class="o">=</span><span class="n">historical_data</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># pyre-fixme[16]: `StatSigDetectorModel` has no attribute `data`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="c1"># first initialize this with the historical data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_data</span><span class="p">(</span><span class="n">historical_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_control_test</span><span class="p">(</span><span class="n">historical_data</span><span class="p">)</span>
+        <span class="c1"># set the flag to true</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_initialized</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># now run through the data to get the prediction</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+            <span class="n">current_time</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="n">ts_pt</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+                <span class="n">time</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">current_time</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_data</span><span class="p">(</span><span class="n">ts_pt</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_control_test</span><span class="p">(</span><span class="n">ts_pt</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_response</span><span class="p">(</span><span class="n">ts_pt</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">get_last_n</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_N</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StatSigDetectorModel.visualize"><a class="viewcode-back" href="../../../kats.detectors.stat_sig_detector.html#kats.detectors.stat_sig_detector.StatSigDetectorModel.visualize">[docs]</a>    <span class="k">def</span> <span class="nf">visualize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Function to visualize the result of the StatSigDetectorModel.&quot;&quot;&quot;</span>
+
+        <span class="n">sns</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+        <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
+        <span class="n">N_data</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="s2">&quot;k-&quot;</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">predicted_ts</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="n">N_data</span><span class="p">:],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">predicted_ts</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="n">N_data</span><span class="p">:],</span>
+            <span class="s2">&quot;r--&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">upper_ci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">confidence_band</span><span class="o">.</span><span class="n">upper</span>
+        <span class="n">lower_ci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">confidence_band</span><span class="o">.</span><span class="n">lower</span>
+
+        <span class="n">ax1</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span>
+            <span class="n">upper_ci</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="n">N_data</span><span class="p">:],</span>
+            <span class="n">lower_ci</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="n">N_data</span><span class="p">:],</span>
+            <span class="n">upper_ci</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="n">N_data</span><span class="p">:],</span>
+            <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">ax2</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="n">N_data</span><span class="p">:],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="n">N_data</span><span class="p">:],</span>
+            <span class="s2">&quot;r-&quot;</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_set_time_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">historical_data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        if the time unit is not set, this function tries to set it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># first try historical data</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">infer_freq</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span> <span class="ow">and</span> <span class="n">historical_data</span><span class="p">:</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">infer_freq</span><span class="p">(</span><span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_should_update</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">historical_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Flag on whether we should update responses, or send a default response of zeros.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;time_unit variable cannot be None&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">historical_data</span><span class="p">:</span>
+            <span class="n">start_time</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start_time</span> <span class="o">=</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">end_time</span> <span class="o">&lt;</span> <span class="p">(</span>
+            <span class="n">start_time</span>
+            <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span>
+                <span class="n">value</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_control</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_test</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span>
+            <span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_handle_not_enough_history</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">historical_data</span><span class="p">:</span> <span class="n">TimeSeriesData</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">TimeSeriesData</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Handles the case when we don&#39;t have enough historical data.</span>
+<span class="sd">        If we don&#39;t need to update, this does not do anything.</span>
+<span class="sd">        If we need to update, this divides up the data accordingly.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;time_unit variable cannot be None&quot;</span><span class="p">)</span>
+
+        <span class="c1"># if we are not upating, we should not do anything</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_update</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span><span class="o">=</span><span class="n">historical_data</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span>
+
+        <span class="n">num_hist_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_control</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_test</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="c1"># if we have enough history, we should not do anything</span>
+        <span class="k">if</span> <span class="n">historical_data</span><span class="p">:</span>
+            <span class="n">history_first</span> <span class="o">=</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">history_last</span> <span class="o">=</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">min_history_last</span> <span class="o">=</span> <span class="n">history_first</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">num_hist_points</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">history_last</span> <span class="o">&gt;=</span> <span class="n">min_history_last</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span>
+
+        <span class="c1"># when no historical data, divide the data into historical and not</span>
+        <span class="k">if</span> <span class="n">historical_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">total_data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">historical_data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">total_data</span> <span class="o">=</span> <span class="n">historical_data</span>
+
+        <span class="n">first_dt</span> <span class="o">=</span> <span class="n">total_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># first date of the data</span>
+
+        <span class="n">last_dt</span> <span class="o">=</span> <span class="n">first_dt</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">num_hist_points</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span><span class="p">)</span>
+
+        <span class="n">historical_data</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">total_data</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">total_data</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">last_dt</span><span class="p">],</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">total_data</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">total_data</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">last_dt</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">total_data</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">total_data</span><span class="o">.</span><span class="n">time</span> <span class="o">&gt;=</span> <span class="n">last_dt</span><span class="p">],</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">total_data</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">total_data</span><span class="o">.</span><span class="n">time</span> <span class="o">&gt;=</span> <span class="n">last_dt</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span>
+
+    <span class="c1"># pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.</span>
+<div class="viewcode-block" id="StatSigDetectorModel.fit"><a class="viewcode-back" href="../../../kats.detectors.stat_sig_detector.html#kats.detectors.stat_sig_detector.StatSigDetectorModel.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">historical_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fit can be called during priming. It&#39;s a noop for us.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span></div>
+
+    <span class="k">def</span> <span class="nf">_init_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes a default response.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">zeros</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response</span> <span class="o">=</span> <span class="n">AnomalyResponse</span><span class="p">(</span>
+            <span class="n">scores</span><span class="o">=</span><span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">zeros</span><span class="p">)),</span>
+            <span class="n">confidence_band</span><span class="o">=</span><span class="n">ConfidenceBand</span><span class="p">(</span>
+                <span class="n">upper</span><span class="o">=</span><span class="n">TimeSeriesData</span><span class="p">(</span>
+                    <span class="n">time</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">lower</span><span class="o">=</span><span class="n">TimeSeriesData</span><span class="p">(</span>
+                    <span class="n">time</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">predicted_ts</span><span class="o">=</span><span class="n">TimeSeriesData</span><span class="p">(</span>
+                <span class="n">time</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">anomaly_magnitude_ts</span><span class="o">=</span><span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">zeros</span><span class="p">)),</span>
+            <span class="n">stat_sig_ts</span><span class="o">=</span><span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">zeros</span><span class="p">)),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_update_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates the current response with data from date.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">perc_change</span> <span class="o">=</span> <span class="n">PercentageChange</span><span class="p">(</span>
+            <span class="n">current</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span><span class="p">,</span> <span class="n">previous</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">inplace_update</span><span class="p">(</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">date</span><span class="p">,</span>
+            <span class="n">score</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">score</span><span class="p">,</span>
+            <span class="n">ci_upper</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">ci_upper</span><span class="p">,</span>
+            <span class="n">ci_lower</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">ci_lower</span><span class="p">,</span>
+            <span class="n">pred</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">mean_previous</span><span class="p">,</span>
+            <span class="n">anom_mag</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">mean_difference</span><span class="p">,</span>
+            <span class="n">stat_sig</span><span class="o">=</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">perc_change</span><span class="o">.</span><span class="n">stat_sig</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_start_end_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the start and end dates of the initial interval.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">last_dt</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">test_end_dt</span> <span class="o">=</span> <span class="n">last_dt</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span><span class="p">)</span>
+        <span class="n">test_start_dt</span> <span class="o">=</span> <span class="n">test_end_dt</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_test</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span>
+        <span class="p">)</span>
+        <span class="n">control_start_dt</span> <span class="o">=</span> <span class="n">test_end_dt</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_test</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_control</span><span class="p">),</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_unit</span>
+        <span class="p">)</span>
+        <span class="n">control_end_dt</span> <span class="o">=</span> <span class="n">test_start_dt</span>
+
+        <span class="k">return</span> <span class="n">control_start_dt</span><span class="p">,</span> <span class="n">control_end_dt</span><span class="p">,</span> <span class="n">test_start_dt</span><span class="p">,</span> <span class="n">test_end_dt</span>
+
+    <span class="k">def</span> <span class="nf">_init_control_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        initializes the control and test intervals.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="p">(</span>
+            <span class="n">control_start_dt</span><span class="p">,</span>
+            <span class="n">control_end_dt</span><span class="p">,</span>
+            <span class="n">test_start_dt</span><span class="p">,</span>
+            <span class="n">test_end_dt</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_start_end_dates</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span> <span class="o">=</span> <span class="n">ChangePointInterval</span><span class="p">(</span><span class="n">test_start_dt</span><span class="p">,</span> <span class="n">test_end_dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span> <span class="o">=</span> <span class="n">ChangePointInterval</span><span class="p">(</span><span class="n">control_start_dt</span><span class="p">,</span> <span class="n">control_end_dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span>
+
+    <span class="k">def</span> <span class="nf">_update_control_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates control and test with new data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="p">(</span>
+            <span class="n">control_start_dt</span><span class="p">,</span>
+            <span class="n">control_end_dt</span><span class="p">,</span>
+            <span class="n">test_start_dt</span><span class="p">,</span>
+            <span class="n">test_end_dt</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_start_end_dates</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span> <span class="o">=</span> <span class="n">ChangePointInterval</span><span class="p">(</span><span class="n">test_start_dt</span><span class="p">,</span> <span class="n">test_end_dt</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span> <span class="o">=</span> <span class="n">ChangePointInterval</span><span class="p">(</span><span class="n">control_start_dt</span><span class="p">,</span> <span class="n">control_end_dt</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span>
+
+    <span class="k">def</span> <span class="nf">_init_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span> <span class="o">=</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">_update_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates the data with new data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+            <span class="c1"># pyre-fixme[6]: Expected `Union[None,</span>
+            <span class="c1">#  pd.core.indexes.datetimes.DatetimeIndex, pd.core.series.Series]` for 1st</span>
+            <span class="c1">#  param but got `DataFrame`.</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">data_history</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">]),</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">data_history</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">]),</span>
+        <span class="p">)</span>
+
+    <span class="c1"># pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`</span>
+    <span class="c1">#  inconsistently.</span>
+<div class="viewcode-block" id="StatSigDetectorModel.predict"><a class="viewcode-back" href="../../../kats.detectors.stat_sig_detector.html#kats.detectors.stat_sig_detector.StatSigDetectorModel.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">historical_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnomalyResponse</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predict is not implemented.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;predict is not implemented, call fit_predict() instead&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MultiStatSigDetectorModel"><a class="viewcode-back" href="../../../kats.detectors.stat_sig_detector.html#kats.detectors.stat_sig_detector.MultiStatSigDetectorModel">[docs]</a><span class="k">class</span> <span class="nc">MultiStatSigDetectorModel</span><span class="p">(</span><span class="n">StatSigDetectorModel</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MultiStatSigDetectorModel is a multivariate version of the StatSigDetector.  It applies a univariate</span>
+<span class="sd">    t-test to each of the components of the multivariate time series to see if the means between the control</span>
+<span class="sd">    and test periods are significantly different.  Then it uses a false discovery rate controlling procedure</span>
+<span class="sd">    rate (FDR) controlling procedure (https://en.wikipedia.org/wiki/False_discovery_rate#Controlling_procedure)</span>
+<span class="sd">    to adjust the p-values, reducing the noise the the alerts that are triggered by the detector.  The default</span>
+<span class="sd">    FDR controlling procedure is the Benjamini-Hochberg procedure, but this can be adjusted when initializing</span>
+<span class="sd">    the model.</span>
+
+<span class="sd">    Like with the StatSigDetector, we start with the history data, and then as for the current data,</span>
+<span class="sd">    we apply a rolling window, adding one data point at a time from the current data,</span>
+<span class="sd">    and detecting significant change. The T-statistics we return here are based on the adjusted p-values</span>
+<span class="sd">    from the FDR controlling procedure.</span>
+
+<span class="sd">    We suggest using n_control &gt;= 30 to get good estimates</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        n_control: int, number of data points(or time units) of history to compare with</span>
+<span class="sd">        n_test: int, number of points(or time_units) to compare the history with</span>
+<span class="sd">        serialized_model: Optional, serialized json containing the parameters</span>
+<span class="sd">        time_units: str, units of time used to measure the intervals. If not provided</span>
+<span class="sd">                    we infer it from the provided data</span>
+<span class="sd">        method: str, indicates the FDR controlling method used for adjusting the p-values.</span>
+<span class="sd">            Defaults to &#39;fdr_bh&#39; for Benjamini-Hochberg.  Inputs for other FDR controlling methods</span>
+<span class="sd">            can be found at https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html</span>
+
+<span class="sd">    &gt;&gt;&gt; # Example usage:</span>
+<span class="sd">    &gt;&gt;&gt; # history and ts_pt are TimeSeriesData objects and history is larger</span>
+<span class="sd">    &gt;&gt;&gt; # than (n_control + n_test) so that we have sufficient history to</span>
+<span class="sd">    &gt;&gt;&gt; # run the detector</span>
+<span class="sd">    &gt;&gt;&gt; n_control = 28</span>
+<span class="sd">    &gt;&gt;&gt; n_test = 7</span>
+<span class="sd">    &gt;&gt;&gt; import random</span>
+<span class="sd">    &gt;&gt;&gt; control_time = pd.date_range(start=&#39;2018-01-01&#39;, freq=&#39;D&#39;, periods=(n_control + n_test))</span>
+<span class="sd">    &gt;&gt;&gt; test_time = pd.date_range(start=&#39;2018-02-05&#39;, freq=&#39;D&#39;, periods=n_test)</span>
+<span class="sd">    &gt;&gt;&gt; num_seq = 5</span>
+<span class="sd">    &gt;&gt;&gt; control_val = [np.random.randn(len(control_time)) for _ in range(num_seq)]</span>
+<span class="sd">    &gt;&gt;&gt; test_val = [np.random.randn(len(test_time)) for _ in range(num_seq)]</span>
+<span class="sd">    &gt;&gt;&gt; hist_ts =</span>
+<span class="sd">        TimeSeriesData(</span>
+<span class="sd">            pd.DataFrame(</span>
+<span class="sd">                {</span>
+<span class="sd">                    **{&quot;time&quot;: control_time},</span>
+<span class="sd">                    **{f&quot;ts_{i}&quot;: control_val[i] for i in range(num_seq)},</span>
+<span class="sd">                }</span>
+<span class="sd">            )</span>
+<span class="sd">        )</span>
+<span class="sd">    &gt;&gt;&gt; data_ts =</span>
+<span class="sd">        TimeSeriesData(</span>
+<span class="sd">            pd.DataFrame(</span>
+<span class="sd">                {</span>
+<span class="sd">                    **{&quot;time&quot;: test_time},</span>
+<span class="sd">                    **{f&quot;ts_{i}&quot;: test_val[i] for i in range(num_seq)},</span>
+<span class="sd">                }</span>
+<span class="sd">            )</span>
+<span class="sd">        )</span>
+<span class="sd">    &gt;&gt;&gt; ss_detect = MultiStatSigDetectorModel(n_control=n_control, n_test=n_test)</span>
+<span class="sd">    &gt;&gt;&gt; anom = ss_detect.fit_predict(data=data_ts, historical_data=hist_ts)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_control</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_test</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">serialized_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="c1"># pyre-fixme[9]: time_unit has type `str`; used as `None`.</span>
+        <span class="n">time_unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;fdr_bh&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="n">StatSigDetectorModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">n_control</span><span class="p">,</span> <span class="n">n_test</span><span class="p">,</span> <span class="n">serialized_model</span><span class="p">,</span> <span class="n">time_unit</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+
+<div class="viewcode-block" id="MultiStatSigDetectorModel.fit_predict"><a class="viewcode-back" href="../../../kats.detectors.stat_sig_detector.html#kats.detectors.stat_sig_detector.MultiStatSigDetectorModel.fit_predict">[docs]</a>    <span class="k">def</span> <span class="nf">fit_predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">historical_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnomalyResponse</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the main working function.</span>
+<span class="sd">        The function returns an AnomalyResponse object of length</span>
+<span class="sd">        equal to the length of the data</span>
+<span class="sd">        We require len(historical_data) &gt; (n_control + n_test)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: TimeSeriesData, A multivariate TimeSeriesData for which we are running the MultiStatSigDetectorModel</span>
+<span class="sd">            historical_data: Optional[TimeSeriesData] Historical data used to do detection for initial points in data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">is_univariate</span><span class="p">():</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Input is univariate but MultiStatSigDetector expected multivariate input.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got</span>
+        <span class="c1">#  `Optional[TimeSeriesData]`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_time_unit</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span><span class="o">=</span><span class="n">historical_data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># this ensures we start with a default response of</span>
+        <span class="c1"># the size of the data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_response</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># when there is no need to update</span>
+        <span class="c1"># just return the initial response of zeros</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_update</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span><span class="o">=</span><span class="n">historical_data</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">get_last_n</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_N</span><span class="p">)</span>
+
+        <span class="c1"># handle cases where there is either no historical  data, or</span>
+        <span class="c1"># not enough historical data</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_not_enough_history</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="c1"># pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got</span>
+            <span class="c1">#  `Optional[TimeSeriesData]`.</span>
+            <span class="n">historical_data</span><span class="o">=</span><span class="n">historical_data</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># pyre-fixme[16]: `MultiStatSigDetectorModel` has no attribute `data`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="c1"># first initialize this with the historical data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_data</span><span class="p">(</span><span class="n">historical_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_control_test</span><span class="p">(</span><span class="n">historical_data</span><span class="p">)</span>
+        <span class="c1"># set the flag to true</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_initialized</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># now run through the data to get the prediction</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+            <span class="n">ts_pt</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="o">**</span><span class="p">{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">]},</span>
+                        <span class="o">**</span><span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">columns</span><span class="p">},</span>
+                    <span class="p">},</span>
+                    <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_data</span><span class="p">(</span><span class="n">ts_pt</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_control_test</span><span class="p">(</span><span class="n">ts_pt</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_response</span><span class="p">(</span><span class="n">ts_pt</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">get_last_n</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_N</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_init_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+
+        <span class="n">zeros_ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="o">**</span><span class="p">{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">},</span>
+                    <span class="o">**</span><span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">columns</span><span class="p">},</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">init_ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="o">**</span><span class="p">{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">},</span>
+                    <span class="o">**</span><span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">columns</span><span class="p">},</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">response</span> <span class="o">=</span> <span class="n">AnomalyResponse</span><span class="p">(</span>
+            <span class="n">scores</span><span class="o">=</span><span class="n">zeros_ts</span><span class="p">,</span>
+            <span class="n">confidence_band</span><span class="o">=</span><span class="n">ConfidenceBand</span><span class="p">(</span><span class="n">upper</span><span class="o">=</span><span class="n">init_ts</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="n">init_ts</span><span class="p">),</span>
+            <span class="n">predicted_ts</span><span class="o">=</span><span class="n">init_ts</span><span class="p">,</span>
+            <span class="n">anomaly_magnitude_ts</span><span class="o">=</span><span class="n">zeros_ts</span><span class="p">,</span>
+            <span class="n">stat_sig_ts</span><span class="o">=</span><span class="n">zeros_ts</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># pyre-fixme[14]: `_update_response` overrides method defined in</span>
+    <span class="c1">#  `StatSigDetectorModel` inconsistently.</span>
+    <span class="k">def</span> <span class="nf">_update_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        updates the current response with data from date</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">perc_change</span> <span class="o">=</span> <span class="n">PercentageChange</span><span class="p">(</span>
+            <span class="n">current</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span><span class="p">,</span>
+            <span class="n">previous</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">inplace_update</span><span class="p">(</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">date</span><span class="p">,</span>
+            <span class="n">score</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">score</span><span class="p">,</span>
+            <span class="n">ci_upper</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">ci_upper</span><span class="p">,</span>
+            <span class="n">ci_lower</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">ci_lower</span><span class="p">,</span>
+            <span class="n">pred</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">mean_previous</span><span class="p">,</span>
+            <span class="n">anom_mag</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">mean_difference</span><span class="p">,</span>
+            <span class="n">stat_sig</span><span class="o">=</span><span class="n">perc_change</span><span class="o">.</span><span class="n">stat_sig</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_control_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        initializes the control and test intervals</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span>
+            <span class="n">control_start_dt</span><span class="p">,</span>
+            <span class="n">control_end_dt</span><span class="p">,</span>
+            <span class="n">test_start_dt</span><span class="p">,</span>
+            <span class="n">test_end_dt</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_start_end_dates</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span> <span class="o">=</span> <span class="n">ChangePointInterval</span><span class="p">(</span><span class="n">test_start_dt</span><span class="p">,</span> <span class="n">test_end_dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span> <span class="o">=</span> <span class="n">ChangePointInterval</span><span class="p">(</span><span class="n">control_start_dt</span><span class="p">,</span> <span class="n">control_end_dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span>
+
+    <span class="k">def</span> <span class="nf">_update_control_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        updates control and test with new data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span>
+            <span class="n">control_start_dt</span><span class="p">,</span>
+            <span class="n">control_end_dt</span><span class="p">,</span>
+            <span class="n">test_start_dt</span><span class="p">,</span>
+            <span class="n">test_end_dt</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_start_end_dates</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span> <span class="o">=</span> <span class="n">ChangePointInterval</span><span class="p">(</span><span class="n">test_start_dt</span><span class="p">,</span> <span class="n">test_end_dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_interval</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span> <span class="o">=</span> <span class="n">ChangePointInterval</span><span class="p">(</span><span class="n">control_start_dt</span><span class="p">,</span> <span class="n">control_end_dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_interval</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_history</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

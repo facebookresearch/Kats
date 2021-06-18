@@ -1,0 +1,321 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.models.harmonic_regression &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.models.harmonic_regression</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">plotly.graph_objs</span> <span class="k">as</span> <span class="nn">go</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">Params</span><span class="p">,</span> <span class="n">TimeSeriesData</span>
+<span class="kn">from</span> <span class="nn">kats.graphics.plots</span> <span class="kn">import</span> <span class="n">plot_fitted_harmonics</span>
+<span class="kn">from</span> <span class="nn">kats.models.model</span> <span class="kn">import</span> <span class="n">Model</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">optimize</span>
+
+
+<div class="viewcode-block" id="HarmonicRegressionParams"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionParams">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">HarmonicRegressionParams</span><span class="p">(</span><span class="n">Params</span><span class="p">):</span>
+    <span class="n">period</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">fourier_order</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">period</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;The provided period must be greater than zero. Value: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">period</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fourier_order</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;The provided fourier order must be greater than zero. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Value: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">fourier_order</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HarmonicRegressionModel"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionModel">[docs]</a><span class="k">class</span> <span class="nc">HarmonicRegressionModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">HarmonicRegressionParams</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_univariate</span><span class="p">():</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The provided time series data is not univariate.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regression_params</span> <span class="o">=</span> <span class="n">params</span>
+
+<div class="viewcode-block" id="HarmonicRegressionModel.setup_data"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionModel.setup_data">[docs]</a>    <span class="k">def</span> <span class="nf">setup_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="HarmonicRegressionModel.validate_inputs"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionModel.validate_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">validate_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="HarmonicRegressionModel.fit"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionModel.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Fits harmonic regression to the time series.</span>
+<span class="sd">            See fit_harmonics for details.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.</span>
+        <span class="c1"># pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">harms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_harmonics</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regression_params</span><span class="o">.</span><span class="n">period</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">regression_params</span><span class="o">.</span><span class="n">fourier_order</span>
+        <span class="p">)</span></div>
+
+    <span class="c1"># pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.</span>
+<div class="viewcode-block" id="HarmonicRegressionModel.predict"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionModel.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Predicts with harmonic regression values.</span>
+<span class="sd">         Call fit before calling this function.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dates: dates to compute the predictions for</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Pandas DataFrame with the dates (time) and the</span>
+<span class="sd">        forecast values (fcst)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.</span>
+        <span class="c1"># pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">harms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Call fit before predict.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">harmonics</span> <span class="o">=</span> <span class="n">HarmonicRegressionModel</span><span class="o">.</span><span class="n">fourier_series</span><span class="p">(</span>
+            <span class="n">dates</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">regression_params</span><span class="o">.</span><span class="n">period</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">regression_params</span><span class="o">.</span><span class="n">fourier_order</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">*</span> <span class="n">harmonics</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">dates</span><span class="p">,</span> <span class="s2">&quot;fcst&quot;</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">tolist</span><span class="p">()})</span></div>
+
+    <span class="c1"># pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.</span>
+    <span class="c1"># pyre-fixme[15]: `plot` overrides method defined in `Model` inconsistently.</span>
+    <span class="c1"># pyre-fixme[40]: Non-static method `plot` cannot override a static method</span>
+    <span class="c1">#  defined in `Model`.</span>
+<div class="viewcode-block" id="HarmonicRegressionModel.plot"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionModel.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Demeans the time series, fits the harmonics,</span>
+<span class="sd">            returns the plot and error metrics.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Returns</span>
+<span class="sd">            Plot of the original time series and the fitted harmonics</span>
+<span class="sd">            Dataframe with mean square error and absolute error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.</span>
+        <span class="c1"># pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">harms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Call fit before plot.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">fitted_harmonics</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">harms</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">mse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">fitted_harmonics</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">abserr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">fitted_harmonics</span><span class="p">))</span>
+
+        <span class="n">err_table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">&quot;Mean Square Error&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">mse</span><span class="p">],</span> <span class="s2">&quot;Absolute Error&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">abserr</span><span class="p">]}</span>
+        <span class="p">)</span>
+
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plot_fitted_harmonics</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">fitted_harmonics</span><span class="p">)</span>
+        <span class="c1"># pyre-fixme[7]: Expected `Figure` but got `Tuple[typing.Any,</span>
+        <span class="c1">#  pd.core.frame.DataFrame]`.</span>
+        <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">err_table</span></div>
+
+<div class="viewcode-block" id="HarmonicRegressionModel.fourier_series"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionModel.fourier_series">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">fourier_series</span><span class="p">(</span>
+        <span class="n">dates</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">period</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">series_order</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Provides Fourier series components with the specified frequency</span>
+<span class="sd">            and order. The starting time is always the epoch.</span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            dates: pd.Series containing timestamps.</span>
+<span class="sd">            period: Number of hours of the period.</span>
+<span class="sd">            series_order: Number of components.</span>
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            Matrix with seasonality features.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+        <span class="c1"># convert to days since epoch</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="n">dates</span> <span class="o">-</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">1970</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">))</span>
+            <span class="o">/</span> <span class="mf">3600.0</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">fun</span><span class="p">((</span><span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">t</span> <span class="o">/</span> <span class="n">period</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">series_order</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">fun</span> <span class="ow">in</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="HarmonicRegressionModel.make_harm_eval"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionModel.make_harm_eval">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">make_harm_eval</span><span class="p">(</span><span class="n">harmonics</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Defines evaluation function for the optimizer</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        harmonics: the harmonics to fit</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        The evaluation function for the optimizer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">harm_eval</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">):</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+            <span class="n">mul</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">harmonics</span><span class="p">[</span><span class="n">step</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)],</span> <span class="n">params</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mul</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">harm_eval</span></div>
+
+<div class="viewcode-block" id="HarmonicRegressionModel.fit_harmonics"><a class="viewcode-back" href="../../../kats.models.harmonic_regression.html#kats.models.harmonic_regression.HarmonicRegressionModel.fit_harmonics">[docs]</a>    <span class="k">def</span> <span class="nf">fit_harmonics</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">period</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">fourier_order</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Performs harmonic regression.</span>
+<span class="sd">            Harmonic regression fits cosines</span>
+<span class="sd">            amplitude*cos(freq*t + phase). Using double angle identity formulas,</span>
+<span class="sd">            we have:</span>
+<span class="sd">            beta1*cos(freq*t) + beta2*sin(freq*t). Thus, we can fit two coefficients,</span>
+<span class="sd">            which will take care of the amplitude and the phase. If we generate the</span>
+<span class="sd">            raw cos(freq*t) and sin(freq*t) for each freq we want to have,</span>
+<span class="sd">            it becomes a linear regression. Since we ignore</span>
+<span class="sd">            intercept, we demean the time series before fitting.</span>
+
+<span class="sd">            Since the regression takes care of the phase, we can pick time 0 wherever</span>
+<span class="sd">            we want, we just have to use the same for training, test, validation,</span>
+<span class="sd">            and prediction. We pick that as the epoch; so when we generate</span>
+<span class="sd">            the raw cos and sin values for the test set,</span>
+<span class="sd">            and apply the parameters from the training, it will have the right phase.</span>
+
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            period: float; seasonality in hours; e.g. 24 for daily</span>
+<span class="sd">            fourier_order: int; number of harmonics for the given frequency</span>
+<span class="sd">            harms: externally computed harmonics</span>
+<span class="sd">            Returns:</span>
+<span class="sd">                params: coefficients</span>
+<span class="sd">                harms: feature matrix the generated raw cos and sin;</span>
+<span class="sd">                for each fourier_order, there is one cos-sin pair.</span>
+<span class="sd">                Number of colums: fourier_order*2</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">time_series</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">harms</span> <span class="o">=</span> <span class="n">HarmonicRegressionModel</span><span class="o">.</span><span class="n">fourier_series</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">period</span><span class="p">,</span> <span class="n">fourier_order</span>
+        <span class="p">)</span>
+
+        <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_series</span><span class="o">.</span><span class="n">index</span><span class="p">))))</span>
+        <span class="n">demeaned</span> <span class="o">=</span> <span class="n">time_series</span> <span class="o">-</span> <span class="n">time_series</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="n">params</span><span class="p">,</span> <span class="n">params_covariance</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">curve_fit</span><span class="p">(</span>
+            <span class="n">HarmonicRegressionModel</span><span class="o">.</span><span class="n">make_harm_eval</span><span class="p">(</span><span class="n">harms</span><span class="p">),</span>
+            <span class="n">steps</span><span class="p">,</span>
+            <span class="n">demeaned</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="c1"># This is to set the number of params via the number of initial values</span>
+            <span class="n">p0</span><span class="o">=</span><span class="p">[</span><span class="mf">0.001</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">fourier_order</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">params</span><span class="p">,</span> <span class="n">harms</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

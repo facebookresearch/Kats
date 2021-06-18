@@ -1,0 +1,345 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.detectors.cusum_detection module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.detectors.cusum_model module" href="kats.detectors.cusum_model.html" />
+    <link rel="prev" title="kats.detectors.changepoint_evaluator module" href="kats.detectors.changepoint_evaluator.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.detectors.cusum_detection">
+<span id="kats-detectors-cusum-detection-module"></span><h1>kats.detectors.cusum_detection module<a class="headerlink" href="#module-kats.detectors.cusum_detection" title="Permalink to this headline">¶</a></h1>
+<p>CUSUM stands for cumulative sum, it is a changepoint detection algorithm.</p>
+<p>In the Kats implementation, it has two main components:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><dl class="simple">
+<dt>Locate the change point: The algorithm iteratively estimates the means</dt><dd><p>before and after the change point and finds the change point
+maximizing/minimizing the cusum value until the change point has
+converged. The starting point for the change point is at the middle.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Hypothesis testing: Conducting log likelihood ratio test where the null</dt><dd><p>hypothesis has no change point with one mean and the alternative
+hypothesis has a change point with two means.</p>
+</dd>
+</dl>
+</li>
+</ol>
+</div></blockquote>
+<p>And here are a few things worth mentioning:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>We assume there is only one increase/decrease change point;</p></li>
+<li><dl class="simple">
+<dt>We use Gaussian distribution as the underlying model to calculate the cusum</dt><dd><p>value and conduct the hypothesis test;</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<p>Typical usage example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Univariate CUSUM</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">timeseries</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">detector</span> <span class="o">=</span> <span class="n">CusumDetector</span><span class="p">(</span><span class="n">timeseries</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1">#Run detector</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">changepoints</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">detector</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Plot the results</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">detector</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">changepoints</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The usage is the same for multivariate CUSUM except that the time series needs
+to be multivariate and that the plotting functions are not yet supported for
+this use case.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMDetector">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.cusum_detection.</span></span><span class="sig-name descname"><span class="pre">CUSUMDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_multivariate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/cusum_detection.html#CUSUMDetector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kats.detectors.detector.html#kats.detectors.detector.Detector" title="kats.detectors.detector.Detector"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.detectors.detector.Detector</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMDetector.detector">
+<span class="sig-name descname"><span class="pre">detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesChangePoint" title="kats.consts.TimeSeriesChangePoint"><span class="pre">kats.consts.TimeSeriesChangePoint</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#kats.detectors.cusum_detection.CUSUMMetadata" title="kats.detectors.cusum_detection.CUSUMMetadata"><span class="pre">kats.detectors.cusum_detection.CUSUMMetadata</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/detectors/cusum_detection.html#CUSUMDetector.detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMDetector.detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the change point and calculate related statistics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>threshold</strong> – Optional; float; significance level, default: 0.01.</p></li>
+<li><p><strong>max_iter</strong> – Optional; int, maximum iteration in finding the
+changepoint.</p></li>
+<li><p><strong>delta_std_ratio</strong> – Optional; float; the mean delta have to larger than
+this parameter times std of the data to be consider as a change.</p></li>
+<li><p><strong>min_abs_change</strong> – Optional; int; minimal absolute delta between mu0
+and mu1.</p></li>
+<li><p><strong>start_point</strong> – Optional; int; the start idx of the changepoint, if
+None means the middle of the time series.</p></li>
+<li><p><strong>change_directions</strong> – Optional; list&lt;str&gt;; a list contain either or
+both ‘increase’ and ‘decrease’ to specify what type of change
+want to detect.</p></li>
+<li><p><strong>interest_window</strong> – Optional; list&lt;int, int&gt;, a list containing the
+start and end of interest windows where we will look for change
+points. Note that llr will still be calculated using all data
+points.</p></li>
+<li><p><strong>magnitude_quantile</strong> – Optional; float; the quantile for magnitude
+comparison, if none, will skip the magnitude comparison.</p></li>
+<li><p><strong>magnitude_ratio</strong> – Optional; float; comparable ratio.</p></li>
+<li><p><strong>magnitude_comparable_day</strong> – Optional; float; maximal percentage of
+days can have comparable magnitude to be considered as
+regression.</p></li>
+<li><p><strong>return_all_changepoints</strong> – Optional; bool; return all the changepoints
+found, even the insignificant ones.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of tuple of TimeSeriesChangePoint and CUSUMMetadata.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMDetector.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">change_points</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesChangePoint" title="kats.consts.TimeSeriesChangePoint"><span class="pre">kats.consts.TimeSeriesChangePoint</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#kats.detectors.cusum_detection.CUSUMMetadata" title="kats.detectors.cusum_detection.CUSUMMetadata"><span class="pre">kats.detectors.cusum_detection.CUSUMMetadata</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/detectors/cusum_detection.html#CUSUMDetector.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMDetector.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot detection results from CUSUM.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>change_points</strong> – A list of tuple of TimeSeriesChangePoint and</p></li>
+<li><p><strong>CUSUMMetadata.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.cusum_detection.</span></span><span class="sig-name descname"><span class="pre">CUSUMMetadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">llr_int</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">llr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_detected</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">stable_changepoint</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_value_int</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/cusum_detection.html#CUSUMMetadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>CUSUM metadata</p>
+<p>This is the metadata of the changepoint returned by CusumDetectors</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.direction">
+<span class="sig-name descname"><span class="pre">direction</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.direction" title="Permalink to this definition">¶</a></dt>
+<dd><p>a str stand for the changepoint change direction ‘increase’
+or ‘decrease’.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.cp_index">
+<span class="sig-name descname"><span class="pre">cp_index</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.cp_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>an int for changepoint index.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.mu0">
+<span class="sig-name descname"><span class="pre">mu0</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.mu0" title="Permalink to this definition">¶</a></dt>
+<dd><p>a float indicates the mean before changepoint.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.mu1">
+<span class="sig-name descname"><span class="pre">mu1</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.mu1" title="Permalink to this definition">¶</a></dt>
+<dd><p>a float indicates the mean after changepoint.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.delta">
+<span class="sig-name descname"><span class="pre">delta</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.delta" title="Permalink to this definition">¶</a></dt>
+<dd><p>mu1 - mu0.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.llr">
+<span class="sig-name descname"><span class="pre">llr</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.llr" title="Permalink to this definition">¶</a></dt>
+<dd><p>log likelihood ratio.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.llr_int">
+<span class="sig-name descname"><span class="pre">llr_int</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.llr_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>log likelihood ratio in the interest window.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.regression_detected">
+<span class="sig-name descname"><span class="pre">regression_detected</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.regression_detected" title="Permalink to this definition">¶</a></dt>
+<dd><p>a bool indicates if regression detected.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.stable_changepoint">
+<span class="sig-name descname"><span class="pre">stable_changepoint</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.stable_changepoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>a bool indicates if we have a stable changepoint
+when locating the changepoint.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.p_value">
+<span class="sig-name descname"><span class="pre">p_value</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.p_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>p_value of the changepoint.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.CUSUMMetadata.p_value_int">
+<span class="sig-name descname"><span class="pre">p_value_int</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.CUSUMMetadata.p_value_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>p_value of the changepoint in the interest window.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.MultiCUSUMDetector">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.cusum_detection.</span></span><span class="sig-name descname"><span class="pre">MultiCUSUMDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/cusum_detection.html#MultiCUSUMDetector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_detection.MultiCUSUMDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#kats.detectors.cusum_detection.CUSUMDetector" title="kats.detectors.cusum_detection.CUSUMDetector"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.detectors.cusum_detection.CUSUMDetector</span></code></a></p>
+<p>MultiCUSUM is similar to univariate CUSUM, but we use MultiCUSUM to find a
+changepoint in multivariate time series.  The detector is used to detect
+changepoints in the multivariate mean of the time series.  The cusum values
+and likelihood ratio test calculations assume the underlying distribution
+has a Multivariate Guassian distriubtion.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.MultiCUSUMDetector.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.detectors.cusum_detection.MultiCUSUMDetector.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>The input time series data from TimeSeriesData</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.cusum_detection.MultiCUSUMDetector.detector">
+<span class="sig-name descname"><span class="pre">detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesChangePoint" title="kats.consts.TimeSeriesChangePoint"><span class="pre">kats.consts.TimeSeriesChangePoint</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#kats.detectors.cusum_detection.CUSUMMetadata" title="kats.detectors.cusum_detection.CUSUMMetadata"><span class="pre">kats.detectors.cusum_detection.CUSUMMetadata</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/detectors/cusum_detection.html#MultiCUSUMDetector.detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_detection.MultiCUSUMDetector.detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overwrite the detector method for MultiCUSUMDetector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>threshold</strong> – Optional; float; significance level, default: 0.01.</p></li>
+<li><p><strong>max_iter</strong> – Optional; int, maximum iteration in finding the
+changepoint.</p></li>
+<li><p><strong>start_point</strong> – Optional; int; the start idx of the changepoint, if
+None means the middle of the time series.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.bocpd.html">kats.detectors.bocpd module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.bocpd_model.html">kats.detectors.bocpd_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.changepoint_evaluator.html">kats.detectors.changepoint_evaluator module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">kats.detectors.cusum_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.cusum_model.html">kats.detectors.cusum_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.detector.html">kats.detectors.detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.detector_consts.html">kats.detectors.detector_consts module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.hourly_ratio_detection.html">kats.detectors.hourly_ratio_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.outlier.html">kats.detectors.outlier module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.prophet_detector.html">kats.detectors.prophet_detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.residual_translation.html">kats.detectors.residual_translation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.robust_stat_detection.html">kats.detectors.robust_stat_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.seasonality.html">kats.detectors.seasonality module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.stat_sig_detector.html">kats.detectors.stat_sig_detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.trend_mk.html">kats.detectors.trend_mk module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.html#module-kats.detectors">kats.detectors module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="kats.detectors.html">kats.detectors package</a><ul>
+      <li>Previous: <a href="kats.detectors.changepoint_evaluator.html" title="previous chapter">kats.detectors.changepoint_evaluator module</a></li>
+      <li>Next: <a href="kats.detectors.cusum_model.html" title="next chapter">kats.detectors.cusum_model module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.detectors.cusum_detection.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
