@@ -1015,12 +1015,12 @@ class OperationsEnum(Enum):
 
 
 __all__ = [
-    ModelEnum,
-    OperationsEnum,
-    Params,
-    SearchMethodEnum,
-    TimeSeriesChangePoint,
-    TimeSeriesData,
-    TimeSeriesIterator,
-    TSIterator,
+    'ModelEnum',
+    'OperationsEnum',
+    'Params',
+    'SearchMethodEnum',
+    'TimeSeriesChangePoint',
+    'TimeSeriesData',
+    'TimeSeriesIterator',
+    'TSIterator',
 ]
