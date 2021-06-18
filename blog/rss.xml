@@ -2,7 +2,7 @@
 <rss version="2.0">
     <channel>
         <title>Kats Blog</title>
-        <link>https://facebookresearch.github.io/Kats/blog</link>
+        <link>https://facebookresearch.github.io/blog</link>
         <description>Kats Blog</description>
         <lastBuildDate>Sun, 13 Jun 2021 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>

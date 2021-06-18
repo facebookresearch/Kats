@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-    <id>https://facebookresearch.github.io/Kats/blog</id>
+    <id>https://facebookresearch.github.io/blog</id>
     <title>Kats Blog</title>
     <updated>2021-06-13T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
-    <link rel="alternate" href="https://facebookresearch.github.io/Kats/blog"/>
+    <link rel="alternate" href="https://facebookresearch.github.io/blog"/>
     <subtitle>Kats Blog</subtitle>
-    <icon>https://facebookresearch.github.io/Kats/img/KatsHeroLogo.png</icon>
+    <icon>https://facebookresearch.github.io/img/KatsHeroLogo.png</icon>
     <entry>
         <title type="html"><![CDATA[Hydra 1.1]]></title>
         <id>Hydra 1.1</id>
