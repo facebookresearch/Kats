@@ -241,7 +241,6 @@ class VARModel(m.Model):
 
         Move the implementation of get_parameter_search_space() out of var
         to avoid the massive dependencies of var and huge build size.
-        Check https://fburl.com/kg04hx5y for detail.
         """
 
         return get_default_var_parameter_search_space()

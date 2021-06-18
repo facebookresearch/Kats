@@ -252,6 +252,5 @@ class ThetaModel(m.Model):
 
         Move the implementation of get_parameter_search_space() out of arima
         to avoid the massive dependencies of arima and huge build size.
-        Check https://fburl.com/kg04hx5y for detail.
         """
         return get_default_theta_parameter_search_space()
