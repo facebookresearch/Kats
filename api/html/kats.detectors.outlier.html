@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.detectors.outlier module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.detectors.prophet_detector module" href="kats.detectors.prophet_detector.html" />
+    <link rel="prev" title="kats.detectors.hourly_ratio_detection module" href="kats.detectors.hourly_ratio_detection.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.detectors.outlier">
+<span id="kats-detectors-outlier-module"></span><h1>kats.detectors.outlier module<a class="headerlink" href="#module-kats.detectors.outlier" title="Permalink to this headline">¶</a></h1>
+<p>Module with generic outlier detection models. Supports a univariate algorithm that
+treates each metric separately to identify outliers and a multivariate detection
+algorithm that determines outliers based on joint distribution of metrics</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetector">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.outlier.</span></span><span class="sig-name descname"><span class="pre">MultivariateAnomalyDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">data:</span> <span class="pre">kats.consts.TimeSeriesData</span></em>, <em class="sig-param"><span class="pre">params:</span> <span class="pre">kats.consts.Params</span></em>, <em class="sig-param"><span class="pre">training_days:</span> <span class="pre">float</span></em>, <em class="sig-param"><span class="pre">model_type:</span> <span class="pre">kats.detectors.outlier.MultivariateAnomalyDetectorType</span> <span class="pre">=</span> <span class="pre">&lt;MultivariateAnomalyDetectorType.VAR:</span> <span class="pre">'var.VARModel'&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/outlier.html#MultivariateAnomalyDetector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kats.detectors.detector.html#kats.detectors.detector.Detector" title="kats.detectors.detector.Detector"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.detectors.detector.Detector</span></code></a></p>
+<p>Detector class for Multivariate Outlier Detection.
+Provides utilities to calculate anomaly scores, get anomalous
+datapoints and anomalous metrics at those points.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetector.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetector.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Input metrics TimeSeriesData</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetector.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetector.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameter class for multivariate VAR/ BVAR model</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetector.training_days">
+<span class="sig-name descname"><span class="pre">training_days</span></span><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetector.training_days" title="Permalink to this definition">¶</a></dt>
+<dd><p>num of days of data to use for initial training.
+If less than a day, specify as fraction of a day</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetector.model_type">
+<span class="sig-name descname"><span class="pre">model_type</span></span><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetector.model_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>The type of multivariate anomaly detector (currently ‘BAYESIAN_VAR’ and ‘VAR’ options available)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetector.detector">
+<span class="sig-name descname"><span class="pre">detector</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/detectors/outlier.html#MultivariateAnomalyDetector.detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetector.detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit the detection model and return the results</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>DataFrame with colums corresponding to individual anomaly scores
+of each metric and the overall anomaly score for the whole timeseries</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetector.get_anomalous_metrics">
+<span class="sig-name descname"><span class="pre">get_anomalous_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.9)"><span class="pre">datetime.datetime</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/detectors/outlier.html#MultivariateAnomalyDetector.get_anomalous_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetector.get_anomalous_metrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find top k metrics with most anomalous behavior at time t</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> – time instant of interest (same type as TimeSeriesData.time)</p></li>
+<li><p><strong>top_k</strong> – Top few metrics to return. If None, returns all</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>DataFrame with metrics and their corresponding anomaly score</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetector.get_anomaly_timepoints">
+<span class="sig-name descname"><span class="pre">get_anomaly_timepoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><a class="reference internal" href="_modules/kats/detectors/outlier.html#MultivariateAnomalyDetector.get_anomaly_timepoints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetector.get_anomaly_timepoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to get anomaly timepoints based on the significance level</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alpha</strong> – significance level to consider the timeperiod anomalous</p></li>
+<li><p><strong>plot</strong><strong>(</strong><strong>) </strong><strong>to help choose a good threshold</strong> (<em>Use</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of time instants when the system of metrics show anomalous behavior</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetector.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/outlier.html#MultivariateAnomalyDetector.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetector.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot overall anomaly score of system of metrics at each instant.
+Useful for threshold selection</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.outlier.MultivariateAnomalyDetectorType">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.outlier.</span></span><span class="sig-name descname"><span class="pre">MultivariateAnomalyDetectorType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/outlier.html#MultivariateAnomalyDetectorType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.outlier.MultivariateAnomalyDetectorType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
+<p>An enumeration.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.outlier.OutlierDetector">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.outlier.</span></span><span class="sig-name descname"><span class="pre">OutlierDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">decomp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'additive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iqr_mult</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/outlier.html#OutlierDetector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.outlier.OutlierDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kats.detectors.detector.html#kats.detectors.detector.Detector" title="kats.detectors.detector.Detector"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.detectors.detector.Detector</span></code></a></p>
+<p>This univariate outlier detection algorithm mimics the outlier
+detection algorithm in R</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.outlier.OutlierDetector.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.detectors.outlier.OutlierDetector.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>TimeSeriesData object with the time series</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.outlier.OutlierDetector.decomp">
+<span class="sig-name descname"><span class="pre">decomp</span></span><a class="headerlink" href="#kats.detectors.outlier.OutlierDetector.decomp" title="Permalink to this definition">¶</a></dt>
+<dd><p>‘additive’ or ‘multiplicative’ decomposition</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.outlier.OutlierDetector.iqr_mult">
+<span class="sig-name descname"><span class="pre">iqr_mult</span></span><a class="headerlink" href="#kats.detectors.outlier.OutlierDetector.iqr_mult" title="Permalink to this definition">¶</a></dt>
+<dd><p>iqr_mult * inter quartile range is used to classify outliers</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.outlier.OutlierDetector.detector">
+<span class="sig-name descname"><span class="pre">detector</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/outlier.html#OutlierDetector.detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.outlier.OutlierDetector.detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detects outliers and stores in self.outliers</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.bocpd.html">kats.detectors.bocpd module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.bocpd_model.html">kats.detectors.bocpd_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.changepoint_evaluator.html">kats.detectors.changepoint_evaluator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.cusum_detection.html">kats.detectors.cusum_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.cusum_model.html">kats.detectors.cusum_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.detector.html">kats.detectors.detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.detector_consts.html">kats.detectors.detector_consts module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.hourly_ratio_detection.html">kats.detectors.hourly_ratio_detection module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">kats.detectors.outlier module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.prophet_detector.html">kats.detectors.prophet_detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.residual_translation.html">kats.detectors.residual_translation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.robust_stat_detection.html">kats.detectors.robust_stat_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.seasonality.html">kats.detectors.seasonality module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.stat_sig_detector.html">kats.detectors.stat_sig_detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.trend_mk.html">kats.detectors.trend_mk module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.html#module-kats.detectors">kats.detectors module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="kats.detectors.html">kats.detectors package</a><ul>
+      <li>Previous: <a href="kats.detectors.hourly_ratio_detection.html" title="previous chapter">kats.detectors.hourly_ratio_detection module</a></li>
+      <li>Next: <a href="kats.detectors.prophet_detector.html" title="next chapter">kats.detectors.prophet_detector module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.detectors.outlier.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

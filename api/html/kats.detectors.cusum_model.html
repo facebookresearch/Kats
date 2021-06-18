@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.detectors.cusum_model module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.detectors.detector module" href="kats.detectors.detector.html" />
+    <link rel="prev" title="kats.detectors.cusum_detection module" href="kats.detectors.cusum_detection.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.detectors.cusum_model">
+<span id="kats-detectors-cusum-model-module"></span><h1>kats.detectors.cusum_model module<a class="headerlink" href="#module-kats.detectors.cusum_model" title="Permalink to this headline">¶</a></h1>
+<p>CUSUMDetectorModel is a wraper of CUSUMDetector to detect multiple change points</p>
+<p>Typical usage example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define CUSUMDetectorModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">CUSUMDetectorModel</span><span class="p">(</span>
+<span class="go">        scan_window=43200,</span>
+<span class="go">        historical_window=604800,</span>
+<span class="go">        threshold=0.01,</span>
+<span class="go">        delta_std_ratio=1.0,</span>
+<span class="go">        serialized_model=None,</span>
+<span class="go">        change_directions=[&quot;increase&quot;],</span>
+<span class="go">        score_func=CusumScoreFunction.percentage_change,</span>
+<span class="go">        remove_seasonality=True,</span>
+<span class="go">    )</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Run detector</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">respond</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">tsd</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Plot anomaly score</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">respond</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Get change points in unixtime</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">change_points</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">cps</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.cusum_model.</span></span><span class="sig-name descname"><span class="pre">CUSUMDetectorModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">serialized_model:</span> <span class="pre">Optional[bytes]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">scan_window:</span> <span class="pre">Optional[int]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">historical_window:</span> <span class="pre">Optional[int]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">step_window:</span> <span class="pre">Optional[int]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">threshold:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.01</span></em>, <em class="sig-param"><span class="pre">delta_std_ratio:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1.0</span></em>, <em class="sig-param"><span class="pre">magnitude_quantile:</span> <span class="pre">Optional[float]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">magnitude_ratio:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1.3</span></em>, <em class="sig-param"><span class="pre">change_directions:</span> <span class="pre">Optional[List[str]]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">score_func:</span> <span class="pre">Union[str</span></em>, <em class="sig-param"><span class="pre">kats.detectors.cusum_model.CusumScoreFunction]</span> <span class="pre">=</span> <span class="pre">&lt;CusumScoreFunction.change:</span> <span class="pre">'change'&gt;</span></em>, <em class="sig-param"><span class="pre">remove_seasonality:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/cusum_model.html#CUSUMDetectorModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kats.detectors.detector.html#kats.detectors.detector.DetectorModel" title="kats.detectors.detector.DetectorModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.detectors.detector.DetectorModel</span></code></a></p>
+<p>CUSUMDetectorModel for detecting multiple level shift change points</p>
+<p>CUSUMDetectorModel runs CUSUMDetector multiple times to detect multiple change
+points. In each run, CUSUMDetector will use historical_window + scan_window as
+input time series, and find change point in scan_window. The DetectorModel stores
+change points and returns anomaly score.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.cps">
+<span class="sig-name descname"><span class="pre">cps</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.cps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change points detected in unixtime.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.alert_fired">
+<span class="sig-name descname"><span class="pre">alert_fired</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.alert_fired" title="Permalink to this definition">¶</a></dt>
+<dd><p>If a change point is detected and the anomaly still present.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.pre_mean">
+<span class="sig-name descname"><span class="pre">pre_mean</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.pre_mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Previous baseline mean.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.pre_std">
+<span class="sig-name descname"><span class="pre">pre_std</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.pre_std" title="Permalink to this definition">¶</a></dt>
+<dd><p>Previous baseline std.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.number_of_normal_scan">
+<span class="sig-name descname"><span class="pre">number_of_normal_scan</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.number_of_normal_scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of scans with mean returned back to baseline.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.alert_change_direction">
+<span class="sig-name descname"><span class="pre">alert_change_direction</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.alert_change_direction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Increase or decrease.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.scan_window">
+<span class="sig-name descname"><span class="pre">scan_window</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.scan_window" title="Permalink to this definition">¶</a></dt>
+<dd><p>Length in seconds of scan window.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.historical_window">
+<span class="sig-name descname"><span class="pre">historical_window</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.historical_window" title="Permalink to this definition">¶</a></dt>
+<dd><p>Length in seconds of historical window.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.step_window">
+<span class="sig-name descname"><span class="pre">step_window</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.step_window" title="Permalink to this definition">¶</a></dt>
+<dd><p>The time difference between CUSUM runs.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.threshold">
+<span class="sig-name descname"><span class="pre">threshold</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.threshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>CUSUMDetector threshold.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.delta_std_ratio">
+<span class="sig-name descname"><span class="pre">delta_std_ratio</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.delta_std_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>The mean delta have to larger than this parameter times std of
+the data to be consider as a change.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.magnitude_quantile">
+<span class="sig-name descname"><span class="pre">magnitude_quantile</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.magnitude_quantile" title="Permalink to this definition">¶</a></dt>
+<dd><p>See in CUSUMDetector.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.magnitude_ratio">
+<span class="sig-name descname"><span class="pre">magnitude_ratio</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.magnitude_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>See in CUSUMDetector.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.score_func">
+<span class="sig-name descname"><span class="pre">score_func</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.score_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>The score function to calculate the anomaly score.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.remove_seasonality">
+<span class="sig-name descname"><span class="pre">remove_seasonality</span></span><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.remove_seasonality" title="Permalink to this definition">¶</a></dt>
+<dd><p>If apply STL to remove seasonality.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.fit_predict">
+<span class="sig-name descname"><span class="pre">fit_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">historical_data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">kats.detectors.detector_consts.AnomalyResponse</span><a class="reference internal" href="_modules/kats/detectors/cusum_model.html#CUSUMDetectorModel.fit_predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.fit_predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function combines fit and predict and return anomaly socre for data. It
+requires scan_window &gt; step_window.
+The relationship between two consective cusum runs in the loop is shown as below:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="o">|---</span><span class="n">historical_window</span><span class="o">---|---</span><span class="n">scan_window</span><span class="o">---|</span>
+<span class="gp">&gt;&gt;&gt; </span>                                          <span class="o">|-</span><span class="n">step_window</span><span class="o">-|</span>
+<span class="gp">&gt;&gt;&gt; </span>              <span class="o">|---</span><span class="n">historical_window</span><span class="o">---|---</span><span class="n">scan_window</span><span class="o">---|</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>scan_window: the window size in seconds to detect change point</p></li>
+<li><p>historical_window: the window size in seconds to provide historical data</p></li>
+<li><p>step_window: the window size in seconds to specify the step size between two scans</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object representing the data</p></li>
+<li><p><strong>historical_data</strong> – <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object representing the history.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The anomaly response contains the anomaly socres.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">historical_data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">kats.detectors.detector_consts.AnomalyResponse</span><a class="reference internal" href="_modules/kats/detectors/cusum_model.html#CUSUMDetectorModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>predict is not implemented</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CUSUMDetectorModel.serialize">
+<span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><span class="pre">bytes</span></a><a class="reference internal" href="_modules/kats/detectors/cusum_model.html#CUSUMDetectorModel.serialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_model.CUSUMDetectorModel.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrun serilized model.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.CusumScoreFunction">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.cusum_model.</span></span><span class="sig-name descname"><span class="pre">CusumScoreFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/cusum_model.html#CusumScoreFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_model.CusumScoreFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
+<p>An enumeration.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.change">
+<span class="sig-prename descclassname"><span class="pre">kats.detectors.cusum_model.</span></span><span class="sig-name descname"><span class="pre">change</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_mean</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/detectors/cusum_model.html#change"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_model.change" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate absolute change</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – The data need to calculate the score</p></li>
+<li><p><strong>pre_mean</strong> – Baseline mean</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.percentage_change">
+<span class="sig-prename descclassname"><span class="pre">kats.detectors.cusum_model.</span></span><span class="sig-name descname"><span class="pre">percentage_change</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_mean</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/detectors/cusum_model.html#percentage_change"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_model.percentage_change" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate percentage change absolute change / baseline change</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – The data need to calculate the score</p></li>
+<li><p><strong>pre_mean</strong> – Baseline mean</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.detectors.cusum_model.z_score">
+<span class="sig-prename descclassname"><span class="pre">kats.detectors.cusum_model.</span></span><span class="sig-name descname"><span class="pre">z_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_mean</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_std</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/detectors/cusum_model.html#z_score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.cusum_model.z_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate z score: absolute change / std</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – The data need to calculate the score</p></li>
+<li><p><strong>pre_mean</strong> – Baseline mean</p></li>
+<li><p><strong>pre_std</strong> – Baseline std</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.bocpd.html">kats.detectors.bocpd module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.bocpd_model.html">kats.detectors.bocpd_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.changepoint_evaluator.html">kats.detectors.changepoint_evaluator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.cusum_detection.html">kats.detectors.cusum_detection module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">kats.detectors.cusum_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.detector.html">kats.detectors.detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.detector_consts.html">kats.detectors.detector_consts module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.hourly_ratio_detection.html">kats.detectors.hourly_ratio_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.outlier.html">kats.detectors.outlier module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.prophet_detector.html">kats.detectors.prophet_detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.residual_translation.html">kats.detectors.residual_translation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.robust_stat_detection.html">kats.detectors.robust_stat_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.seasonality.html">kats.detectors.seasonality module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.stat_sig_detector.html">kats.detectors.stat_sig_detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.trend_mk.html">kats.detectors.trend_mk module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.html#module-kats.detectors">kats.detectors module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="kats.detectors.html">kats.detectors package</a><ul>
+      <li>Previous: <a href="kats.detectors.cusum_detection.html" title="previous chapter">kats.detectors.cusum_detection module</a></li>
+      <li>Next: <a href="kats.detectors.detector.html" title="next chapter">kats.detectors.detector module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.detectors.cusum_model.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

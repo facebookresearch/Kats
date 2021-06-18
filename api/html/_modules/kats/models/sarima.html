@@ -1,0 +1,468 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.models.sarima &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.models.sarima</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">import</span> <span class="nn">kats.models.model</span> <span class="k">as</span> <span class="nn">m</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">Params</span>
+<span class="kn">from</span> <span class="nn">kats.utils.parameter_tuning_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_default_sarima_parameter_search_space</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">statsmodels.tsa.statespace.sarimax</span> <span class="kn">import</span> <span class="n">SARIMAX</span>
+
+
+<div class="viewcode-block" id="SARIMAParams"><a class="viewcode-back" href="../../../kats.models.sarima.html#kats.models.sarima.SARIMAParams">[docs]</a><span class="k">class</span> <span class="nc">SARIMAParams</span><span class="p">(</span><span class="n">Params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parameter class for SARIMA model</span>
+
+<span class="sd">    This is the parameter class for SARIMA model, it contains all necessary parameters as defined in SARIMA model implementation:</span>
+<span class="sd">    https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        p: An integer for trend autoregressive (AR) order.</span>
+<span class="sd">        d: An integer for trend difference order.</span>
+<span class="sd">        q: An integer for trend moving average (MA) order.</span>
+<span class="sd">        exog: Optional; An array of exogenous regressors.</span>
+<span class="sd">        seasonal_order: Optional; A tuple for (P,D,Q,s) order of the seasonal component for AR order, difference order, MA order, and periodicity. Default is (0,0,0,0).</span>
+<span class="sd">        trend: Optional; A string or an iterable for deterministic trend. Can be &#39;c&#39; (constant), &#39;t&#39; (linear trend with time), &#39;ct&#39; (both constant and linear trend), or an iterable of integers defining the non-zero polynomial exponents to include. Default is None (not to include trend).</span>
+<span class="sd">        measurement_error: Optional; A boolean to specify whether or not to assume the observed time series were measured with error. Default is False.</span>
+<span class="sd">        time_varying_regression: Optional; A boolean to specify whether or not coefficients on the regressors (if provided) are allowed to vary over time. Default is False.</span>
+<span class="sd">        mle_regression: Optional; A boolean to specify whether or not to estimate coefficients of regressors as part of maximum likelihood estimation or through Kalman filter.</span>
+<span class="sd">                        If time_varying_regression is True, this must be set to False. Default is True.</span>
+<span class="sd">        simple_differencing: Optional; A boolean to specify whether or not to use partially conditional maximum likelihood estimation.</span>
+<span class="sd">                            See https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html for more details. Default is False.</span>
+<span class="sd">        enforce_stationarity: Optional; A boolean to specify whether or not to transform the AR parameters to enforce stationarity in AR component. Default is True.</span>
+<span class="sd">        enforce_invertibility: Optional; A boolean to specify whether or not to transform the MA parameters to enforce invertibility in MA component. Default is True.</span>
+<span class="sd">        hamilton_representation: Optional; A boolean to specify whether or not to use the Hamilton representation or the Harvey representation (if False). Default is False.</span>
+<span class="sd">        concentrate_scale: Optional; A boolean to specify whether or not to concentrate the scale (variance of the error term) out of the likelihood. Default is False.</span>
+<span class="sd">        trend_offset: Optional; An integer for the offset at which to start time trend value. Default is 1.</span>
+<span class="sd">        use_exact_diffuse: Optional; A boolean to specify whether or not to use exact diffuse initialization for non-stationary states. Default is False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">p</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">q</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">exog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">seasonal_order</span><span class="p">:</span> <span class="n">Tuple</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">trend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">measurement_error</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">time_varying_regression</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">mle_regression</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">simple_differencing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">enforce_stationarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">enforce_invertibility</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">hamilton_representation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">concentrate_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">trend_offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">use_exact_diffuse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">q</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exog</span> <span class="o">=</span> <span class="n">exog</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seasonal_order</span> <span class="o">=</span> <span class="n">seasonal_order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trend</span> <span class="o">=</span> <span class="n">trend</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">measurement_error</span> <span class="o">=</span> <span class="n">measurement_error</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_varying_regression</span> <span class="o">=</span> <span class="n">time_varying_regression</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mle_regression</span> <span class="o">=</span> <span class="n">mle_regression</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simple_differencing</span> <span class="o">=</span> <span class="n">simple_differencing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enforce_stationarity</span> <span class="o">=</span> <span class="n">enforce_stationarity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enforce_invertibility</span> <span class="o">=</span> <span class="n">enforce_invertibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hamilton_representation</span> <span class="o">=</span> <span class="n">hamilton_representation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">concentrate_scale</span> <span class="o">=</span> <span class="n">concentrate_scale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trend_offset</span> <span class="o">=</span> <span class="n">trend_offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_exact_diffuse</span> <span class="o">=</span> <span class="n">use_exact_diffuse</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;Initialized SARIMAParams with parameters. &quot;</span>
+            <span class="s2">&quot;p:</span><span class="si">{p}</span><span class="s2">, d:</span><span class="si">{d}</span><span class="s2">, q:</span><span class="si">{q}</span><span class="s2">,seasonal_order:</span><span class="si">{seasonal_order}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span> <span class="n">seasonal_order</span><span class="o">=</span><span class="n">seasonal_order</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="SARIMAParams.validate_params"><a class="viewcode-back" href="../../../kats.models.sarima.html#kats.models.sarima.SARIMAParams.validate_params">[docs]</a>    <span class="k">def</span> <span class="nf">validate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Not implemented.&quot;&quot;&quot;</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Method validate_params() is not implemented.&quot;</span><span class="p">)</span>
+        <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="SARIMAModel"><a class="viewcode-back" href="../../../kats.models.sarima.html#kats.models.sarima.SARIMAModel">[docs]</a><span class="k">class</span> <span class="nc">SARIMAModel</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Model class for SARIMA.</span>
+
+<span class="sd">    This class provides fit, predict and plot methods for SARIMA model.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        data: :class:`kats.consts.TimeSeriesData` object for input time series.</span>
+<span class="sd">        params: :class:`SARIMAParams` for model parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+        <span class="n">params</span><span class="p">:</span> <span class="n">SARIMAParams</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Only support univariate time series, but get </span><span class="si">{type}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_params</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformed</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">includes_fixed</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cov_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cov_kwds</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxiter</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_output</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disp</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">return_params</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optim_score</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optim_complex_step</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optim_hessian</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">low_memory</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_history</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.05</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">freq</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="SARIMAModel.fit"><a class="viewcode-back" href="../../../kats.models.sarima.html#kats.models.sarima.SARIMAModel.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">start_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">transformed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">includes_fixed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">cov_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cov_kwds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lbfgs&quot;</span><span class="p">,</span>
+        <span class="n">maxiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="n">full_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">disp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">callback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">return_params</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">optim_score</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">optim_complex_step</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">optim_hessian</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">low_memory</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Fit SARIMA model by maximum likelihood via Kalman filter.</span>
+
+<span class="sd">        See reference https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.fit.html#statsmodels.tsa.statespace.sarimax.SARIMAX.fit for more details.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            start_params: Optional; An array_like object for the initial guess of the solution for the loglikelihood maximization.</span>
+<span class="sd">            transformed: Optional; A boolean to specify whether or not start_params is already transformed. Default is True.</span>
+<span class="sd">            includes_fixed: Optional; A boolean to specify whether or not start_params includes the fixed parameters in addition to the free parameters. Default is False.</span>
+<span class="sd">            cov_type: Optional; A string for the method for calculating the covariance matrix of parameter estimates. Can be &#39;opg&#39; (outer product of gradient estimator), &#39;oim&#39; (observed information matrix estimato),</span>
+<span class="sd">                      &#39;approx&#39; (observed information matrix estimator), &#39;robust&#39; (approximate (quasi-maximum likelihood) covariance matrix), or &#39;robust_approx&#39;. Default is &#39;opg&#39; when memory conservation is not used, otherwise default is ‘approx’.</span>
+<span class="sd">            cov_kwds: Optional; A dictionary of arguments for covariance matrix computation. See reference for more details.</span>
+<span class="sd">            method: Optional; A string for solver from scipy.optimize to be used. Can be &#39;newton&#39;, &#39;nm&#39;, &#39;bfgs&#39;, &#39;lbfgs&#39;, &#39;powell&#39;, &#39;cg&#39;, &#39;ncg&#39; or &#39;basinhopping&#39;. Default is &#39;lbfgs&#39;.</span>
+<span class="sd">            maxiter: Optional; An integer for the maximum number of iterations to perform. Default is 50.</span>
+<span class="sd">            full_output: Optional; A boolean to specify whether or not to have all available output in the Results object’s mle_retvals attribute. Default is True.</span>
+<span class="sd">            disp: Optional; A boolean to specify whether or not to print convergence messages. Default is False.</span>
+<span class="sd">            callback: Optional; A callable object to be called after each iteration. Default is None.</span>
+<span class="sd">            return_params: Optional; A boolean to specify whether or not to return only the array of maximizing parameters. Default is False.</span>
+<span class="sd">            optim_score: Optional; A string for the method by which the score vector is calculated. Can be &#39;harvey&#39;, &#39;approx&#39; or None. Default is None.</span>
+<span class="sd">            optim_complex_step: Optional; A boolean to specify whether or not to use complex step differentiation when approximating the score. Default is True.</span>
+<span class="sd">            optim_hessian: Optional; A string for the method by which the Hessian is numerically approximated. Can be &#39;opg&#39;, &#39;oim&#39;, &#39;approx&#39;. Default is None.</span>
+<span class="sd">            low_memory: Optional; A boolean to specify whether or not to reduce memory usage. If True, some features of the results object will not be available. Default is False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Call fit() method&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_params</span> <span class="o">=</span> <span class="n">start_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformed</span> <span class="o">=</span> <span class="n">transformed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">includes_fixed</span> <span class="o">=</span> <span class="n">includes_fixed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cov_type</span> <span class="o">=</span> <span class="n">cov_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cov_kwds</span> <span class="o">=</span> <span class="n">cov_kwds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxiter</span> <span class="o">=</span> <span class="n">maxiter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_output</span> <span class="o">=</span> <span class="n">full_output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disp</span> <span class="o">=</span> <span class="n">disp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">return_params</span> <span class="o">=</span> <span class="n">return_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optim_score</span> <span class="o">=</span> <span class="n">optim_score</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optim_complex_step</span> <span class="o">=</span> <span class="n">optim_complex_step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optim_hessian</span> <span class="o">=</span> <span class="n">optim_hessian</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">low_memory</span> <span class="o">=</span> <span class="n">low_memory</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Created SARIMA model.&quot;</span><span class="p">)</span>
+        <span class="n">sarima</span> <span class="o">=</span> <span class="n">SARIMAX</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="n">order</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">q</span><span class="p">),</span>
+            <span class="n">exog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">seasonal_order</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">seasonal_order</span><span class="p">,</span>
+            <span class="n">trend</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">trend</span><span class="p">,</span>
+            <span class="n">measurement_error</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">measurement_error</span><span class="p">,</span>
+            <span class="n">time_varying_regression</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">time_varying_regression</span><span class="p">,</span>
+            <span class="n">mle_regression</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mle_regression</span><span class="p">,</span>
+            <span class="n">simple_differencing</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">simple_differencing</span><span class="p">,</span>
+            <span class="n">enforce_stationarity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">enforce_stationarity</span><span class="p">,</span>
+            <span class="n">enforce_invertibility</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">enforce_invertibility</span><span class="p">,</span>
+            <span class="n">hamilton_representation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">hamilton_representation</span><span class="p">,</span>
+            <span class="n">concentrate_scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">concentrate_scale</span><span class="p">,</span>
+            <span class="n">trend_offset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">trend_offset</span><span class="p">,</span>
+            <span class="n">use_exact_diffuse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_exact_diffuse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">sarima</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="n">start_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">start_params</span><span class="p">,</span>
+            <span class="n">transformed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">transformed</span><span class="p">,</span>
+            <span class="n">includes_fixed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">includes_fixed</span><span class="p">,</span>
+            <span class="n">cov_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_type</span><span class="p">,</span>
+            <span class="n">cov_kwds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_kwds</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">maxiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">maxiter</span><span class="p">,</span>
+            <span class="n">full_output</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_output</span><span class="p">,</span>
+            <span class="n">disp</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">disp</span><span class="p">,</span>
+            <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">,</span>
+            <span class="n">return_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">return_params</span><span class="p">,</span>
+            <span class="n">optim_score</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optim_score</span><span class="p">,</span>
+            <span class="n">optim_complex_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optim_complex_step</span><span class="p">,</span>
+            <span class="n">optim_hessian</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optim_hessian</span><span class="p">,</span>
+            <span class="n">low_memory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">low_memory</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Fitted SARIMA.&quot;</span><span class="p">)</span></div>
+
+    <span class="c1"># pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.</span>
+<div class="viewcode-block" id="SARIMAModel.predict"><a class="viewcode-back" href="../../../kats.models.sarima.html#kats.models.sarima.SARIMAModel.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">include_history</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Predict with fitted SARIMA model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            steps: An integer for forecast steps.</span>
+<span class="sd">            include_history: Optional; A boolearn to specify whether to include historical data. Default is False.</span>
+<span class="sd">            alpha: A float for confidence level. Default is 0.05.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`pandas.DataFrame` of forecasts and confidence intervals.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;Call predict() with parameters. &quot;</span>
+            <span class="s2">&quot;steps:</span><span class="si">{steps}</span><span class="s2">, kwargs:</span><span class="si">{kwargs}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_history</span> <span class="o">=</span> <span class="n">include_history</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">freq</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;freq&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">infer_freq_robust</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="n">fcst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_forecast</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Generated forecast data from SARIMA model.&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Forecast data: </span><span class="si">{fcst}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fcst</span><span class="o">=</span><span class="n">fcst</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">fcst</span><span class="o">.</span><span class="n">predicted_mean</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="n">steps</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;SARIMA model fails to generate forecasts, i.e., all forecasts are NaNs.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst</span> <span class="o">=</span> <span class="n">fcst</span><span class="o">.</span><span class="n">predicted_mean</span>
+        <span class="n">pred_interval</span> <span class="o">=</span> <span class="n">fcst</span><span class="o">.</span><span class="n">conf_int</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pred_interval</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">pred_interval</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+            <span class="c1"># pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst_lower`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst_lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pred_interval</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="c1"># pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst_upper`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst_upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pred_interval</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst_lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pred_interval</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst_upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pred_interval</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+
+        <span class="n">last_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">dates</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">last_date</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="n">steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">freq</span><span class="p">)</span>
+
+        <span class="c1"># pyre-fixme[16]: `SARIMAModel` has no attribute `dates`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dates</span> <span class="o">=</span> <span class="n">dates</span><span class="p">[</span><span class="n">dates</span> <span class="o">!=</span> <span class="n">last_date</span><span class="p">]</span>  <span class="c1"># Return correct number of periods</span>
+
+        <span class="k">if</span> <span class="n">include_history</span><span class="p">:</span>
+            <span class="c1"># generate historical fit</span>
+            <span class="n">history_fcst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_prediction</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">history_ci</span> <span class="o">=</span> <span class="n">history_fcst</span><span class="o">.</span><span class="n">conf_int</span><span class="p">()</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;lower&quot;</span> <span class="ow">in</span> <span class="n">history_ci</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="s2">&quot;upper&quot;</span> <span class="ow">in</span> <span class="n">history_ci</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="n">ci_lower_name</span><span class="p">,</span> <span class="n">ci_upper_name</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">history_ci</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">history_ci</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;Error when getting prediction interval from statsmodels SARIMA API&quot;</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;fcst&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">history_fcst</span><span class="o">.</span><span class="n">predicted_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst</span><span class="p">)),</span>
+                    <span class="s2">&quot;fcst_lower&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">history_ci</span><span class="p">[</span><span class="n">ci_lower_name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst_lower</span><span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;fcst_upper&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">history_ci</span><span class="p">[</span><span class="n">ci_upper_name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst_upper</span><span class="p">)</span>
+                    <span class="p">),</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+            <span class="c1"># the first k elements of the fcst and lower/upper are not legitmate</span>
+            <span class="c1"># thus we need to assign np.nan to avoid confusion</span>
+            <span class="c1"># k = max(p, d, q) + max(P, D, Q) * seasonal_order + 1</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+                <span class="o">+</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">seasonal_order</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">seasonal_order</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                <span class="o">+</span> <span class="mi">1</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">k</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;fcst&quot;</span><span class="p">,</span> <span class="s2">&quot;fcst_lower&quot;</span><span class="p">,</span> <span class="s2">&quot;fcst_upper&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">,</span>
+                    <span class="s2">&quot;fcst&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst</span><span class="p">,</span>
+                    <span class="s2">&quot;fcst_lower&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst_lower</span><span class="p">,</span>
+                    <span class="s2">&quot;fcst_upper&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_fcst_upper</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Return forecast data: </span><span class="si">{fcst_df}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fcst_df</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span></div>
+
+<div class="viewcode-block" id="SARIMAModel.plot"><a class="viewcode-back" href="../../../kats.models.sarima.html#kats.models.sarima.SARIMAModel.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot forecasted results from SARIMA model.&quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Generating chart for forecast result from SARIMA model.&quot;</span><span class="p">)</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">Model</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span><span class="p">,</span> <span class="n">include_history</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">include_history</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;SARIMA&quot;</span>
+
+<div class="viewcode-block" id="SARIMAModel.get_parameter_search_space"><a class="viewcode-back" href="../../../kats.models.sarima.html#kats.models.sarima.SARIMAModel.get_parameter_search_space">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_parameter_search_space</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+        <span class="sd">&quot;&quot;&quot;Get default SARIMA parameter search space.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary representing the default SARIMA parameter search space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">get_default_sarima_parameter_search_space</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,392 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.utils.simulator module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.utils.time_series_parameter_tuning module" href="kats.utils.time_series_parameter_tuning.html" />
+    <link rel="prev" title="kats.utils.parameter_tuning_utils module" href="kats.utils.parameter_tuning_utils.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.utils.simulator">
+<span id="kats-utils-simulator-module"></span><h1>kats.utils.simulator module<a class="headerlink" href="#module-kats.utils.simulator" title="Permalink to this headline">¶</a></h1>
+<p>This module implements a simulator for generating synthetic time series data.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.utils.simulator.</span></span><span class="sig-name descname"><span class="pre">Simulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/utils/simulator.html#Simulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.simulator.Simulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>TimeSeriesData simulator, to generate synthetic timeseries data.</p>
+<p>The Simulator currently supports generating synthetic time series
+using the STL, ARIMA models and also adds level and trend changepoints.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.n">
+<span class="sig-name descname"><span class="pre">n</span></span><a class="headerlink" href="#kats.utils.simulator.Simulator.n" title="Permalink to this definition">¶</a></dt>
+<dd><p>length of the time series.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.freq">
+<span class="sig-name descname"><span class="pre">freq</span></span><a class="headerlink" href="#kats.utils.simulator.Simulator.freq" title="Permalink to this definition">¶</a></dt>
+<dd><p>desired frequency (e.g. daily, weekly) of a time series.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.start">
+<span class="sig-name descname"><span class="pre">start</span></span><a class="headerlink" href="#kats.utils.simulator.Simulator.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>start date of the time series.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.add_noise">
+<span class="sig-name descname"><span class="pre">add_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">magnitude</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiply</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/utils/simulator.html#Simulator.add_noise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.simulator.Simulator.add_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add noise to the generated time series for STL-based simulator.</p>
+<p>Noise type is normal - noise will be generated from iid normal distribution;
+may consider adding noise generated by ARMA in the future if there’re use cases.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>magnitude</strong> – float.</p></li>
+<li><p><strong>multiply</strong> – True if the noise is multiplicative, otherwise additive.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generated timeseries.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.add_seasonality">
+<span class="sig-name descname"><span class="pre">add_seasonality</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">magnitude</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.timedelta" title="(in Python v3.9)"><span class="pre">datetime.timedelta</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'1D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiply</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/utils/simulator.html#Simulator.add_seasonality"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.simulator.Simulator.add_seasonality" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a seasonality component to the time series for STL-based simulator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>magnitude</strong> – slope of the trend, float.</p></li>
+<li><p><strong>period</strong> – period of seasonality, timedelta.</p></li>
+<li><p><strong>multiply</strong> – True if the seasonality is multiplicative, otherwise additive.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generated timeseries.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.add_trend">
+<span class="sig-name descname"><span class="pre">add_trend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">magnitude</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">trend_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'linear'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiply</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/utils/simulator.html#Simulator.add_trend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.simulator.Simulator.add_trend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a trend component to the target time series for STL-based simulator.</p>
+<p>trend_type -  shape of the trend. {“linear”,”sigmoid”}</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>magnitude</strong> – slope of the trend, float.</p></li>
+<li><p><strong>trend_type</strong> – linear or sigmoid, string.</p></li>
+<li><p><strong>multiply</strong> – True if the trend is multiplicative, otherwise additive.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The timeseries generated.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.arima_sim">
+<span class="sig-name descname"><span class="pre">arima_sim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ar</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ma</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">burnin</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/utils/simulator.html#Simulator.arima_sim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.simulator.Simulator.arima_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate data from ARIMA model.</p>
+<p>Data generation includes two steps:
+(1). Simulate data from ARMA(p’, q) model</p>
+<p>The configuration of ARMA(p’, q) model is:
+X_t = alpha_1 * X_{t-1} + … + alpha_p * X_{t-p’}</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>1 * epsilon_t + theta_1 * epsilon_{t-1} + … + theta_q * epsilon_{t-q}</p></li>
+</ul>
+</div></blockquote>
+<p>(2). Add drift d
+d is the order of differencing
+p = p’ - d for ARIMA(p, d, q)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ar</strong> – [alpha_1, …, alpha_p’], coefficients of AR parameters.
+p = len(alpha)</p></li>
+<li><p><strong>ma</strong> – [theta_1, …, theta_q], coefficients of MA parameters.
+q = len(theta)</p></li>
+<li><p><strong>epsilon</strong> – error terms follows normal distribution(mu, sigma).</p></li>
+<li><p><strong>mu</strong> – mean of normal distribution for epsilon.</p></li>
+<li><p><strong>sigma</strong> – standard dev of normal distribution for epsilon.</p></li>
+<li><p><strong>burnin</strong> – number of data that will be dropped because lack of lagged data in the beginning.</p></li>
+<li><p><strong>d</strong> – number of unit roots for non-stationary data.</p></li>
+<li><p><strong>t</strong> – linear trend constant.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>TimeSeries generated.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ts</p>
+</dd>
+</dl>
+<p>Examples:
+&gt;&gt;&gt; sim = Simulator(n=100, freq=”MS”, start = pd.to_datetime(“2011-01-01 00:00:00”))
+&gt;&gt;&gt; np.random.seed(100)
+&gt;&gt;&gt; ts = sim.arima_sim(ar=[0.1, 0.05], ma = [0.04, 0.1], d = 1)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.level_shift_multivariate_indep_sim">
+<span class="sig-name descname"><span class="pre">level_shift_multivariate_indep_sim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cp_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonal_period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonal_magnitude</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anomaly_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_score_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/utils/simulator.html#Simulator.level_shift_multivariate_indep_sim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.simulator.Simulator.level_shift_multivariate_indep_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces a multivariate time series with level shifts.</p>
+<p>The positions of the level shifts are indicated by the beginning and
+end changepoints.
+the duration of the first change is [first_cp_begin, first_cp_end],
+the duration of the second change point is [second_cp_begin, self.n]
+The number of dimensions are indicated by dim.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cp_arr</strong> – Array of changepoint locations.</p></li>
+<li><p><strong>level_arr</strong> – Array containing levels for each segment. Since the
+number of segments is one more than the number of changepoints,
+hence, the level arr should be longer than the cp_arr by one.</p></li>
+<li><p><strong>noise</strong> – std. dev of random Gaussian noise added.</p></li>
+<li><p><strong>seasonal_period</strong> – periodicity of the time series.</p></li>
+<li><p><strong>seasonal_magnitude</strong> – amplitude of the seasonality. Set this to 0, if
+you want a time series without seasonality.</p></li>
+<li><p><strong>anomaly_arr</strong> – locations where we introduce an anomalous point.</p></li>
+<li><p><strong>z_score_arr</strong> – same length as anomaly arr. This is the z-score of the
+anomaly introduced at the location indicated by the anomaly_arr.</p></li>
+<li><p><strong>dim</strong> – number of dimensions of the timeseries.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generated timeseries.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.level_shift_sim">
+<span class="sig-name descname"><span class="pre">level_shift_sim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonal_period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonal_magnitude</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anomaly_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_score_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/utils/simulator.html#Simulator.level_shift_sim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.simulator.Simulator.level_shift_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces a time series with level shifts.</p>
+<p>The positions of the level shifts are indicated by the beginning and
+end changepoints.
+the duration of the first change is [first_cp_begin, first_cp_end],
+the duration of the second change point is [second_cp_begin, self.n]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cp_arr</strong> – Array of changepoint locations.</p></li>
+<li><p><strong>level_arr</strong> – Array containing levels for each segment. Since the
+number of segments is one more than the number of changepoints,
+hence, the level arr should be longer than the cp_arr by one.</p></li>
+<li><p><strong>noise</strong> – std. dev of random Gaussian noise added.</p></li>
+<li><p><strong>seasonal_period</strong> – periodicity of the time series.</p></li>
+<li><p><strong>seasonal_magnitude</strong> – amplitude of the seasonality. Set this to 0, if
+you want a time series without seasonality.</p></li>
+<li><p><strong>anomaly_arr</strong> – locations where we introduce an anomalous point.</p></li>
+<li><p><strong>z_score_arr</strong> – same length as anomaly arr. This is the z-score of the
+anomaly introduced at the location indicated by the anomaly_arr.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generated timeseries.</p>
+</dd>
+</dl>
+<p>Example Usage:
+&gt;&gt;&gt; sim2 = Simulator(n=450, start=”2018-01-01”)
+&gt;&gt;&gt; ts2 = sim2.level_shift_sim(</p>
+<blockquote>
+<div><p>cp_arr=[100, 200],
+level_arr=[3, 20, 2],
+noise=3,
+seasonal_period=7,
+seasonal_magnitude=3,
+anomaly_arr = [50, 150, 250],
+z_score_arr = [10, -10, 20],</p>
+</div></blockquote>
+<p>)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.stl_sim">
+<span class="sig-name descname"><span class="pre">stl_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/utils/simulator.html#Simulator.stl_sim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.simulator.Simulator.stl_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate time series data with seasonality, trend, and noise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None.</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generated timeseries.</p>
+</dd>
+</dl>
+<p>Example usage:
+&gt;&gt;&gt; sim = Simulator(n=100, freq=”1D”, start = pd.to_datetime(“2011-01-01”))
+&gt;&gt;&gt; sim.add_trend(magnitude=10)
+&gt;&gt;&gt; sim.add_seasonality(5, period=timedelta(days=7))
+&gt;&gt;&gt; sim.add_noise(magnitude=2)
+&gt;&gt;&gt; sim_ts = sim.stl_sim()</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.simulator.Simulator.trend_shift_sim">
+<span class="sig-name descname"><span class="pre">trend_shift_sim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trend_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intercept</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">100.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonal_period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonal_magnitude</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anomaly_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_score_arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/utils/simulator.html#Simulator.trend_shift_sim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.simulator.Simulator.trend_shift_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces a time series with multiple trend shifts and seasonality.</p>
+<p>This can be used as synthetic data to test trend changepoints
+first_cp_begin is where the trend change begins, and continues till the
+end.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>random_seed</strong> – Seed, to reproduce the same time series.</p></li>
+<li><p><strong>cp_arr</strong> – Array of changepoint locations.</p></li>
+<li><p><strong>trend_arr</strong> – Array containing trends for each segment. Since the
+number of segments is one more than the number of changepoints,
+hence, the trend arr should be longer than the cp_arr by one.</p></li>
+<li><p><strong>noise</strong> – std. dev of random Gaussian noise added.</p></li>
+<li><p><strong>seasonal_period</strong> – periodicity of the time series.</p></li>
+<li><p><strong>seasonal_magnitude</strong> – amplitude of the seasonality. Set this to 0, if
+you want a time series without seasonality.</p></li>
+<li><p><strong>anomaly_arr</strong> – locations where we introduce an anomalous point.</p></li>
+<li><p><strong>z_score_arr</strong> – same length as anomaly arr. This is the z-score of the
+anomaly introduced at the location indicated by the anomaly_arr.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generated timeseries.</p>
+</dd>
+</dl>
+<p>Example usage:
+&gt;&gt;&gt; sim2 = Simulator(n=450, start=”2018-01-01”)
+&gt;&gt;&gt; ts2 = sim2.trend_shift_sim(</p>
+<blockquote>
+<div><p>cp_arr=[100, 200],
+trend_arr=[3, 20, 2],
+intercept=30,
+noise=30,
+seasonal_period=7,
+seasonal_magnitude=3,
+anomaly_arr = [50, 150, 250],
+z_score_arr = [10, -10, 20],</p>
+</div></blockquote>
+<p>)</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="kats.utils.html">kats.utils package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.backtesters.html">kats.utils.backtesters module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.cupik.html">kats.utils.cupik module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.decomposition.html">kats.utils.decomposition module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.emp_confidence_int.html">kats.utils.emp_confidence_int module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.parameter_tuning_utils.html">kats.utils.parameter_tuning_utils module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">kats.utils.simulator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.time_series_parameter_tuning.html">kats.utils.time_series_parameter_tuning module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.html#module-kats.utils">kats.utils module</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="kats.utils.html">kats.utils package</a><ul>
+      <li>Previous: <a href="kats.utils.parameter_tuning_utils.html" title="previous chapter">kats.utils.parameter_tuning_utils module</a></li>
+      <li>Next: <a href="kats.utils.time_series_parameter_tuning.html" title="next chapter">kats.utils.time_series_parameter_tuning module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.utils.simulator.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,886 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.models.metalearner.metalearner_hpt &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css" />
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.models.metalearner.metalearner_hpt</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="sd">&quot;&quot;&quot;A module for meta-learner hyper-parameter selection.</span>
+
+<span class="sd">This module contains two classes, including:</span>
+<span class="sd">    - :class:`MetaLearnHPT` for recommending hyper-parameters of forecasting models;</span>
+<span class="sd">    - :class:`MultitaskNet` for multi-task neural network built with pytorch.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">joblib</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">TimeSeriesData</span>
+<span class="kn">from</span> <span class="nn">kats.tsfeatures.tsfeatures</span> <span class="kn">import</span> <span class="n">TsFeatures</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
+
+<span class="n">default_model_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;holtwinters&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;categorical_idx&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;trend&quot;</span><span class="p">,</span> <span class="s2">&quot;damped&quot;</span><span class="p">,</span> <span class="s2">&quot;seasonal&quot;</span><span class="p">,</span> <span class="s2">&quot;seasonal_periods&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;numerical_idx&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;arima&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;categorical_idx&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span><span class="p">],</span> <span class="s2">&quot;numerical_idx&quot;</span><span class="p">:</span> <span class="p">[]},</span>
+    <span class="s2">&quot;sarima&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;categorical_idx&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;seasonal_order&quot;</span><span class="p">,</span> <span class="s2">&quot;trend&quot;</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;numerical_idx&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;theta&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;categorical_idx&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">],</span> <span class="s2">&quot;numerical_idx&quot;</span><span class="p">:</span> <span class="p">[]},</span>
+    <span class="s2">&quot;stlf&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;categorical_idx&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;method&quot;</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">],</span> <span class="s2">&quot;numerical_idx&quot;</span><span class="p">:</span> <span class="p">[]},</span>
+    <span class="s2">&quot;prophet&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;categorical_idx&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;yearly_seasonality&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;weekly_seasonality&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;daily_seasonality&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;seasonality_mode&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;seasonality_prior_scale&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;changepoint_prior_scale&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;changepoint_range&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="s2">&quot;numerical_idx&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;cusum&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;categorical_idx&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;score_func&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;numerical_idx&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;delta_std_ratio&quot;</span><span class="p">,</span> <span class="s2">&quot;scan_window&quot;</span><span class="p">,</span> <span class="s2">&quot;historical_window&quot;</span><span class="p">],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;statsig&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;categorical_idx&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;numerical_idx&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;n_control&quot;</span><span class="p">,</span> <span class="s2">&quot;n_test&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">default_model_networks</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;holtwinters&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;n_hidden_shared&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">20</span><span class="p">],</span>
+        <span class="s2">&quot;n_hidden_cat_combo&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">]],</span>
+        <span class="s2">&quot;n_hidden_num&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;arima&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;n_hidden_shared&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">40</span><span class="p">],</span>
+        <span class="s2">&quot;n_hidden_cat_combo&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">]],</span>
+        <span class="s2">&quot;n_hidden_num&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;sarima&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;n_hidden_shared&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">40</span><span class="p">],</span>
+        <span class="s2">&quot;n_hidden_cat_combo&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">]],</span>
+        <span class="s2">&quot;n_hidden_num&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;theta&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_hidden_shared&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">40</span><span class="p">],</span> <span class="s2">&quot;n_hidden_cat_combo&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mi">5</span><span class="p">]],</span> <span class="s2">&quot;n_hidden_num&quot;</span><span class="p">:</span> <span class="p">[]},</span>
+    <span class="s2">&quot;stlf&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;n_hidden_shared&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">20</span><span class="p">],</span>
+        <span class="s2">&quot;n_hidden_cat_combo&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">]],</span>
+        <span class="s2">&quot;n_hidden_num&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;prophet&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;n_hidden_shared&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">40</span><span class="p">],</span>
+        <span class="s2">&quot;n_hidden_cat_combo&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">]],</span>
+        <span class="s2">&quot;n_hidden_num&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;cusum&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;n_hidden_shared&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">20</span><span class="p">],</span>
+        <span class="s2">&quot;n_hidden_cat_combo&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mi">3</span><span class="p">]],</span>
+        <span class="s2">&quot;n_hidden_num&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;statsig&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;n_hidden_shared&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">20</span><span class="p">],</span>
+        <span class="s2">&quot;n_hidden_cat_combo&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;n_hidden_num&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MetaLearnHPT"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MetaLearnHPT">[docs]</a><span class="k">class</span> <span class="nc">MetaLearnHPT</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A class for meta-learner framework on hyper-parameters tuning.</span>
+
+<span class="sd">    MetaLearnHPT is a framework for choosing hyper-parameter for forecasting models. It uses a multi-task neural network for recommendation, with time series features as inputs, and the hyper-parameters of a given model as outputs.</span>
+<span class="sd">    For training, it uses time series features as inputs and the corresponding best hyper-parameters as labels. For prediction, it takes time series or time series features to predict the best hyper-parameters.</span>
+<span class="sd">    MetaLearnHPT provides get_default_model, build_network, train, pred, pred_by_feature, save_model, load_model and plot.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        data_x: Optional; A `pandas.DataFrame` object of time series features. data_x should not be None unless load_model is True. Default is None.</span>
+<span class="sd">        data_y: Optional; A `pandas.DataFrame` object of the corresponding best hyper-parameters. data_y should not be None unless load_model is True. Default is None.</span>
+<span class="sd">        categorical_idx: Optional; A list of strings of the names of the categorical hyper-parameters. Default is None.</span>
+<span class="sd">        numerical_idx: Optional; A list of strings of the names of the numerical hyper-parameters. Default is None.</span>
+<span class="sd">        default_model: Optional; A string of the name of the forecast model whose default settings will be used.</span>
+<span class="sd">                       Can be &#39;arima&#39;, &#39;sarima&#39;, &#39;theta&#39;, &#39;prophet&#39;, &#39;holtwinters&#39;, &#39;stlf&#39; or None. Default is None.</span>
+<span class="sd">        scale: Optional; A boolean to specify whether or not to normalize time series features to zero mean and unit variance. Default is True.</span>
+<span class="sd">        load_model: Optional; A boolean to specify whether or not to load a trained model. Default is False.</span>
+
+<span class="sd">    Sample Usage:</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw = MetaLearnHPT(X, Y, default_model=&#39;holtwinters&#39;) # Use default Holt-Winter&#39;s model as an example.</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw.build_network()</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw.train()</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw.pred(ts=TSdata) # Recommend hyper-parameters for TSdata.</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw.save_model(&#39;my_model_binary.pkl&#39;) # Save trained model to a binary</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw2=MetaLearnHPT(load_model=True) # Load a trained model</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw2.load_model(&#39;my_model_binary.pkl&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw = MetaLearnHPT(X, Y_holtwinters, [&#39;trend&#39;,&#39;damped&#39;, &#39;seasonal&#39;], [&#39;seasonal_periods&#39;]) # Example for building customized MetaLearnHPT object.</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw.build_network(n_hidden_shared=[30], n_hidden_cat_combo=[[2], [3], [5]],n_hidden_num=[3])</span>
+<span class="sd">        &gt;&gt;&gt; mlhpt_hw.train(loss_scale=30, lr=0.001)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data_x</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data_y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">categorical_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">numerical_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">default_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">load_model</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">load_model</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">data_x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="s2">&quot;data_x is necessary to initialize a new model!&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data_y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="s2">&quot;data_y is necessary to initialize a new model!&quot;</span><span class="p">)</span>
+
+            <span class="n">data_x</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data_x</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataY</span> <span class="o">=</span> <span class="n">data_y</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dim_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataX</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># Record loss path for validation/trainin set and for both classification and regression.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">default_model</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">default_model</span> <span class="o">=</span> <span class="n">default_model</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__default_model</span> <span class="o">=</span> <span class="n">default_model</span>
+
+            <span class="k">if</span> <span class="n">default_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="n">categorical_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">numerical_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                         Default model cannot accept customized categorical_idx or customized numerical_idx! Please set</span>
+<span class="s2">                         &#39;categorical_idx=None&#39; and &#39;numerical_idx=None&#39; to initialize a default model,</span>
+<span class="s2">                         or set &#39;default_model=None&#39; to initialize a customized model!</span>
+<span class="s2">                         &quot;&quot;&quot;</span>
+                    <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">default_model</span> <span class="ow">in</span> <span class="n">default_model_params</span><span class="p">:</span>
+                    <span class="n">categorical_idx</span> <span class="o">=</span> <span class="n">default_model_params</span><span class="p">[</span><span class="n">default_model</span><span class="p">][</span>
+                        <span class="s2">&quot;categorical_idx&quot;</span>
+                    <span class="p">]</span>
+                    <span class="n">numerical_idx</span> <span class="o">=</span> <span class="n">default_model_params</span><span class="p">[</span><span class="n">default_model</span><span class="p">][</span><span class="s2">&quot;numerical_idx&quot;</span><span class="p">]</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;default_model=</span><span class="si">{</span><span class="n">default_model</span><span class="si">}</span><span class="s2"> is not available! Please choose one from &#39;prophet&#39;, &#39;arima&#39;, &#39;sarima&#39;, &#39;holtwinters&#39;, &#39;stlf&#39;, &#39;theta&#39;, &#39;cusum&#39;, &#39;statsig&#39;&quot;</span>
+                    <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">numerical_idx</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">categorical_idx</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;At least one of numerical_idx and categorical_idx should be a non-empty list.&quot;</span>
+                <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span> <span class="o">=</span> <span class="n">categorical_idx</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">numerical_idx</span> <span class="o">=</span> <span class="n">numerical_idx</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_target_num</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">numerical_idx</span><span class="p">])</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numerical_idx</span>
+                <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dim_output_num</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_target_num</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numerical_idx</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_target_cat</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_data</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">scale</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataX</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">x_std</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataX</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">x_std</span><span class="p">[</span><span class="n">x_std</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span> <span class="o">=</span> <span class="n">x_std</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataX</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataX</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden_shared</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden_cat_combo</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden_num</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_get_target_cat</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># List of number of classes (dim of output) of each categorical variable</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_cat</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dim_output_cat</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">return</span>
+        <span class="n">n_cat</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Dict for encoder, categories --&gt; int</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cat_code_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span><span class="p">:</span>
+            <span class="n">n_cat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;category&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cat_code_dict</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">cat</span><span class="o">.</span><span class="n">categories</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">cat</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_cat</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim_output_cat</span> <span class="o">=</span> <span class="n">n_cat</span>
+
+<div class="viewcode-block" id="MetaLearnHPT.get_default_model"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.get_default_model">[docs]</a>    <span class="k">def</span> <span class="nf">get_default_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Get the name of default_model. It the instance is a customized model, return None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A string reprsenting the default model or None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__default_model</span></div>
+
+    <span class="k">def</span> <span class="nf">_validate_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Validate input data.&quot;&quot;&quot;</span>
+
+        <span class="n">n_cat</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">n_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numerical_idx</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numerical_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">n_cat</span> <span class="o">+</span> <span class="n">n_num</span> <span class="o">!=</span> <span class="n">dim</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Dimensions of data_y (dim=</span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">) and the input variables (dim=</span><span class="si">{</span><span class="n">n_cat</span><span class="si">}</span><span class="s2">+</span><span class="si">{</span><span class="n">n_num</span><span class="si">}</span><span class="s2">) do not agree!&quot;</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_output_cat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Column </span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2"> only has one class, not able to train a model!&quot;</span>
+                <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataX</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">30</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Dataset is too small to train a model!&quot;</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_hidden_and_output_cat_combo</span><span class="p">(</span>
+        <span class="n">n_hidden_cat_combo</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">out_dim_cat</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="c1"># The length of n_hidden_cat_combo and out_dim_cat should be same</span>
+        <span class="c1"># If there is no categorical variable, out_dim_cat = []</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">out_dim_cat</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_hidden_cat_combo</span><span class="p">)):</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_hidden_cat_combo</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">out_dim_cat</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_hidden_and_output_num</span><span class="p">(</span><span class="n">n_hidden_num</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">out_dim_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="c1"># If there is no numerical variable, out_dim_num = []</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">out_dim_num</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="n">n_hidden_num</span> <span class="o">+</span> <span class="p">[</span><span class="n">out_dim_num</span><span class="p">]</span>
+
+<div class="viewcode-block" id="MetaLearnHPT.build_network"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.build_network">[docs]</a>    <span class="k">def</span> <span class="nf">build_network</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_hidden_shared</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_hidden_cat_combo</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_hidden_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Build a multi-task neural network.</span>
+
+<span class="sd">        This function builds a multi-task neural network according to given neural network structure (i.e., n_hidden_shared, n_hidden_cat_combo, n_hidden_num).</span>
+<span class="sd">        If the MetaLearnHPT object is initiated as a default_model (i.e., default_model is not None), then a default neural network structure will be built and cannot accept customized.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            n_hidden_shared: Optional; A list of numbers of hidden neurons in each shared hidden layer.</span>
+<span class="sd">                             For example, n_hidden_shared = [first_shared_hid_dim, second_shared_hid_dim, ....]. Default is None.</span>
+
+<span class="sd">            n_hidden_cat_combo: Optional; A list of lists of task-specific hidden layers’ sizes of each categorical response variables.</span>
+<span class="sd">                                For example, if we have 3 categorical y, then</span>
+<span class="sd">                                n_hidden_cat_combo = [[first_spec_hid_dim_cat1, second_spec_hid_dim_cat1, ...],</span>
+<span class="sd">                                [first_spec_hid_dim_cat2, second_spec_hid_dim_cat2, ...],</span>
+<span class="sd">                                [first_spec_hid_dim_cat3, second_spec_hid_dim_cat3, ...]].</span>
+<span class="sd">                                Length of n_hidden_cat_combo must match the number of categorical y. Default is None.</span>
+
+<span class="sd">            n_hidden_num: Optional; A list of task-specific hidden layers’ sizes of numerical response variables.</span>
+<span class="sd">                          For example, n_hidden_num = [first_spec_hid_dim, second_spec_hid_dim, ...]. Default is None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">network_structure</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">n_hidden_shared</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">n_hidden_cat_combo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">n_hidden_num</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">default_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__default_model</span>
+
+        <span class="k">if</span> <span class="n">default_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">network_structure</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;A default model structure (</span><span class="si">{</span><span class="n">default_model</span><span class="si">}</span><span class="s2">) is initiated and cannot accept the customized network structure!&quot;</span>
+                <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">default_model</span> <span class="ow">in</span> <span class="n">default_model_networks</span><span class="p">:</span>
+                <span class="n">n_hidden_shared</span> <span class="o">=</span> <span class="n">default_model_networks</span><span class="p">[</span><span class="n">default_model</span><span class="p">][</span>
+                    <span class="s2">&quot;n_hidden_shared&quot;</span>
+                <span class="p">]</span>
+                <span class="n">n_hidden_cat_combo</span> <span class="o">=</span> <span class="n">default_model_networks</span><span class="p">[</span><span class="n">default_model</span><span class="p">][</span>
+                    <span class="s2">&quot;n_hidden_cat_combo&quot;</span>
+                <span class="p">]</span>
+                <span class="n">n_hidden_num</span> <span class="o">=</span> <span class="n">default_model_networks</span><span class="p">[</span><span class="n">default_model</span><span class="p">][</span><span class="s2">&quot;n_hidden_num&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Default neural network for model </span><span class="si">{</span><span class="n">default_model</span><span class="si">}</span><span class="s2"> is not implemented!&quot;</span>
+                <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Default neural network for model </span><span class="si">{</span><span class="n">default_model</span><span class="si">}</span><span class="s2"> is built.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">n_hidden_shared</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;n_hidden_shared is missing!&quot;</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">n_hidden_cat_combo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;n_hidden_cat_combo is missing!&quot;</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">n_hidden_num</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;n_hidden_num is missing!&quot;</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_hidden_cat_combo</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_output_cat</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Unmatched dimension!&quot;</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="c1"># Add input dim before n_hidden_shared.</span>
+        <span class="c1"># Add output dim at the end of n_hidden_cat_combo.</span>
+        <span class="c1"># Add output dim at the end of n_hidden_num.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden_shared</span> <span class="o">=</span> <span class="n">n_hidden_shared</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden_cat_combo</span> <span class="o">=</span> <span class="n">n_hidden_cat_combo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden_num</span> <span class="o">=</span> <span class="n">n_hidden_num</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">MultitaskNet</span><span class="p">(</span>
+            <span class="n">input_and_n_hidden_shared</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_input</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_hidden_shared</span><span class="p">,</span>
+            <span class="n">n_hidden_and_output_cat_combo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_hidden_and_output_cat_combo</span><span class="p">(</span>
+                <span class="n">n_hidden_cat_combo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_output_cat</span>
+            <span class="p">),</span>
+            <span class="n">n_hidden_and_output_num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_hidden_and_output_num</span><span class="p">(</span>
+                <span class="n">n_hidden_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dim_output_num</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Multi-task neural network structure:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_prepare_data</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">val_size</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">,</span>
+        <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+        <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">],</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">,</span>
+        <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+        <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">],</span>
+    <span class="p">]:</span>
+        <span class="c1"># split to train and validation sets</span>
+        <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataX</span><span class="p">)),</span> <span class="n">test_size</span><span class="o">=</span><span class="n">val_size</span>
+        <span class="p">)</span>
+
+        <span class="c1"># change training set to tensors</span>
+        <span class="n">x_fs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataX</span><span class="p">[</span><span class="n">train_idx</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">y_cat</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_cat</span><span class="p">[</span><span class="n">train_idx</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">y_num</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target_num</span><span class="p">[</span><span class="n">train_idx</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numerical_idx</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+        <span class="c1"># change validation set to tensors</span>
+        <span class="n">x_fs_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataX</span><span class="p">[</span><span class="n">val_idx</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">y_cat_val</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_cat</span><span class="p">[</span><span class="n">val_idx</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">y_num_val</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target_num</span><span class="p">[</span><span class="n">val_idx</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numerical_idx</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">x_fs</span><span class="p">,</span> <span class="n">y_cat</span><span class="p">,</span> <span class="n">y_num</span><span class="p">,</span> <span class="n">x_fs_val</span><span class="p">,</span> <span class="n">y_cat_val</span><span class="p">,</span> <span class="n">y_num_val</span>
+
+    <span class="k">def</span> <span class="nf">_loss_function</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">o1</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">o2</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">y_cat</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">y_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Loss function for multi-task neural network.&quot;&quot;&quot;</span>
+
+        <span class="n">loss_func_num</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+        <span class="n">loss_func_cat</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
+        <span class="n">loss_cat_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.0</span><span class="p">])</span>
+        <span class="c1"># Loss of classification.</span>
+        <span class="k">if</span> <span class="n">o1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">y_cat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">batch_y1</span> <span class="o">=</span> <span class="n">y_cat</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_y1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">loss_cat_train</span> <span class="o">+=</span> <span class="n">loss_func_cat</span><span class="p">(</span><span class="n">o1</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">batch_y1</span><span class="p">[:,</span> <span class="n">col</span><span class="p">])</span>
+
+        <span class="c1"># Loss of regression.</span>
+        <span class="n">loss_num_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">o2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch_y2</span> <span class="o">=</span> <span class="n">y_num</span>
+            <span class="n">loss_num_train</span> <span class="o">+=</span> <span class="n">loss_func_num</span><span class="p">(</span><span class="n">o2</span><span class="p">,</span> <span class="n">batch_y2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss_cat_train</span><span class="p">,</span> <span class="n">loss_num_train</span>
+
+<div class="viewcode-block" id="MetaLearnHPT.train"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">loss_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
+        <span class="n">n_epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span><span class="p">,</span>
+        <span class="n">val_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">momentum</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
+        <span class="n">n_epochs_stop</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Train the pre-built multi-task neural network.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            loss_scale: Optional; A float to specify the hyper-parameter to scale regression loss and classification loss, which controls the trade-off between the accuracy of regression task and classification task.</span>
+<span class="sd">                        A larger loss_scale value gives a more accurate prediction for classification part, and a lower value gives a more accurate prediction for regression part. Default is 1.0.</span>
+<span class="sd">            lr: Optional; A float for learning rate. Default is 0.001.</span>
+<span class="sd">            n_epochs: Optional; An integer for the number of epochs. Default is 1000.</span>
+<span class="sd">            batch_size: Optional; An integer for the batch size. Default is 128.</span>
+<span class="sd">            method: Optional; A string for the name of optimizer. Can be &#39;SGD&#39; or &#39;Adam&#39;. Default is &#39;SGD&#39;.</span>
+<span class="sd">            val_size: Optional; A float for the proportion of validation set of. It should be within (0, 1). Default is 0.1.</span>
+<span class="sd">            momentum: Optional; A fload for the momentum for SGD. Default value is 0.9.</span>
+<span class="sd">            n_epochs_stop: Optional; An integer or a float for early stopping condition. If the number of epochs is larger than n_epochs_stop and there is no improvement on validation set, we stop training.</span>
+<span class="sd">                           One can turn off the early stopping feature by setting n_epochs_stop = np.inf. Default is 20.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="s2">&quot;Haven&#39;t built a model. Please build a model first!&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;SGD&quot;</span><span class="p">:</span>
+            <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="n">momentum</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;Adam&quot;</span><span class="p">:</span>
+            <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="s2">&quot;Only support SGD and Adam optimaizer. Please use &#39;SGD&#39; or &#39;Adam&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">val_size</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">val_size</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="s2">&quot;Illegal validation size.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># get training tensors</span>
+        <span class="n">x_fs</span><span class="p">,</span> <span class="n">y_cat</span><span class="p">,</span> <span class="n">y_num</span><span class="p">,</span> <span class="n">x_fs_val</span><span class="p">,</span> <span class="n">y_cat_val</span><span class="p">,</span> <span class="n">y_num_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_data</span><span class="p">(</span>
+            <span class="n">val_size</span>
+        <span class="p">)</span>
+
+        <span class="c1"># validate batch size</span>
+        <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;=</span> <span class="n">x_fs</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;batch_size </span><span class="si">{</span><span class="n">batch_size</span><span class="si">}</span><span class="s2"> is larger than training data size </span><span class="si">{</span><span class="n">x_fs</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">!&quot;</span><span class="p">)</span>
+
+        <span class="c1"># variables for early stopping</span>
+        <span class="n">min_val_loss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">epochs_no_improve</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_epochs</span><span class="p">):</span>
+            <span class="n">total_loss</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">permutation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">x_fs</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_fs</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">):</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">permutation</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
+                <span class="n">batch_x</span> <span class="o">=</span> <span class="n">x_fs</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+
+                <span class="c1"># two outputs, o1: classification, o2: regression</span>
+                <span class="n">o1</span><span class="p">,</span> <span class="n">o2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">batch_x</span><span class="p">)</span>
+                <span class="n">tmp_y_cat</span> <span class="o">=</span> <span class="n">y_cat</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="k">if</span> <span class="n">y_cat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="n">tmp_y_num</span> <span class="o">=</span> <span class="n">y_num</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="k">if</span> <span class="n">y_num</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="n">loss_cat_train</span><span class="p">,</span> <span class="n">loss_num_train</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_function</span><span class="p">(</span>
+                    <span class="n">o1</span><span class="p">,</span> <span class="n">o2</span><span class="p">,</span> <span class="n">tmp_y_cat</span><span class="p">,</span> <span class="n">tmp_y_num</span>
+                <span class="p">)</span>
+                <span class="n">cur_loss</span> <span class="o">=</span> <span class="n">loss_cat_train</span> <span class="o">+</span> <span class="n">loss_num_train</span> <span class="o">/</span> <span class="n">loss_scale</span>
+                <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+                <span class="n">cur_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+                <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+                <span class="n">total_loss</span> <span class="o">+=</span> <span class="n">cur_loss</span>
+
+            <span class="c1"># Record loss of training set at the last iteration of each epoch.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_train_cat&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_cat_train</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_train_num&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_num_train</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+            <span class="c1"># Record loss of validatiaon set for each epoch.</span>
+            <span class="n">o1_val</span><span class="p">,</span> <span class="n">o2_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x_fs_val</span><span class="p">)</span>
+            <span class="n">loss_cat_val</span><span class="p">,</span> <span class="n">loss_num_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_function</span><span class="p">(</span>
+                <span class="n">o1_val</span><span class="p">,</span> <span class="n">o2_val</span><span class="p">,</span> <span class="n">y_cat_val</span><span class="p">,</span> <span class="n">y_num_val</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_val_cat&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_cat_val</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_val_num&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_num_val</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+            <span class="n">loss_sum_val</span> <span class="o">=</span> <span class="n">loss_cat_val</span> <span class="o">+</span> <span class="n">loss_num_val</span> <span class="o">/</span> <span class="n">loss_scale</span>
+
+            <span class="c1"># early stopping variables update</span>
+            <span class="k">if</span> <span class="n">loss_sum_val</span> <span class="o">&lt;</span> <span class="n">min_val_loss</span><span class="p">:</span>
+                <span class="n">min_val_loss</span> <span class="o">=</span> <span class="n">loss_sum_val</span>
+                <span class="n">epochs_no_improve</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">epochs_no_improve</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># check early stopping condition</span>
+            <span class="k">if</span> <span class="n">epoch</span> <span class="o">&gt;</span> <span class="mi">20</span> <span class="ow">and</span> <span class="n">epochs_no_improve</span> <span class="o">&gt;=</span> <span class="n">n_epochs_stop</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Early stopping! Stop at epoch </span><span class="si">{</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="k">break</span></div>
+
+<div class="viewcode-block" id="MetaLearnHPT.pred"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.pred">[docs]</a>    <span class="k">def</span> <span class="nf">pred</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_ts</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">ts_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Predict hyper-parameters for a new time series data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source_ts: :class:`kats.consts.TimeSeriesData` object representing the time series for which to generate hyper-parameters</span>
+<span class="sd">            ts_scale: A boolean to specify whether or not to rescale time series data (i.e., divide its value by its maximum value) before calculating its features. Default is True.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A `pandas.DataFrame` object storing the recommended hyper-parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">source_ts</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="s2">&quot;Haven&#39;t trained a model. Please train a model or load a model before predicting.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ts_scale</span><span class="p">:</span>
+            <span class="c1"># scale time series to make ts features more stable</span>
+            <span class="n">ts</span><span class="o">.</span><span class="n">value</span> <span class="o">/=</span> <span class="n">ts</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Successful scaled! Each value of TS has been divided by the max value of TS.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">new_feature</span> <span class="o">=</span> <span class="n">TsFeatures</span><span class="p">()</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">new_feature_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">new_feature</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">new_feature_vector</span><span class="p">)):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Time series features contain NaNs!&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Time series features are </span><span class="si">{</span><span class="n">new_feature</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="s2">&quot;Fill in NaNs with 0.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">pred_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pred_by_feature</span><span class="p">([</span><span class="n">new_feature_vector</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># To have a consistent type with orginal HPT methods&#39; output.</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot;0_0&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pred_res</span><span class="p">]]</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;arm_name&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;metric_name&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sem&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;trial_index&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;parameters&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="MetaLearnHPT.pred_by_feature"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.pred_by_feature">[docs]</a>    <span class="k">def</span> <span class="nf">pred_by_feature</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">source_x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Predict hyper-parameters for time series features.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source_x: Time series features.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of dictionaries storing the recommended hyper-parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="s2">&quot;Haven&#39;t trained a model. Please train a model or load a model before predicting.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_x</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">row_stack</span><span class="p">(</span><span class="n">source_x</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_x</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">source_x</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">source_x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;In valid source_x type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">source_x</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span>
+
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">cats</span><span class="p">,</span> <span class="n">nums</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">cats</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">cats</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">cats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">)</span>
+        <span class="n">nums</span> <span class="o">=</span> <span class="n">nums</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="k">if</span> <span class="n">nums</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+
+        <span class="n">ans</span> <span class="o">=</span> <span class="p">[{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">categorical_idx</span><span class="p">):</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">cats</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="n">ans</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cat_code_dict</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">vals</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numerical_idx</span><span class="p">):</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">nums</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="n">ans</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ans</span></div>
+
+<div class="viewcode-block" id="MetaLearnHPT.save_model"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.save_model">[docs]</a>    <span class="k">def</span> <span class="nf">save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Save trained model to a binary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: A string representing the path to save a trained model, which should contain either &#39;.p&#39; or &#39;.pkl&#39; file extension.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="s2">&quot;Haven&#39;t trained a model.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">file_path</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully saved the trained model!&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MetaLearnHPT.load_model"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.load_model">[docs]</a>    <span class="k">def</span> <span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Load a pre-trained model from a binary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: A string representing the path to load a pre-trained model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fail to load model from </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">, and error message is: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MetaLearnHPT.plot"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot loss paths of classification/regression on both training and validation set.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_train_cat&quot;</span><span class="p">]</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_train_num&quot;</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">_log_error</span><span class="p">(</span><span class="s2">&quot;Using a loaded model or no trained model!&quot;</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_train_cat&quot;</span><span class="p">],</span> <span class="s2">&quot;.-&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_val_cat&quot;</span><span class="p">],</span> <span class="s2">&quot;o-&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s2">&quot;training set&quot;</span><span class="p">,</span> <span class="s2">&quot;validation set&quot;</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Loss path of classification tasks&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Cross-entropy&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Epoch&quot;</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_train_num&quot;</span><span class="p">],</span> <span class="s2">&quot;.-&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss_path</span><span class="p">[</span><span class="s2">&quot;LOSS_val_num&quot;</span><span class="p">],</span> <span class="s2">&quot;o-&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s2">&quot;training set&quot;</span><span class="p">,</span> <span class="s2">&quot;validation set&quot;</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Loss path of regression task&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;MSE&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Epoch&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MultitaskNet"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MultitaskNet">[docs]</a><span class="k">class</span> <span class="nc">MultitaskNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A class for multi-task neural network.</span>
+
+<span class="sd">    Build a multi-task neural network used by MetaLearnHPT. It can also be used to single-task learning. Currently only support Relu activation function.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        input_and_n_hidden_shared: A list of integers contains the dimension of input and numbers of hidden neurons in each shared hidden layer.</span>
+<span class="sd">                                   The first value in this list is dimension of input, which is dimension of feature vector.</span>
+<span class="sd">                                   For example, input_and_n_hidden_shared = [input_dim, first_shared_hid_dim, second_shared_hid_dim, ....].</span>
+<span class="sd">        n_hidden_and_output_cat_combo: A list of lists of task-specific hidden layers’ sizes of each categorical response variables and their dimension of output.</span>
+<span class="sd">                                       For example, if we have 3 categorical y with 3, 2, 4 classes respectively, then</span>
+<span class="sd">                                       n_hidden_and_output_cat_combo = [[first_spec_hid_dim_cat1, second_spec_hid_dim_cat1, ..., 3],</span>
+<span class="sd">                                       [first_spec_hid_dim_cat2, second_spec_hid_dim_cat2, ..., 2],</span>
+<span class="sd">                                       [first_spec_hid_dim_cat3, second_spec_hid_dim_cat3, ..., 4]].</span>
+<span class="sd">        n_hidden_and_output_num: A list of integers contains task-specific hidden layers’ sizes of numerical response variables and the dimension of output,</span>
+<span class="sd">                                 which is the number of numerical response variables in data_y.</span>
+<span class="sd">                                 For example, if we have three numerical response variables in y, then</span>
+<span class="sd">                                 n_hidden_and_output_num = [first_spec_hid_dim, second_spec_hid_dim, ..., 3]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_and_n_hidden_shared</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">n_hidden_and_output_cat_combo</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+        <span class="n">n_hidden_and_output_num</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MultitaskNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shared_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">input_and_n_hidden_shared</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">shared_layer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
+                    <span class="n">input_and_n_hidden_shared</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">input_and_n_hidden_shared</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cat_layer_combo</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">n_hidden_and_output_cat</span> <span class="ow">in</span> <span class="n">n_hidden_and_output_cat_combo</span><span class="p">:</span>
+            <span class="n">cat_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+            <span class="c1"># input for task-specific layer is the dim of last shared hidden layer</span>
+            <span class="n">curr_input</span> <span class="o">=</span> <span class="n">input_and_n_hidden_shared</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_hidden_and_output_cat</span><span class="p">)):</span>
+                <span class="n">cat_layer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">curr_input</span><span class="p">,</span> <span class="n">n_hidden_and_output_cat</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">curr_input</span> <span class="o">=</span> <span class="n">n_hidden_and_output_cat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cat_layer_combo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cat_layer</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="n">curr_input</span> <span class="o">=</span> <span class="n">input_and_n_hidden_shared</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_hidden_and_output_num</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_layer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">curr_input</span><span class="p">,</span> <span class="n">n_hidden_and_output_num</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+            <span class="n">curr_input</span> <span class="o">=</span> <span class="n">n_hidden_and_output_num</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+<div class="viewcode-block" id="MultitaskNet.forward"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_hpt.html#kats.models.metalearner.metalearner_hpt.MultitaskNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Forward function in neural networks.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Shared layers.</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared_layer</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># Categorical part.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cat_layer_combo</span><span class="p">:</span>
+            <span class="n">y_pred_cat_combo</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y_pred_cat_combo</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">cat_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cat_layer_combo</span><span class="p">:</span>
+                <span class="n">y_pred_cat</span> <span class="o">=</span> <span class="n">cat_layer</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">x</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">cat_layer</span><span class="p">)):</span>
+                    <span class="c1"># the last layer has no activation function</span>
+                    <span class="n">y_pred_cat</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">y_pred_cat</span><span class="p">)</span>
+                    <span class="n">y_pred_cat</span> <span class="o">=</span> <span class="n">cat_layer</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">y_pred_cat</span><span class="p">)</span>
+                <span class="n">y_pred_cat_combo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y_pred_cat</span><span class="p">)</span>
+
+        <span class="c1"># Numerical part.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layer</span><span class="p">:</span>
+            <span class="n">y_pred_num</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y_pred_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layer</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_layer</span><span class="p">)):</span>
+                <span class="c1"># the last layer has no activation function</span>
+                <span class="n">y_pred_num</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">y_pred_num</span><span class="p">)</span>
+                <span class="n">y_pred_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layer</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">y_pred_num</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">y_pred_cat_combo</span><span class="p">,</span> <span class="n">y_pred_num</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

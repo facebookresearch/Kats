@@ -1,0 +1,504 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.models.metalearner.get_metadata &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css" />
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.models.metalearner.get_metadata</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="sd">&quot;&quot;&quot;A module for computing the meta-data of time series.</span>
+
+<span class="sd">This module contains the class for computing the meta-data of time series. The meta-data of a time series is consists of three parts: 1) time series features;</span>
+<span class="sd">2) the best hyper-parameters of each candidate models and their corresponding errors; and 3) the best model.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">cpu_count</span>
+<span class="kn">from</span> <span class="nn">multiprocessing.pool</span> <span class="kn">import</span> <span class="n">ThreadPool</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">kats.utils.time_series_parameter_tuning</span> <span class="k">as</span> <span class="nn">tpt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">SearchMethodEnum</span><span class="p">,</span> <span class="n">TimeSeriesData</span>
+<span class="kn">from</span> <span class="nn">kats.models.arima</span> <span class="kn">import</span> <span class="n">ARIMAModel</span><span class="p">,</span> <span class="n">ARIMAParams</span>
+<span class="kn">from</span> <span class="nn">kats.models.holtwinters</span> <span class="kn">import</span> <span class="n">HoltWintersModel</span><span class="p">,</span> <span class="n">HoltWintersParams</span>
+<span class="kn">from</span> <span class="nn">kats.models.prophet</span> <span class="kn">import</span> <span class="n">ProphetModel</span><span class="p">,</span> <span class="n">ProphetParams</span>
+<span class="kn">from</span> <span class="nn">kats.models.sarima</span> <span class="kn">import</span> <span class="n">SARIMAModel</span><span class="p">,</span> <span class="n">SARIMAParams</span>
+<span class="kn">from</span> <span class="nn">kats.models.stlf</span> <span class="kn">import</span> <span class="n">STLFModel</span><span class="p">,</span> <span class="n">STLFParams</span>
+<span class="kn">from</span> <span class="nn">kats.models.theta</span> <span class="kn">import</span> <span class="n">ThetaModel</span><span class="p">,</span> <span class="n">ThetaParams</span>
+<span class="kn">from</span> <span class="nn">kats.tsfeatures.tsfeatures</span> <span class="kn">import</span> <span class="n">TsFeatures</span>
+
+
+<span class="n">candidate_models</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;arima&quot;</span><span class="p">:</span> <span class="n">ARIMAModel</span><span class="p">,</span>
+    <span class="s2">&quot;holtwinters&quot;</span><span class="p">:</span> <span class="n">HoltWintersModel</span><span class="p">,</span>
+    <span class="s2">&quot;prophet&quot;</span><span class="p">:</span> <span class="n">ProphetModel</span><span class="p">,</span>
+    <span class="s2">&quot;theta&quot;</span><span class="p">:</span> <span class="n">ThetaModel</span><span class="p">,</span>
+    <span class="s2">&quot;stlf&quot;</span><span class="p">:</span> <span class="n">STLFModel</span><span class="p">,</span>
+    <span class="s2">&quot;sarima&quot;</span><span class="p">:</span> <span class="n">SARIMAModel</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">candidate_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;arima&quot;</span><span class="p">:</span> <span class="n">ARIMAParams</span><span class="p">,</span>
+    <span class="s2">&quot;holtwinters&quot;</span><span class="p">:</span> <span class="n">HoltWintersParams</span><span class="p">,</span>
+    <span class="s2">&quot;prophet&quot;</span><span class="p">:</span> <span class="n">ProphetParams</span><span class="p">,</span>
+    <span class="s2">&quot;theta&quot;</span><span class="p">:</span> <span class="n">ThetaParams</span><span class="p">,</span>
+    <span class="s2">&quot;stlf&quot;</span><span class="p">:</span> <span class="n">STLFParams</span><span class="p">,</span>
+    <span class="s2">&quot;sarima&quot;</span><span class="p">:</span> <span class="n">SARIMAParams</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Constant to indicate error types supported</span>
+<span class="n">ALLOWED_ERRORS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mape&quot;</span><span class="p">,</span> <span class="s2">&quot;smape&quot;</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span> <span class="s2">&quot;mase&quot;</span><span class="p">,</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="GetMetaData"><a class="viewcode-back" href="../../../../kats.models.metalearner.get_metadata.html#kats.models.metalearner.get_metadata.GetMetaData">[docs]</a><span class="k">class</span> <span class="nc">GetMetaData</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A class for generate meta-data of time series.</span>
+
+<span class="sd">    The meta-data of time series contains three components:</span>
+<span class="sd">        1. Time series feature vector, such as entropy, seasonal features, ACF/PACF based features.</span>
+<span class="sd">        2. Best hyper-parameters for each candidate models and their corresponding errors for a time series data.</span>
+<span class="sd">        3. Best model for a time series data.</span>
+<span class="sd">    This class provides tune_executor and get_meta_dat.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        data: :class:`kats.consts.TimeSeriesData` object representing the input time series data.</span>
+<span class="sd">        all_models: Optional; A dictionary of candidate model classes. Default dictionary includes models of ARIMA, SARIMA, HoltWinters, Prophet, Theta, and STLF.</span>
+<span class="sd">        all_params: Optional; A dictionary of the corresponding candidate model parameter classes. Default includes model parameter classes of ARIMA, SARIMA, HoltWinters, Prophet, Theta, and STLF.</span>
+<span class="sd">        min_length: Optional; An integer for the minimal length of a time series. Time series data whose length is shorter than min_length will be excluded. Default is 30.</span>
+<span class="sd">        scale: Optional; A boolean to specify whether or not to rescale the time series data by its maximum values. Default is True. Default is True.</span>
+<span class="sd">        method: Optional; A SearchMethodEnum object defining the search method for hyper-parameters tuning. Default is random search in the default parameter space.</span>
+<span class="sd">        executor: Optional; A callable parallel executor for tuning individual candidate models in parallel. Default is the native implementation with Python&#39;s multiprocessing.</span>
+<span class="sd">        error_method: Optional; A string for error metric used for model evaluation. Can be &#39;mape&#39;, &#39;smape&#39;, &#39;mae&#39;, &#39;mase&#39;, &#39;mse&#39;, or &#39;rmse&#39;. Default is &#39;mae&#39;.</span>
+<span class="sd">        num_trials: Optional; An integer for the number of trials in hyper-parameter search. Default is 5.</span>
+<span class="sd">        num_arms: Optional; An integer for the number of arms in hyper-parameter search. Default is 4.</span>
+
+<span class="sd">    Sample Usage:</span>
+<span class="sd">        &gt;&gt;&gt; TSdata = TimeSeriesData(data)</span>
+<span class="sd">        &gt;&gt;&gt; MD = GetMetaData(data=TSdata)</span>
+<span class="sd">        &gt;&gt;&gt; hpt_res = MD.tune_executor()</span>
+<span class="sd">        &gt;&gt;&gt; my_meta_data = MD.get_meta_data() # Get meta-data, hyper-parameter searching method and error metric.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+        <span class="n">all_models</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">candidate_models</span><span class="p">,</span>
+        <span class="n">all_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">candidate_params</span><span class="p">,</span>
+        <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
+        <span class="n">scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">SearchMethodEnum</span> <span class="o">=</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_UNIFORM</span><span class="p">,</span>
+        <span class="n">executor</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">error_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span>
+        <span class="n">num_trials</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">num_arms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Input data should be TimeSeriesData&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">all_models</span> <span class="o">=</span> <span class="n">all_models</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">all_params</span> <span class="o">=</span> <span class="n">all_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_length</span> <span class="o">=</span> <span class="n">min_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_funcs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;mape&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mape</span><span class="p">,</span>
+            <span class="s2">&quot;smape&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_smape</span><span class="p">,</span>
+            <span class="s2">&quot;mae&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mae</span><span class="p">,</span>
+            <span class="s2">&quot;mase&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mase</span><span class="p">,</span>
+            <span class="s2">&quot;mse&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mse</span><span class="p">,</span>
+            <span class="s2">&quot;rmse&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_rmse</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_method</span> <span class="o">=</span> <span class="n">error_method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_trials</span> <span class="o">=</span> <span class="n">num_trials</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_arms</span> <span class="o">=</span> <span class="n">num_arms</span>
+
+        <span class="c1"># Check if the data type is TimeSeriesData</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">TimeSeriesData</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Only support TimeSeriesData, but get </span><span class="si">{type}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Check if the time series is univariate</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Only support univariate time series, but get </span><span class="si">{type}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Check if use customized tune Executor.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tune_executor</span> <span class="o">=</span> <span class="n">executor</span><span class="p">[</span><span class="s2">&quot;tune_executor&quot;</span><span class="p">]</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Using customized tune_executor from given parameters!&quot;</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;We are using the default tune_executor for hyper-param tuning!&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_data</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_others</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_models</span><span class="p">()</span>
+
+        <span class="c1"># Scale data if scale is True</span>
+        <span class="k">if</span> <span class="n">scale</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scale</span><span class="p">()</span>
+
+        <span class="c1"># Split to training set and test set</span>
+        <span class="n">split_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_series</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">[:</span><span class="n">split_idx</span><span class="p">],</span>
+                    <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">[:</span><span class="n">split_idx</span><span class="p">],</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_series</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">split_idx</span><span class="p">:],</span>
+                    <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">split_idx</span><span class="p">:],</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Validation function for checking input time seris.&quot;&quot;&quot;</span>
+
+        <span class="c1"># check if the time series length greater or equal to minimal length</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_length</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Time series is too short!&quot;</span><span class="p">)</span>
+
+        <span class="c1"># check if the time frequency is constant</span>
+        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">infer_freq</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Only constant frequency is supported for time!&quot;</span><span class="p">)</span>
+
+        <span class="c1"># check if the time series is constant</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;It&#39;s constant time series!&quot;</span><span class="p">)</span>
+
+        <span class="c1"># check if the time series contains NAN, inf or -inf</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Time series contains NAN or infinity value(s)!&quot;</span><span class="p">)</span>
+
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Valid time series data!&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_models</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Check if candidate models and candidate hyper-params are matched&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_models</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_params</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unmatched model dict and parameters dict!&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_others</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Check if given serach method and error method are valid&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ALLOWED_ERRORS</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Invalid error type passed&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;error name: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_method</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported error type&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Rescale time series.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Successful scaled! Each value of TS has been divided by the max value of TS.&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_tune_single</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">single_model</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">single_params</span><span class="p">:</span> <span class="n">Callable</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Fit and evaluate a single candidate model.&quot;&quot;&quot;</span>
+
+        <span class="c1"># define an evaluation_function</span>
+        <span class="k">def</span> <span class="nf">_evaluation_function</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;seasonal_order&quot;</span> <span class="ow">in</span> <span class="n">params</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;seasonal_order&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">params</span><span class="p">[</span><span class="s2">&quot;seasonal_order&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;seasonal_order&quot;</span><span class="p">])</span>
+
+            <span class="c1"># use ** operator to unpack the dictionary params</span>
+            <span class="n">local_params</span> <span class="o">=</span> <span class="n">single_params</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+            <span class="n">local_model</span> <span class="o">=</span> <span class="n">single_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_series</span><span class="p">,</span> <span class="n">local_params</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">local_model</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+                <span class="n">model_pred</span> <span class="o">=</span> <span class="n">local_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_series</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+                <span class="n">training_inputs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_series</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">model_pred</span><span class="o">.</span><span class="n">fcst</span><span class="p">)</span>
+                <span class="n">truth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_series</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                <span class="n">diffs</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">truth</span> <span class="o">-</span> <span class="n">predictions</span><span class="p">)</span>
+                <span class="c1"># error metric:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_funcs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">error_method</span><span class="p">](</span>
+                    <span class="n">training_inputs</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">truth</span><span class="p">,</span> <span class="n">diffs</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exception in tuning hyper-parameters: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            <span class="k">return</span> <span class="n">error</span>
+
+        <span class="c1"># Create search method object</span>
+        <span class="n">parameter_tuner</span> <span class="o">=</span> <span class="n">tpt</span><span class="o">.</span><span class="n">SearchMethodFactory</span><span class="o">.</span><span class="n">create_search_method</span><span class="p">(</span>
+            <span class="c1"># pyre-fixme[16]: Anonymous callable has no attribute</span>
+            <span class="c1">#  `get_parameter_search_space`.</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">single_model</span><span class="o">.</span><span class="n">get_parameter_search_space</span><span class="p">(),</span>
+            <span class="n">selected_search_method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">GRID_SEARCH</span><span class="p">:</span>
+            <span class="n">parameter_tuner</span><span class="o">.</span><span class="n">generate_evaluate_new_parameter_values</span><span class="p">(</span>
+                <span class="n">evaluation_function</span><span class="o">=</span><span class="n">_evaluation_function</span><span class="p">,</span> <span class="n">arm_count</span><span class="o">=-</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Random Search / Bayesian Optimal Search / Others</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_trials</span><span class="p">):</span>
+                <span class="n">parameter_tuner</span><span class="o">.</span><span class="n">generate_evaluate_new_parameter_values</span><span class="p">(</span>
+                    <span class="n">evaluation_function</span><span class="o">=</span><span class="n">_evaluation_function</span><span class="p">,</span> <span class="n">arm_count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_arms</span>
+                <span class="p">)</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">parameter_tuner</span><span class="o">.</span><span class="n">list_parameter_value_scores</span><span class="p">()</span>
+        <span class="c1"># Exclude error = nan, -inf, inf</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">scores</span><span class="p">[</span><span class="o">~</span><span class="n">scores</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">])]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{},</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">nsmallest</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;mean&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">],</span> <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="GetMetaData.tune_executor"><a class="viewcode-back" href="../../../../kats.models.metalearner.get_metadata.html#kats.models.metalearner.get_metadata.GetMetaData.tune_executor">[docs]</a>    <span class="k">def</span> <span class="nf">tune_executor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Get the best hyper parameters for each candidate model and their corresponding errors for the time series data.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary storing the best hyper-parameters and the errors for each candidate model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_process</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_models</span><span class="p">),</span> <span class="p">(</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_process</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">num_process</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">ThreadPool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">num_process</span><span class="p">)</span>
+        <span class="n">tuned_models</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">single_model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_models</span><span class="p">:</span>
+            <span class="n">tuned_models</span><span class="p">[</span><span class="n">single_model</span><span class="p">]</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_tune_single</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_models</span><span class="p">[</span><span class="n">single_model</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_params</span><span class="p">[</span><span class="n">single_model</span><span class="p">]),</span>
+            <span class="p">)</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="n">tuned_res</span> <span class="o">=</span> <span class="p">{</span><span class="n">model</span><span class="p">:</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">tuned_models</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="n">tuned_res</span></div>
+
+<div class="viewcode-block" id="GetMetaData.get_meta_data"><a class="viewcode-back" href="../../../../kats.models.metalearner.get_metadata.html#kats.models.metalearner.get_metadata.GetMetaData.get_meta_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_meta_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Get meta data, as well as search method and type of error metric</span>
+
+<span class="sd">        Meta data includes time series features, best hyper-params for each candidate models, and best model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary storing the best hyper-parameters and the errors for each candidate model, the features of the time series data, the hyper-parameter searching method,</span>
+<span class="sd">            the error metric used for model evaluation and the corresponding best model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">features_dict</span> <span class="o">=</span> <span class="n">TsFeatures</span><span class="p">()</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># feature contains nan, pass</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">features_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Feature vector contains NAN, features are </span><span class="si">{</span><span class="n">features_dict</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">HPT_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tune_executor</span><span class="p">()</span>
+
+        <span class="c1"># sorted by HPT_res[z][-1], i.e., error metric value.</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">HPT_res</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">z</span><span class="p">:</span> <span class="n">HPT_res</span><span class="p">[</span><span class="n">z</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">GRID_SEARCH</span><span class="p">:</span>
+            <span class="n">local_method</span> <span class="o">=</span> <span class="s2">&quot;GridSearch&quot;</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_UNIFORM</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_SOBOL</span>
+        <span class="p">):</span>
+            <span class="n">local_method</span> <span class="o">=</span> <span class="s2">&quot;RandomSearch&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">BAYES_OPT</span><span class="p">:</span>
+            <span class="n">local_method</span> <span class="o">=</span> <span class="s2">&quot;BayesOptimalSearch&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">local_method</span> <span class="o">=</span> <span class="s2">&quot;Others&quot;</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;hpt_res&quot;</span><span class="p">:</span> <span class="n">HPT_res</span><span class="p">,</span>
+            <span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">features_dict</span><span class="p">,</span>
+            <span class="s2">&quot;best_model&quot;</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+            <span class="s2">&quot;search_method&quot;</span><span class="p">:</span> <span class="n">local_method</span><span class="p">,</span>
+            <span class="s2">&quot;error_method&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_method</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">_calc_mape</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">training_inputs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">truth</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">diffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Calculating MAPE&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">truth</span> <span class="o">-</span> <span class="n">predictions</span><span class="p">)</span> <span class="o">/</span> <span class="n">truth</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_calc_smape</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">training_inputs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">truth</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">diffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Calculating SMAPE&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">((</span><span class="nb">abs</span><span class="p">(</span><span class="n">truth</span> <span class="o">-</span> <span class="n">predictions</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">truth</span> <span class="o">+</span> <span class="n">predictions</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="mf">2.0</span> <span class="o">/</span> <span class="n">truth</span><span class="o">.</span><span class="n">size</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_calc_mae</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">training_inputs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">truth</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">diffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Calculating MAE&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">diffs</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_calc_mase</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">training_inputs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">truth</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">diffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="c1"># MASE = mean(|actual - forecast| / naiveError), where naiveError = 1/ (n-1) sigma^n_[i=2](|actual_[i] - actual_[i-1]|).</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Calculating MASE&quot;</span><span class="p">)</span>
+        <span class="n">naive_error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">training_inputs</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="n">training_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">diffs</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">/</span> <span class="n">naive_error</span>
+
+    <span class="k">def</span> <span class="nf">_calc_mse</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">training_inputs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">truth</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">diffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Calculating MSE&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">((</span><span class="n">diffs</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_calc_rmse</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">training_inputs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">truth</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">diffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Calculating RMSE&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_calc_mse</span><span class="p">(</span><span class="n">training_inputs</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">truth</span><span class="p">,</span> <span class="n">diffs</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;GetMetaData&quot;</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

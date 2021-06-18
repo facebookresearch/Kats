@@ -1,0 +1,757 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.detectors.cusum_model &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.detectors.cusum_model</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="sd">&quot;&quot;&quot;CUSUMDetectorModel is a wraper of CUSUMDetector to detect multiple change points</span>
+
+<span class="sd">Typical usage example:</span>
+
+<span class="sd">&gt;&gt;&gt; # Define CUSUMDetectorModel</span>
+<span class="sd">&gt;&gt;&gt; model = CUSUMDetectorModel(</span>
+<span class="sd">        scan_window=43200,</span>
+<span class="sd">        historical_window=604800,</span>
+<span class="sd">        threshold=0.01,</span>
+<span class="sd">        delta_std_ratio=1.0,</span>
+<span class="sd">        serialized_model=None,</span>
+<span class="sd">        change_directions=[&quot;increase&quot;],</span>
+<span class="sd">        score_func=CusumScoreFunction.percentage_change,</span>
+<span class="sd">        remove_seasonality=True,</span>
+<span class="sd">    )</span>
+<span class="sd">&gt;&gt;&gt; # Run detector</span>
+<span class="sd">&gt;&gt;&gt; respond = model.fit_predict(tsd)</span>
+<span class="sd">&gt;&gt;&gt; # Plot anomaly score</span>
+<span class="sd">&gt;&gt;&gt; respond.scores.plot(cols=[&#39;value&#39;])</span>
+<span class="sd">&gt;&gt;&gt; # Get change points in unixtime</span>
+<span class="sd">&gt;&gt;&gt; change_points = model.cps</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DEFAULT_VALUE_NAME</span><span class="p">,</span>
+    <span class="n">TimeSeriesData</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kats.detectors.cusum_detection</span> <span class="kn">import</span> <span class="n">CUSUMDetector</span><span class="p">,</span> <span class="n">CUSUM_DEFAULT_ARGS</span>
+<span class="kn">from</span> <span class="nn">kats.detectors.detector</span> <span class="kn">import</span> <span class="n">DetectorModel</span>
+<span class="kn">from</span> <span class="nn">kats.detectors.detector_consts</span> <span class="kn">import</span> <span class="n">AnomalyResponse</span>
+<span class="kn">from</span> <span class="nn">kats.utils.decomposition</span> <span class="kn">import</span> <span class="n">TimeSeriesDecomposition</span>
+
+
+<span class="n">NORMAL_TOLERENCE</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># number of window</span>
+<span class="n">CHANGEPOINT_RETENTION</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>  <span class="c1"># in seconds</span>
+<span class="n">MAX_CHANGEPOINT</span> <span class="o">=</span> <span class="mi">10</span>
+
+<div class="viewcode-block" id="percentage_change"><a class="viewcode-back" href="../../../kats.detectors.cusum_model.html#kats.detectors.cusum_model.percentage_change">[docs]</a><span class="k">def</span> <span class="nf">percentage_change</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">pre_mean</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeSeriesData</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate percentage change absolute change / baseline change</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: The data need to calculate the score</span>
+<span class="sd">        pre_mean: Baseline mean</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">pre_mean</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">pre_mean</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="change"><a class="viewcode-back" href="../../../kats.detectors.cusum_model.html#kats.detectors.cusum_model.change">[docs]</a><span class="k">def</span> <span class="nf">change</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">pre_mean</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeSeriesData</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate absolute change</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: The data need to calculate the score</span>
+<span class="sd">        pre_mean: Baseline mean</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">data</span> <span class="o">-</span> <span class="n">pre_mean</span></div>
+
+
+<div class="viewcode-block" id="z_score"><a class="viewcode-back" href="../../../kats.detectors.cusum_model.html#kats.detectors.cusum_model.z_score">[docs]</a><span class="k">def</span> <span class="nf">z_score</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">pre_mean</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">pre_std</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeSeriesData</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate z score: absolute change / std</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: The data need to calculate the score</span>
+<span class="sd">        pre_mean: Baseline mean</span>
+<span class="sd">        pre_std: Baseline std</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">pre_mean</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">pre_std</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CusumScoreFunction"><a class="viewcode-back" href="../../../kats.detectors.cusum_model.html#kats.detectors.cusum_model.CusumScoreFunction">[docs]</a><span class="k">class</span> <span class="nc">CusumScoreFunction</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">change</span> <span class="o">=</span> <span class="s2">&quot;change&quot;</span>
+    <span class="n">percentage_change</span> <span class="o">=</span> <span class="s2">&quot;percentage_change&quot;</span>
+    <span class="n">z_score</span> <span class="o">=</span> <span class="s2">&quot;z_score&quot;</span></div>
+
+<span class="c1"># Score Function Constants</span>
+<span class="n">SCORE_FUNC_DICT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">CusumScoreFunction</span><span class="o">.</span><span class="n">change</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">change</span><span class="p">,</span>
+    <span class="n">CusumScoreFunction</span><span class="o">.</span><span class="n">percentage_change</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">percentage_change</span><span class="p">,</span>
+    <span class="n">CusumScoreFunction</span><span class="o">.</span><span class="n">z_score</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">z_score</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">DEFAULT_SCORE_FUNCTION</span> <span class="o">=</span> <span class="n">CusumScoreFunction</span><span class="o">.</span><span class="n">change</span>
+<span class="n">STR_TO_SCORE_FUNC</span> <span class="o">=</span> <span class="p">{</span> <span class="c1"># Used for param tuning</span>
+    <span class="s2">&quot;change&quot;</span><span class="p">:</span> <span class="n">CusumScoreFunction</span><span class="o">.</span><span class="n">change</span><span class="p">,</span>
+    <span class="s2">&quot;percentage_change&quot;</span><span class="p">:</span> <span class="n">CusumScoreFunction</span><span class="o">.</span><span class="n">percentage_change</span><span class="p">,</span>
+    <span class="s2">&quot;z_score&quot;</span><span class="p">:</span> <span class="n">CusumScoreFunction</span><span class="o">.</span><span class="n">z_score</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="CUSUMDetectorModel"><a class="viewcode-back" href="../../../kats.detectors.cusum_model.html#kats.detectors.cusum_model.CUSUMDetectorModel">[docs]</a><span class="k">class</span> <span class="nc">CUSUMDetectorModel</span><span class="p">(</span><span class="n">DetectorModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;CUSUMDetectorModel for detecting multiple level shift change points</span>
+
+<span class="sd">    CUSUMDetectorModel runs CUSUMDetector multiple times to detect multiple change</span>
+<span class="sd">    points. In each run, CUSUMDetector will use historical_window + scan_window as</span>
+<span class="sd">    input time series, and find change point in scan_window. The DetectorModel stores</span>
+<span class="sd">    change points and returns anomaly score.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        cps: Change points detected in unixtime.</span>
+<span class="sd">        alert_fired: If a change point is detected and the anomaly still present.</span>
+<span class="sd">        pre_mean: Previous baseline mean.</span>
+<span class="sd">        pre_std: Previous baseline std.</span>
+<span class="sd">        number_of_normal_scan: Number of scans with mean returned back to baseline.</span>
+<span class="sd">        alert_change_direction: Increase or decrease.</span>
+<span class="sd">        scan_window: Length in seconds of scan window.</span>
+<span class="sd">        historical_window: Length in seconds of historical window.</span>
+<span class="sd">        step_window: The time difference between CUSUM runs.</span>
+<span class="sd">        threshold: CUSUMDetector threshold.</span>
+<span class="sd">        delta_std_ratio: The mean delta have to larger than this parameter times std of</span>
+<span class="sd">            the data to be consider as a change.</span>
+<span class="sd">        magnitude_quantile: See in CUSUMDetector.</span>
+<span class="sd">        magnitude_ratio: See in CUSUMDetector.</span>
+<span class="sd">        score_func: The score function to calculate the anomaly score.</span>
+<span class="sd">        remove_seasonality: If apply STL to remove seasonality.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">serialized_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">scan_window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">historical_window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">step_window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;threshold&quot;</span><span class="p">],</span>
+        <span class="n">delta_std_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;delta_std_ratio&quot;</span><span class="p">],</span>
+        <span class="n">magnitude_quantile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;magnitude_quantile&quot;</span><span class="p">],</span>
+        <span class="n">magnitude_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;magnitude_ratio&quot;</span><span class="p">],</span>
+        <span class="n">change_directions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;change_directions&quot;</span><span class="p">],</span>
+        <span class="n">score_func</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CusumScoreFunction</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_SCORE_FUNCTION</span><span class="p">,</span>
+        <span class="n">remove_seasonality</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;remove_seasonality&quot;</span><span class="p">],</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">serialized_model</span><span class="p">:</span>
+            <span class="n">previous_model</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">serialized_model</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cps</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;cps&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alert_fired</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;alert_fired&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pre_mean</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;pre_mean&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pre_std</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;pre_std&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">number_of_normal_scan</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;number_of_normal_scan&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alert_change_direction</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;alert_change_direction&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scan_window</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;scan_window&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">historical_window</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;historical_window&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_window</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;step_window&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;threshold&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta_std_ratio</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;delta_std_ratio&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_quantile</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;magnitude_quantile&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_ratio</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;magnitude_ratio&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">change_directions</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;change_directions&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">score_func</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;score_func&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;remove_seasonality&quot;</span> <span class="ow">in</span> <span class="n">previous_model</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">remove_seasonality</span> <span class="o">=</span> <span class="n">previous_model</span><span class="p">[</span><span class="s2">&quot;remove_seasonality&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">remove_seasonality</span> <span class="o">=</span> <span class="n">remove_seasonality</span>
+        <span class="k">elif</span> <span class="n">scan_window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">historical_window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cps</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alert_fired</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pre_mean</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pre_std</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">number_of_normal_scan</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alert_change_direction</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scan_window</span> <span class="o">=</span> <span class="n">scan_window</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">historical_window</span> <span class="o">=</span> <span class="n">historical_window</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_window</span> <span class="o">=</span> <span class="n">step_window</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta_std_ratio</span> <span class="o">=</span> <span class="n">delta_std_ratio</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_quantile</span> <span class="o">=</span> <span class="n">magnitude_quantile</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_ratio</span> <span class="o">=</span> <span class="n">magnitude_ratio</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">change_directions</span> <span class="o">=</span> <span class="n">change_directions</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_seasonality</span> <span class="o">=</span> <span class="n">remove_seasonality</span>
+
+            <span class="c1"># We allow score_function to be a str for compatibility with param tuning</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">score_func</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">score_func</span> <span class="ow">in</span> <span class="n">STR_TO_SCORE_FUNC</span><span class="p">:</span>
+                    <span class="n">score_func</span> <span class="o">=</span> <span class="n">STR_TO_SCORE_FUNC</span><span class="p">[</span><span class="n">score_func</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">score_func</span> <span class="o">=</span> <span class="n">DEFAULT_SCORE_FUNCTION</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">score_func</span> <span class="o">=</span> <span class="n">score_func</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            You must either provide serialized model or values for scan_window and historical_window.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># pyre-fixme[58]: `&gt;=` is not supported for operand types `int` and</span>
+        <span class="c1">#  `Optional[int]`.</span>
+        <span class="c1"># pyre-fixme[58]: `&gt;=` is not supported for operand types `int` and</span>
+        <span class="c1">#  `Optional[int]`.</span>
+        <span class="k">if</span> <span class="n">step_window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">step_window</span> <span class="o">&gt;=</span> <span class="n">scan_window</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Step window should smaller than scan window to ensure we have overlap for scan windows.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">CUSUMDetectorModel</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cps</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">cps</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_fired</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">alert_fired</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_mean</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">pre_mean</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_std</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">pre_std</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_normal_scan</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">number_of_normal_scan</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_change_direction</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">alert_change_direction</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_window</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">scan_window</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">historical_window</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">historical_window</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_window</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">step_window</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">threshold</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_std_ratio</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">delta_std_ratio</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_quantile</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">magnitude_quantile</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_ratio</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">magnitude_ratio</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_directions</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">change_directions</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_func</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">score_func</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="CUSUMDetectorModel.serialize"><a class="viewcode-back" href="../../../kats.detectors.cusum_model.html#kats.detectors.cusum_model.CUSUMDetectorModel.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrun serilized model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">str</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_set_alert_off</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alert_fired</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">number_of_normal_scan</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_set_alert_on</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">baseline_mean</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">baseline_std</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">alert_change_direction</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alert_fired</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alert_change_direction</span> <span class="o">=</span> <span class="n">alert_change_direction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_mean</span> <span class="o">=</span> <span class="n">baseline_mean</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_std</span> <span class="o">=</span> <span class="n">baseline_std</span>
+
+    <span class="k">def</span> <span class="nf">_if_normal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cur_mean</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">change_directions</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">change_directions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">increase</span><span class="p">,</span> <span class="n">decrease</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;increase&quot;</span> <span class="ow">in</span> <span class="n">change_directions</span><span class="p">,</span>
+                <span class="s2">&quot;decrease&quot;</span> <span class="ow">in</span> <span class="n">change_directions</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">increase</span><span class="p">,</span> <span class="n">decrease</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_change_direction</span> <span class="o">==</span> <span class="s2">&quot;increase&quot;</span><span class="p">:</span>
+            <span class="n">check_increase</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">increase</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            <span class="n">check_decrease</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">decrease</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_change_direction</span> <span class="o">==</span> <span class="s2">&quot;decrease&quot;</span><span class="p">:</span>
+            <span class="n">check_increase</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">increase</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            <span class="n">check_decrease</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">decrease</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pre_mean</span> <span class="o">-</span> <span class="n">check_decrease</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_std</span>
+            <span class="o">&lt;=</span> <span class="n">cur_mean</span>
+            <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_mean</span> <span class="o">+</span> <span class="n">check_increase</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_std</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+        <span class="n">historical_data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+        <span class="n">scan_window</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;threshold&quot;</span><span class="p">],</span>
+        <span class="n">delta_std_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;delta_std_ratio&quot;</span><span class="p">],</span>
+        <span class="n">magnitude_quantile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;magnitude_quantile&quot;</span><span class="p">],</span>
+        <span class="n">magnitude_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;magnitude_ratio&quot;</span><span class="p">],</span>
+        <span class="n">change_directions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">CUSUM_DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;change_directions&quot;</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Fit CUSUM model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: the new data the model never seen</span>
+<span class="sd">            historical_data: the historical data, `historical_data` have to end with the</span>
+<span class="sd">                datapoint right before the first data point in `data`</span>
+<span class="sd">            scan_window: scan window length in seconds, scan window is the window where</span>
+<span class="sd">                cusum search for changepoint(s)</span>
+<span class="sd">            threshold: changepoint significant level, higher the value more changepoints</span>
+<span class="sd">                detected</span>
+<span class="sd">            delta_std_ratio: the mean change have to larger than `delta_std_ratio` *</span>
+<span class="sd">            `std(data[:changepoint])` to be consider as a change, higher the value</span>
+<span class="sd">            less changepoints detected</span>
+<span class="sd">            magnitude_quantile: float, the quantile for magnitude comparison, if</span>
+<span class="sd">                none, will skip the magnitude comparison;</span>
+<span class="sd">            magnitude_ratio: float, comparable ratio;</span>
+<span class="sd">            change_directions: a list contain either or both &#39;increas&#39; and &#39;decrease&#39; to</span>
+<span class="sd">                specify what type of change to detect;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">historical_data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">historical_data</span><span class="p">)</span>
+        <span class="n">scan_start_time</span> <span class="o">=</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span>
+            <span class="n">scan_window</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span>
+        <span class="p">)</span>
+        <span class="n">scan_start_index</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">((</span><span class="n">historical_data</span><span class="o">.</span><span class="n">time</span> <span class="o">&gt;=</span> <span class="n">scan_start_time</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_fired</span><span class="p">:</span>
+            <span class="c1"># if scan window is less than 2 data poins and there is no alert fired</span>
+            <span class="c1"># skip this scan</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">-</span> <span class="n">scan_start_index</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="n">detector</span> <span class="o">=</span> <span class="n">CUSUMDetector</span><span class="p">(</span><span class="n">historical_data</span><span class="p">)</span>
+            <span class="n">changepoints</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span>
+                <span class="n">interest_window</span><span class="o">=</span><span class="p">[</span><span class="n">scan_start_index</span><span class="p">,</span> <span class="n">n</span><span class="p">],</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+                <span class="n">delta_std_ratio</span><span class="o">=</span><span class="n">delta_std_ratio</span><span class="p">,</span>
+                <span class="n">magnitude_quantile</span><span class="o">=</span><span class="n">magnitude_quantile</span><span class="p">,</span>
+                <span class="n">magnitude_ratio</span><span class="o">=</span><span class="n">magnitude_ratio</span><span class="p">,</span>
+                <span class="n">change_directions</span><span class="o">=</span><span class="n">change_directions</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">changepoints</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cp</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">changepoints</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start_time</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="mf">1e9</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cps</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">MAX_CHANGEPOINT</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cps</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_alert_on</span><span class="p">(</span>
+                    <span class="n">historical_data</span><span class="o">.</span><span class="n">value</span><span class="p">[:</span> <span class="n">meta</span><span class="o">.</span><span class="n">cp_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+                    <span class="n">historical_data</span><span class="o">.</span><span class="n">value</span><span class="p">[:</span> <span class="n">meta</span><span class="o">.</span><span class="n">cp_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(),</span>
+                    <span class="n">meta</span><span class="o">.</span><span class="n">direction</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cur_mean</span> <span class="o">=</span> <span class="n">historical_data</span><span class="p">[</span><span class="n">scan_start_index</span><span class="p">:]</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+            <span class="c1"># pyre-fixme[6]: Expected `str` for 2nd param but got `List[str]`.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_if_normal</span><span class="p">(</span><span class="n">cur_mean</span><span class="p">,</span> <span class="n">change_directions</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">number_of_normal_scan</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_normal_scan</span> <span class="o">&gt;=</span> <span class="n">NORMAL_TOLERENCE</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_set_alert_off</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">number_of_normal_scan</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="n">current_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="mf">1e9</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">cps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">CHANGEPOINT_RETENTION</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_alert_off</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+        <span class="n">score_func</span><span class="p">:</span> <span class="n">CusumScoreFunction</span> <span class="o">=</span> <span class="n">CusumScoreFunction</span><span class="o">.</span><span class="n">change</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeSeriesData</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        data: the new data for the anoamly score calculation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_fired</span><span class="p">:</span>
+            <span class="n">cp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">tz</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">tz</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">tz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">change_time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">change_time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="n">utc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="n">tz</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">change_time</span> <span class="o">&gt;=</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">cp_index</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">time</span> <span class="o">==</span> <span class="n">change_time</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">data_pre</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span> <span class="n">cp_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">score_pre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zeros_ts</span><span class="p">(</span><span class="n">data_pre</span><span class="p">)</span>
+                <span class="n">score_post</span> <span class="o">=</span> <span class="n">SCORE_FUNC_DICT</span><span class="p">[</span><span class="n">score_func</span><span class="p">](</span>
+                    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">cp_index</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:],</span>
+                    <span class="n">pre_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_mean</span><span class="p">,</span>
+                    <span class="n">pre_std</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_std</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">score_pre</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">score_post</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">score_pre</span>
+            <span class="k">return</span> <span class="n">SCORE_FUNC_DICT</span><span class="p">[</span><span class="n">score_func</span><span class="p">](</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">pre_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_mean</span><span class="p">,</span> <span class="n">pre_std</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_std</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zeros_ts</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_zeros_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeSeriesData</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)),</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">name</span> <span class="k">else</span> <span class="n">DEFAULT_VALUE_NAME</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="c1"># pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`</span>
+    <span class="c1">#  inconsistently.</span>
+<div class="viewcode-block" id="CUSUMDetectorModel.fit_predict"><a class="viewcode-back" href="../../../kats.detectors.cusum_model.html#kats.detectors.cusum_model.CUSUMDetectorModel.fit_predict">[docs]</a>    <span class="k">def</span> <span class="nf">fit_predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+        <span class="n">historical_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnomalyResponse</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function combines fit and predict and return anomaly socre for data. It</span>
+<span class="sd">        requires scan_window &gt; step_window.</span>
+<span class="sd">        The relationship between two consective cusum runs in the loop is shown as below:</span>
+
+<span class="sd">        &gt;&gt;&gt; |---historical_window---|---scan_window---|</span>
+<span class="sd">        &gt;&gt;&gt;                                           |-step_window-|</span>
+<span class="sd">        &gt;&gt;&gt;               |---historical_window---|---scan_window---|</span>
+
+<span class="sd">        * scan_window: the window size in seconds to detect change point</span>
+<span class="sd">        * historical_window: the window size in seconds to provide historical data</span>
+<span class="sd">        * step_window: the window size in seconds to specify the step size between two scans</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: :class:`kats.consts.TimeSeriesData` object representing the data</span>
+<span class="sd">            historical_data: :class:`kats.consts.TimeSeriesData` object representing the history.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The anomaly response contains the anomaly socres.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># get parameters</span>
+        <span class="n">scan_window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_window</span>
+        <span class="n">historical_window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">historical_window</span>
+        <span class="n">step_window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_window</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span>
+        <span class="n">delta_std_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_std_ratio</span>
+        <span class="n">magnitude_quantile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_quantile</span>
+        <span class="n">magnitude_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_ratio</span>
+        <span class="n">change_directions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_directions</span>
+        <span class="n">score_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_func</span>
+        <span class="n">remove_seasonality</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_seasonality</span>
+
+        <span class="n">scan_window</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">scan_window</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
+        <span class="n">historical_window</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">historical_window</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
+
+        <span class="c1"># pull all the data in historical data</span>
+        <span class="k">if</span> <span class="n">historical_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># make a copy of historical data</span>
+            <span class="n">historical_data</span> <span class="o">=</span> <span class="n">historical_data</span><span class="p">[:]</span>
+            <span class="n">historical_data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># When historical_data is not provided, will use part of data as</span>
+            <span class="c1"># historical_data, and fill with zero anomaly score.</span>
+            <span class="n">historical_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:]</span>
+
+        <span class="n">frequency</span> <span class="o">=</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">freq_to_timedelta</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">frequency</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">frequency</span> <span class="ow">is</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span><span class="p">:</span>
+            <span class="c1"># Use the top frequency if any, when not able to infer from data.</span>
+            <span class="n">freq_counts</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">freq_counts</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">historical_data</span><span class="p">))</span> <span class="o">*</span> <span class="mf">0.8</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">frequency</span> <span class="o">=</span> <span class="n">freq_counts</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;freq_counts: </span><span class="si">{</span><span class="n">freq_counts</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Not able to infer freqency of the time series&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">remove_seasonality</span><span class="p">:</span>
+            <span class="n">decomposer_input</span> <span class="o">=</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">frequency</span><span class="p">)</span>
+
+            <span class="c1"># fixing the period to 24 hours as indicated in T81530775</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">/</span> <span class="n">frequency</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">())</span>
+
+            <span class="n">decomposer</span> <span class="o">=</span> <span class="n">TimeSeriesDecomposition</span><span class="p">(</span>
+                <span class="n">decomposer_input</span><span class="p">,</span>
+                <span class="n">period</span><span class="o">=</span><span class="n">period</span><span class="p">,</span>
+                <span class="n">robust</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">seasonal_deg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">trend_deg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">low_pass_deg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">low_pass_jump</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="n">period</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.15</span><span class="p">),</span>  <span class="c1"># save run time</span>
+                <span class="n">seasonal_jump</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">trend_jump</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="n">period</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.15</span><span class="p">),</span>  <span class="c1"># save run time</span>
+            <span class="p">)</span>
+
+            <span class="n">decomp</span> <span class="o">=</span> <span class="n">decomposer</span><span class="o">.</span><span class="n">decomposer</span><span class="p">()</span>
+            <span class="n">historical_data_time_idx</span> <span class="o">=</span> <span class="n">decomp</span><span class="p">[</span><span class="s2">&quot;rem&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+            <span class="n">historical_data</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+                <span class="n">decomp</span><span class="p">[</span><span class="s2">&quot;rem&quot;</span><span class="p">][</span><span class="n">historical_data_time_idx</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+                <span class="o">+</span> <span class="n">decomp</span><span class="p">[</span><span class="s2">&quot;trend&quot;</span><span class="p">][</span><span class="n">historical_data_time_idx</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">historical_data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">smooth_window</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">scan_window</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="n">frequency</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">smooth_window</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">smooth_historical_value</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span>
+                    <span class="n">historical_data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">smooth_window</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;full&quot;</span>
+                <span class="p">)[:</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">smooth_window</span><span class="p">]</span>
+                <span class="o">/</span> <span class="n">smooth_window</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">historical_data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">smooth_historical_data</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+                <span class="n">time</span><span class="o">=</span><span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">smooth_historical_value</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">smooth_historical_data</span> <span class="o">=</span> <span class="n">historical_data</span>
+
+        <span class="n">anomaly_start_time</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">historical_window</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">anomaly_start_time</span> <span class="o">&gt;</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="c1"># if len(all data) is smaller than historical window return zero score</span>
+            <span class="k">return</span> <span class="n">AnomalyResponse</span><span class="p">(</span>
+                <span class="n">scores</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">smooth_historical_data</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="p">:],</span> <span class="n">score_func</span><span class="p">),</span>
+                <span class="c1"># pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.</span>
+                <span class="n">confidence_band</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">predicted_ts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">anomaly_magnitude_ts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_zeros_ts</span><span class="p">(</span><span class="n">data</span><span class="p">),</span>
+                <span class="n">stat_sig_ts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">anomaly_start_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time2idx</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">anomaly_start_time</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">)</span>
+        <span class="n">anomaly_start_time</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">anomaly_start_idx</span><span class="p">]</span>
+        <span class="n">score_tsd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zeros_ts</span><span class="p">(</span><span class="n">data</span><span class="p">[:</span><span class="n">anomaly_start_idx</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">frequency</span>
+            <span class="o">&lt;=</span> <span class="n">scan_window</span>
+        <span class="p">):</span>
+            <span class="c1"># if len(all data) is smaller than scan data return zero score</span>
+            <span class="k">return</span> <span class="n">AnomalyResponse</span><span class="p">(</span>
+                <span class="n">scores</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">smooth_historical_data</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="p">:],</span> <span class="n">score_func</span><span class="p">),</span>
+                <span class="c1"># pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.</span>
+                <span class="n">confidence_band</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">predicted_ts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">anomaly_magnitude_ts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_zeros_ts</span><span class="p">(</span><span class="n">data</span><span class="p">),</span>
+                <span class="n">stat_sig_ts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">step_window</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># if step window is not provide use the time range of data or</span>
+            <span class="c1"># half of the scan_window.</span>
+            <span class="n">step_window</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="n">scan_window</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="o">+</span> <span class="n">frequency</span><span class="p">,</span>  <span class="c1"># to include the last data point</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">step_window</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">step_window</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">start_time</span> <span class="ow">in</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span>
+            <span class="n">anomaly_start_time</span><span class="p">,</span>
+            <span class="nb">min</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">frequency</span>
+                <span class="o">-</span> <span class="n">step_window</span><span class="p">,</span>  <span class="c1"># to include last data point</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>  <span class="c1"># make sure start_time won&#39;t beyond last data time</span>
+            <span class="p">),</span>
+            <span class="n">freq</span><span class="o">=</span><span class="n">step_window</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start_time </span><span class="si">{</span><span class="n">start_time</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">historical_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time2idx</span><span class="p">(</span>
+                <span class="n">historical_data</span><span class="p">,</span> <span class="n">start_time</span> <span class="o">-</span> <span class="n">historical_window</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;historical_start </span><span class="si">{</span><span class="n">historical_start</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">historical_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time2idx</span><span class="p">(</span><span class="n">historical_data</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;historical_end </span><span class="si">{</span><span class="n">historical_end</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">scan_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time2idx</span><span class="p">(</span><span class="n">historical_data</span><span class="p">,</span> <span class="n">start_time</span> <span class="o">+</span> <span class="n">step_window</span><span class="p">,</span> <span class="s2">&quot;left&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;scan_end </span><span class="si">{</span><span class="n">scan_end</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">in_data</span> <span class="o">=</span> <span class="n">historical_data</span><span class="p">[</span><span class="n">historical_end</span> <span class="p">:</span> <span class="n">scan_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">in_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># skip if there is no data in the step_window</span>
+                <span class="k">continue</span>
+            <span class="n">in_hist</span> <span class="o">=</span> <span class="n">historical_data</span><span class="p">[</span><span class="n">historical_start</span><span class="p">:</span><span class="n">historical_end</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fit</span><span class="p">(</span>
+                <span class="n">in_data</span><span class="p">,</span>
+                <span class="n">in_hist</span><span class="p">,</span>
+                <span class="c1"># pyre-fixme[6]: Expected `int` for 3rd param but got `Timedelta`.</span>
+                <span class="n">scan_window</span><span class="o">=</span><span class="n">scan_window</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+                <span class="n">delta_std_ratio</span><span class="o">=</span><span class="n">delta_std_ratio</span><span class="p">,</span>
+                <span class="n">magnitude_quantile</span><span class="o">=</span><span class="n">magnitude_quantile</span><span class="p">,</span>
+                <span class="n">magnitude_ratio</span><span class="o">=</span><span class="n">magnitude_ratio</span><span class="p">,</span>
+                <span class="n">change_directions</span><span class="o">=</span><span class="n">change_directions</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">score_tsd</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span>
+                    <span class="n">smooth_historical_data</span><span class="p">[</span><span class="n">historical_end</span> <span class="p">:</span> <span class="n">scan_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+                    <span class="n">score_func</span><span class="o">=</span><span class="n">score_func</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Handle the remaining data</span>
+        <span class="n">remain_data_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">score_tsd</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">remain_data_len</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">scan_end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">historical_data</span><span class="p">)</span>
+            <span class="n">historical_end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">historical_data</span><span class="p">)</span> <span class="o">-</span> <span class="n">remain_data_len</span>
+            <span class="n">historical_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time2idx</span><span class="p">(</span>
+                <span class="n">historical_data</span><span class="p">,</span>
+                <span class="n">historical_data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">historical_end</span><span class="p">]</span> <span class="o">-</span> <span class="n">historical_window</span><span class="p">,</span>
+                <span class="s2">&quot;left&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">in_data</span> <span class="o">=</span> <span class="n">historical_data</span><span class="p">[</span><span class="n">historical_end</span><span class="p">:</span><span class="n">scan_end</span><span class="p">]</span>
+            <span class="n">in_hist</span> <span class="o">=</span> <span class="n">historical_data</span><span class="p">[</span><span class="n">historical_start</span><span class="p">:</span><span class="n">historical_end</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fit</span><span class="p">(</span>
+                <span class="n">in_data</span><span class="p">,</span>
+                <span class="n">in_hist</span><span class="p">,</span>
+                <span class="c1"># pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.</span>
+                <span class="c1"># pyre-fixme[6]: Expected `int` for 3rd param but got `Timedelta`.</span>
+                <span class="n">scan_window</span><span class="o">=</span><span class="n">scan_window</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+                <span class="n">delta_std_ratio</span><span class="o">=</span><span class="n">delta_std_ratio</span><span class="p">,</span>
+                <span class="n">magnitude_quantile</span><span class="o">=</span><span class="n">magnitude_quantile</span><span class="p">,</span>
+                <span class="n">magnitude_ratio</span><span class="o">=</span><span class="n">magnitude_ratio</span><span class="p">,</span>
+                <span class="n">change_directions</span><span class="o">=</span><span class="n">change_directions</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">score_tsd</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span>
+                    <span class="n">smooth_historical_data</span><span class="p">[</span><span class="n">historical_end</span><span class="p">:</span><span class="n">scan_end</span><span class="p">],</span>
+                    <span class="n">score_func</span><span class="o">=</span><span class="n">score_func</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">AnomalyResponse</span><span class="p">(</span>
+            <span class="n">scores</span><span class="o">=</span><span class="n">score_tsd</span><span class="p">,</span>
+            <span class="c1"># pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.</span>
+            <span class="n">confidence_band</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">predicted_ts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">anomaly_magnitude_ts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_zeros_ts</span><span class="p">(</span><span class="n">data</span><span class="p">),</span>
+            <span class="n">stat_sig_ts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_time2idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tsd</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function get the index of the TimeSeries data given a datatime.</span>
+<span class="sd">        left takes the index on the left of the time stamp (inclusive)</span>
+<span class="sd">        right takes the index on the right of the time stamp (exclusive)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">((</span><span class="n">tsd</span><span class="o">.</span><span class="n">time</span> <span class="o">&gt;=</span> <span class="n">time</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">((</span><span class="n">tsd</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">time</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;direction can only be right or left&quot;</span><span class="p">)</span>
+
+    <span class="c1"># pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.</span>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+        <span class="n">historical_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">historical_data</span><span class="p">)</span>
+
+    <span class="c1"># pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`</span>
+    <span class="c1">#  inconsistently.</span>
+<div class="viewcode-block" id="CUSUMDetectorModel.predict"><a class="viewcode-back" href="../../../kats.detectors.cusum_model.html#kats.detectors.cusum_model.CUSUMDetectorModel.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">historical_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnomalyResponse</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        predict is not implemented</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;predict is not implemented, call fit_predict() instead&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.detectors.bocpd_model module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.detectors.changepoint_evaluator module" href="kats.detectors.changepoint_evaluator.html" />
+    <link rel="prev" title="kats.detectors.bocpd module" href="kats.detectors.bocpd.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.detectors.bocpd_model">
+<span id="kats-detectors-bocpd-model-module"></span><h1>kats.detectors.bocpd_model module<a class="headerlink" href="#module-kats.detectors.bocpd_model" title="Permalink to this headline">¶</a></h1>
+<p>This file implements the Bayesian Online Changepoint Detection
+algorithm as a DetectorModel, to provide a common interface.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.bocpd_model.BocpdDetectorModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.bocpd_model.</span></span><span class="sig-name descname"><span class="pre">BocpdDetectorModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">serialized_model</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><span class="pre">bytes</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slow_drift</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/bocpd_model.html#BocpdDetectorModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.bocpd_model.BocpdDetectorModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kats.detectors.detector.html#kats.detectors.detector.DetectorModel" title="kats.detectors.detector.DetectorModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.detectors.detector.DetectorModel</span></code></a></p>
+<p>Implements the Bayesian Online Changepoint Detection as a DetectorModel.</p>
+<p>This provides an unified interface, which is common to all detection algorithms.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.bocpd_model.BocpdDetectorModel.serialized_model">
+<span class="sig-name descname"><span class="pre">serialized_model</span></span><a class="headerlink" href="#kats.detectors.bocpd_model.BocpdDetectorModel.serialized_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>json containing information about stored model.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.bocpd_model.BocpdDetectorModel.slow_drift">
+<span class="sig-name descname"><span class="pre">slow_drift</span></span><a class="headerlink" href="#kats.detectors.bocpd_model.BocpdDetectorModel.slow_drift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Boolean. True indicates we are trying to detect trend changes.
+False indicates we are trying to detect level changes.</p>
+</dd></dl>
+
+<p>Typical Usage:
+level_ts is an instance of TimeSeriesData
+&gt;&gt;&gt; bocpd_detector = BocpdDetectorModel()
+&gt;&gt;&gt; anom = bocpd_detector.fit_predict(data=level_ts)</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.bocpd_model.BocpdDetectorModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">historical_data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/detectors/bocpd_model.html#BocpdDetectorModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.bocpd_model.BocpdDetectorModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>fit can be called during priming. It’s a noop for us.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.bocpd_model.BocpdDetectorModel.fit_predict">
+<span class="sig-name descname"><span class="pre">fit_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">historical_data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">kats.detectors.detector_consts.AnomalyResponse</span><a class="reference internal" href="_modules/kats/detectors/bocpd_model.html#BocpdDetectorModel.fit_predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.bocpd_model.BocpdDetectorModel.fit_predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds changepoints and returns score.</p>
+<p>Uses the current data and historical data to find the changepoints, and
+returns an AnomalyResponse object, the scores corresponding to probability
+of changepoints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – TimeSeriesData object representing the data</p></li>
+<li><p><strong>historical_data</strong> – TimeSeriesdata object representing the history. Dats</p></li>
+<li><p><strong>start exactly where the historical_data ends.</strong> (<em>should</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>AnomalyResponse object, representing the changepoint probabilities. The
+score property contains the changepoint probabilities. The length of
+the object is the same as the length of the data.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.bocpd_model.BocpdDetectorModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">historical_data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">kats.detectors.detector_consts.AnomalyResponse</span><a class="reference internal" href="_modules/kats/detectors/bocpd_model.html#BocpdDetectorModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.bocpd_model.BocpdDetectorModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>predict is not implemented</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.bocpd_model.BocpdDetectorModel.serialize">
+<span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><span class="pre">bytes</span></a><a class="reference internal" href="_modules/kats/detectors/bocpd_model.html#BocpdDetectorModel.serialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.bocpd_model.BocpdDetectorModel.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the serialzed model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None.</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>json containing information about serialized model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.bocpd.html">kats.detectors.bocpd module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">kats.detectors.bocpd_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.changepoint_evaluator.html">kats.detectors.changepoint_evaluator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.cusum_detection.html">kats.detectors.cusum_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.cusum_model.html">kats.detectors.cusum_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.detector.html">kats.detectors.detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.detector_consts.html">kats.detectors.detector_consts module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.hourly_ratio_detection.html">kats.detectors.hourly_ratio_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.outlier.html">kats.detectors.outlier module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.prophet_detector.html">kats.detectors.prophet_detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.residual_translation.html">kats.detectors.residual_translation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.robust_stat_detection.html">kats.detectors.robust_stat_detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.seasonality.html">kats.detectors.seasonality module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.stat_sig_detector.html">kats.detectors.stat_sig_detector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.trend_mk.html">kats.detectors.trend_mk module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.html#module-kats.detectors">kats.detectors module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="kats.detectors.html">kats.detectors package</a><ul>
+      <li>Previous: <a href="kats.detectors.bocpd.html" title="previous chapter">kats.detectors.bocpd module</a></li>
+      <li>Next: <a href="kats.detectors.changepoint_evaluator.html" title="next chapter">kats.detectors.changepoint_evaluator module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.detectors.bocpd_model.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

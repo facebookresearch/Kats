@@ -1,0 +1,915 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.models.ensemble.kats_ensemble &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css" />
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.models.ensemble.kats_ensemble</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="sd">&quot;&quot;&quot;Kats ensemble model</span>
+
+<span class="sd">Implementation of the Kats ensemble model. It starts from seasonality detection, if seasonality detected, it</span>
+<span class="sd">continues to perform STL decomposition, then fit forecasting models on de-seasonalized components and aggregate;</span>
+<span class="sd">otherwise it simiply leverage individual forecasting models and ensembling. We provided two ensembling methods,</span>
+<span class="sd">weighted average and median ensembling.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">cpu_count</span>
+
+<span class="kn">import</span> <span class="nn">kats.models.model</span> <span class="k">as</span> <span class="nn">mm</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">Params</span>
+<span class="kn">from</span> <span class="nn">kats.models.ensemble.ensemble</span> <span class="kn">import</span> <span class="n">EnsembleParams</span>
+<span class="kn">from</span> <span class="nn">kats.models.model</span> <span class="kn">import</span> <span class="n">Model</span>
+<span class="kn">from</span> <span class="nn">kats.models</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">arima</span><span class="p">,</span>
+    <span class="n">holtwinters</span><span class="p">,</span>
+    <span class="n">linear_model</span><span class="p">,</span>
+    <span class="n">prophet</span><span class="p">,</span>
+    <span class="n">quadratic_model</span><span class="p">,</span>
+    <span class="n">sarima</span><span class="p">,</span>
+    <span class="n">theta</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kats.utils.backtesters</span> <span class="kn">import</span> <span class="n">BackTesterSimple</span>
+
+<span class="c1"># Seasonality detector</span>
+<span class="kn">from</span> <span class="nn">kats.detectors.seasonality</span> <span class="kn">import</span> <span class="n">ACFDetector</span>
+
+<span class="c1"># STL decomposition</span>
+<span class="kn">from</span> <span class="nn">kats.utils.decomposition</span> <span class="kn">import</span> <span class="n">TimeSeriesDecomposition</span>
+
+<span class="c1"># from numpy.typing import ArrayLike</span>
+<span class="n">ArrayLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
+
+<span class="c1"># models that can fit de_seasonal component</span>
+<span class="n">MODELS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;arima&quot;</span><span class="p">:</span> <span class="n">arima</span><span class="o">.</span><span class="n">ARIMAModel</span><span class="p">,</span>
+    <span class="s2">&quot;holtwinters&quot;</span><span class="p">:</span> <span class="n">holtwinters</span><span class="o">.</span><span class="n">HoltWintersModel</span><span class="p">,</span>
+    <span class="s2">&quot;sarima&quot;</span><span class="p">:</span> <span class="n">sarima</span><span class="o">.</span><span class="n">SARIMAModel</span><span class="p">,</span>
+    <span class="s2">&quot;prophet&quot;</span><span class="p">:</span> <span class="n">prophet</span><span class="o">.</span><span class="n">ProphetModel</span><span class="p">,</span>
+    <span class="s2">&quot;linear&quot;</span><span class="p">:</span> <span class="n">linear_model</span><span class="o">.</span><span class="n">LinearModel</span><span class="p">,</span>
+    <span class="s2">&quot;quadratic&quot;</span><span class="p">:</span> <span class="n">quadratic_model</span><span class="o">.</span><span class="n">QuadraticModel</span><span class="p">,</span>
+    <span class="s2">&quot;theta&quot;</span><span class="p">:</span> <span class="n">theta</span><span class="o">.</span><span class="n">ThetaModel</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># models that can fit seasonal time series data</span>
+<span class="n">SMODELS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;prophet&quot;</span><span class="p">:</span> <span class="n">prophet</span><span class="o">.</span><span class="n">ProphetModel</span><span class="p">,</span>
+    <span class="s2">&quot;theta&quot;</span><span class="p">:</span> <span class="n">theta</span><span class="o">.</span><span class="n">ThetaModel</span><span class="p">,</span>
+    <span class="c1"># &quot;sarima&quot;: sarima.SARIMAModel,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">_logged_error</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Log and raise an error.&quot;&quot;&quot;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="KatsEnsemble"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble">[docs]</a><span class="k">class</span> <span class="nc">KatsEnsemble</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Decomposition based ensemble model in Kats</span>
+<span class="sd">    This is the holistic ensembling class based on decomposition when seasonality presents</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seasonality</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">sea_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">desea_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">decomposition_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">model_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">EnsembleParams</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">fitted</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">predicted</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">err</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">dates</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">fcst_dates</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ArrayLike</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">fcst_df</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">errors</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+        <span class="n">params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">freq</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">infer_freq</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">validate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># validate aggregation method</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;aggregation&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;median&quot;</span><span class="p">,</span> <span class="s2">&quot;weightedavg&quot;</span><span class="p">):</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;aggregation&quot;</span><span class="p">]</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Only support `median` or `weightedavg` ensemble, but got </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="k">raise</span> <span class="n">_logged_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># validate decomposition method</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;decomposition_method&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;additive&quot;</span><span class="p">,</span> <span class="s2">&quot;multiplicative&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decomposition_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;decomposition_method&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Invalid decomposition method setting specified&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Defaulting to Additive Decomposition&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decomposition_method</span> <span class="o">=</span> <span class="s2">&quot;additive&quot;</span>
+
+        <span class="c1"># validate m</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;seasonality_length&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span>\
+    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;seasonality_length&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;seasonality_length value cannot be larger than&quot;</span>
+            <span class="s2">&quot;1/2 of the length of give time series&quot;</span>
+            <span class="k">raise</span> <span class="n">_logged_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># check customized forecastExecutor</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;forecastExecutor&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">and</span>\
+    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;forecastExecutor&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Using customized forecastExecutor from given parameters&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">forecastExecutor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;forecastExecutor&quot;</span><span class="p">]</span>
+
+        <span class="c1"># check customized fitExecutor</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;fitExecutor&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">and</span>\
+    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;fitExecutor&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Using customized fitExecutor from given parameters&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fitExecutor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;fitExecutor&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="KatsEnsemble.seasonality_detector"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.seasonality_detector">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">seasonality_detector</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Detect seasonalities from given TimeSeriesData</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: :class:`kats.consts.TimeSeriesData`, the input `TimeSeriesData`</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Flag for the presence of seasonality</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">detector</span> <span class="o">=</span> <span class="n">ACFDetector</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">detector</span><span class="o">.</span><span class="n">detector</span><span class="p">()</span>
+        <span class="n">seasonality</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">seasonality_detected</span>
+        <span class="k">return</span> <span class="n">seasonality</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.deseasonalize"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.deseasonalize">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">deseasonalize</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">decomposition_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">TimeSeriesData</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;STL decomposition to given TimeSeriesData</span>
+
+<span class="sd">        Static method to perform decomposition on the input data</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: :class:`kats.consts.TimeSeriesData`, input time series data</span>
+<span class="sd">            decomposition_method: the specific method for decomposition</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of seasonal data and de-seasonalized data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># create decomposer for time series decomposition</span>
+        <span class="n">decomposer</span> <span class="o">=</span> <span class="n">TimeSeriesDecomposition</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">decomposition_method</span><span class="p">)</span>
+        <span class="n">decomp</span> <span class="o">=</span> <span class="n">decomposer</span><span class="o">.</span><span class="n">decomposer</span><span class="p">()</span>
+
+        <span class="n">sea_data</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">decomp</span><span class="p">[</span><span class="s2">&quot;seasonal&quot;</span><span class="p">])</span>
+        <span class="n">desea_data</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">decomposition_method</span> <span class="o">==</span> <span class="s2">&quot;additive&quot;</span><span class="p">:</span>
+            <span class="n">desea_data</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">desea_data</span><span class="o">.</span><span class="n">value</span>\
+                <span class="o">-</span> <span class="n">decomp</span><span class="p">[</span><span class="s2">&quot;seasonal&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">desea_data</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">desea_data</span><span class="o">.</span><span class="n">value</span>\
+                <span class="o">/</span> <span class="n">decomp</span><span class="p">[</span><span class="s2">&quot;seasonal&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">return</span> <span class="n">sea_data</span><span class="p">,</span> <span class="n">desea_data</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.reseasonalize"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.reseasonalize">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">reseasonalize</span><span class="p">(</span>
+        <span class="n">sea_data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+        <span class="n">desea_predict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span>
+        <span class="n">decomposition_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">seasonality_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Re-seasonalize the time series data</span>
+
+<span class="sd">        Static method to re-seasonalize the input data</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sea_data: :class:`kats.consts.TimeSeriesData`, the seasonal data from deseasonalize method</span>
+<span class="sd">            desea_predict: dict of forecasted results for the deseasonalized</span>
+<span class="sd">                data for each individual forecasting method</span>
+<span class="sd">            decomposition_method: the specific method for decomposition</span>
+<span class="sd">            seasonality_lenth: the length of seasonality</span>
+<span class="sd">            steps: the length of forecasting horizon</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict of re-seasonalized data for each individual forecasting model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">rep</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">trunc</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">steps</span> <span class="o">/</span> <span class="n">seasonality_length</span><span class="p">)</span>
+        <span class="n">seasonality_unit</span> <span class="o">=</span> <span class="n">sea_data</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="o">-</span><span class="n">seasonality_length</span><span class="p">:]</span>
+
+        <span class="n">predicted</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">desea_pred</span> <span class="ow">in</span> <span class="n">desea_predict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">decomposition_method</span> <span class="o">==</span> <span class="s2">&quot;additive&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="s2">&quot;fcst_lower&quot;</span> <span class="ow">in</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">columns</span>
+                    <span class="ow">and</span> <span class="s2">&quot;fcst_upper&quot;</span> <span class="ow">in</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">columns</span>
+                <span class="p">):</span>
+                    <span class="c1"># check consistency of time being index</span>
+                    <span class="k">if</span> <span class="s2">&quot;time&quot;</span> <span class="ow">in</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Setting time column as index&quot;</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                        <span class="n">desea_pred</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                    <span class="c1"># native C.I calculated from individual model</span>
+                    <span class="n">predicted</span><span class="p">[</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">desea_pred</span> <span class="o">+</span> \
+                        <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">seasonality_unit</span><span class="p">,</span> <span class="n">rep</span><span class="p">)[:</span><span class="n">steps</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># no C.I from individual model</span>
+                    <span class="n">tmp_fcst</span> <span class="o">=</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">fcst</span>\
+                        <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">seasonality_unit</span><span class="p">,</span> <span class="n">rep</span><span class="p">)[:</span><span class="n">steps</span><span class="p">]</span>
+                    <span class="n">predicted</span><span class="p">[</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+                        <span class="s2">&quot;fcst&quot;</span><span class="p">:</span> <span class="n">tmp_fcst</span><span class="p">,</span>
+                        <span class="s2">&quot;fcst_lower&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                        <span class="s2">&quot;fcst_upper&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                    <span class="p">})</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># multiplicative, element-wise multiply</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="s2">&quot;fcst_lower&quot;</span> <span class="ow">in</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">columns</span>
+                    <span class="ow">and</span> <span class="s2">&quot;fcst_upper&quot;</span> <span class="ow">in</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">columns</span>
+                <span class="p">):</span>
+                    <span class="c1"># check consistency of time being index</span>
+                    <span class="k">if</span> <span class="s2">&quot;time&quot;</span> <span class="ow">in</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Setting time column as index&quot;</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                        <span class="n">desea_pred</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                    <span class="c1"># native C.I calculated from individual model</span>
+                    <span class="n">predicted</span><span class="p">[</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">desea_pred</span> <span class="o">*</span> \
+                        <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">seasonality_unit</span><span class="p">,</span> <span class="n">rep</span><span class="p">)[:</span><span class="n">steps</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># no C.I from individual model</span>
+                    <span class="n">tmp_fcst</span> <span class="o">=</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">fcst</span> <span class="o">*</span> \
+                        <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">seasonality_unit</span><span class="p">,</span> <span class="n">rep</span><span class="p">)[:</span><span class="n">steps</span><span class="p">]</span>
+                    <span class="n">predicted</span><span class="p">[</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">desea_pred</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+                        <span class="s2">&quot;fcst&quot;</span><span class="p">:</span> <span class="n">tmp_fcst</span><span class="p">,</span>
+                        <span class="s2">&quot;fcst_lower&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                        <span class="s2">&quot;fcst_upper&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="p">})</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">predicted</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.fitExecutor"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.fitExecutor">[docs]</a>    <span class="k">def</span> <span class="nf">fitExecutor</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">data</span> <span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+            <span class="n">models</span> <span class="p">:</span> <span class="n">EnsembleParams</span><span class="p">,</span>
+            <span class="n">should_auto_backtest</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]:</span>
+        <span class="sd">&quot;&quot;&quot;callable forecast executor</span>
+
+<span class="sd">        This is native implementation with Python&#39;s multiprocessing</span>
+<span class="sd">        fit individual model in `models` with given `data`. Services</span>
+<span class="sd">        who use KatsEnsemble need to implement their own executor for better</span>
+<span class="sd">        performance, if no executor function is given, the native version will be</span>
+<span class="sd">        used.</span>
+
+<span class="sd">        Attributes:</span>
+<span class="sd">            data: :class:`kats.consts.TimeSeriesData`, given TimeSeriesData, could be original or de-seasonalized</span>
+<span class="sd">            models: EnsembleParams object containing model params</span>
+<span class="sd">                in BaseModelParams</span>
+<span class="sd">            should_auto_backtest: boolean flag for additional back testing runs</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of fitted individual model and weights</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Fit individual model with given data</span>
+        <span class="n">num_process</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">MODELS</span><span class="p">),</span> <span class="p">(</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_process</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">num_process</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="c1"># pyre-fixme[16]: `SyncManager` has no attribute `Pool`.</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Manager</span><span class="p">()</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="p">(</span><span class="n">num_process</span><span class="p">),</span> <span class="n">maxtasksperchild</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+
+        <span class="n">fitted_models</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">models</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
+            <span class="n">fitted_models</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fit_single</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">data</span><span class="p">,</span>
+                    <span class="n">MODELS</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()],</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">model_params</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="n">fitted</span> <span class="o">=</span> <span class="p">{</span><span class="n">model</span><span class="p">:</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">fitted_models</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="c1"># if auto back testing</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backTestExecutor</span><span class="p">()</span> <span class="k">if</span> <span class="n">should_auto_backtest</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">fitted</span><span class="p">,</span> <span class="n">weights</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.fit"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KatsEnsemble</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Fit individual forecasting models via calling fitExecutor</span>
+
+<span class="sd">        This is the fit methdo to fit individual forecasting model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">seasonality</span> <span class="o">=</span> <span class="n">KatsEnsemble</span><span class="o">.</span><span class="n">seasonality_detector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># check if self.params[&quot;seasonality_length&quot;] is given</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seasonality</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;seasonality_length&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The given time series contains seasonality,</span><span class="se">\</span>
+<span class="s2">            a `seasonality_length` must be given in params.&quot;</span>
+            <span class="k">raise</span> <span class="n">_logged_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># set up auto backtesting flag</span>
+        <span class="n">auto_backtesting</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;aggregation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;median&quot;</span> <span class="k">else</span> <span class="kc">True</span>
+
+        <span class="c1"># check fitExecutor</span>
+        <span class="k">if</span> <span class="s2">&quot;fitExecutor&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">fitExecutor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitExecutor</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seasonality</span><span class="p">:</span>
+            <span class="c1"># STL decomposition</span>
+            <span class="n">sea_data</span><span class="p">,</span> <span class="n">desea_data</span> <span class="o">=</span> <span class="n">KatsEnsemble</span><span class="o">.</span><span class="n">deseasonalize</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decomposition_method</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sea_data</span> <span class="o">=</span> <span class="n">sea_data</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">desea_data</span> <span class="o">=</span> <span class="n">desea_data</span>
+
+            <span class="c1"># we created extra models</span>
+            <span class="n">given_models</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">models</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">SMODELS</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">tmp</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+                    <span class="n">tmp</span><span class="o">.</span><span class="n">model_name</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;_smodel&quot;</span>
+                    <span class="n">given_models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_params</span> <span class="o">=</span> <span class="n">model_params</span> <span class="o">=</span> <span class="n">EnsembleParams</span><span class="p">(</span><span class="n">given_models</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">fitExecutor</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">desea_data</span><span class="p">,</span>
+                <span class="n">models</span><span class="o">=</span><span class="n">model_params</span><span class="p">,</span>
+                <span class="n">should_auto_backtest</span><span class="o">=</span><span class="n">auto_backtesting</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># fit models on the original data</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_params</span> <span class="o">=</span> <span class="n">model_params</span> <span class="o">=</span> <span class="n">EnsembleParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">models</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">fitExecutor</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">models</span><span class="o">=</span><span class="n">model_params</span><span class="p">,</span>
+                <span class="n">should_auto_backtest</span><span class="o">=</span><span class="n">auto_backtesting</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.predict"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KatsEnsemble</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Predit future for each individual model</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            steps : number of steps ahead to forecast</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">fitted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span>
+        <span class="k">if</span> <span class="n">fitted</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_logged_error</span><span class="p">(</span><span class="s2">&quot;fit must be called before predict.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">steps</span> <span class="o">=</span> <span class="n">steps</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seasonality</span><span class="p">:</span>
+            <span class="n">sea_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sea_data</span>
+            <span class="k">assert</span> <span class="n">sea_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="c1"># we should pred two types of model</span>
+            <span class="n">desea_fitted</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fitted</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;_smodel&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">k</span><span class="p">}</span>
+            <span class="n">desea_predict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">desea_fitted</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+
+            <span class="c1"># re-seasonalize</span>
+            <span class="n">predicted</span> <span class="o">=</span> <span class="n">KatsEnsemble</span><span class="o">.</span><span class="n">reseasonalize</span><span class="p">(</span>
+                <span class="n">sea_data</span><span class="o">=</span><span class="n">sea_data</span><span class="p">,</span>
+                <span class="n">desea_predict</span><span class="o">=</span><span class="n">desea_predict</span><span class="p">,</span>
+                <span class="n">decomposition_method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decomposition_method</span><span class="p">,</span>
+                <span class="n">seasonality_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;seasonality_length&quot;</span><span class="p">],</span>
+                <span class="n">steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># add extra model prediction results from smodels</span>
+            <span class="n">fitted_smodel</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fitted</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;_smodel&quot;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">}</span>
+            <span class="n">extra_predict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fitted_smodel</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+
+            <span class="n">predicted</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra_predict</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span> <span class="o">=</span> <span class="n">predicted</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">predicted</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fitted</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+
+            <span class="c1"># add dummy C.I if the model doesn&#39;t have native C.I</span>
+            <span class="c1"># this is a hack for median ensemble; everyone model needs to have</span>
+            <span class="c1"># its native C.I if user choose weighted average ensemble.</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">predicted</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># if predicted df doesn&#39;t have fcst_lower and fcst_upper</span>
+                <span class="k">if</span> <span class="s2">&quot;fcst_lower&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="s2">&quot;fcst_upper&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="c1"># add dummy C.I</span>
+                    <span class="n">tmp_v</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                    <span class="n">tmp_v</span><span class="p">[</span><span class="s2">&quot;fcst_lower&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="n">tmp_v</span><span class="p">[</span><span class="s2">&quot;fcst_upper&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="n">predicted</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp_v</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span> <span class="o">=</span> <span class="n">predicted</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.forecast"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.forecast">[docs]</a>    <span class="k">def</span> <span class="nf">forecast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]:</span>
+        <span class="sd">&quot;&quot;&quot;Holistic forecast method in Kats ensemble</span>
+
+<span class="sd">        combine fit and predict methods to produce forecasted results</span>
+<span class="sd">        this is especially useful for services which prefer to produce</span>
+<span class="sd">        final forecasts without saving the fitted model</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            steps: the length of forecasting horizon</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of predicted values and weights</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">steps</span> <span class="o">=</span> <span class="n">steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seasonality</span> <span class="o">=</span> <span class="n">KatsEnsemble</span><span class="o">.</span><span class="n">seasonality_detector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># check if self.params[&quot;seasonality_length&quot;] is given</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seasonality</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;seasonality_length&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The given time series contains seasonality,</span><span class="se">\</span>
+<span class="s2">            a `seasonality_length` must be given in params.&quot;</span>
+            <span class="k">raise</span> <span class="n">_logged_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># set up auto backtesting flag</span>
+        <span class="n">auto_backtesting</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;aggregation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;median&quot;</span> <span class="k">else</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seasonality</span><span class="p">:</span>
+            <span class="c1"># call forecastExecutor and move to next steps</span>
+            <span class="n">sea_data</span><span class="p">,</span> <span class="n">desea_data</span> <span class="o">=</span> <span class="n">KatsEnsemble</span><span class="o">.</span><span class="n">deseasonalize</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decomposition_method</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sea_data</span> <span class="o">=</span> <span class="n">sea_data</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">desea_data</span> <span class="o">=</span> <span class="n">desea_data</span>
+
+            <span class="c1"># call forecasterExecutor with self.desea_data</span>
+            <span class="n">desea_predict</span><span class="p">,</span> <span class="n">desea_err</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forecastExecutor</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">desea_data</span><span class="p">,</span>
+                <span class="n">models</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">],</span>
+                <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span>
+                <span class="n">should_auto_backtest</span><span class="o">=</span><span class="n">auto_backtesting</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># update the desea_predict with adding seasonality component</span>
+            <span class="c1"># re-seasonalize</span>
+            <span class="n">predicted</span> <span class="o">=</span> <span class="n">KatsEnsemble</span><span class="o">.</span><span class="n">reseasonalize</span><span class="p">(</span>
+                <span class="n">sea_data</span><span class="o">=</span><span class="n">sea_data</span><span class="p">,</span>
+                <span class="n">desea_predict</span><span class="o">=</span><span class="n">desea_predict</span><span class="p">,</span>
+                <span class="n">decomposition_method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decomposition_method</span><span class="p">,</span>
+                <span class="n">seasonality_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;seasonality_length&quot;</span><span class="p">],</span>
+                <span class="n">steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># call forecasterExecutor with self.data</span>
+            <span class="c1"># create new models</span>
+            <span class="c1"># we created extra models</span>
+            <span class="n">extra_models</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">SMODELS</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">tmp</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+                    <span class="n">tmp</span><span class="o">.</span><span class="n">model_name</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;_smodel&quot;</span>
+                    <span class="n">extra_models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+            <span class="n">model_params</span> <span class="o">=</span> <span class="n">EnsembleParams</span><span class="p">(</span><span class="n">extra_models</span><span class="p">)</span>
+            <span class="n">extra_predict</span><span class="p">,</span> <span class="n">extra_error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forecastExecutor</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">models</span><span class="o">=</span><span class="n">model_params</span><span class="p">,</span>
+                <span class="n">steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="p">,</span>
+                <span class="n">should_auto_backtest</span><span class="o">=</span><span class="n">auto_backtesting</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># combine with predict</span>
+            <span class="n">predicted</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra_predict</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span> <span class="o">=</span> <span class="n">predicted</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;aggregation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;weightedavg&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">desea_err</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">desea_err</span> <span class="o">=</span> <span class="n">extra_error</span>
+                <span class="k">elif</span> <span class="n">extra_error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">desea_err</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra_error</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err</span> <span class="o">=</span> <span class="n">forecast_error</span> <span class="o">=</span> <span class="n">desea_err</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># no seasonality detected</span>
+            <span class="n">predicted</span><span class="p">,</span> <span class="n">forecast_error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forecastExecutor</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">models</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">],</span>
+                <span class="n">steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="p">,</span>
+                <span class="n">should_auto_backtest</span><span class="o">=</span><span class="n">auto_backtesting</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err</span> <span class="o">=</span> <span class="n">forecast_error</span>
+
+            <span class="c1"># same as in predict method above</span>
+            <span class="c1"># add dummy C.I if the model doesn&#39;t have native C.I</span>
+            <span class="c1"># this is a hack for median ensemble; everyone model needs to have</span>
+            <span class="c1"># its native C.I if user choose weighted average ensemble.</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">predicted</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># if predicted df doesn&#39;t have fcst_lower and fcst_upper</span>
+                <span class="k">if</span> <span class="s2">&quot;fcst_lower&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="s2">&quot;fcst_upper&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="c1"># add dummy C.I</span>
+                    <span class="n">tmp_v</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                    <span class="n">tmp_v</span><span class="p">[</span><span class="s2">&quot;fcst_lower&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="n">tmp_v</span><span class="p">[</span><span class="s2">&quot;fcst_upper&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="n">predicted</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp_v</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span> <span class="o">=</span> <span class="n">predicted</span>
+
+        <span class="c1"># we need to transform err to weights if it&#39;s weighted avg</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;aggregation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;weightedavg&quot;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">forecast_error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">original_weights</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">model</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">err</span> <span class="o">+</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">forecast_error</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">model</span><span class="p">:</span> <span class="n">err</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">original_weights</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">original_weights</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">predicted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.forecastExecutor"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.forecastExecutor">[docs]</a>    <span class="k">def</span> <span class="nf">forecastExecutor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">data</span> <span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+                         <span class="n">models</span> <span class="p">:</span> <span class="n">EnsembleParams</span><span class="p">,</span>
+                         <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                         <span class="n">should_auto_backtest</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                         <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]:</span>
+        <span class="sd">&quot;&quot;&quot;Forecast Executor</span>
+
+<span class="sd">        This is a callable execution function to</span>
+<span class="sd">        (1). fit model</span>
+<span class="sd">        (2). predict with a given steps</span>
+<span class="sd">        (3). back testing (optional)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: :class:`kats.consts.TimeSeriesData`, the input time series data as in :class:`kats.consts.TimeSeriesData`</span>
+<span class="sd">            models: the ensemble parameters as in `EnsembleParams`</span>
+<span class="sd">            steps: the length of forecasting horizon</span>
+<span class="sd">            should_auto_backtest: flag to automatically perform back test, default as False</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The predicted values from each individual model and weights</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Fit individual model with given data</span>
+        <span class="n">num_process</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">MODELS</span><span class="p">),</span> <span class="p">(</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_process</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">num_process</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="c1"># pyre-fixme[16]: `SyncManager` has no attribute `Pool`.</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Manager</span><span class="p">()</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="p">(</span><span class="n">num_process</span><span class="p">),</span> <span class="n">maxtasksperchild</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+
+        <span class="n">fitted_models</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">models</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
+            <span class="n">fitted_models</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fit_single</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">data</span><span class="p">,</span>
+                    <span class="n">MODELS</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()],</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">model_params</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="n">fitted</span> <span class="o">=</span> <span class="p">{</span><span class="n">model</span><span class="p">:</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">fitted_models</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="c1"># simply predict with given steps</span>
+        <span class="n">predicted</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">model_fitted</span> <span class="ow">in</span> <span class="n">fitted</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">predicted</span><span class="p">[</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_fitted</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+
+        <span class="c1"># if auto back testing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_params</span> <span class="o">=</span> <span class="n">models</span>  <span class="c1"># used by _backtester_all</span>
+        <span class="k">if</span> <span class="n">should_auto_backtest</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backtester_all</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">errors</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">predicted</span><span class="p">,</span> <span class="n">errors</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.aggregate"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.aggregate">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Aggregate the results from predict method</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            final results in pd.DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">predicted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span>
+        <span class="k">if</span> <span class="n">predicted</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_logged_error</span><span class="p">(</span><span class="s2">&quot;predict must be called before aggregate.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># create future dates</span>
+        <span class="n">last_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">dates</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">last_date</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">freq</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dates</span> <span class="o">=</span> <span class="n">dates</span> <span class="o">=</span> <span class="n">dates</span><span class="p">[</span><span class="n">dates</span> <span class="o">!=</span> <span class="n">last_date</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fcst_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">to_pydatetime</span><span class="p">()</span>
+
+        <span class="c1"># collect the fcst, fcst_lower, and fcst_upper into dataframes</span>
+        <span class="n">fcsts</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;fcst&quot;</span><span class="p">,</span> <span class="s2">&quot;fcst_lower&quot;</span><span class="p">,</span> <span class="s2">&quot;fcst_upper&quot;</span><span class="p">]:</span>
+            <span class="n">fcsts</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">predicted</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="n">fcsts</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">predicted</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;aggregation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;median&quot;</span><span class="p">:</span>
+            <span class="c1"># clean up dataframes with C.I as np.nan or zero</span>
+            <span class="n">fcsts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_dummy_CI</span><span class="p">(</span><span class="n">fcsts</span><span class="p">,</span> <span class="n">use_zero</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span> <span class="o">=</span> <span class="n">fcst_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">dates</span><span class="p">,</span>
+                <span class="s2">&quot;fcst&quot;</span><span class="p">:</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                <span class="s2">&quot;fcst_lower&quot;</span><span class="p">:</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_lower&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                <span class="s2">&quot;fcst_upper&quot;</span><span class="p">:</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_upper&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_lower&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span>\
+               <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_upper&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Conf. interval contains NaN, please check individual model.&quot;</span>
+                <span class="k">raise</span> <span class="n">_logged_error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span>
+            <span class="k">assert</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span> <span class="o">=</span> <span class="n">fcst_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">dates</span><span class="p">,</span>
+                <span class="s2">&quot;fcst&quot;</span><span class="p">:</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span>
+                <span class="s2">&quot;fcst_lower&quot;</span><span class="p">:</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_lower&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span>
+                <span class="s2">&quot;fcst_upper&quot;</span><span class="p">:</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_upper&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span>
+            <span class="p">})</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Return forecast data: </span><span class="si">{fcst_df}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fcst_df</span><span class="o">=</span><span class="n">fcst_df</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">fcst_df</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.clean_dummy_CI"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.clean_dummy_CI">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">clean_dummy_CI</span><span class="p">(</span>
+        <span class="n">fcsts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span>
+        <span class="n">use_zero</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Helper method to clean dummy prediction interval</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fcsts: the dict of forecasting results from individual models</span>
+<span class="sd">            use_zero: flag to use zero to fill nan, default as True</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            the cleaned results in a dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">use_zero</span><span class="p">:</span>
+            <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_lower&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_lower&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_upper&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_upper&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_lower&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_lower&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_upper&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcsts</span><span class="p">[</span><span class="s2">&quot;fcst_upper&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fcsts</span></div>
+
+<div class="viewcode-block" id="KatsEnsemble.backTestExecutor"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.backTestExecutor">[docs]</a>    <span class="k">def</span> <span class="nf">backTestExecutor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;wrapper for back test executor</span>
+
+<span class="sd">        services which use KatsEnsemble need to write their own backtest wrapper</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The dict of backtesting results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">weights</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backtester_all</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">weights</span></div>
+
+    <span class="k">def</span> <span class="nf">_fit_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+                    <span class="n">model_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+                    <span class="n">model_param</span><span class="p">:</span> <span class="n">Params</span>
+                    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Private method to fit individual model</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: the input time series data</span>
+<span class="sd">            model_func: the callable func to fit models</span>
+<span class="sd">            model_param: the corresponding model parameter class</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Fitted Kats model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># get the model function call</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">model_func</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">model_param</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">m</span>
+
+    <span class="k">def</span> <span class="nf">_backtester_single</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">params</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
+        <span class="n">model_class</span><span class="p">,</span>
+        <span class="n">train_percentage</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+        <span class="n">test_percentage</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="n">err_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mape&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Private method to run single back testing process</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params: Kats model parameters</span>
+<span class="sd">            model_class: Untyped. Defines type of model</span>
+<span class="sd">            train_percentage: float. Percentage of data used for training</span>
+<span class="sd">            test_percentage: float. Percentage of data used for testing</span>
+<span class="sd">            error_method: list of strings indicating which errors to calculate</span>
+<span class="sd">                we currently support &quot;mape&quot;, &quot;smape&quot;, &quot;mae&quot;, &quot;mase&quot;, &quot;mse&quot;, &quot;rmse&quot;</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float, the backtesting error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">bt</span> <span class="o">=</span> <span class="n">BackTesterSimple</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">err_method</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">params</span><span class="p">,</span>
+            <span class="n">train_percentage</span><span class="p">,</span>
+            <span class="n">test_percentage</span><span class="p">,</span>
+            <span class="n">model_class</span>
+        <span class="p">)</span>
+        <span class="n">bt</span><span class="o">.</span><span class="n">run_backtest</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">bt</span><span class="o">.</span><span class="n">get_error_value</span><span class="p">(</span><span class="n">err_method</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_backtester_all</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">err_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mape&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Private method to run all backtesting process</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            error_method: list of strings indicating which errors to calculate</span>
+<span class="sd">                we currently support &quot;mape&quot;, &quot;smape&quot;, &quot;mae&quot;, &quot;mase&quot;, &quot;mse&quot;, &quot;rmse&quot;</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict of errors from each model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">model_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_params</span>
+        <span class="k">if</span> <span class="n">model_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_logged_error</span><span class="p">(</span><span class="s2">&quot;fit must be called before backtesting.&quot;</span><span class="p">)</span>
+
+        <span class="n">num_process</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">MODELS</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">(</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_process</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">num_process</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="c1"># pyre-fixme[16]: `SyncManager` has no attribute `Pool`.</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Manager</span><span class="p">()</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="p">(</span><span class="n">num_process</span><span class="p">),</span> <span class="n">maxtasksperchild</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="n">backtesters</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">model_params</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
+            <span class="n">backtesters</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_backtester_single</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">model_params</span><span class="p">,</span>
+                    <span class="n">MODELS</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+                <span class="p">),</span>
+                <span class="n">kwds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;err_method&quot;</span><span class="p">:</span> <span class="n">err_method</span><span class="p">},</span>
+            <span class="p">)</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">=</span> <span class="n">errors</span> <span class="o">=</span> <span class="p">{</span><span class="n">model</span><span class="p">:</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">backtesters</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">original_weights</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">model</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">err</span> <span class="o">+</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">errors</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">model</span><span class="p">:</span> <span class="n">err</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">original_weights</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">original_weights</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">weights</span><span class="p">,</span> <span class="n">errors</span>
+
+<div class="viewcode-block" id="KatsEnsemble.plot"><a class="viewcode-back" href="../../../../kats.models.ensemble.kats_ensemble.html#kats.models.ensemble.kats_ensemble.KatsEnsemble.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;plot forecast results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fcst_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fcst_df</span>
+        <span class="k">if</span> <span class="n">fcst_df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_logged_error</span><span class="p">(</span><span class="s2">&quot;forecast must be called before plot.&quot;</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Generating chart for forecast result from Ensemble model.&quot;</span><span class="p">)</span>
+        <span class="n">mm</span><span class="o">.</span><span class="n">Model</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">fcst_df</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
