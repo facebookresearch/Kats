@@ -3,7 +3,6 @@ kats\.tsfeatures package
 
 .. toctree::
 
-    kats.tsfeatures.transformer
     kats.tsfeatures.tsfeatures
 
 kats\.tsfeatures module
