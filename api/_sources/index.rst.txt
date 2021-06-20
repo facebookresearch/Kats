@@ -3,7 +3,6 @@ kats
 
 .. toctree::
 
-    kats
     kats.consts
     kats.detectors
     kats.graphics

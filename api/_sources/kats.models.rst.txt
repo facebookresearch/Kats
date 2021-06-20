@@ -3,11 +3,9 @@ kats\.models package
 
 .. toctree::
 
-    kats.models.ar_net
     kats.models.arima
     kats.models.bayesian_var
     kats.models.ensemble
-    kats.models.globalmodel
     kats.models.harmonic_regression
     kats.models.holtwinters
     kats.models.linear_model

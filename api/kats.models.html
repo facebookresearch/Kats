@@ -15,8 +15,8 @@
     <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="kats.tsfeatures package" href="kats.tsfeatures.html" />
-    <link rel="prev" title="kats.graphics package" href="kats.graphics.html" />
+    <link rel="next" title="kats.models.arima module" href="kats.models.arima.html" />
+    <link rel="prev" title="kats.graphics.plots module" href="kats.graphics.plots.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -36,6 +36,50 @@
   <section id="kats-models-package">
 <h1>kats.models package<a class="headerlink" href="#kats-models-package" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.arima.html">kats.models.arima module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.bayesian_var.html">kats.models.bayesian_var module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.ensemble.html">kats.models.ensemble package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.ensemble.ensemble.html">kats.models.ensemble.ensemble module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.ensemble.kats_ensemble.html">kats.models.ensemble.kats_ensemble module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.ensemble.median_ensemble.html">kats.models.ensemble.median_ensemble module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.ensemble.weighted_avg_ensemble.html">kats.models.ensemble.weighted_avg_ensemble module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.ensemble.html#module-kats.models.ensemble">kats.models.ensemble module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.harmonic_regression.html">kats.models.harmonic_regression module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.holtwinters.html">kats.models.holtwinters module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.linear_model.html">kats.models.linear_model module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.lstm.html">kats.models.lstm module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.metalearner.html">kats.models.metalearner package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.metalearner.get_metadata.html">kats.models.metalearner.get_metadata module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.metalearner.metalearner_hpt.html">kats.models.metalearner.metalearner_hpt module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.metalearner.metalearner_modelselect.html">kats.models.metalearner.metalearner_modelselect module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.metalearner.metalearner_predictability.html">kats.models.metalearner.metalearner_predictability module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.metalearner.html#module-kats.models.metalearner">kats.models.metalearner module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.model.html">kats.models.model module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.nowcasting.html">kats.models.nowcasting package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.nowcasting.feature_extraction.html">kats.models.nowcasting.feature_extraction module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.nowcasting.model_io.html">kats.models.nowcasting.model_io module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.nowcasting.nowcasting.html">kats.models.nowcasting.nowcasting module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.nowcasting.html#module-kats.models.nowcasting">kats.models.nowcasting module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.prophet.html">kats.models.prophet module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.quadratic_model.html">kats.models.quadratic_model module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.reconciliation.html">kats.models.reconciliation package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.reconciliation.base_models.html">kats.models.reconciliation.base_models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.reconciliation.thm.html">kats.models.reconciliation.thm module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.reconciliation.html#module-kats.models.reconciliation">kats.models.reconciliation module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.sarima.html">kats.models.sarima module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
+</ul>
 </div>
 <section id="module-kats.models">
 <span id="kats-models-module"></span><h2>kats.models module<a class="headerlink" href="#module-kats.models" title="Permalink to this headline">¶</a></h2>
@@ -60,11 +104,27 @@
 
 <h3>Navigation</h3>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="kats.html">kats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">kats.models package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.arima.html">kats.models.arima module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.bayesian_var.html">kats.models.bayesian_var module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.ensemble.html">kats.models.ensemble package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.harmonic_regression.html">kats.models.harmonic_regression module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.holtwinters.html">kats.models.holtwinters module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.linear_model.html">kats.models.linear_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.lstm.html">kats.models.lstm module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.metalearner.html">kats.models.metalearner package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.model.html">kats.models.model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.nowcasting.html">kats.models.nowcasting package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.prophet.html">kats.models.prophet module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.quadratic_model.html">kats.models.quadratic_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.reconciliation.html">kats.models.reconciliation package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.sarima.html">kats.models.sarima module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
@@ -76,8 +136,8 @@
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="kats.graphics.html" title="previous chapter">kats.graphics package</a></li>
-      <li>Next: <a href="kats.tsfeatures.html" title="next chapter">kats.tsfeatures package</a></li>
+      <li>Previous: <a href="kats.graphics.plots.html" title="previous chapter">kats.graphics.plots module</a></li>
+      <li>Next: <a href="kats.models.arima.html" title="next chapter">kats.models.arima module</a></li>
   </ul></li>
 </ul>
 </div>
