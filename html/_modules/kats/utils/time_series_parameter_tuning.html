@@ -1,0 +1,1050 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.utils.time_series_parameter_tuning &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.utils.time_series_parameter_tuning</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="sd">&quot;&quot;&quot; Module that has parameter tuning classes for time series models.</span>
+
+<span class="sd">This module has a collection of classes. A subset of these classes are parameter tuning</span>
+<span class="sd">strategies with their abstract parent class. In addition, there are helper classes,</span>
+<span class="sd">such as a factory that creates search strategy objects.</span>
+
+<span class="sd">  Typical usage example:</span>
+
+<span class="sd">  &gt;&gt;&gt; import time_series_parameter_tuning as tspt</span>
+<span class="sd">  &gt;&gt;&gt; a_search_strategy = tspt.SearchMethodFactory.create_search_method(...)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
+<span class="kn">from</span> <span class="nn">multiprocessing.pool</span> <span class="kn">import</span> <span class="n">Pool</span>
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">ax</span> <span class="kn">import</span> <span class="n">Arm</span><span class="p">,</span> <span class="n">ComparisonOp</span><span class="p">,</span> <span class="n">Data</span><span class="p">,</span> <span class="n">OptimizationConfig</span><span class="p">,</span> <span class="n">SearchSpace</span>
+<span class="kn">from</span> <span class="nn">ax.core.experiment</span> <span class="kn">import</span> <span class="n">Experiment</span>
+<span class="kn">from</span> <span class="nn">ax.core.generator_run</span> <span class="kn">import</span> <span class="n">GeneratorRun</span>
+<span class="kn">from</span> <span class="nn">ax.core.metric</span> <span class="kn">import</span> <span class="n">Metric</span>
+<span class="kn">from</span> <span class="nn">ax.core.objective</span> <span class="kn">import</span> <span class="n">Objective</span>
+<span class="kn">from</span> <span class="nn">ax.core.outcome_constraint</span> <span class="kn">import</span> <span class="n">OutcomeConstraint</span>
+<span class="kn">from</span> <span class="nn">ax.modelbridge.discrete</span> <span class="kn">import</span> <span class="n">DiscreteModelBridge</span>
+<span class="kn">from</span> <span class="nn">ax.modelbridge.registry</span> <span class="kn">import</span> <span class="n">Models</span>
+<span class="kn">from</span> <span class="nn">ax.runners.synthetic</span> <span class="kn">import</span> <span class="n">SyntheticRunner</span>
+<span class="kn">from</span> <span class="nn">ax.service.utils.instantiation</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">outcome_constraint_from_str</span><span class="p">,</span>
+    <span class="n">parameter_from_json</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">SearchMethodEnum</span>
+
+<span class="c1"># Maximum number of worker processes used to evaluate trial arms in parallel</span>
+<span class="n">MAX_NUM_PROCESSES</span> <span class="o">=</span> <span class="mi">50</span>
+
+
+<div class="viewcode-block" id="Final"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.Final">[docs]</a><span class="k">class</span> <span class="nc">Final</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A helper class to ensure a class cannot be inherited.</span>
+
+<span class="sd">    It is used as:</span>
+<span class="sd">        class Foo(metaclass=Final):</span>
+<span class="sd">            ...</span>
+
+<span class="sd">    Once the class, Foo, is declared in this way, no other class can</span>
+<span class="sd">    inherit it. See the declaration of SearchMethodFactory class below.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        N/A</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="n">metacls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">classdict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Checks if child class is instantiated. Throws an error if so.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            metacls: To be used by metaclass argument of a new class instantiation</span>
+<span class="sd">            name: Same as above</span>
+<span class="sd">            bases: Same as above</span>
+<span class="sd">            classdict: Same as above</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Type of the new class</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError:</span>
+<span class="sd">                Raised when an object of a class using this Final</span>
+<span class="sd">                class as metaclass is created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">Final</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;type &#39;</span><span class="si">{0}</span><span class="s2">&#39; is not an acceptable base type&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">metacls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">classdict</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="TimeSeriesEvaluationMetric"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesEvaluationMetric">[docs]</a><span class="k">class</span> <span class="nc">TimeSeriesEvaluationMetric</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Object to evaluate an arm</span>
+
+<span class="sd">    An object of this class is used to evaluate an arm through search. It is mainly</span>
+<span class="sd">    used to parallelize the search, as evaluation of an arm needs to be run in</span>
+<span class="sd">    parallel. Obviously, this is possible if the search strategy allows it in</span>
+<span class="sd">    theory.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        evaluation_function: The name of the function to be used in evaluation.</span>
+<span class="sd">        logger: the logger object to log.</span>
+<span class="sd">        multiprocessing: Flag to decide whether evaluation will run in parallel.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">,</span>
+        <span class="n">multiprocessing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_function</span> <span class="o">=</span> <span class="n">evaluation_function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multiprocessing</span> <span class="o">=</span> <span class="n">multiprocessing</span>
+
+<div class="viewcode-block" id="TimeSeriesEvaluationMetric.is_available_while_running"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesEvaluationMetric.is_available_while_running">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">is_available_while_running</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Metrics are available while the trial is `RUNNING` and should</span>
+<span class="sd">        always be re-fetched.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="TimeSeriesEvaluationMetric.evaluate_arm"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesEvaluationMetric.evaluate_arm">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_arm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arm</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Evaluates the performance of an arm.</span>
+
+<span class="sd">        Takes an arm object, gets its parameter values, runs</span>
+<span class="sd">        evaluation_function and returns what that function returns</span>
+<span class="sd">        after reformatting it.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            arm: The arm object to be evaluated.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Either a dict or a list of dict. These dict objects need</span>
+<span class="sd">            to have metric name that describes the metric, arm_name,</span>
+<span class="sd">            mean which is the mean of the evaluation value and its</span>
+<span class="sd">            standard error.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Arm evaluation requires mean and standard error or dict for multiple metrics</span>
+        <span class="n">evaluation_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_function</span><span class="p">(</span><span class="n">arm</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">evaluation_result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;metric_name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                    <span class="s2">&quot;arm_name&quot;</span><span class="p">:</span> <span class="n">arm</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s2">&quot;mean&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="s2">&quot;sem&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">evaluation_result</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">evaluation_result</span><span class="p">,</span> <span class="n">Number</span><span class="p">):</span>
+            <span class="n">evaluation_result</span> <span class="o">=</span> <span class="p">(</span><span class="n">evaluation_result</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">evaluation_result</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">evaluation_result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">Number</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">evaluation_result</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Evaluation function should either return a single numeric &quot;</span>
+                <span class="s2">&quot;value that represents the error or a tuple of two numeric &quot;</span>
+                <span class="s2">&quot;values, one for the mean of error and the other for the &quot;</span>
+                <span class="s2">&quot;standard error of the mean of the error.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;metric_name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;arm_name&quot;</span><span class="p">:</span> <span class="n">arm</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;mean&quot;</span><span class="p">:</span> <span class="n">evaluation_result</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s2">&quot;sem&quot;</span><span class="p">:</span> <span class="n">evaluation_result</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">}</span></div>
+
+    <span class="c1"># pyre-fixme[14]: `fetch_trial_data` overrides method defined in `Metric`</span>
+    <span class="c1">#  inconsistently.</span>
+    <span class="c1"># pyre-fixme[14]: `fetch_trial_data` overrides method defined in `Metric`</span>
+    <span class="c1">#  inconsistently.</span>
+<div class="viewcode-block" id="TimeSeriesEvaluationMetric.fetch_trial_data"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesEvaluationMetric.fetch_trial_data">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_trial_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trial</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Data</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Calls evaluation of every arm in a trial.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            trial: The trial of which all arms to be evaluated.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Data object that has arm names, trial index, evaluation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multiprocessing</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trial</span><span class="o">.</span><span class="n">arms</span><span class="p">),</span> <span class="n">MAX_NUM_PROCESSES</span><span class="p">))</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+                <span class="n">records</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluate_arm</span><span class="p">,</span> <span class="n">trial</span><span class="o">.</span><span class="n">arms</span><span class="p">)</span>
+                <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">records</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluate_arm</span><span class="p">,</span> <span class="n">trial</span><span class="o">.</span><span class="n">arms</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">records</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="c1"># Evaluation result output contains multiple metrics</span>
+            <span class="n">records</span> <span class="o">=</span> <span class="p">[</span><span class="n">metric</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">record</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+            <span class="n">record</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;trial_index&quot;</span><span class="p">:</span> <span class="n">trial</span><span class="o">.</span><span class="n">index</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">Data</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">records</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="TimeSeriesParameterTuning"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesParameterTuning">[docs]</a><span class="k">class</span> <span class="nc">TimeSeriesParameterTuning</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract class for search strategy class, such as GridSearch, RandomSearch.</span>
+
+<span class="sd">    Defines and imposes a structure to search strategy classes. Each search</span>
+<span class="sd">    strategy has to have attributes listed below. Also, it provides methods</span>
+<span class="sd">    that are common to search strategies.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        parameters: List of dictionaries where each dict represents a hyperparameter.</span>
+<span class="sd">        experiment_name: An arbitrary name for the experiment object.</span>
+<span class="sd">        objective_name: An arbitrary name for the objective function that is used</span>
+<span class="sd">            in the evaluation function.</span>
+<span class="sd">        outcome_constraints: Constraints set on the outcome of the objective.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">outcome_constraints</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">OutcomeConstraint</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">experiment_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">objective_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">outcome_constraints</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">multiprocessing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="p">[{}]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Parameter tuning search space dimensions: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_parameters_format</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="n">parameter_from_json</span><span class="p">(</span><span class="n">parameter</span><span class="p">)</span> <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outcome_constraints</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">outcome_constraint_from_str</span><span class="p">(</span><span class="n">str_constraint</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">str_constraint</span> <span class="ow">in</span> <span class="n">outcome_constraints</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="n">outcome_constraints</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_kats_search_space</span> <span class="o">=</span> <span class="n">SearchSpace</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Search space is created.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">experiment_name</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">experiment_name</span> <span class="k">if</span> <span class="n">experiment_name</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;parameter_tuning_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objective_name</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">objective_name</span> <span class="k">if</span> <span class="n">objective_name</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;objective_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multiprocessing</span> <span class="o">=</span> <span class="n">multiprocessing</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span> <span class="o">=</span> <span class="n">Experiment</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">experiment_name</span><span class="p">,</span>
+            <span class="n">search_space</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_kats_search_space</span><span class="p">,</span>
+            <span class="n">runner</span><span class="o">=</span><span class="n">SyntheticRunner</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trial_data</span> <span class="o">=</span> <span class="n">Data</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Experiment is created.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TimeSeriesParameterTuning.validate_parameters_format"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesParameterTuning.validate_parameters_format">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">validate_parameters_format</span><span class="p">(</span><span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Check parameters objects structure.</span>
+
+<span class="sd">        parameters object needs to be in a specific format. It needs to be</span>
+<span class="sd">        a list of dict where each dict associates a parameter. Raises an</span>
+<span class="sd">        error depending on the format violation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            parameters: parameters of which format is to be audited.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None, if none of the checks fail, raises error if any fails.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: If parameters is not of type list.</span>
+<span class="sd">            ValueError: Parameters cannot be empty as there should be at least</span>
+<span class="sd">                one hyperparameter to tune.</span>
+<span class="sd">            TypeError: If any of the list element is of type other then dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;The input parameter, parameters, should be a list even if a &quot;</span>
+                <span class="s2">&quot;single parameter is defined.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;The parameter list is empty. No search space can be created &quot;</span>
+                <span class="s2">&quot;if not parameter is specified.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">parameter_dict</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameter_dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;The parameter_dict, </span><span class="si">{i}</span><span class="s2">, in the list of parameters should&quot;</span>
+                    <span class="s2">&quot; be a dict. The parameter_dict is </span><span class="si">{parameter_dict}</span><span class="s2">, and&quot;</span>
+                    <span class="s2">&quot; its type is </span><span class="si">{type_}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+                        <span class="n">parameter_dict</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">parameter_dict</span><span class="p">),</span>
+                        <span class="n">type_</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">parameter_dict</span><span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameter_dict</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;A parameter_dict in the parameter list is empty. All &quot;</span>
+                    <span class="s2">&quot;parameter_dict items should have valid key: value entries&quot;</span>
+                    <span class="s2">&quot;.&quot;</span>
+                <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TimeSeriesParameterTuning.get_search_space"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesParameterTuning.get_search_space">[docs]</a>    <span class="k">def</span> <span class="nf">get_search_space</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Getter of search space attribute of the private attribute, _exp.&quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">search_space</span></div>
+
+<div class="viewcode-block" id="TimeSeriesParameterTuning.generator_run_for_search_method"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesParameterTuning.generator_run_for_search_method">[docs]</a>    <span class="k">def</span> <span class="nf">generator_run_for_search_method</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">generator_run</span><span class="p">:</span> <span class="n">DiscreteModelBridge</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Creates a new batch trial then runs the lastest.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            evaluation_function: The name of the function to use for arm evaluation</span>
+<span class="sd">            generator_run: Generator_run object that is used to populate new arms</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_function</span> <span class="o">=</span> <span class="n">evaluation_function</span>
+        <span class="n">outcome_constraints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outcome_constraints</span>
+        <span class="k">if</span> <span class="n">outcome_constraints</span><span class="p">:</span>
+            <span class="c1"># Convert dummy base Metrics to TimeseriesEvaluationMetrics</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outcome_constraints</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">OutcomeConstraint</span><span class="p">(</span>
+                    <span class="n">TimeSeriesEvaluationMetric</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">oc</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">evaluation_function</span><span class="o">=</span><span class="n">evaluation_function</span><span class="p">,</span>
+                        <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span>
+                        <span class="n">multiprocessing</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">multiprocessing</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">op</span><span class="o">=</span><span class="n">oc</span><span class="o">.</span><span class="n">op</span><span class="p">,</span>
+                    <span class="n">bound</span><span class="o">=</span><span class="n">oc</span><span class="o">.</span><span class="n">bound</span><span class="p">,</span>
+                    <span class="n">relative</span><span class="o">=</span><span class="n">oc</span><span class="o">.</span><span class="n">relative</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">oc</span> <span class="ow">in</span> <span class="n">outcome_constraints</span>
+            <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">optimization_config</span> <span class="o">=</span> <span class="n">OptimizationConfig</span><span class="p">(</span>
+            <span class="n">objective</span><span class="o">=</span><span class="n">Objective</span><span class="p">(</span>
+                <span class="n">metric</span><span class="o">=</span><span class="n">TimeSeriesEvaluationMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">objective_name</span><span class="p">,</span>
+                    <span class="n">evaluation_function</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluation_function</span><span class="p">,</span>
+                    <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span>
+                    <span class="n">multiprocessing</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">multiprocessing</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">minimize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">outcome_constraints</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_constraints</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># pyre-fixme[6]: Expected `Optional[GeneratorRun]` for 1st param but got</span>
+        <span class="c1">#  `DiscreteModelBridge`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">new_batch_trial</span><span class="p">(</span><span class="n">generator_run</span><span class="o">=</span><span class="n">generator_run</span><span class="p">)</span>
+        <span class="c1"># We run the most recent batch trial as we only run candidate trials</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">trials</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">trials</span><span class="p">)]</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trial_data</span> <span class="o">=</span> <span class="n">Data</span><span class="o">.</span><span class="n">from_multiple_data</span><span class="p">(</span>
+            <span class="c1"># pyre-fixme[6]: Expected `Iterable[ax.core.data.Data]` for 1st param</span>
+            <span class="c1">#  but got `Iterable[ax.core.abstract_data.AbstractDataFrameData]`.</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_trial_data</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">fetch_trials_data</span><span class="p">(</span><span class="n">trial_indices</span><span class="o">=</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">trials</span><span class="p">)]),</span>
+            <span class="p">]</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TimeSeriesParameterTuning.generate_evaluate_new_parameter_values"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesParameterTuning.generate_evaluate_new_parameter_values">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">generate_evaluate_new_parameter_values</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">arm_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># -1 means</span>
+        <span class="c1"># create all arms (i.e. all combinations of parameter values)</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;A place holder method for users that are still using it.</span>
+
+<span class="sd">        It previously ran evaluation for trials. That part was moved to</span>
+<span class="sd">        generator_run_for_search_methods(). Now this method does nothing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">pass</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_repivot_dataframe</span><span class="p">(</span><span class="n">armscore_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reformats the score data frame.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            armscore_df: Pandas DataFrame object that has the arm scores</span>
+<span class="sd">                in raw format.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Pandas DataFrame object of arm score in the new format</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">transform</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">armscore_df</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s2">&quot;trial_index&quot;</span><span class="p">,</span> <span class="s2">&quot;arm_name&quot;</span><span class="p">,</span> <span class="s2">&quot;metric_name&quot;</span><span class="p">])</span>
+            <span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="s2">&quot;metric_name&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">new_cols</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">to_flat_index</span><span class="p">()</span>
+        <span class="n">parameters_holder</span> <span class="o">=</span> <span class="n">transform</span><span class="p">[</span>
+            <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s2">&quot;parameters&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">,</span> <span class="n">new_cols</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="n">transform</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s2">&quot;parameters&quot;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">new_cols</span> <span class="o">=</span> <span class="n">new_cols</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">labels</span><span class="o">=</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s2">&quot;parameters&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">,</span> <span class="n">new_cols</span><span class="p">))</span>
+        <span class="n">transform</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;trial_index&quot;</span><span class="p">,</span> <span class="s2">&quot;arm_name&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tpl</span><span class="p">)</span> <span class="k">for</span> <span class="n">tpl</span> <span class="ow">in</span> <span class="n">new_cols</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="p">]</span>
+        <span class="n">transform</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters_holder</span>
+        <span class="k">return</span> <span class="n">transform</span>
+
+<div class="viewcode-block" id="TimeSeriesParameterTuning.list_parameter_value_scores"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.TimeSeriesParameterTuning.list_parameter_value_scores">[docs]</a>    <span class="k">def</span> <span class="nf">list_parameter_value_scores</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">legit_arms_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Creates a Pandas DataFrame from evaluated arms then returns it.</span>
+
+<span class="sd">        The method should be called to fetch evaluation results of arms that</span>
+<span class="sd">        are populated and evaluated so far.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            legit_arms_only: A flag to filter arms that violate output_constraints</span>
+<span class="sd">                if given any.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A Pandas DataFrame that holds arms populated and evaluated so far.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># For experiments which have not ran generate_evaluate_new_parameter_values,</span>
+        <span class="c1"># we cannot provide trial data without metrics, so we return empty dataframe</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">metrics</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">[],</span>
+                <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+                    <span class="s2">&quot;arm_name&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;metric_name&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;sem&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;parameters&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;trial_index&quot;</span><span class="p">,</span>
+                <span class="p">],</span>
+            <span class="p">)</span>
+        <span class="n">armscore_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial_data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">armscore_df</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">armscore_df</span><span class="p">[</span><span class="s2">&quot;arm_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">parameters</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">arms_by_name</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outcome_constraints</span><span class="p">:</span>
+            <span class="c1"># Deduplicate entries for which there are outcome constraints</span>
+            <span class="c1"># pyre-ignore[16]: `None` has no attribute `index`.</span>
+            <span class="n">armscore_df</span> <span class="o">=</span> <span class="n">armscore_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">armscore_df</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">legit_arms_only</span><span class="p">:</span>
+
+                <span class="k">def</span> <span class="nf">filter_violating_arms</span><span class="p">(</span>
+                    <span class="n">arms</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Arm</span><span class="p">],</span> <span class="n">data</span><span class="p">:</span> <span class="n">Data</span><span class="p">,</span> <span class="n">optimization_config</span><span class="p">:</span> <span class="n">OptimizationConfig</span>
+                <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Arm</span><span class="p">]:</span>
+                    <span class="n">boolean_indices</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">oc</span> <span class="ow">in</span> <span class="n">optimization_config</span><span class="o">.</span><span class="n">outcome_constraints</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">oc</span><span class="o">.</span><span class="n">op</span> <span class="ow">is</span> <span class="n">ComparisonOp</span><span class="o">.</span><span class="n">LEQ</span><span class="p">:</span>
+                            <span class="n">boolean_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                                <span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">metric_name</span> <span class="o">==</span> <span class="n">oc</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;mean&quot;</span><span class="p">]</span>
+                                <span class="o">&lt;=</span> <span class="n">oc</span><span class="o">.</span><span class="n">bound</span>
+                            <span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">boolean_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                                <span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">metric_name</span> <span class="o">==</span> <span class="n">oc</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;mean&quot;</span><span class="p">]</span>
+                                <span class="o">&gt;=</span> <span class="n">oc</span><span class="o">.</span><span class="n">bound</span>
+                            <span class="p">)</span>
+                    <span class="n">eligible_arm_indices</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">&amp;</span> <span class="n">y</span><span class="p">,</span> <span class="n">boolean_indices</span><span class="p">)</span>
+                    <span class="n">eligible_arm_names</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">eligible_arm_indices</span><span class="o">.</span><span class="n">index</span><span class="p">][</span>
+                        <span class="n">eligible_arm_indices</span>
+                    <span class="p">]</span><span class="o">.</span><span class="n">arm_name</span>
+                    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span>
+                        <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">eligible_arm_names</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">arms</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="n">filtered_arms</span> <span class="o">=</span> <span class="n">filter_violating_arms</span><span class="p">(</span>
+                    <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">arms_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                    <span class="c1"># pyre-fixme[6]: Expected `Data` for 2nd param but got</span>
+                    <span class="c1">#  `AbstractDataFrameData`.</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">fetch_data</span><span class="p">(),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="o">.</span><span class="n">optimization_config</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">armscore_df</span> <span class="o">=</span> <span class="n">armscore_df</span><span class="p">[</span>
+                    <span class="n">armscore_df</span><span class="p">[</span><span class="s2">&quot;arm_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="n">arm</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">arm</span> <span class="ow">in</span> <span class="n">filtered_arms</span><span class="p">])</span>
+                <span class="p">]</span>
+            <span class="n">armscore_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repivot_dataframe</span><span class="p">(</span><span class="n">armscore_df</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">armscore_df</span></div></div>
+
+
+<div class="viewcode-block" id="SearchMethodFactory"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.SearchMethodFactory">[docs]</a><span class="k">class</span> <span class="nc">SearchMethodFactory</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">Final</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates and returns  search strategy object.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">&quot;SearchMethodFactory is not allowed to be instantiated. Use &quot;</span>
+            <span class="s2">&quot;it as a static class.&quot;</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="SearchMethodFactory.create_search_method"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.SearchMethodFactory.create_search_method">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">create_search_method</span><span class="p">(</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
+        <span class="n">selected_search_method</span><span class="p">:</span> <span class="n">SearchMethodEnum</span> <span class="o">=</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">GRID_SEARCH</span><span class="p">,</span>
+        <span class="n">experiment_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">objective_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">outcome_constraints</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">bootstrap_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">bootstrap_arms_for_bayes_opt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">multiprocessing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeSeriesParameterTuning</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The static method of factory class that creates the search method</span>
+<span class="sd">        object. It does not require the class to be instantiated.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            parameters: List[Dict] = None,</span>
+<span class="sd">                Defines parameters by their names, their types their optional</span>
+<span class="sd">                values for custom parameter search space.</span>
+<span class="sd">            selected_search_method: SearchMethodEnum = SearchMethodEnum.GRID_SEARCH</span>
+<span class="sd">                Defines search method to be used during parameter tuning. It has to</span>
+<span class="sd">                be an option from the enum, SearchMethodEnum.</span>
+<span class="sd">            experiment_name: str = None,</span>
+<span class="sd">                Name of the experiment to be used in Ax&#39;s experiment object.</span>
+<span class="sd">            objective_name: str = None,</span>
+<span class="sd">                Name of the objective to be used in Ax&#39;s experiment evaluation.</span>
+<span class="sd">            outcome_constraints: List[str] = None</span>
+<span class="sd">                List of constraints defined as strings. Example: [&#39;metric1 &gt;= 0&#39;,</span>
+<span class="sd">                &#39;metric2 &lt; 5]</span>
+<span class="sd">            bootstrap_arms_for_bayes_opt: List[dict] = None</span>
+<span class="sd">                List of params. It provides a list of self-defined inital parameter</span>
+<span class="sd">                values for Baysian Optimal search. Example: for Holt Winter&#39;s model,</span>
+<span class="sd">                [{&#39;m&#39;: 7}, {&#39;m&#39;: 14}]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A search object, GridSearch, RandomSearch, or BayesianOptSearch,</span>
+<span class="sd">                depending on the selection.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NotImplementedError: Raised if the selection is not among strategies</span>
+<span class="sd">                that are implemented.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">selected_search_method</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">GRID_SEARCH</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">GridSearch</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                <span class="n">experiment_name</span><span class="o">=</span><span class="n">experiment_name</span><span class="p">,</span>
+                <span class="n">objective_name</span><span class="o">=</span><span class="n">objective_name</span><span class="p">,</span>
+                <span class="n">outcome_constraints</span><span class="o">=</span><span class="n">outcome_constraints</span><span class="p">,</span>
+                <span class="n">multiprocessing</span><span class="o">=</span><span class="n">multiprocessing</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">selected_search_method</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_UNIFORM</span>
+            <span class="ow">or</span> <span class="n">selected_search_method</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_SOBOL</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">RandomSearch</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                <span class="n">experiment_name</span><span class="o">=</span><span class="n">experiment_name</span><span class="p">,</span>
+                <span class="n">objective_name</span><span class="o">=</span><span class="n">objective_name</span><span class="p">,</span>
+                <span class="n">random_strategy</span><span class="o">=</span><span class="n">selected_search_method</span><span class="p">,</span>
+                <span class="n">outcome_constraints</span><span class="o">=</span><span class="n">outcome_constraints</span><span class="p">,</span>
+                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+                <span class="n">multiprocessing</span><span class="o">=</span><span class="n">multiprocessing</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">selected_search_method</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">BAYES_OPT</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">evaluation_function</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">),</span> <span class="s2">&quot;evaluation_function cannot be None. It is needed at initialization of BayesianOptSearch object.&quot;</span>
+            <span class="k">return</span> <span class="n">BayesianOptSearch</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                <span class="n">evaluation_function</span><span class="o">=</span><span class="n">evaluation_function</span><span class="p">,</span>
+                <span class="n">experiment_name</span><span class="o">=</span><span class="n">experiment_name</span><span class="p">,</span>
+                <span class="n">objective_name</span><span class="o">=</span><span class="n">objective_name</span><span class="p">,</span>
+                <span class="n">bootstrap_size</span><span class="o">=</span><span class="n">bootstrap_size</span><span class="p">,</span>
+                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+                <span class="n">bootstrap_arms_for_bayes_opt</span><span class="o">=</span><span class="n">bootstrap_arms_for_bayes_opt</span><span class="p">,</span>
+                <span class="n">outcome_constraints</span><span class="o">=</span><span class="n">outcome_constraints</span><span class="p">,</span>
+                <span class="n">multiprocessing</span><span class="o">=</span><span class="n">multiprocessing</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;A search method yet to implement is selected. Only grid&quot;</span>
+                <span class="s2">&quot; search and random search are implemented.&quot;</span>
+            <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="GridSearch"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.GridSearch">[docs]</a><span class="k">class</span> <span class="nc">GridSearch</span><span class="p">(</span><span class="n">TimeSeriesParameterTuning</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The method factory class that creates the search method object. It does</span>
+<span class="sd">    not require the class to be instantiated.</span>
+
+<span class="sd">    Do not instantiate this class using its constructor.</span>
+<span class="sd">    Rather use the factory, SearchMethodFactory.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        parameters: List[Dict] = None,</span>
+<span class="sd">            Defines parameters by their names, their types their optional</span>
+<span class="sd">            values for custom parameter search space.</span>
+<span class="sd">        experiment_name: str = None,</span>
+<span class="sd">            Name of the experiment to be used in Ax&#39;s experiment object.</span>
+<span class="sd">        objective_name: str = None,</span>
+<span class="sd">            Name of the objective to be used in Ax&#39;s experiment evaluation.</span>
+<span class="sd">        outcome_constraints: List[str] = None</span>
+<span class="sd">            List of constraints defined as strings. Example: [&#39;metric1 &gt;= 0&#39;,</span>
+<span class="sd">            &#39;metric2 &lt; 5]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
+        <span class="n">experiment_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">objective_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">outcome_constraints</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">multiprocessing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">parameters</span><span class="p">,</span>
+            <span class="n">experiment_name</span><span class="p">,</span>
+            <span class="n">objective_name</span><span class="p">,</span>
+            <span class="n">outcome_constraints</span><span class="p">,</span>
+            <span class="n">multiprocessing</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_factorial</span> <span class="o">=</span> <span class="n">Models</span><span class="o">.</span><span class="n">FACTORIAL</span><span class="p">(</span>
+            <span class="n">search_space</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_search_space</span><span class="p">(),</span> <span class="n">check_cardinality</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;A factorial model for arm generation is created.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;A GridSearch object is successfully created.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GridSearch.generate_evaluate_new_parameter_values"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.GridSearch.generate_evaluate_new_parameter_values">[docs]</a>    <span class="k">def</span> <span class="nf">generate_evaluate_new_parameter_values</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">arm_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>  <span class="c1"># -1 means create all arms (i.e. all combinations of</span>
+        <span class="c1"># parameter values)</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;This method can only be called once. arm_count other than -1 will be ignored</span>
+<span class="sd">        as this search strategy exhaustively explores all arms.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">arm_count</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># FullFactorialGenerator ignores specified arm_count as it automatically determines how many arms</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;GridSearch arm_count input is ignored and automatically determined by generator.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">arm_count</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">factorial_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_factorial</span><span class="o">.</span><span class="n">gen</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">arm_count</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator_run_for_search_method</span><span class="p">(</span>
+            <span class="n">evaluation_function</span><span class="o">=</span><span class="n">evaluation_function</span><span class="p">,</span> <span class="n">generator_run</span><span class="o">=</span><span class="n">factorial_run</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="RandomSearch"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.RandomSearch">[docs]</a><span class="k">class</span> <span class="nc">RandomSearch</span><span class="p">(</span><span class="n">TimeSeriesParameterTuning</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Random search for hyperparameter tuning.</span>
+
+<span class="sd">    Do not instantiate this class using its constructor.</span>
+<span class="sd">    Rather use the factory, SearchMethodFactory.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        parameters: List[Dict],</span>
+<span class="sd">            Defines parameters by their names, their types their optional</span>
+<span class="sd">            values for custom parameter search space.</span>
+<span class="sd">        experiment_name: str = None,</span>
+<span class="sd">            Name of the experiment to be used in Ax&#39;s experiment object.</span>
+<span class="sd">        objective_name: str = None,</span>
+<span class="sd">            Name of the objective to be used in Ax&#39;s experiment evaluation.</span>
+<span class="sd">        seed: int = None,</span>
+<span class="sd">            Seed for Ax quasi-random model. If None, then time.time() is set.</span>
+<span class="sd">        random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,</span>
+<span class="sd">            By now, we already know that the search method is random search.</span>
+<span class="sd">            However, there are optional random strategies: UNIFORM, or SOBOL.</span>
+<span class="sd">            This parameter allows to select it.</span>
+<span class="sd">        outcome_constraints: List[str] = None</span>
+<span class="sd">            List of constraints defined as strings. Example: [&#39;metric1 &gt;= 0&#39;,</span>
+<span class="sd">            &#39;metric2 &lt; 5]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
+        <span class="n">experiment_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">objective_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">random_strategy</span><span class="p">:</span> <span class="n">SearchMethodEnum</span> <span class="o">=</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_UNIFORM</span><span class="p">,</span>
+        <span class="n">outcome_constraints</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">multiprocessing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">parameters</span><span class="p">,</span>
+            <span class="n">experiment_name</span><span class="p">,</span>
+            <span class="n">objective_name</span><span class="p">,</span>
+            <span class="n">outcome_constraints</span><span class="p">,</span>
+            <span class="n">multiprocessing</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;No seed is given by the user, it will be set by the current time&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Seed that is used in random search: </span><span class="si">{seed}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">random_strategy</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_UNIFORM</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_random_strategy_model</span> <span class="o">=</span> <span class="n">Models</span><span class="o">.</span><span class="n">UNIFORM</span><span class="p">(</span>
+                <span class="n">search_space</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_search_space</span><span class="p">(),</span> <span class="n">deduplicate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">random_strategy</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_SOBOL</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_random_strategy_model</span> <span class="o">=</span> <span class="n">Models</span><span class="o">.</span><span class="n">SOBOL</span><span class="p">(</span>
+                <span class="n">search_space</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_search_space</span><span class="p">(),</span> <span class="n">deduplicate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid random strategy selection. It should be either &quot;</span>
+                <span class="s2">&quot;uniform or sobol.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;A </span><span class="si">{random_strategy}</span><span class="s2"> model for candidate parameter value generation&quot;</span>
+            <span class="s2">&quot; is created.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">random_strategy</span><span class="o">=</span><span class="n">random_strategy</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;A RandomSearch object is successfully created.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RandomSearch.generate_evaluate_new_parameter_values"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.RandomSearch.generate_evaluate_new_parameter_values">[docs]</a>    <span class="k">def</span> <span class="nf">generate_evaluate_new_parameter_values</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">arm_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;This method can be called as many times as desired with arm_count in</span>
+<span class="sd">        desired number. The total number of generated candidates will be equal</span>
+<span class="sd">        to the their multiplication. Suppose we would like to sample k</span>
+<span class="sd">        candidates where k = m x n such that k, m, n are integers. We can call</span>
+<span class="sd">        this function once with `arm_count=k`, or call it k time with</span>
+<span class="sd">        `arm_count=1` (or without that parameter at all), or call it n times</span>
+<span class="sd">        `arm_count=m` and vice versa. They all will yield k candidates, however</span>
+<span class="sd">        it is not guaranteed that the candidates will be identical across these</span>
+<span class="sd">        scenarios.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">model_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_strategy_model</span><span class="o">.</span><span class="n">gen</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">arm_count</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator_run_for_search_method</span><span class="p">(</span>
+            <span class="n">evaluation_function</span><span class="o">=</span><span class="n">evaluation_function</span><span class="p">,</span> <span class="n">generator_run</span><span class="o">=</span><span class="n">model_run</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="BayesianOptSearch"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.BayesianOptSearch">[docs]</a><span class="k">class</span> <span class="nc">BayesianOptSearch</span><span class="p">(</span><span class="n">TimeSeriesParameterTuning</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Bayesian optimization search for hyperparameter tuning.</span>
+
+<span class="sd">    Do not instantiate this class using its constructor.</span>
+<span class="sd">    Rather use the factory, SearchMethodFactory.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        parameters: List[Dict],</span>
+<span class="sd">            Defines parameters by their names, their types their optional</span>
+<span class="sd">            values for custom parameter search space.</span>
+<span class="sd">        evaluation_function: Callable</span>
+<span class="sd">            The evaluation function to pass to Ax to evaluate arms.</span>
+<span class="sd">        experiment_name: str = None,</span>
+<span class="sd">            Name of the experiment to be used in Ax&#39;s experiment object.</span>
+<span class="sd">        objective_name: str = None,</span>
+<span class="sd">            Name of the objective to be used in Ax&#39;s experiment evaluation.</span>
+<span class="sd">        bootstrap_size: int = 5,</span>
+<span class="sd">            The number of arms that will be randomly generated to bootstrap the</span>
+<span class="sd">            Bayesian optimization.</span>
+<span class="sd">        seed: int = None,</span>
+<span class="sd">            Seed for Ax quasi-random model. If None, then time.time() is set.</span>
+<span class="sd">        random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,</span>
+<span class="sd">            By now, we already know that the search method is random search.</span>
+<span class="sd">            However, there are optional random strategies: UNIFORM, or SOBOL.</span>
+<span class="sd">            This parameter allows to select it.</span>
+<span class="sd">        outcome_constraints: List[str] = None</span>
+<span class="sd">            List of constraints defined as strings. Example: [&#39;metric1 &gt;= 0&#39;,</span>
+<span class="sd">            &#39;metric2 &lt; 5]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># pyre-fixme[11]: Annotation `BOTORCH` is not defined as a type.</span>
+    <span class="n">_bayes_opt_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Models</span><span class="o">.</span><span class="n">BOTORCH</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
+        <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">experiment_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">objective_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">bootstrap_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">random_strategy</span><span class="p">:</span> <span class="n">SearchMethodEnum</span> <span class="o">=</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_UNIFORM</span><span class="p">,</span>
+        <span class="n">outcome_constraints</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">multiprocessing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">parameters</span><span class="p">,</span>
+            <span class="n">experiment_name</span><span class="p">,</span>
+            <span class="n">objective_name</span><span class="p">,</span>
+            <span class="n">outcome_constraints</span><span class="p">,</span>
+            <span class="n">multiprocessing</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;No seed is given by the user, it will be set by the current time&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Seed that is used in random search: </span><span class="si">{seed}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">random_strategy</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_UNIFORM</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_random_strategy_model</span> <span class="o">=</span> <span class="n">Models</span><span class="o">.</span><span class="n">UNIFORM</span><span class="p">(</span>
+                <span class="n">search_space</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_search_space</span><span class="p">(),</span> <span class="n">deduplicate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">random_strategy</span> <span class="o">==</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_SOBOL</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_random_strategy_model</span> <span class="o">=</span> <span class="n">Models</span><span class="o">.</span><span class="n">SOBOL</span><span class="p">(</span>
+                <span class="n">search_space</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_search_space</span><span class="p">(),</span> <span class="n">deduplicate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid random strategy selection. It should be either &quot;</span>
+                <span class="s2">&quot;uniform or sobol.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;A </span><span class="si">{random_strategy}</span><span class="s2"> model for candidate parameter value generation&quot;</span>
+            <span class="s2">&quot; is created.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">random_strategy</span><span class="o">=</span><span class="n">random_strategy</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">bootstrap_arms_for_bayes_opt</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bootstrap_arms_for_bayes_opt&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bootstrap_arms_for_bayes_opt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_strategy_model</span><span class="o">.</span><span class="n">gen</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">bootstrap_size</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bootstrap_arms_list</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Arm</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;0_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bootstrap_arms_for_bayes_opt</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">model_run</span> <span class="o">=</span> <span class="n">GeneratorRun</span><span class="p">(</span><span class="n">bootstrap_arms_list</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator_run_for_search_method</span><span class="p">(</span>
+            <span class="n">evaluation_function</span><span class="o">=</span><span class="n">evaluation_function</span><span class="p">,</span> <span class="n">generator_run</span><span class="o">=</span><span class="n">model_run</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;fitted data columns: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial_data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;metric_name&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Bootstrapping of size = </span><span class="si">{</span><span class="n">bootstrap_size</span><span class="si">}</span><span class="s2"> is done.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BayesianOptSearch.generate_evaluate_new_parameter_values"><a class="viewcode-back" href="../../../kats.utils.time_series_parameter_tuning.html#kats.utils.time_series_parameter_tuning.BayesianOptSearch.generate_evaluate_new_parameter_values">[docs]</a>    <span class="k">def</span> <span class="nf">generate_evaluate_new_parameter_values</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">arm_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;This method can be called as many times as desired with arm_count in</span>
+<span class="sd">        desired number. The total number of generated candidates will be equal</span>
+<span class="sd">        to the their multiplication. Suppose we would like to sample k</span>
+<span class="sd">        candidates where k = m x n such that k, m, n are integers. We can call</span>
+<span class="sd">        this function once with `arm_count=k`, or call it k time with</span>
+<span class="sd">        `arm_count=1` (or without that parameter at all), or call it n times</span>
+<span class="sd">        `arm_count=m` and vice versa. They all will yield k candidates, however</span>
+<span class="sd">        it is not guaranteed that the candidates will be identical across these</span>
+<span class="sd">        scenarios. We re-initiate BOTORCH model on each call.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bayes_opt_model</span> <span class="o">=</span> <span class="n">Models</span><span class="o">.</span><span class="n">BOTORCH</span><span class="p">(</span>
+            <span class="n">experiment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial_data</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">model_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bayes_opt_model</span><span class="o">.</span><span class="n">gen</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">arm_count</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator_run_for_search_method</span><span class="p">(</span>
+            <span class="n">evaluation_function</span><span class="o">=</span><span class="n">evaluation_function</span><span class="p">,</span> <span class="n">generator_run</span><span class="o">=</span><span class="n">model_run</span>
+        <span class="p">)</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">SearchForMultipleSpaces</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]],</span>
+        <span class="n">search_method</span><span class="p">:</span> <span class="n">SearchMethodEnum</span> <span class="o">=</span> <span class="n">SearchMethodEnum</span><span class="o">.</span><span class="n">RANDOM_SEARCH_UNIFORM</span><span class="p">,</span>
+        <span class="n">experiment_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">objective_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Search class that runs search for multiple search spaces.</span>
+
+<span class="sd">        Created and used for ensemble models, or model selection.</span>
+
+<span class="sd">        Attributes:</span>
+<span class="sd">            parameters: Dict[str, List[Dict]],</span>
+<span class="sd">                Defines a search space per model. It maps model names to search spaces</span>
+<span class="sd">            experiment_name: str = None,</span>
+<span class="sd">                Name of the experiment to be used in Ax&#39;s experiment object.</span>
+<span class="sd">            objective_name: str = None,</span>
+<span class="sd">                Name of the objective to be used in Ax&#39;s experiment evaluation.</span>
+<span class="sd">            seed: int = None,</span>
+<span class="sd">                Seed for Ax quasi-random model. If None, then time.time() is set.</span>
+<span class="sd">            random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,</span>
+<span class="sd">                By now, we already know that the search method is random search.</span>
+<span class="sd">                However, there are optional random strategies: UNIFORM, or SOBOL.</span>
+<span class="sd">                This parameter allows to select it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># search_agent_dict is a dict for str -&gt; TimeSeriesParameterTuning object</span>
+        <span class="c1"># Thus, we can access different search method objects created using their</span>
+        <span class="c1"># keys.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">search_agent_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">agent_name</span><span class="p">:</span> <span class="n">SearchMethodFactory</span><span class="o">.</span><span class="n">create_search_method</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">model_params</span><span class="p">,</span>
+                <span class="n">selected_search_method</span><span class="o">=</span><span class="n">search_method</span><span class="p">,</span>
+                <span class="n">experiment_name</span><span class="o">=</span><span class="n">experiment_name</span><span class="p">,</span>
+                <span class="n">objective_name</span><span class="o">=</span><span class="n">objective_name</span><span class="p">,</span>
+                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">agent_name</span><span class="p">,</span> <span class="n">model_params</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">generate_evaluate_new_parameter_values</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">selected_model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">evaluation_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">arm_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Calls generate_evaluate_new_parameter_values() for the search method in</span>
+<span class="sd">        the search methods collection, search_agent_dict, called by selection_model</span>
+<span class="sd">        name.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            selected_model: The name of the model that is being tuned for.</span>
+<span class="sd">                evaluation_function: The evaluation function to be used to evaluate</span>
+<span class="sd">                arms.</span>
+<span class="sd">            arm_count: Number of arms to be popuelated and evaluated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">search_agent_dict</span><span class="p">[</span><span class="n">selected_model</span><span class="p">]</span><span class="o">.</span><span class="n">generate_evaluate_new_parameter_values</span><span class="p">(</span>
+            <span class="n">evaluation_function</span><span class="o">=</span><span class="n">evaluation_function</span><span class="p">,</span> <span class="n">arm_count</span><span class="o">=</span><span class="n">arm_count</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">list_parameter_value_scores</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">selected_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Calls list_parameter_value_scores() for the model that the name is given</span>
+<span class="sd">        or calls for every model otherwise.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            select_model: The name of the model of which the agent&#39;s</span>
+<span class="sd">                list_parameter_value_scores() will be called, if given. If None,</span>
+<span class="sd">                then the same method is called for all model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary in which keys are model names, values are associated score</span>
+<span class="sd">            data frames.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">selected_model</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_agent_dict</span><span class="p">[</span><span class="n">selected_model</span><span class="p">]</span><span class="o">.</span><span class="n">list_parameter_value_scores</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># selected_model is not provided, therefore this method will</span>
+            <span class="c1"># return a dict of data frames where each key points to the</span>
+            <span class="c1"># parameter score values of the corresponding models.</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="n">selected_model_</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_agent_dict</span><span class="p">[</span>
+                    <span class="n">selected_model_</span>
+                <span class="p">]</span><span class="o">.</span><span class="n">list_parameter_value_scores</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">selected_model_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_agent_dict</span>
+            <span class="p">}</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

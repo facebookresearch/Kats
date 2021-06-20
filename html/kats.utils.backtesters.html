@@ -1,0 +1,892 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.utils.backtesters module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.utils.cupik module" href="kats.utils.cupik.html" />
+    <link rel="prev" title="kats.utils package" href="kats.utils.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.utils.backtesters">
+<span id="kats-utils-backtesters-module"></span><h1>kats.utils.backtesters module<a class="headerlink" href="#module-kats.utils.backtesters" title="Permalink to this headline">¶</a></h1>
+<p>This file defines the BackTester classes for Kats.</p>
+<dl class="simple">
+<dt>Kats supports multiple types of backtesters, including:</dt><dd><ul class="simple">
+<li><p><a class="reference internal" href="#kats.utils.backtesters.BackTesterSimple" title="kats.utils.backtesters.BackTesterSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">BackTesterSimple</span></code></a> (basic train &amp; test backtesting).</p></li>
+<li><p><a class="reference internal" href="#kats.utils.backtesters.BackTesterFixedWindow" title="kats.utils.backtesters.BackTesterFixedWindow"><code class="xref py py-class docutils literal notranslate"><span class="pre">BackTesterFixedWindow</span></code></a> (discontinuous train &amp; test data).</p></li>
+<li><p><a class="reference internal" href="#kats.utils.backtesters.BackTesterExpandingWindow" title="kats.utils.backtesters.BackTesterExpandingWindow"><code class="xref py py-class docutils literal notranslate"><span class="pre">BackTesterExpandingWindow</span></code></a> (increasing train window size over
+multiple iterations).</p></li>
+<li><p><a class="reference internal" href="#kats.utils.backtesters.BackTesterRollingWindow" title="kats.utils.backtesters.BackTesterRollingWindow"><code class="xref py py-class docutils literal notranslate"><span class="pre">BackTesterRollingWindow</span></code></a> (sliding train &amp; test windows over
+multiple iterations).</p></li>
+</ul>
+</dd>
+</dl>
+<p>This module also supports <a class="reference internal" href="#kats.utils.backtesters.CrossValidation" title="kats.utils.backtesters.CrossValidation"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossValidation</span></code></a> with both expanding and
+rolling windows.</p>
+<p>For more information, check out the Kats tutorial notebook on backtesting!</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.utils.backtesters.</span></span><span class="sig-name descname"><span class="pre">BackTesterExpandingWindow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_methods</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.consts.Params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_train_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_train_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">expanding_steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_class</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/utils/backtesters.html#BackTesterExpandingWindow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#kats.utils.backtesters.BackTesterParent" title="kats.utils.backtesters.BackTesterParent"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.utils.backtesters.BackTesterParent</span></code></a></p>
+<p>Defines functions to execute an expanding window backtest.</p>
+<p>An expanding window backtest conducts a backtest over multiple iterations,
+wherein each iteration, the size of the training dataset increases by a
+fixed amount, while the test dataset “slides” forward to accommodate.
+Iterations continue until the complete data set is used to either train
+or test in the final interation.</p>
+<p>For more information, check out the Kats tutorial notebooks!</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.start_train_percentage">
+<span class="sig-name descname"><span class="pre">start_train_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.start_train_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the initial percentage of data used
+for training.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.end_train_percentage">
+<span class="sig-name descname"><span class="pre">end_train_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.end_train_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the final percentage of data used for
+training.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.test_percentage">
+<span class="sig-name descname"><span class="pre">test_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.test_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for testing.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.expanding_steps">
+<span class="sig-name descname"><span class="pre">expanding_steps</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.expanding_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for the number of expanding steps (i.e.
+number of folds).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.error_methods">
+<span class="sig-name descname"><span class="pre">error_methods</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.error_methods" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of strings indicating which errors to calculate
+(see <cite>ALLOWED_ERRORS</cite> for exhaustive list).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object to perform backtest on.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters to train model with.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.model_class">
+<span class="sig-name descname"><span class="pre">model_class</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.model_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the model type to use for backtesting.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.multi">
+<span class="sig-name descname"><span class="pre">multi</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.multi" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean flag to toggle multiprocessing (default True).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.results">
+<span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.results" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of tuples <cite>(training_data, testing_data, trained_model,
+forecast_predictions)</cite> storing forecast results.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.errors">
+<span class="sig-name descname"><span class="pre">errors</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping the error type to value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.size">
+<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for the total number of datapoints.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.error_funcs">
+<span class="sig-name descname"><span class="pre">error_funcs</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.error_funcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping error name to
+function that calculates it.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.freq">
+<span class="sig-name descname"><span class="pre">freq</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.freq" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string representing the (inferred) frequency of the
+<cite>pandas.DataFrame</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterExpandingWindow.raw_errors">
+<span class="sig-name descname"><span class="pre">raw_errors</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterExpandingWindow.raw_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>List storing raw errors (truth - predicted).</p>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – One or more of the train, test, or expanding steps params
+    were invalid. Or the time series is empty.</p>
+</dd>
+</dl>
+<dl>
+<dt>Sample Usage:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;kats/data/air_passengers.csv&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">ARIMAParams</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">all_errors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mape&quot;</span><span class="p">,</span> <span class="s2">&quot;smape&quot;</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span> <span class="s2">&quot;mase&quot;</span><span class="p">,</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">backtester</span> <span class="o">=</span> <span class="n">BackTesterExpandingWindow</span><span class="p">(</span>
+<span class="go">      error_methods=all_errors,</span>
+<span class="go">      data=ts,</span>
+<span class="go">      params=paramsparams,</span>
+<span class="go">      start_train_percentage=50,</span>
+<span class="go">      end_train_percentage=75,</span>
+<span class="go">      test_percentage=25,</span>
+<span class="go">      expanding_steps=3,</span>
+<span class="go">      model_class=ARIMAModel,</span>
+<span class="go">    )</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">backtester</span><span class="o">.</span><span class="n">run_backtest</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mape</span> <span class="o">=</span> <span class="n">backtester</span><span class="o">.</span><span class="n">get_error_value</span><span class="p">(</span><span class="s2">&quot;mape&quot;</span><span class="p">)</span> <span class="c1"># Retrieve MAPE error</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.utils.backtesters.</span></span><span class="sig-name descname"><span class="pre">BackTesterFixedWindow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_methods</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.consts.Params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_class</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Type</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/utils/backtesters.html#BackTesterFixedWindow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#kats.utils.backtesters.BackTesterParent" title="kats.utils.backtesters.BackTesterParent"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.utils.backtesters.BackTesterParent</span></code></a></p>
+<p>Defines functions to execute a fixed window ahead backtest.</p>
+<p>A fixed window ahead backtest is similar to a standard (i.e. simple)
+backtest, with the caveat that there is a gap between the train and test
+data sets. The purpose of this type backtest is to focus on the long range
+forecasting ability of the model.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.train_percentage">
+<span class="sig-name descname"><span class="pre">train_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.train_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for training.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.test_percentage">
+<span class="sig-name descname"><span class="pre">test_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.test_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for testing.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.window_percentage">
+<span class="sig-name descname"><span class="pre">window_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.window_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for the
+fixed window.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.error_methods">
+<span class="sig-name descname"><span class="pre">error_methods</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.error_methods" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of strings indicating which errors to calculate
+(see <cite>ALLOWED_ERRORS</cite> for exhaustive list).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object to perform backtest on.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters to train model with.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.model_class">
+<span class="sig-name descname"><span class="pre">model_class</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.model_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the model type to use for backtesting.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.results">
+<span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.results" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of tuples <cite>(training_data, testing_data, trained_model,
+forecast_predictions)</cite> storing forecast results.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.errors">
+<span class="sig-name descname"><span class="pre">errors</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping the error type to value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.size">
+<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for the total number of datapoints.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.error_funcs">
+<span class="sig-name descname"><span class="pre">error_funcs</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.error_funcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping error name to the
+function that calculates it.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.freq">
+<span class="sig-name descname"><span class="pre">freq</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.freq" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string representing the (inferred) frequency of the
+<cite>pandas.DataFrame</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterFixedWindow.raw_errors">
+<span class="sig-name descname"><span class="pre">raw_errors</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterFixedWindow.raw_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>List storing raw errors (truth - predicted).</p>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – One or more of the train, test, or fixed window params were
+    invalid. Or the time series is empty.</p>
+</dd>
+</dl>
+<dl>
+<dt>Sample Usage:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;kats/data/air_passengers.csv&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">ARIMAParams</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">all_errors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mape&quot;</span><span class="p">,</span> <span class="s2">&quot;smape&quot;</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span> <span class="s2">&quot;mase&quot;</span><span class="p">,</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">backtester</span> <span class="o">=</span> <span class="n">BackTesterFixedWindow</span><span class="p">(</span>
+<span class="go">      error_methods=all_errors,</span>
+<span class="go">      data=ts,</span>
+<span class="go">      params=paramsparams,</span>
+<span class="go">      train_percentage=50,</span>
+<span class="go">      test_percentage=25,</span>
+<span class="go">      window_percentage=25,</span>
+<span class="go">      model_class=ARIMAModel,</span>
+<span class="go">    )</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">backtester</span><span class="o">.</span><span class="n">run_backtest</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mape</span> <span class="o">=</span> <span class="n">backtester</span><span class="o">.</span><span class="n">get_error_value</span><span class="p">(</span><span class="s2">&quot;mape&quot;</span><span class="p">)</span> <span class="c1"># Retrieve MAPE error</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.utils.backtesters.</span></span><span class="sig-name descname"><span class="pre">BackTesterParent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_methods</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.consts.Params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_class</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/utils/backtesters.html#BackTesterParent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a></p>
+<p>This class defines the parent functions for various backtesting methods.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.error_methods">
+<span class="sig-name descname"><span class="pre">error_methods</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.error_methods" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of strings indicating which errors to calculate
+(see <cite>ALLOWED_ERRORS</cite> for exhaustive list).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object to perform backtest on.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters to train model with.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.model_class">
+<span class="sig-name descname"><span class="pre">model_class</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.model_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the model type to use for backtesting.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.multi">
+<span class="sig-name descname"><span class="pre">multi</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.multi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Boolean flag to use multiprocessing (if set to True).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.offset">
+<span class="sig-name descname"><span class="pre">offset</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gap between train/test datasets (default 0).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.results">
+<span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.results" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of tuples <cite>(training_data, testing_data, trained_model,
+forecast_predictions)</cite> storing forecast results.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.errors">
+<span class="sig-name descname"><span class="pre">errors</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping the error type to value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.size">
+<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for the total number of datapoints.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.error_funcs">
+<span class="sig-name descname"><span class="pre">error_funcs</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.error_funcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping error name to the
+function that calculates it.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.freq">
+<span class="sig-name descname"><span class="pre">freq</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.freq" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string representing the (inferred) frequency of the
+<cite>pandas.DataFrame</cite>.</p>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – The time series is empty or an invalid error type was passed.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.calc_error">
+<span class="sig-name descname"><span class="pre">calc_error</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/utils/backtesters.html#BackTesterParent.calc_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.calc_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates all errors in <cite>self.error_methods</cite> and stores them in the
+errors dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The error value. None if the error value does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.get_error_value">
+<span class="sig-name descname"><span class="pre">get_error_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><a class="reference internal" href="_modules/kats/utils/backtesters.html#BackTesterParent.get_error_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.get_error_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets requested error value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>error_name</strong> – A string of the error whose value should be returned.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A float of the eror value.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – The error name is invalid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterParent.run_backtest">
+<span class="sig-name descname"><span class="pre">run_backtest</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/utils/backtesters.html#BackTesterParent.run_backtest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.BackTesterParent.run_backtest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes backtest.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.utils.backtesters.</span></span><span class="sig-name descname"><span class="pre">BackTesterRollingWindow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_methods</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.consts.Params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sliding_steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_class</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/utils/backtesters.html#BackTesterRollingWindow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#kats.utils.backtesters.BackTesterParent" title="kats.utils.backtesters.BackTesterParent"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.utils.backtesters.BackTesterParent</span></code></a></p>
+<p>Defines functions to execute a rolling window backtest.</p>
+<p>An rolling window backtest conducts a backtest over multiple iterations,
+wherein each iteration, the start location of the training dataset moves
+forward by a fixed amount, while the test dataset “slides” forward to
+accommodate. Iterations continue until the end of the test set meets the
+end of the full data set.</p>
+<p>For more information, check out the Kats tutorial notebooks!</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.train_percentage">
+<span class="sig-name descname"><span class="pre">train_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.train_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for training.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.test_percentage">
+<span class="sig-name descname"><span class="pre">test_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.test_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for testing.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.sliding_steps">
+<span class="sig-name descname"><span class="pre">sliding_steps</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.sliding_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for the number of rolling steps (i.e.
+number of folds).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.error_methods">
+<span class="sig-name descname"><span class="pre">error_methods</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.error_methods" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of strings indicating which errors to calculate
+(see <cite>ALLOWED_ERRORS</cite> for exhaustive list).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object to perform backtest on.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters to train model with.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.model_class">
+<span class="sig-name descname"><span class="pre">model_class</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.model_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the model type to use for backtesting.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.multi">
+<span class="sig-name descname"><span class="pre">multi</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.multi" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean flag to toggle multiprocessing (default True).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.results">
+<span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.results" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of tuples <cite>(training_data, testing_data, trained_model,
+forecast_predictions)</cite> storing forecast results.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.errors">
+<span class="sig-name descname"><span class="pre">errors</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping the error type to value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.size">
+<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for the total number of datapoints.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.error_funcs">
+<span class="sig-name descname"><span class="pre">error_funcs</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.error_funcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping error name to the
+function that calculates it.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.freq">
+<span class="sig-name descname"><span class="pre">freq</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.freq" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string representing the (inferred) frequency of the
+<cite>pandas.DataFrame</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterRollingWindow.raw_errors">
+<span class="sig-name descname"><span class="pre">raw_errors</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterRollingWindow.raw_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>List storing raw errors (truth - predicted).</p>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – One or more of the train, test, or sliding steps params
+    were invalid. Or the time series is empty.</p>
+</dd>
+</dl>
+<dl>
+<dt>Sample Usage:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;kats/data/air_passengers.csv&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">ARIMAParams</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">all_errors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mape&quot;</span><span class="p">,</span> <span class="s2">&quot;smape&quot;</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span> <span class="s2">&quot;mase&quot;</span><span class="p">,</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">backtester</span> <span class="o">=</span> <span class="n">BackTesterExpandingWindow</span><span class="p">(</span>
+<span class="go">      error_methods=all_errors,</span>
+<span class="go">      data=ts,</span>
+<span class="go">      params=paramsparams,</span>
+<span class="go">      train_percentage=50,</span>
+<span class="go">      test_percentage=25,</span>
+<span class="go">      expanding_steps=3,</span>
+<span class="go">      model_class=ARIMAModel,</span>
+<span class="go">    )</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">backtester</span><span class="o">.</span><span class="n">run_backtest</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mape</span> <span class="o">=</span> <span class="n">backtester</span><span class="o">.</span><span class="n">get_error_value</span><span class="p">(</span><span class="s2">&quot;mape&quot;</span><span class="p">)</span> <span class="c1"># Retrieve MAPE error</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.utils.backtesters.</span></span><span class="sig-name descname"><span class="pre">BackTesterSimple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_methods</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.consts.Params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_class</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Type</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/utils/backtesters.html#BackTesterSimple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#kats.utils.backtesters.BackTesterParent" title="kats.utils.backtesters.BackTesterParent"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.utils.backtesters.BackTesterParent</span></code></a></p>
+<p>Defines the functions to execute a simple train/test backtest.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.train_percentage">
+<span class="sig-name descname"><span class="pre">train_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.train_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for training.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.test_percentage">
+<span class="sig-name descname"><span class="pre">test_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.test_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for testing.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.error_methods">
+<span class="sig-name descname"><span class="pre">error_methods</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.error_methods" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of strings indicating which errors to calculate
+(see <cite>ALLOWED_ERRORS</cite> for exhaustive list).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object to perform backtest on.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters to train model with.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.model_class">
+<span class="sig-name descname"><span class="pre">model_class</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.model_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the model type to use for backtesting.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.results">
+<span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.results" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of tuples <cite>(training_data, testing_data, trained_model,
+forecast_predictions)</cite> storing forecast results.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.errors">
+<span class="sig-name descname"><span class="pre">errors</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping the error type to value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.size">
+<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for the total number of datapoints.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.error_funcs">
+<span class="sig-name descname"><span class="pre">error_funcs</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.error_funcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping error name to the
+function that calculates it.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.freq">
+<span class="sig-name descname"><span class="pre">freq</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.freq" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string representing the (inferred) frequency of the
+<cite>pandas.DataFrame</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.BackTesterSimple.raw_errors">
+<span class="sig-name descname"><span class="pre">raw_errors</span></span><a class="headerlink" href="#kats.utils.backtesters.BackTesterSimple.raw_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>List storing raw errors (truth - predicted).</p>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – Invalid train and/or test params passed. Or the time series
+    is empty.</p>
+</dd>
+</dl>
+<dl>
+<dt>Sample Usage:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;kats/data/air_passengers.csv&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">ARIMAParams</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">all_errors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mape&quot;</span><span class="p">,</span> <span class="s2">&quot;smape&quot;</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span> <span class="s2">&quot;mase&quot;</span><span class="p">,</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">backtester</span> <span class="o">=</span> <span class="n">BackTesterSimple</span><span class="p">(</span>
+<span class="go">      error_methods=all_errors,</span>
+<span class="go">      data=ts,</span>
+<span class="go">      params=params,</span>
+<span class="go">      train_percentage=75,</span>
+<span class="go">      test_percentage=25,</span>
+<span class="go">      model_class=ARIMAModel,</span>
+<span class="go">    )</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">backtester</span><span class="o">.</span><span class="n">run_backtest</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mape</span> <span class="o">=</span> <span class="n">backtester</span><span class="o">.</span><span class="n">get_error_value</span><span class="p">(</span><span class="s2">&quot;mape&quot;</span><span class="p">)</span> <span class="c1"># Retrieve MAPE error</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.utils.backtesters.</span></span><span class="sig-name descname"><span class="pre">CrossValidation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_methods</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.consts.Params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_folds</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_class</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rolling_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/utils/backtesters.html#CrossValidation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.CrossValidation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Defines class to execute cross validation.</p>
+<p>Cross validation is a useful technique to use multiple folds of the
+training and testing data to help optimize the performance of the
+model (e.g. hyperparameter tuning). For more info on cross validation, see
+<a class="reference external" href="https://en.wikipedia.org/wiki/Cross-validation_(statistics">https://en.wikipedia.org/wiki/Cross-validation_(statistics</a>)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.train_percentage">
+<span class="sig-name descname"><span class="pre">train_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.train_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for training.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.test_percentage">
+<span class="sig-name descname"><span class="pre">test_percentage</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.test_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float for the percentage of data used for testing.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.num_folds">
+<span class="sig-name descname"><span class="pre">num_folds</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.num_folds" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for the number of folds to use.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.error_methods">
+<span class="sig-name descname"><span class="pre">error_methods</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.error_methods" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of strings indicating which errors to calculate
+(see <cite>ALLOWED_ERRORS</cite> for exhaustive list).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object to perform backtest on.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters to train model with.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.model_class">
+<span class="sig-name descname"><span class="pre">model_class</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.model_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the model type to use for backtesting.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.rolling_window">
+<span class="sig-name descname"><span class="pre">rolling_window</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.rolling_window" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean flag to use the rolling window method instead
+of the expanding window method (default False).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.multi">
+<span class="sig-name descname"><span class="pre">multi</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.multi" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean flag to toggle multiprocessing (default True).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.results">
+<span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.results" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of tuples <cite>(training_data, testing_data, trained_model,
+forecast_predictions)</cite> storing forecast results.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.errors">
+<span class="sig-name descname"><span class="pre">errors</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping the error type to value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.size">
+<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for the total number of datapoints.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.raw_errors">
+<span class="sig-name descname"><span class="pre">raw_errors</span></span><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.raw_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>List storing raw errors (truth - predicted).</p>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – One or more of the train, test, or num_folds params
+    were invalid. Or the time series is empty.</p>
+</dd>
+</dl>
+<dl>
+<dt>Sample Usage:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;kats/data/air_passengers.csv&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">ARIMAParams</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">all_errors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mape&quot;</span><span class="p">,</span> <span class="s2">&quot;smape&quot;</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span> <span class="s2">&quot;mase&quot;</span><span class="p">,</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cv</span> <span class="o">=</span> <span class="n">CrossValidation</span><span class="p">(</span>
+<span class="go">      error_methods=all_errors,</span>
+<span class="go">      data=ts,</span>
+<span class="go">      params=paramsparams,</span>
+<span class="go">      train_percentage=50,</span>
+<span class="go">      test_percentage=25,</span>
+<span class="go">      num_folds=3,</span>
+<span class="go">      model_class=ARIMAModel,</span>
+<span class="go">      rolling_window=True</span>
+<span class="go">    )</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">backtester</span><span class="o">.</span><span class="n">run_backtest</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mape</span> <span class="o">=</span> <span class="n">cv</span><span class="o">.</span><span class="n">get_error_value</span><span class="p">(</span><span class="s2">&quot;mape&quot;</span><span class="p">)</span> <span class="c1"># Retrieve MAPE error</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.get_error_value">
+<span class="sig-name descname"><span class="pre">get_error_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><a class="reference internal" href="_modules/kats/utils/backtesters.html#CrossValidation.get_error_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.get_error_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets requested error value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>error_name</strong> – A string of the error whose value should be returned.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A float of the eror value.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – The error name is invalid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.utils.backtesters.CrossValidation.run_cv">
+<span class="sig-name descname"><span class="pre">run_cv</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/utils/backtesters.html#CrossValidation.run_cv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.utils.backtesters.CrossValidation.run_cv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the cross validation.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="kats.utils.html">kats.utils package</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">kats.utils.backtesters module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.cupik.html">kats.utils.cupik module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.decomposition.html">kats.utils.decomposition module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.emp_confidence_int.html">kats.utils.emp_confidence_int module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.parameter_tuning_utils.html">kats.utils.parameter_tuning_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.simulator.html">kats.utils.simulator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.time_series_parameter_tuning.html">kats.utils.time_series_parameter_tuning module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.utils.html#module-kats.utils">kats.utils module</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="kats.utils.html">kats.utils package</a><ul>
+      <li>Previous: <a href="kats.utils.html" title="previous chapter">kats.utils package</a></li>
+      <li>Next: <a href="kats.utils.cupik.html" title="next chapter">kats.utils.cupik module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.utils.backtesters.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

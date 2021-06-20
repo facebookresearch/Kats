@@ -1,0 +1,560 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.consts module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.detectors package" href="kats.detectors.html" />
+    <link rel="prev" title="kats" href="kats.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.consts">
+<span id="kats-consts-module"></span><h1>kats.consts module<a class="headerlink" href="#module-kats.consts" title="Permalink to this headline">¶</a></h1>
+<p>This module contains some of the key data structures in the Kats library,
+including <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a>, <a class="reference internal" href="#kats.consts.TimeSeriesChangePoint" title="kats.consts.TimeSeriesChangePoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesChangePoint</span></code></a>, and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesIterator</span></code>.</p>
+<p><a class="reference internal" href="#kats.consts.TimeSeriesChangePoint" title="kats.consts.TimeSeriesChangePoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesChangePoint</span></code></a> is the return type of many of the Kats detection
+algorithms.</p>
+<p><a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> is the fundamental data structure in the Kats library,
+that gives uses access to a host of forecasting, detection, and utility
+algorithms right at the user’s fingertips.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.consts.ModelEnum">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.consts.</span></span><span class="sig-name descname"><span class="pre">ModelEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/consts.html#ModelEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.ModelEnum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
+<p>This enum lists the options of models to be set for default search space in
+hyper-parameter tuning.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.consts.OperationsEnum">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.consts.</span></span><span class="sig-name descname"><span class="pre">OperationsEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/consts.html#OperationsEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.OperationsEnum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
+<p>This enum lists all the mathematical operations that can be performed on
+<a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> objects.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.consts.SearchMethodEnum">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.consts.</span></span><span class="sig-name descname"><span class="pre">SearchMethodEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/consts.html#SearchMethodEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.SearchMethodEnum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
+<p>This enum lists the options of search algorithms to be used in
+hyper-parameter tuning.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.consts.TSIterator">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.consts.</span></span><span class="sig-name descname"><span class="pre">TSIterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/consts.html#TSIterator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TSIterator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Iterates through the values of a single timeseries.</p>
+<p>Produces a timeseries with a single point, in case of an
+univariate time series, or a timeseries with an array indicating
+the values at the given location, for a multivariate time series.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.consts.TSIterator.ts">
+<span class="sig-name descname"><span class="pre">ts</span></span><a class="headerlink" href="#kats.consts.TSIterator.ts" title="Permalink to this definition">¶</a></dt>
+<dd><p>The input timeseries.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesChangePoint">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.consts.</span></span><span class="sig-name descname"><span class="pre">TimeSeriesChangePoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesChangePoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesChangePoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Object returned by detector classes.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesChangePoint.start_time">
+<span class="sig-name descname"><span class="pre">start_time</span></span><a class="headerlink" href="#kats.consts.TimeSeriesChangePoint.start_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start time of the change.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesChangePoint.end_time">
+<span class="sig-name descname"><span class="pre">end_time</span></span><a class="headerlink" href="#kats.consts.TimeSeriesChangePoint.end_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>End time of the change.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesChangePoint.confidence">
+<span class="sig-name descname"><span class="pre">confidence</span></span><a class="headerlink" href="#kats.consts.TimeSeriesChangePoint.confidence" title="Permalink to this definition">¶</a></dt>
+<dd><p>The confidence of the change point.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.consts.</span></span><span class="sig-name descname"><span class="pre">TimeSeriesData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.core.frame.DataFrame</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_by_time</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.core.series.Series</span><span class="p"><span class="pre">,</span> </span><span class="pre">pandas.core.indexes.datetimes.DatetimeIndex</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.core.series.Series</span><span class="p"><span class="pre">,</span> </span><span class="pre">pandas.core.frame.DataFrame</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_col_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'time'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_format</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_unix_time</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unix_time_units</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'ns'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tz</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tz_ambiguous</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'raise'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tz_nonexistent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'raise'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>The fundamental Kats data structure to store a time series.</p>
+<p>In order to access much of the functionality in the Kats library, users
+must initialize the <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> class with their data first.</p>
+<p>Initialization. <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> can be initialized from the
+following data sources:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>pandas.DataFrame</cite></p></li>
+<li><p><cite>pandas.Series</cite></p></li>
+<li><p><cite>pandas.DatetimeIndex</cite></p></li>
+</ul>
+</div></blockquote>
+<p>Typical usage example for initialization:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;/kats/data/air_passengers.csv&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">time_col_name</span><span class="o">=</span><span class="s2">&quot;ds&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Initialization arguments (all optional, but must choose one way to
+initialize e.g. <cite>pandas.DataFrame</cite>):</p>
+<ul class="simple">
+<li><p>df: A <cite>pandas.DataFrame</cite> storing the time series (default None).</p></li>
+<li><dl class="simple">
+<dt>sort_by_time: A boolean indicating whether the <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a></dt><dd><p>should be sorted by time (default True).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>time: a <cite>pandas.Series</cite> or <cite>pandas.DatetimeIndex</cite> storing the time</dt><dd><p>values (default None).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>value: A pandas.Series or pandas.DataFrame storing the series value(s)</dt><dd><p>(default None).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>time_col_name: A string representing the value of the time column (</dt><dd><p>default “time”)</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>date_format: A string specifying the format of the date/time in the</dt><dd><p>time column. Useful for faster parsing, and required
+<cite>pandas.to_datetime()</cite> cannot parse the column otherwise (default None).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>use_unix_time: A boolean indicating if the time is represented as</dt><dd><p>unix time (default False).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>unix_time_units: A string indicating the units of the unix time – only</dt><dd><p>used if <cite>use_unix_time=True</cite> (default “ns”).</p>
+</dd>
+</dl>
+</li>
+<li><p>tz: A string representing the timezone of the time values (default None).</p></li>
+<li><dl class="simple">
+<dt>tz_ambiguous: A string representing how to handle ambiguous timezones</dt><dd><p>(default “raise”).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>tz_nonexistant: A string representing how to handle nonexistant timezone</dt><dd><p>values (default “raise”).</p>
+</dd>
+</dl>
+</li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – Invalid params passed when trying to create the
+    <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a>.</p>
+</dd>
+</dl>
+<p>Operations. Many operations that you can do with <cite>pandas.DataFrame</cite> objects
+are also applicable to <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a>. For example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="c1"># Slicing</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_1</span> <span class="o">==</span> <span class="n">ts_2</span> <span class="c1"># Equality</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_1</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">ts_2</span><span class="p">)</span> <span class="c1"># Extend</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">])</span> <span class="c1"># Visualize</span>
+</pre></div>
+</div>
+<p>Utility Functions. Many utility functions for converting
+<a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> objects to other common data structures exist.
+For example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span> <span class="c1"># Convert to pandas.DataFrame</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="o">.</span><span class="n">to_array</span><span class="p">()</span> <span class="c1"># Convert to numpy.ndarray</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.time">
+<span class="sig-name descname"><span class="pre">time</span></span><a class="headerlink" href="#kats.consts.TimeSeriesData.time" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <cite>pandas.Series</cite> object storing the time values of the time
+series.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.value">
+<span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#kats.consts.TimeSeriesData.value" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <cite>pandas.Series</cite> (if univariate) or <cite>pandas.DataFrame</cite> (if
+multivariate) object storing the values of each field in the time
+series.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.min">
+<span class="sig-name descname"><span class="pre">min</span></span><a class="headerlink" href="#kats.consts.TimeSeriesData.min" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float or <cite>pandas.Series</cite> representing the min value(s) of the
+time series.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.max">
+<span class="sig-name descname"><span class="pre">max</span></span><a class="headerlink" href="#kats.consts.TimeSeriesData.max" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float or <cite>pandas.Series</cite> representing the max value(s) of the
+time series.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.extend">
+<span class="sig-name descname"><span class="pre">extend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.extend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.extend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> with another <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a>
+object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>other</strong> – The other <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> object (currently
+only other <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> objects are supported).</p></li>
+<li><p><strong>validate</strong> (<em>optional</em>) – A boolean representing if the new
+<a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> should be validated (default True).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – The object passed was not an instance of
+    <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.freq_to_timedelta">
+<span class="sig-name descname"><span class="pre">freq_to_timedelta</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.freq_to_timedelta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.freq_to_timedelta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a <cite>pandas.Timedelta</cite> representation of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesdata</span></code> frequency.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <cite>pandas.Timedelta</cite> object representing the frequency of the
+<a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.infer_freq_robust">
+<span class="sig-name descname"><span class="pre">infer_freq_robust</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas._libs.tslibs.timedeltas.Timedelta</span><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.infer_freq_robust"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.infer_freq_robust" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method is a more robust way to infer the frequency of the time
+series in the presence of missing data. It looks at the diff of the
+time series, and decides the frequency by majority voting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <cite>pandas.Timedelta</cite> object representing the frequency of the series.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – The <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> has less than 2 data points.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.interpolate">
+<span class="sig-name descname"><span class="pre">interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">pandas._libs.tslibs.timedeltas.Timedelta</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'linear'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_duplicate_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.interpolate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.interpolate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate missing date if <cite>time</cite> doesn’t have constant frequency.</p>
+<dl class="simple">
+<dt>The following options are available:</dt><dd><ul class="simple">
+<li><p>linear</p></li>
+<li><p>backward fill</p></li>
+<li><p>forward fill</p></li>
+</ul>
+</dd>
+</dl>
+<p>See <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html">https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html</a>
+for more detail on these options.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>freq</strong> – A string representing the pre-defined freq of the time series.</p></li>
+<li><p><strong>method</strong> – A string representing the method to impute the missing time
+and data. See the above options (default “linear”).</p></li>
+<li><p><strong>remove_duplicate_index</strong> – A boolean to auto-remove any duplicate time
+values, as interpolation in this case due to the need to index
+on time (default False).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A new <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> object with interpolated data.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.is_data_missing">
+<span class="sig-name descname"><span class="pre">is_data_missing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.is_data_missing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.is_data_missing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if data is missing from the time series.</p>
+<p>This is very similar to <a class="reference internal" href="#kats.consts.TimeSeriesData.validate_data" title="kats.consts.TimeSeriesData.validate_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">validate_data()</span></code></a> but will not raise an
+error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True when data is missing from the time series. Otherwise False.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.is_empty">
+<span class="sig-name descname"><span class="pre">is_empty</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.is_empty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.is_empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if the <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> is empty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>False if <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> does not have any datapoints.
+Otherwise return True.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.is_univariate">
+<span class="sig-name descname"><span class="pre">is_univariate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.is_univariate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.is_univariate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether the <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> is univariate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if the <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> is univariate. False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id0">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">max</span></span><em class="property"><span class="pre">:</span> <span class="pre">Union[pandas.core.series.Series,</span> <span class="pre">float]</span></em><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the max value(s) of the series.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <cite>pandas.Series</cite> or float representing the max value(s) of the
+time series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id1">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">min</span></span><em class="property"><span class="pre">:</span> <span class="pre">Union[pandas.core.series.Series,</span> <span class="pre">float]</span></em><a class="headerlink" href="#id1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the min value(s) of the series.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <cite>pandas.Series</cite> or float representing the min value(s) of the
+time series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the time series.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cols</strong> – List of variables (strings) to plot (against time).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id2">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">time</span></span><em class="property"><span class="pre">:</span> <span class="pre">pandas.core.series.Series</span></em><a class="headerlink" href="#id2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the time values of the series.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <cite>pandas.Series</cite> representing the time values of the time series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.time_to_index">
+<span class="sig-name descname"><span class="pre">time_to_index</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.indexes.datetimes.DatetimeIndex</span><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.time_to_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.time_to_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utility function converting the time in the <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a>
+object to a <cite>pandas.DatetimeIndex</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <cite>pandas.DatetimeIndex</cite> representation of the time values of the series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.to_array">
+<span class="sig-name descname"><span class="pre">to_array</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">numpy.ndarray</span><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.to_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.to_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> object to a <cite>numpy.ndarray</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <cite>numpy.ndarray</cite> representation of the time series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.to_dataframe">
+<span class="sig-name descname"><span class="pre">to_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">standard_time_col_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.to_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.to_dataframe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> object into a <cite>pandas.DataFrame</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>standard_time_col</strong> (<em>optional</em>) – True if the DataFrame’s time column name
+should be “time”. To keep the same time column name as the current
+<a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> object, leave as False (default False).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.tz">
+<span class="sig-name descname"><span class="pre">tz</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.tzinfo" title="(in Python v3.9)"><span class="pre">datetime.tzinfo</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">dateutil.tz.tz.tzfile</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.tz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.tz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the timezone of the <a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A timezone aware object representing the timezone of the
+<a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a>. Returns None when there is no timezone
+present.</p>
+</dd>
+</dl>
+<p>For more info, see:
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DatetimeIndex.tz.html">https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DatetimeIndex.tz.html</a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.consts.TimeSeriesData.validate_data">
+<span class="sig-name descname"><span class="pre">validate_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">validate_frequency</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate_dimension</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/consts.html#TimeSeriesData.validate_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.consts.TimeSeriesData.validate_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates the time series for correctness (on both frequency and
+dimension).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>validate_frequency</strong> – A boolean indicating whether the
+<a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> should be validated for constant frequency.</p></li>
+<li><p><strong>validate_dimension</strong> – A boolean indicating whether the
+<a class="reference internal" href="#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeriesData</span></code></a> should be validated for having both the
+same number of timesteps and values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – The frequency and/or dimensions were invalid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id3">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">value</span></span><em class="property"><span class="pre">:</span> <span class="pre">Union[pandas.core.series.Series,</span> <span class="pre">pandas.core.frame.DataFrame]</span></em><a class="headerlink" href="#id3" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the value(s) of the series.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <cite>pandas.Series</cite> or <cite>pandas.DataFrame</cite> representing the value(s) of the
+time series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.html">kats</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="kats.html" title="previous chapter">kats</a></li>
+      <li>Next: <a href="kats.detectors.html" title="next chapter">kats.detectors package</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.consts.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

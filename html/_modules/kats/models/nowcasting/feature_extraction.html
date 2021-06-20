@@ -1,0 +1,490 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.models.nowcasting.feature_extraction &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css" />
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.models.nowcasting.feature_extraction</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+<span class="sd">&quot;&quot;&quot;This is a file with functions which turn time series into ML features.</span>
+
+<span class="sd">Typical use case is to create various features for the nowcasting model.</span>
+<span class="sd">The features are rolling, i.e. they are the times series as well.</span>
+
+<span class="sd">  Typical usage example:</span>
+
+<span class="sd">  &gt;&gt;&gt; df = ROC(df, 5)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+
+<div class="viewcode-block" id="ROC"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.ROC">[docs]</a><span class="k">def</span> <span class="nf">ROC</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Adds another column indicating return comparing to step n back.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe.</span>
+<span class="sd">        n: an integer on how many steps looking back.</span>
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added column.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">M</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+        <span class="n">ROC</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">M</span> <span class="o">/</span> <span class="n">N</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;ROC_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ROC</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">M</span> <span class="o">/</span> <span class="n">N</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">column</span> <span class="o">+</span><span class="s1">&#39;_ROC_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ROC</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="MOM"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.MOM">[docs]</a><span class="k">def</span> <span class="nf">MOM</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Adds another column indicating momentum: difference of current value and n steps back.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe.</span>
+<span class="sd">        n: an integer on how many steps looking back.</span>
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added column.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;MOM_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">name</span> <span class="o">=</span> <span class="n">column</span> <span class="o">+</span><span class="s1">&#39;_MOM_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="MA"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.MA">[docs]</a><span class="k">def</span> <span class="nf">MA</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Adds another column indicating moving average in the past n steps.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe.</span>
+<span class="sd">        n: an integer on how many steps looking back.</span>
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added column.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+        <span class="n">MA</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;MA_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">MA</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">name</span> <span class="o">=</span> <span class="n">column</span> <span class="o">+</span><span class="s1">&#39;_MA_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">MA</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="LAG"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.LAG">[docs]</a><span class="k">def</span> <span class="nf">LAG</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Adds another column indicating lagged value at the past n steps.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe.</span>
+<span class="sd">        n: an integer on how many steps looking back.</span>
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added column.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">N</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+        <span class="n">LAG</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;LAG_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">LAG</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">column</span> <span class="o">+</span> <span class="s1">&#39;_LAG_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LAG</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="MACD"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.MACD">[docs]</a><span class="k">def</span> <span class="nf">MACD</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">n_fast</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">n_slow</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span><span class="mi">21</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Adds three columns indicating MACD: https://www.investopedia.com/terms/m/macd.asp.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe</span>
+<span class="sd">        n_fast: an integer on how many steps looking back fast.</span>
+<span class="sd">        n_slow: an integer on how many steps looking back slow.</span>
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added 3 columns.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">EMAfast</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="n">n_fast</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">n_slow</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">EMAslow</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="n">n_slow</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">n_slow</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+        <span class="n">MACD</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">EMAfast</span> <span class="o">-</span> <span class="n">EMAslow</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;MACD_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_fast</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_slow</span><span class="p">))</span>
+        <span class="n">MACDsign</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">MACD</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="mi">9</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;MACDsign_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_fast</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_slow</span><span class="p">))</span>
+        <span class="n">MACDdiff</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">MACD</span> <span class="o">-</span> <span class="n">MACDsign</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;MACDdiff_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_fast</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_slow</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">MACD</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">EMAfast</span> <span class="o">-</span> <span class="n">EMAslow</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">column</span> <span class="o">+</span> <span class="s1">&#39;_MACD_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_fast</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_slow</span><span class="p">))</span>
+        <span class="n">MACDsign</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">MACD</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="mi">9</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">name</span> <span class="o">=</span> <span class="n">column</span> <span class="o">+</span> <span class="s1">&#39;_MACDsign_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_fast</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_slow</span><span class="p">))</span>
+        <span class="n">MACDdiff</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">MACD</span> <span class="o">-</span> <span class="n">MACDsign</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">column</span> <span class="o">+</span> <span class="s1">&#39;_MACDdiff_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_fast</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_slow</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">MACD</span><span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">MACDsign</span><span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">MACDdiff</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+
+
+    <span class="k">def</span> <span class="nf">_ewma</span><span class="p">(</span>
+        <span class="n">arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">span</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">min_periods</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Exponentialy weighted moving average specified by a decay ``window``</span>
+<span class="sd">        to provide better adjustments for small windows via:</span>
+<span class="sd">            y[t] = (x[t] + (1-a)*x[t-1] + (1-a)^2*x[t-2] + ... + (1-a)^n*x[t-n]) /</span>
+<span class="sd">                   (1 + (1-a) + (1-a)^2 + ... + (1-a)^n).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        arr : np.ndarray; A single dimenisional numpy array.</span>
+<span class="sd">        span : int; The decay window, or &#39;span&#39;.</span>
+<span class="sd">        min_periods: int; Minimum amount of data points we&#39;d like to include in the output.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A np.ndarray. The exponentially weighted moving average of the array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">output_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">output_array</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">arr</span><span class="p">)]</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ewma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">span</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">ewma_old</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ewma</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ewma_old</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+            <span class="n">w</span> <span class="o">+=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">alpha</span><span class="p">)</span><span class="o">**</span><span class="n">i</span>
+            <span class="n">ewma_old</span> <span class="o">=</span> <span class="n">ewma_old</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">alpha</span><span class="p">)</span> <span class="o">+</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">ewma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ewma_old</span> <span class="o">/</span> <span class="n">w</span>
+
+        <span class="n">output_subset</span> <span class="o">=</span> <span class="n">ewma</span><span class="p">[(</span><span class="n">min_periods</span><span class="o">-</span><span class="mi">1</span><span class="p">):]</span>
+        <span class="n">output_array</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">output_subset</span><span class="p">):]</span> <span class="o">=</span> <span class="n">output_subset</span>
+        <span class="k">return</span> <span class="n">output_array</span>
+
+    <span class="k">def</span> <span class="nf">_get_nowcasting_np</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">n_fast</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="n">n_slow</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">21</span><span class="p">,</span>
+        <span class="n">extra_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">default_status</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Internal function for actually performing feature engineering using the same procedure as</span>
+<span class="sd">        nowcasting feature_extraction under kats/models.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: The univariate time series array in the form of 1d numpy array.</span>
+<span class="sd">            window: int; Length of window size for all Nowcasting features. Default value is 5.</span>
+<span class="sd">            n_fast: int; length of &quot;fast&quot; or short period exponential moving average in the MACD</span>
+<span class="sd">                algorithm in the nowcasting features. Default value is 12.</span>
+<span class="sd">            n_slow: int; length of &quot;slow&quot; or long period exponential moving average in the MACD</span>
+<span class="sd">                algorithm in the nowcasting features. Default value is 21.</span>
+<span class="sd">            extra_args: A dictionary containing information for disabling calculation</span>
+<span class="sd">                of a certain feature. Default value is None, i.e. no feature is disabled.</span>
+<span class="sd">            default_status: Default status of the switch for calculate the features or not.</span>
+<span class="sd">                Default value is True.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list containing extracted nowcast features.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># initializing the outputs</span>
+        <span class="n">nowcasting_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)]</span>
+
+        <span class="c1"># ROC: indicating return comparing to step n back.</span>
+        <span class="k">if</span> <span class="n">extra_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">extra_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nowcast_roc&quot;</span><span class="p">,</span> <span class="n">default_status</span><span class="p">):</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">x</span><span class="p">[(</span><span class="n">window</span><span class="o">-</span><span class="mi">1</span><span class="p">):]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="p">(</span><span class="n">window</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="p">(</span><span class="n">window</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">M</span> <span class="o">/</span> <span class="n">N</span>
+            <span class="n">nowcasting_features</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># MOM: indicating momentum: difference of current value and n steps back.</span>
+        <span class="k">if</span> <span class="n">extra_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">extra_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nowcast_mom&quot;</span><span class="p">,</span> <span class="n">default_status</span><span class="p">):</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">window</span><span class="p">:]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="n">window</span><span class="p">]</span>
+            <span class="n">nowcasting_features</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># MA: indicating moving average in the past n steps.</span>
+        <span class="k">if</span> <span class="n">extra_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">extra_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nowcast_ma&quot;</span><span class="p">,</span> <span class="n">default_status</span><span class="p">):</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">window</span><span class="p">:]</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="n">window</span><span class="p">:]</span> <span class="o">-</span> <span class="n">ret</span><span class="p">[:</span><span class="o">-</span><span class="n">window</span><span class="p">]</span>
+            <span class="n">ma</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="n">window</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">/</span> <span class="n">window</span>
+            <span class="n">nowcasting_features</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">ma</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># LAG: indicating lagged value at the past n steps.</span>
+        <span class="k">if</span> <span class="n">extra_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">extra_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nowcast_lag&quot;</span><span class="p">,</span> <span class="n">default_status</span><span class="p">):</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="n">window</span><span class="p">]</span>
+            <span class="n">nowcasting_features</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># MACD: https://www.investopedia.com/terms/m/macd.asp.</span>
+        <span class="n">ema_fast</span> <span class="o">=</span> <span class="n">_ewma</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n_fast</span><span class="p">,</span> <span class="n">n_slow</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ema_slow</span> <span class="o">=</span> <span class="n">_ewma</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n_slow</span><span class="p">,</span> <span class="n">n_slow</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">MACD</span> <span class="o">=</span> <span class="n">ema_fast</span> <span class="o">-</span> <span class="n">ema_slow</span>
+        <span class="k">if</span> <span class="n">extra_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">extra_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nowcast_macd&quot;</span><span class="p">,</span> <span class="n">default_status</span><span class="p">):</span>
+            <span class="n">nowcasting_features</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">MACD</span><span class="p">),</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="n">MACDsign</span> <span class="o">=</span> <span class="n">_ewma</span><span class="p">(</span><span class="n">MACD</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">extra_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">extra_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nowcast_macdsign&quot;</span><span class="p">,</span> <span class="n">default_status</span><span class="p">):</span>
+            <span class="n">nowcasting_features</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">MACDsign</span><span class="p">),</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="n">MACDdiff</span> <span class="o">=</span> <span class="n">MACD</span> <span class="o">-</span> <span class="n">MACDsign</span>
+        <span class="k">if</span> <span class="n">extra_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">extra_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nowcast_macddiff&quot;</span><span class="p">,</span> <span class="n">default_status</span><span class="p">):</span>
+            <span class="n">nowcasting_features</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">MACDdiff</span><span class="p">),</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">nowcasting_features</span></div>
+
+<div class="viewcode-block" id="BBANDS"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.BBANDS">[docs]</a><span class="k">def</span> <span class="nf">BBANDS</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;Adds two Bolllinger Band columns</span>
+
+<span class="sd">    A Bollinger Band is a technical analysis tool defined by a</span>
+<span class="sd">    set of trendlines plotted two standard deviations (positively and negatively)</span>
+<span class="sd">    away from a simple moving average (SMA) of a security&#39;s price, but which can</span>
+<span class="sd">    be adjusted to user preferences.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe</span>
+<span class="sd">        n: an integer on how many steps looking back.</span>
+
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added 2 BollingerBand columns.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">close</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
+    <span class="n">MA</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">close</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">MSD</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">close</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">())</span>
+    <span class="n">b1</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">MSD</span> <span class="o">/</span> <span class="n">MA</span>
+    <span class="n">B1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">b1</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;BollingerBand1_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">B1</span><span class="p">)</span>
+    <span class="n">b2</span> <span class="o">=</span> <span class="p">(</span><span class="n">close</span> <span class="o">-</span> <span class="n">MA</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">MSD</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">MSD</span><span class="p">)</span>
+    <span class="n">B2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">b2</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;BollingerBand2_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">B2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="TRIX"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.TRIX">[docs]</a><span class="k">def</span> <span class="nf">TRIX</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;Adds the TRIX indicator column</span>
+
+<span class="sd">    The triple exponential average (TRIX) indicator is an oscillator</span>
+<span class="sd">    used to identify oversold and overbought markets, and it can</span>
+<span class="sd">    also be used as a momentum indicator.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe</span>
+<span class="sd">        n: an integer on how many steps looking back.</span>
+
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added TRIX column.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">close</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
+    <span class="n">EX1</span> <span class="o">=</span> <span class="n">close</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="n">n</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">EX2</span> <span class="o">=</span> <span class="n">EX1</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="n">n</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">EX3</span> <span class="o">=</span> <span class="n">EX2</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="n">n</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">ROC_l</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">ROC</span> <span class="o">=</span> <span class="p">(</span><span class="n">EX3</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">EX3</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="n">EX3</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">ROC_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ROC</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">Trix</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">ROC_l</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;TRIX_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Trix</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="EMA"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.EMA">[docs]</a><span class="k">def</span> <span class="nf">EMA</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;Adds the Exponetial Moving Average column</span>
+
+<span class="sd">    The exponential moving average (EMA) is a technical chart indicator that</span>
+<span class="sd">    tracks the price of an investment (like a stock or commodity) over time.</span>
+<span class="sd">    The EMA is a type of weighted moving average (WMA) that gives more</span>
+<span class="sd">     weighting or importance to recent price data</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe</span>
+<span class="sd">        n: an integer on how many steps looking back.</span>
+
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added EMA column.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">close</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
+    <span class="n">EMA</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">close</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="n">n</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;EMA_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">EMA</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="TSI"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.TSI">[docs]</a><span class="k">def</span> <span class="nf">TSI</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;Adds the TSI column</span>
+
+<span class="sd">    The true strength index (TSI) is a technical momentum oscillator</span>
+<span class="sd">    used to identify trends and reversals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe</span>
+<span class="sd">        r: an integer on how many steps looking back, for window 1.</span>
+<span class="sd">        s: an integer on how many steps looking back, for window 2.</span>
+
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added TSI column.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">close</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">close</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">aM</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">EMA1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="n">r</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">aEMA1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">aM</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span><span class="n">span</span> <span class="o">=</span> <span class="n">r</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">EMA2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">EMA1</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">s</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">aEMA2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">aEMA1</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span> <span class="n">span</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">min_periods</span> <span class="o">=</span> <span class="n">s</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">TSI</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">EMA2</span> <span class="o">/</span> <span class="n">aEMA2</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;TSI_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">TSI</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="RSI"><a class="viewcode-back" href="../../../../kats.models.nowcasting.feature_extraction.html#kats.models.nowcasting.feature_extraction.RSI">[docs]</a><span class="k">def</span> <span class="nf">RSI</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Relative Strength Index (RSI)</span>
+<span class="sd">    Compares the magnitude of recent gains and losses over a specified time</span>
+<span class="sd">    period to measure speed and change of price movements of a security. It is</span>
+<span class="sd">    primarily used to attempt to identify overbought or oversold conditions in</span>
+<span class="sd">    the trading of an asset.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: a pandas dataframe</span>
+<span class="sd">        n: an integer on how many steps looking back.</span>
+
+<span class="sd">        column: Optional. If column is provided, will calculate based on provided column</span>
+<span class="sd">            otherwise the column named y will be the target.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dataframe with all the columns from input df, and the added RSI column.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">close</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">close</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">up_direction</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">diff</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">down_direction</span> <span class="o">=</span> <span class="o">-</span><span class="n">diff</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">diff</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">min_periods</span> <span class="o">=</span> <span class="n">n</span>
+    <span class="n">emaup</span> <span class="o">=</span> <span class="n">up_direction</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">min_periods</span><span class="o">=</span><span class="n">min_periods</span><span class="p">,</span> <span class="n">adjust</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">emadn</span> <span class="o">=</span> <span class="n">down_direction</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">min_periods</span><span class="o">=</span><span class="n">min_periods</span><span class="p">,</span> <span class="n">adjust</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">relative_strength</span> <span class="o">=</span> <span class="n">emaup</span> <span class="o">/</span> <span class="n">emadn</span>
+    <span class="n">rsi_col</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">emadn</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span> <span class="o">-</span> <span class="p">(</span><span class="mi">100</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">relative_strength</span><span class="p">))),</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;RSI_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rsi_col</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
