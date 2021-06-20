@@ -1,0 +1,636 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.models.metalearner.metalearner_modelselect &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css" />
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.models.metalearner.metalearner_modelselect</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="sd">&quot;&quot;&quot;A module for meta-learner model selection.</span>
+
+<span class="sd">This module contains:</span>
+<span class="sd">    - :class:`MetaLearnModelSelect` for meta-learner models selection, which recommends the forecasting model based on time series or time series features;</span>
+<span class="sd">    - :class:`RandomDownSampler` for creating balanced dataset via downsampling.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">joblib</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">TimeSeriesData</span>
+<span class="kn">from</span> <span class="nn">kats.tsfeatures.tsfeatures</span> <span class="kn">import</span> <span class="n">TsFeatures</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">metrics</span>
+<span class="kn">from</span> <span class="nn">sklearn.ensemble</span> <span class="kn">import</span> <span class="n">GradientBoostingClassifier</span><span class="p">,</span> <span class="n">RandomForestClassifier</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
+<span class="kn">from</span> <span class="nn">sklearn.naive_bayes</span> <span class="kn">import</span> <span class="n">GaussianNB</span>
+<span class="kn">from</span> <span class="nn">sklearn.neighbors</span> <span class="kn">import</span> <span class="n">KNeighborsClassifier</span>
+<span class="kn">from</span> <span class="nn">sklearn.pipeline</span> <span class="kn">import</span> <span class="n">make_pipeline</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">StandardScaler</span>
+<span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="kn">import</span> <span class="n">SVC</span>
+
+
+<div class="viewcode-block" id="MetaLearnModelSelect"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect">[docs]</a><span class="k">class</span> <span class="nc">MetaLearnModelSelect</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Meta-learner framework on forecasting model selection.</span>
+<span class="sd">    This framework uses classification algorithms to recommend suitable forecasting models.</span>
+<span class="sd">    For training, it uses time series features as inputs and the best forecasting models as labels.</span>
+<span class="sd">    For prediction, it takes time series or time series features as inputs to predict the most suitable forecasting model.</span>
+<span class="sd">    The class provides count_category, preprocess, plot_feature_comparison, get_corr_mtx, plot_corr_heatmap, train, pred, pred_by_feature, pred_fuzzy, load_model and save_model.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        metadata: Optional; A list of dictionaries representing the meta-data of time series (e.g., the meta-data generated by GetMetaData object).</span>
+<span class="sd">                  Each dictionary d must contain at least 3 components: &#39;hpt_res&#39;, &#39;features&#39; and &#39;best_model&#39;. d[&#39;hpt_res&#39;] represents the best hyper-parameters for each candidate model and the corresponding errors;</span>
+<span class="sd">                  d[&#39;features&#39;] are time series features, and d[&#39;best_model&#39;] is a string representing the best candidate model of the corresponding time series data.</span>
+<span class="sd">                  metadata should not be None unless load_model is True. Default is None.</span>
+<span class="sd">        load_model: Optional; A boolean to specify whether or not to load a trained model. Default is False.</span>
+
+<span class="sd">    Sample Usage:</span>
+<span class="sd">        &gt;&gt;&gt; mlms = MetaLearnModelSelect(data)</span>
+<span class="sd">        &gt;&gt;&gt; mlms.train(n_trees=200, test_size=0.1, eval_method=&#39;mean&#39;) # Train a meta-learner model selection model.</span>
+<span class="sd">        &gt;&gt;&gt; mlms.pred(TSdata) # Predict/recommend forecasting model for a new time series data.</span>
+<span class="sd">        &gt;&gt;&gt; mlms2.pred(TSdata, n_top=3) # Predict/recommend the top 3 most suitable forecasting model.</span>
+<span class="sd">        &gt;&gt;&gt; mlms.save_model(&quot;mlms.pkl&quot;) # Save the trained model.</span>
+<span class="sd">        &gt;&gt;&gt; mlms2 = MetaLearnModelSelect(metadata=None, load_model=True) # Create a new object and then load a pre-trained model.</span>
+<span class="sd">        &gt;&gt;&gt; mlms2.load_model(&quot;mlms.pkl&quot;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">load_model</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">load_model</span><span class="p">:</span>
+            <span class="c1"># pyre-fixme[6]: Expected `Sized` for 1st param but got</span>
+            <span class="c1">#  `Optional[List[typing.Any]]`.</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">30</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Dataset is too small to train a meta learner!&quot;</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Missing metadata!&quot;</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">&quot;hpt_res&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Missing best hyper-params, not able to train a meta learner!&quot;</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">&quot;features&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Missing time series features, not able to train a meta learner!&quot;</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">&quot;best_model&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Missing best models, not able to train a meta learner!&quot;</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">metadata</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_reorganize_data</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_data</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clf</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">load_model</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Fail to initiate MetaLearnModelSelect.&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_reorganize_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">hpt_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">metadataX_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">metadataY_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;hpt_res&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">hpt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;hpt_res&quot;</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">hpt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;hpt_res&quot;</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;features&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">metadataX_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="nb">list</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;features&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">metadataX_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;features&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+            <span class="n">metadataY_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;best_model&quot;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">col_namesX</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;features&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hpt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">hpt_list</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;hpt&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">metadataX_list</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">col_namesX</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadataY</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">metadataY_list</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_std</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="k">def</span> <span class="nf">_validate_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">num_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadataY</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">num_class</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Only one class in the label column (best_model), not able to train a classifier!&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">local_count</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">count_category</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">local_count</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_class</span> <span class="o">&lt;</span> <span class="mi">30</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Not recommend to do downsampling! Dataset will be too small after downsampling!&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">max</span><span class="p">(</span><span class="n">local_count</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">local_count</span><span class="p">)</span> <span class="o">*</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Number of obs in majority class is much greater than in minority class. Downsampling is recommended!&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;No significant data imbalance problem, no need to do downsampling.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.count_category"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.count_category">[docs]</a>    <span class="k">def</span> <span class="nf">count_category</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Count the number of observations of each candidate model in meta-data.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary storing the number of observations of each candidate model in meta-data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">Counter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataY</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.preprocess"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.preprocess">[docs]</a>    <span class="k">def</span> <span class="nf">preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">downsample</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Pre-process meta data before training a classifier.</span>
+
+<span class="sd">        There are 2 options in this function: 1) whether or not to downsample meta-data to ensure each candidate model has the same number of observations;</span>
+<span class="sd">        and 2) whether or not to rescale the time series features to zero-mean and unit-variance.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            downsample: Optional; A boolean to specify whether or not to downsample meta-data to ensure each candidate model has the same number of observations.</span>
+<span class="sd">                        Default is True.</span>
+<span class="sd">            scale: Optional; A boolean to specify whether or not to rescale the time series features to zero-mean and unit-variance.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">downsample</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hpt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadataY</span> <span class="o">=</span> <span class="n">RandomDownSampler</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hpt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadataY</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">fit_resample</span><span class="p">()</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully applied random downsampling!&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_std</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="k">if</span> <span class="n">scale</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Successfully scaled data by centering to the mean and component-wise scaling to unit variance!&quot;</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.plot_feature_comparison"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.plot_feature_comparison">[docs]</a>    <span class="k">def</span> <span class="nf">plot_feature_comparison</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Generate the time series features comparison plot.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            i: A integer representing the index of one feature vector from feature matrix to be compared.</span>
+<span class="sd">            j: A integer representing the other index of one feature vector from feature matrix to be compared.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">combined</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">j</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">combined</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataY</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; model&quot;</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataY</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; model&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="c1"># pyre-fixme[29]: `CachedAccessor` is not a function.</span>
+        <span class="n">combined</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.get_corr_mtx"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.get_corr_mtx">[docs]</a>    <span class="k">def</span> <span class="nf">get_corr_mtx</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Calculate correlation matrix of feature matrix.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A pd.DataFrame representing the correlation matrix of time series features.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">corr</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.plot_corr_heatmap"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.plot_corr_heatmap">[docs]</a>    <span class="k">def</span> <span class="nf">plot_corr_heatmap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">camp</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;RdBu_r&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Generate heat-map for correlation matrix of feature matrix.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            camp: Optional; A string representing the olor bar used to generate heat-map. Default is &quot;RdBu_r&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_corr_mtx</span><span class="p">(),</span>
+            <span class="n">cmap</span><span class="o">=</span><span class="n">camp</span><span class="p">,</span>
+            <span class="n">yticklabels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
+            <span class="n">xticklabels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.train"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;RandomForest&quot;</span><span class="p">,</span>
+        <span class="n">eval_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+        <span class="n">test_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">n_trees</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
+        <span class="n">n_neighbors</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Train a meta-learner model selection model (i.e., a classifier).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            method: Optional; A string representing the name of the classification algorithm. Can be &#39;RandomForest&#39;, &#39;GBDT&#39;, &#39;SVM&#39;, &#39;KNN&#39; or &#39;NaiveBayes&#39;. Default is &#39;RandomForest&#39;.</span>
+<span class="sd">            eval_method: Optional; A string representing the aggregation method used for computing errors. Can be &#39;mean&#39; or &#39;median&#39;. Default is &#39;mean&#39;.</span>
+<span class="sd">            test_size: Optional; A float representing the proportion of test set, which should be within (0, 1). Default is 0.1.</span>
+<span class="sd">            n_trees: Optional; An integer representing the number of trees in random forest model. Default is 500.</span>
+<span class="sd">            n_neighbors: Optional; An integer representing the number of neighbors in KNN model. Default is 5.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary summarizing the performance of the trained classifier on both training and validation set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;RandomForest&quot;</span><span class="p">,</span> <span class="s2">&quot;GBDT&quot;</span><span class="p">,</span> <span class="s2">&quot;SVM&quot;</span><span class="p">,</span> <span class="s2">&quot;KNN&quot;</span><span class="p">,</span> <span class="s2">&quot;NaiveBayes&quot;</span><span class="p">]:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Only support RandomForest, GBDT, SVM, KNN, and NaiveBayes method.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">eval_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">]:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Only support mean and median as evaluation method.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">test_size</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">test_size</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Illegal test set.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">x_train</span><span class="p">,</span> <span class="n">x_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span><span class="p">,</span> <span class="n">hpt_train</span><span class="p">,</span> <span class="n">hpt_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadataX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadataY</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hpt</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="n">test_size</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;RandomForest&quot;</span><span class="p">:</span>
+            <span class="n">clf</span> <span class="o">=</span> <span class="n">RandomForestClassifier</span><span class="p">(</span><span class="n">n_estimators</span><span class="o">=</span><span class="n">n_trees</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;GBDT&quot;</span><span class="p">:</span>
+            <span class="n">clf</span> <span class="o">=</span> <span class="n">GradientBoostingClassifier</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;SVM&quot;</span><span class="p">:</span>
+            <span class="n">clf</span> <span class="o">=</span> <span class="n">make_pipeline</span><span class="p">(</span><span class="n">StandardScaler</span><span class="p">(),</span> <span class="n">SVC</span><span class="p">(</span><span class="n">gamma</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;KNN&quot;</span><span class="p">:</span>
+            <span class="n">clf</span> <span class="o">=</span> <span class="n">KNeighborsClassifier</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">n_neighbors</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">clf</span> <span class="o">=</span> <span class="n">GaussianNB</span><span class="p">()</span>
+
+        <span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+        <span class="n">y_fit</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x_train</span><span class="p">)</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x_test</span><span class="p">)</span>
+
+        <span class="c1"># calculate model errors</span>
+        <span class="n">fit_error</span><span class="p">,</span> <span class="n">pred_error</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
+
+        <span class="c1"># evaluate method</span>
+        <span class="n">em</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span> <span class="k">if</span> <span class="n">eval_method</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span>
+
+        <span class="c1"># meta learning errors</span>
+        <span class="n">fit_error</span><span class="p">[</span><span class="s2">&quot;meta-learn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">em</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">hpt_train</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">y_fit</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="n">pred_error</span><span class="p">[</span><span class="s2">&quot;meta-learn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">em</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">hpt_test</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">y_pred</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># pre-selected model errors, for all candidate models</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadataY</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+            <span class="n">fit_error</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">em</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">hpt_train</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">label</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hpt_train</span><span class="p">))]</span>
+            <span class="p">)</span>
+            <span class="n">pred_error</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">em</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">hpt_test</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">label</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hpt_test</span><span class="p">))]</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">clf</span> <span class="o">=</span> <span class="n">clf</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;fit_error&quot;</span><span class="p">:</span> <span class="n">fit_error</span><span class="p">,</span>
+            <span class="s2">&quot;pred_error&quot;</span><span class="p">:</span> <span class="n">pred_error</span><span class="p">,</span>
+            <span class="s2">&quot;clf_accuracy&quot;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">),</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.save_model"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.save_model">[docs]</a>    <span class="k">def</span> <span class="nf">save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Save the trained model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_name: A string representing the path to save the trained model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Haven&#39;t trained a model.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully saved the trained model!&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.load_model"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.load_model">[docs]</a>    <span class="k">def</span> <span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Load a pre-trained model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_name: A string representing the path to load the pre-trained model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully loaded a pre-trained model!&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;No existing pre-trained model. Please change file path or train a model first!&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.pred"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.pred">[docs]</a>    <span class="k">def</span> <span class="nf">pred</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">source_ts</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">ts_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">n_top</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Predict the best forecasting model for a new time series data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source_ts: :class:`kats.consts.TimeSeriesData` object representing the new time series data.</span>
+<span class="sd">            ts_scale: Optional; A boolean to specify whether or not to rescale time series data (i.e., normalizing it with its maximum vlaue) before calculating features. Default is True.</span>
+<span class="sd">            n_top: Optional; A integer for the number of top model names to return. Default is 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A string or a list of strings of the names of forecasting models.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">source_ts</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Haven&#39;t trained a model. Please train a model or load a model before predicting.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ts_scale</span><span class="p">:</span>
+            <span class="c1"># scale time series to make ts features more stable</span>
+            <span class="n">ts</span><span class="o">.</span><span class="n">value</span> <span class="o">/=</span> <span class="n">ts</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Successful scaled! Each value of TS has been divided by the max value of TS.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">new_features</span> <span class="o">=</span> <span class="n">TsFeatures</span><span class="p">()</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">new_features_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">new_features</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">new_features_vector</span><span class="p">)):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;Features of the test time series contains NaN value, consider processing it. Features are: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">new_features</span><span class="si">}</span><span class="s2">. Fill in NaNs with 0.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pred_by_feature</span><span class="p">([</span><span class="n">new_features_vector</span><span class="p">],</span> <span class="n">n_top</span><span class="o">=</span><span class="n">n_top</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.pred_by_feature"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.pred_by_feature">[docs]</a>    <span class="k">def</span> <span class="nf">pred_by_feature</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">source_x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span>
+        <span class="n">n_top</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Predict the best forecasting models given a list/dataframe of time series features</span>
+<span class="sd">        Args:</span>
+<span class="sd">            source_x: the time series features of the time series that one wants to predict, can be a np.ndarray, a list of np.ndarray or a pd.DataFrame.</span>
+<span class="sd">            n_top: Optional; An integer for the number of top model names to return. Default is 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An array of strings representing the forecasing models. If n_top=1, a 1-d np.ndarray will be returned. Otherwise, a 2-d np.ndarray will be returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Haven&#39;t trained a model. Please train a model or load a model before predicting.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_x</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">row_stack</span><span class="p">(</span><span class="n">source_x</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">source_x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Invalid source_x type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">source_x</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span>
+        <span class="n">x</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">n_top</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">prob</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">classes_</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">classes</span><span class="p">[</span><span class="n">order</span><span class="p">][:,</span> <span class="p">:</span><span class="n">n_top</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">_bootstrap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">rep</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Helper function for bootstrap test and returns the pvalue.&quot;&quot;&quot;</span>
+
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">data</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">n</span> <span class="o">*</span> <span class="n">rep</span><span class="p">)</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="n">diff</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">pvalue</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">bs</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pvalue</span>
+
+<div class="viewcode-block" id="MetaLearnModelSelect.pred_fuzzy"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.MetaLearnModelSelect.pred_fuzzy">[docs]</a>    <span class="k">def</span> <span class="nf">pred_fuzzy</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">source_ts</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">ts_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">sig_level</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Predict a forecasting model for a new time series data using fuzzy method.</span>
+
+<span class="sd">        The fuzzy method returns the best candiate model and the second best model will be returned if there is no statistically significant difference between them.</span>
+<span class="sd">        The statistical test is based on the bootstrapping samples drawn from the fitted random forest model. This function is only available for random forest classifier.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source_ts: :class:`kats.consts.TimeSeriesData` object representing the new time series data.</span>
+<span class="sd">            ts_scale: Optional; A boolean to specify whether or not to rescale time series data (i.e., normalizing it with its maximum vlaue) before calculating features. Default is True.</span>
+<span class="sd">            sig_level: Optional; A float representing the significance level for bootstrap test. If pvalue&gt;=sig_level, then we deem there is no difference between the best and the second best model.</span>
+<span class="sd">                       Default is 0.2.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary of prediction results, including forecasting models, their probability of being th best forecasting models and the pvalues of bootstrap tests.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">source_ts</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="n">ts_scale</span><span class="p">:</span>
+            <span class="c1"># scale time series to make ts features more stable</span>
+            <span class="n">ts</span><span class="o">.</span><span class="n">value</span> <span class="o">/=</span> <span class="n">ts</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">TsFeatures</span><span class="p">()</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="n">test</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">test</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">:</span>
+            <span class="n">test</span> <span class="o">=</span> <span class="p">(</span><span class="n">test</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span>
+        <span class="n">test</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">estimators_</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">estimators_</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">test</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">test</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">prob</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">pvalue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">[:</span><span class="mi">2</span><span class="p">]])</span>
+        <span class="k">if</span> <span class="n">pvalue</span> <span class="o">&gt;=</span> <span class="n">sig_level</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">classes_</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="mi">2</span><span class="p">]]</span>
+            <span class="n">prob</span> <span class="o">=</span> <span class="n">prob</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="mi">2</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">classes_</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="n">prob</span> <span class="o">=</span> <span class="n">prob</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">ans</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span> <span class="s2">&quot;probability&quot;</span><span class="p">:</span> <span class="n">prob</span><span class="p">,</span> <span class="s2">&quot;pvalue&quot;</span><span class="p">:</span> <span class="n">pvalue</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">ans</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;MetaLearnModelSelect&quot;</span></div>
+
+
+<div class="viewcode-block" id="RandomDownSampler"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.RandomDownSampler">[docs]</a><span class="k">class</span> <span class="nc">RandomDownSampler</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;An assistant class for class MetaLearnModelSelect to do random downsampling.</span>
+
+<span class="sd">    RandomDownSampler provides methods for creating a balanced dataset via downsampling. It contains fit_resample.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        hpt: A `pandas.Series` object storing the best hyper-parameters and the corresponding errors for each model.</span>
+<span class="sd">        dataX: A `pandas.DataFrame` object representing the time series features matrix.</span>
+<span class="sd">        dataY: A `pandas.Series` object representing the best models for the corresponding time series.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hpt</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">dataX</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">dataY</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hpt</span> <span class="o">=</span> <span class="n">hpt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataX</span> <span class="o">=</span> <span class="n">dataX</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataY</span> <span class="o">=</span> <span class="n">dataY</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">col_namesX</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataX</span><span class="o">.</span><span class="n">columns</span>
+
+<div class="viewcode-block" id="RandomDownSampler.fit_resample"><a class="viewcode-back" href="../../../../kats.models.metalearner.metalearner_modelselect.html#kats.models.metalearner.metalearner_modelselect.RandomDownSampler.fit_resample">[docs]</a>    <span class="k">def</span> <span class="nf">fit_resample</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Create balanced dataset via random downsampling.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A tuple containing the `pandas.Series` object of the best hyper-parameters and the corresponding errors, the `pandas.DataFrame` object of the downsampled time series features,</span>
+<span class="sd">            and the `pandas.Series` object of the downsampled best models for the corresponding time series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">resampled_x</span><span class="p">,</span> <span class="n">resampled_y</span><span class="p">,</span> <span class="n">resampled_hpt</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="c1"># naive down-sampler technique for data imbalance problem</span>
+        <span class="n">min_n</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="n">idx_dict</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="p">):</span>
+            <span class="n">idx_dict</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">idx_dict</span><span class="p">:</span>
+            <span class="n">idx_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">idx_dict</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">min_n</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">resampled_x</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataX</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">idx_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]),</span> <span class="p">:]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">resampled_y</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataY</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">idx_dict</span><span class="p">[</span><span class="n">key</span><span class="p">])])</span>
+            <span class="n">resampled_hpt</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hpt</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">idx_dict</span><span class="p">[</span><span class="n">key</span><span class="p">])])</span>
+
+        <span class="n">resampled_x</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">resampled_x</span><span class="p">)</span>
+        <span class="n">resampled_x</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">col_namesX</span>
+
+        <span class="n">resampled_y</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">resampled_y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+        <span class="n">resampled_hpt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">resampled_hpt</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;hpt&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">resampled_hpt</span><span class="p">,</span> <span class="n">resampled_x</span><span class="p">,</span> <span class="n">resampled_y</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,603 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.detectors.changepoint_evaluator &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.detectors.changepoint_evaluator</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Set</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">TimeSeriesChangePoint</span><span class="p">,</span> <span class="n">TimeSeriesData</span>
+<span class="kn">from</span> <span class="nn">kats.detectors.detector</span> <span class="kn">import</span> <span class="n">Detector</span>
+<span class="kn">from</span> <span class="nn">kats.detectors.detector_consts</span> <span class="kn">import</span> <span class="n">AnomalyResponse</span>
+<span class="kn">from</span> <span class="nn">kats.utils.simulator</span> <span class="kn">import</span> <span class="n">Simulator</span>
+
+<span class="c1"># defining some helper functions</span>
+<div class="viewcode-block" id="get_cp_index"><a class="viewcode-back" href="../../../kats.detectors.changepoint_evaluator.html#kats.detectors.changepoint_evaluator.get_cp_index">[docs]</a><span class="k">def</span> <span class="nf">get_cp_index</span><span class="p">(</span>
+    <span class="n">changepoints</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">TimeSeriesChangePoint</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">tsd</span><span class="p">:</span> <span class="n">TimeSeriesData</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Accepts the output of the Detector.detector() method which is a list of</span>
+<span class="sd">    tuples of (TimeSeriesChangePoint, Metadata) and returns the index of the</span>
+<span class="sd">    changepoints</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cp_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">tsd_df</span> <span class="o">=</span> <span class="n">tsd</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+    <span class="n">tsd_df</span><span class="p">[</span><span class="s2">&quot;time_index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">tsd_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="k">for</span> <span class="n">cp</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">changepoints</span><span class="p">:</span>
+        <span class="n">tsd_row</span> <span class="o">=</span> <span class="n">tsd_df</span><span class="p">[</span><span class="n">tsd_df</span><span class="o">.</span><span class="n">time</span> <span class="o">==</span> <span class="n">cp</span><span class="o">.</span><span class="n">start_time</span><span class="p">]</span>
+        <span class="n">this_cp</span> <span class="o">=</span> <span class="n">tsd_row</span><span class="p">[</span><span class="s2">&quot;time_index&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">cp_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_cp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cp_list</span></div>
+
+
+<span class="k">def</span> <span class="nf">crossed_threshold</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">threshold_low</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">threshold_high</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">val</span> <span class="o">&lt;</span> <span class="n">threshold_low</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">val</span> <span class="o">&gt;</span> <span class="n">threshold_high</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_cp_index_from_alert_score</span><span class="p">(</span>
+    <span class="n">score_val</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">threshold_low</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">threshold_high</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="n">cp_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">alert_on</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">score_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">crossed_bool</span> <span class="o">=</span> <span class="n">crossed_threshold</span><span class="p">(</span><span class="n">score_val</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">threshold_low</span><span class="p">,</span> <span class="n">threshold_high</span><span class="p">)</span>
+
+        <span class="c1"># alarm went off</span>
+        <span class="k">if</span> <span class="n">crossed_bool</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">alert_on</span><span class="p">):</span>
+            <span class="n">cp_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">alert_on</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># return back to normal</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">crossed_bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">alert_on</span><span class="p">:</span>
+            <span class="n">cp_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">alert_on</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="n">cp_list</span>
+
+
+<span class="k">def</span> <span class="nf">get_cp_index_from_threshold_score</span><span class="p">(</span>
+    <span class="n">score_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">threshold_low</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">threshold_high</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="n">higher</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">score_val</span> <span class="o">&gt;</span> <span class="n">threshold_high</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">score_val</span> <span class="o">&lt;</span> <span class="n">threshold_low</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">cp_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">higher</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">lower</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">cp_list</span>
+
+
+<span class="k">def</span> <span class="nf">get_cp_index_from_detector_model</span><span class="p">(</span>
+    <span class="n">anom_obj</span><span class="p">:</span> <span class="n">AnomalyResponse</span><span class="p">,</span>
+    <span class="n">alert_style_cp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">threshold_low</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">threshold_high</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+
+    <span class="n">score_val</span> <span class="o">=</span> <span class="n">anom_obj</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">values</span>
+    <span class="k">if</span> <span class="n">alert_style_cp</span><span class="p">:</span>
+        <span class="n">cp_list</span> <span class="o">=</span> <span class="n">get_cp_index_from_alert_score</span><span class="p">(</span>
+            <span class="n">score_val</span><span class="p">,</span> <span class="n">threshold_low</span><span class="p">,</span> <span class="n">threshold_high</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cp_list</span> <span class="o">=</span> <span class="n">get_cp_index_from_threshold_score</span><span class="p">(</span>
+            <span class="n">score_val</span><span class="p">,</span> <span class="n">threshold_low</span><span class="p">,</span> <span class="n">threshold_high</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cp_list</span>
+
+
+<span class="c1"># copied from https://github.com/alan-turing-institute/TCPDBench/blob/master/analysis/scripts/metrics.py</span>
+<div class="viewcode-block" id="true_positives"><a class="viewcode-back" href="../../../kats.detectors.changepoint_evaluator.html#kats.detectors.changepoint_evaluator.true_positives">[docs]</a><span class="k">def</span> <span class="nf">true_positives</span><span class="p">(</span><span class="n">T</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">X</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">margin</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Compute true positives without double counting.</span>
+
+<span class="sd">    &gt;&gt;&gt; true_positives({1, 10, 20, 23}, {3, 8, 20})</span>
+<span class="sd">    {1, 10, 20}</span>
+<span class="sd">    &gt;&gt;&gt; true_positives({1, 10, 20, 23}, {1, 3, 8, 20})</span>
+<span class="sd">    {1, 10, 20}</span>
+<span class="sd">    &gt;&gt;&gt; true_positives({1, 10, 20, 23}, {1, 3, 5, 8, 20})</span>
+<span class="sd">    {1, 10, 20}</span>
+<span class="sd">    &gt;&gt;&gt; true_positives(set(), {1, 2, 3})</span>
+<span class="sd">    set()</span>
+<span class="sd">    &gt;&gt;&gt; true_positives({1, 2, 3}, set())</span>
+<span class="sd">    set()</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        T: true positives.</span>
+<span class="sd">        X: detected positives.</span>
+<span class="sd">        margin: threshold for absolute difference to be counted as different.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The set of true positives.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># make a copy so we don&#39;t affect the caller</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">TP</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">tau</span> <span class="ow">in</span> <span class="n">T</span><span class="p">:</span>
+        <span class="n">close</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">abs</span><span class="p">(</span><span class="n">tau</span> <span class="o">-</span> <span class="n">x</span><span class="p">),</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">X</span> <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">tau</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">margin</span><span class="p">]</span>
+        <span class="n">close</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">close</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">dist</span><span class="p">,</span> <span class="n">xstar</span> <span class="o">=</span> <span class="n">close</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">TP</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+        <span class="n">X</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">xstar</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">TP</span></div>
+
+
+<span class="c1"># modified from https://github.com/alan-turing-institute/TCPDBench/blob/master/analysis/scripts/metrics.py</span>
+<div class="viewcode-block" id="f_measure"><a class="viewcode-back" href="../../../kats.detectors.changepoint_evaluator.html#kats.detectors.changepoint_evaluator.f_measure">[docs]</a><span class="k">def</span> <span class="nf">f_measure</span><span class="p">(</span>
+    <span class="n">annotations</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+    <span class="n">predictions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">margin</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Compute the F-measure based on human annotations.</span>
+
+<span class="sd">    Remember that all CP locations are 0-based!</span>
+
+<span class="sd">    &gt;&gt;&gt; f_measure({1: [10, 20], 2: [11, 20], 3: [10], 4: [0, 5]}, [10, 20])</span>
+<span class="sd">    1.0</span>
+<span class="sd">    &gt;&gt;&gt; f_measure({1: [], 2: [10], 3: [50]}, [10])</span>
+<span class="sd">    0.9090909090909091</span>
+<span class="sd">    &gt;&gt;&gt; f_measure({1: [], 2: [10], 3: [50]}, [])</span>
+<span class="sd">    0.8</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        annotations : dict from user_id to iterable of CP locations.</span>
+<span class="sd">        predictions : iterable of predicted CP locations.</span>
+<span class="sd">        alpha : value for the F-measure, alpha=0.5 gives the F1-measure.</span>
+<span class="sd">        return_PR : whether to return precision and recall too.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># ensure 0 is in all the sets</span>
+    <span class="n">Tks</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">annotations</span><span class="p">[</span><span class="n">uid</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">uid</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">annotations</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">Tk</span> <span class="ow">in</span> <span class="n">Tks</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">Tk</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+    <span class="n">X</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">Tstar</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">Tk</span> <span class="ow">in</span> <span class="n">Tks</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">tau</span> <span class="ow">in</span> <span class="n">Tk</span><span class="p">:</span>
+            <span class="n">Tstar</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Tks</span><span class="p">)</span>
+
+    <span class="n">P</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">true_positives</span><span class="p">(</span><span class="n">Tstar</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="n">margin</span><span class="p">))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+    <span class="n">TPk</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">true_positives</span><span class="p">(</span><span class="n">Tks</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">X</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="n">margin</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">Tks</span><span class="p">}</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">K</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">TPk</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">Tks</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">Tks</span><span class="p">)</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="n">P</span> <span class="o">*</span> <span class="n">R</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">R</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">P</span><span class="p">)</span>
+
+    <span class="n">score_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;f_score&quot;</span><span class="p">:</span> <span class="n">F</span><span class="p">,</span> <span class="s2">&quot;precision&quot;</span><span class="p">:</span> <span class="n">P</span><span class="p">,</span> <span class="s2">&quot;recall&quot;</span><span class="p">:</span> <span class="n">R</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">score_dict</span></div>
+
+
+<span class="k">def</span> <span class="nf">generate_from_simulator</span><span class="p">(</span>
+    <span class="n">cp_arr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">level_arr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ts_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">450</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]:</span>
+    <span class="k">if</span> <span class="n">cp_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cp_arr</span> <span class="o">=</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">350</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">level_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">level_arr</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.35</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">,</span> <span class="mf">1.35</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">]</span>
+
+    <span class="n">sim2</span> <span class="o">=</span> <span class="n">Simulator</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">ts_length</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2018-01-01&quot;</span><span class="p">)</span>
+    <span class="n">ts2</span> <span class="o">=</span> <span class="n">sim2</span><span class="o">.</span><span class="n">level_shift_sim</span><span class="p">(</span>
+        <span class="n">cp_arr</span><span class="o">=</span><span class="n">cp_arr</span><span class="p">,</span>
+        <span class="n">level_arr</span><span class="o">=</span><span class="n">level_arr</span><span class="p">,</span>
+        <span class="n">noise</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">seasonal_period</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="n">seasonal_magnitude</span><span class="o">=</span><span class="mf">0.075</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ts2_df</span> <span class="o">=</span> <span class="n">ts2</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+    <span class="n">ts2_dict</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]):</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ts2_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()}</span>
+    <span class="n">ts2_anno</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">350</span><span class="p">]}</span>
+    <span class="k">return</span> <span class="n">ts2_dict</span><span class="p">,</span> <span class="n">ts2_anno</span>
+
+
+<div class="viewcode-block" id="BenchmarkEvaluator"><a class="viewcode-back" href="../../../kats.detectors.changepoint_evaluator.html#kats.detectors.changepoint_evaluator.BenchmarkEvaluator">[docs]</a><span class="k">class</span> <span class="nc">BenchmarkEvaluator</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detector</span><span class="p">:</span> <span class="n">Detector</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detector</span> <span class="o">=</span> <span class="n">detector</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<span class="n">Evaluation</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s2">&quot;Evaluation&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">,</span> <span class="s2">&quot;precision&quot;</span><span class="p">,</span> <span class="s2">&quot;recall&quot;</span><span class="p">,</span> <span class="s2">&quot;f_score&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">EvalAggregate</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eval_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Evaluation</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_list</span> <span class="o">=</span> <span class="n">eval_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_df</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">get_eval_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="n">df_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">this_eval</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_list</span><span class="p">:</span>
+            <span class="n">df_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;dataset_name&quot;</span><span class="p">:</span> <span class="n">this_eval</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span>
+                    <span class="s2">&quot;precision&quot;</span><span class="p">:</span> <span class="n">this_eval</span><span class="o">.</span><span class="n">precision</span><span class="p">,</span>
+                    <span class="s2">&quot;recall&quot;</span><span class="p">:</span> <span class="n">this_eval</span><span class="o">.</span><span class="n">recall</span><span class="p">,</span>
+                    <span class="s2">&quot;f_score&quot;</span><span class="p">:</span> <span class="n">this_eval</span><span class="o">.</span><span class="n">f_score</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">df_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_df</span>
+
+    <span class="k">def</span> <span class="nf">get_avg_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_eval_dataframe</span><span class="p">()</span>
+        <span class="n">avg_precision</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_df</span><span class="o">.</span><span class="n">precision</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">avg_precision</span>
+
+    <span class="k">def</span> <span class="nf">get_avg_recall</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_eval_dataframe</span><span class="p">()</span>
+        <span class="n">avg_recall</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_df</span><span class="o">.</span><span class="n">recall</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">avg_recall</span>
+
+    <span class="k">def</span> <span class="nf">get_avg_f_score</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_eval_dataframe</span><span class="p">()</span>
+        <span class="n">avg_f_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_df</span><span class="o">.</span><span class="n">f_score</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">avg_f_score</span>
+
+
+<div class="viewcode-block" id="TuringEvaluator"><a class="viewcode-back" href="../../../kats.detectors.changepoint_evaluator.html#kats.detectors.changepoint_evaluator.TuringEvaluator">[docs]</a><span class="k">class</span> <span class="nc">TuringEvaluator</span><span class="p">(</span><span class="n">BenchmarkEvaluator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluates a changepoint detection algorithm. The evaluation</span>
+<span class="sd">    follows the benchmarking method established in this paper:</span>
+<span class="sd">    https://arxiv.org/pdf/2003.06222.pdf.</span>
+<span class="sd">    By default, this evaluates the Turing changepoint benchmark,</span>
+<span class="sd">    which is introduced in the above paper. This is the most comprehensive</span>
+<span class="sd">    benchmark for changepoint detection algorithms.</span>
+
+<span class="sd">    You can also evaluate your own dataset. The dataset should be a</span>
+<span class="sd">    dataframe with 3 columns:</span>
+
+<span class="sd">        &#39;dataset_name&#39;: str,</span>
+<span class="sd">        &#39;time_series&#39;: str &quot;{&#39;0&#39;: 0.55, &#39;1&#39;: 0.56}&quot;,</span>
+<span class="sd">        &#39;annotation&#39;: str &quot;{&#39;0&#39;:[1,2], &#39;1&#39;:[2,3]}&quot;</span>
+
+<span class="sd">    Annotations allow different human beings to annotate a changepoints</span>
+<span class="sd">    in a time series. Each key consists of one human labeler&#39;s label. This</span>
+<span class="sd">    allows for uncertainty in labeling.</span>
+<span class="sd">    Usage:</span>
+
+<span class="sd">    &gt;&gt;&gt; model_params = {&#39;p_value_cutoff&#39;: 5e-3, &#39;comparison_window&#39;: 2}</span>
+<span class="sd">    &gt;&gt;&gt; turing_2 = TuringEvaluator(detector = RobustStatDetector)</span>
+<span class="sd">    &gt;&gt;&gt; eval_agg_df_2 = turing.evaluate(data=eg_df, model_params=model_params)</span>
+<span class="sd">    The above produces a dataframe with scores for each dataset</span>
+<span class="sd">    To get an average over all datasets you can do</span>
+<span class="sd">    &gt;&gt;&gt; eval_agg = turing.get_eval_aggregate()</span>
+<span class="sd">    &gt;&gt;&gt; avg_precision = eval_agg.get_average_precision()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detector</span><span class="p">:</span> <span class="n">Detector</span><span class="p">,</span> <span class="n">is_detector_model</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TuringEvaluator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">detector</span><span class="o">=</span><span class="n">detector</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detector</span> <span class="o">=</span> <span class="n">detector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_agg</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_detector_model</span> <span class="o">=</span> <span class="n">is_detector_model</span>
+
+    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ignore_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">alert_style_cp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">threshold_low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">threshold_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_detector_model</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_detector_model</span><span class="p">(</span>
+                <span class="n">model_params</span><span class="o">=</span><span class="n">model_params</span><span class="p">,</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">ignore_list</span><span class="o">=</span><span class="n">ignore_list</span><span class="p">,</span>
+                <span class="n">alert_style_cp</span><span class="o">=</span><span class="n">alert_style_cp</span><span class="p">,</span>
+                <span class="n">threshold_low</span><span class="o">=</span><span class="n">threshold_low</span><span class="p">,</span>
+                <span class="n">threshold_high</span><span class="o">=</span><span class="n">threshold_high</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_detector</span><span class="p">(</span>
+                <span class="n">model_params</span><span class="o">=</span><span class="n">model_params</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">ignore_list</span><span class="o">=</span><span class="n">ignore_list</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_evaluate_detector_model</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ignore_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">alert_style_cp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">threshold_low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">threshold_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_list</span><span class="p">:</span>
+            <span class="n">ignore_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">model_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model_params</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># pyre-fixme[16]: `TuringEvaluator` has no attribute `ts_df`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ts_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ts_df</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="n">eval_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">this_dataset</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">this_dataset</span> <span class="ow">in</span> <span class="n">ignore_list</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">data_name</span><span class="p">,</span> <span class="n">tsd</span><span class="p">,</span> <span class="n">anno</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_data</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="c1"># pyre-fixme[29]: `Detector` is not a function.</span>
+            <span class="n">detector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="o">**</span><span class="n">model_params</span><span class="p">)</span>
+            <span class="n">anom_obj</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">tsd</span><span class="p">)</span>
+
+            <span class="n">cp_list</span> <span class="o">=</span> <span class="n">get_cp_index_from_detector_model</span><span class="p">(</span>
+                <span class="n">anom_obj</span><span class="p">,</span> <span class="n">alert_style_cp</span><span class="p">,</span> <span class="n">threshold_low</span><span class="p">,</span> <span class="n">threshold_high</span>
+            <span class="p">)</span>
+
+            <span class="n">eval_dict</span> <span class="o">=</span> <span class="n">f_measure</span><span class="p">(</span><span class="n">annotations</span><span class="o">=</span><span class="n">anno</span><span class="p">,</span> <span class="n">predictions</span><span class="o">=</span><span class="n">cp_list</span><span class="p">)</span>
+            <span class="n">eval_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Evaluation</span><span class="p">(</span>
+                    <span class="n">dataset_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">,</span>
+                    <span class="n">precision</span><span class="o">=</span><span class="n">eval_dict</span><span class="p">[</span><span class="s2">&quot;precision&quot;</span><span class="p">],</span>
+                    <span class="n">recall</span><span class="o">=</span><span class="n">eval_dict</span><span class="p">[</span><span class="s2">&quot;recall&quot;</span><span class="p">],</span>
+                    <span class="n">f_score</span><span class="o">=</span><span class="n">eval_dict</span><span class="p">[</span><span class="s2">&quot;f_score&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="c1"># break</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_agg</span> <span class="o">=</span> <span class="n">EvalAggregate</span><span class="p">(</span><span class="n">eval_list</span><span class="p">)</span>
+        <span class="n">eval_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_agg</span><span class="o">.</span><span class="n">get_eval_dataframe</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">eval_df</span>
+
+    <span class="k">def</span> <span class="nf">_evaluate_detector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ignore_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+
+        <span class="c1"># this is to avoid a mutable default parameter</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_list</span><span class="p">:</span>
+            <span class="n">ignore_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">model_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model_params</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># pyre-fixme[16]: `TuringEvaluator` has no attribute `ts_df`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ts_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ts_df</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="n">eval_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">this_dataset</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">this_dataset</span> <span class="ow">in</span> <span class="n">ignore_list</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">data_name</span><span class="p">,</span> <span class="n">tsd</span><span class="p">,</span> <span class="n">anno</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_data</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="c1"># pyre-fixme[29]: `Detector` is not a function.</span>
+            <span class="n">detector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">tsd</span><span class="p">)</span>
+            <span class="n">change_points</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="o">**</span><span class="n">model_params</span><span class="p">)</span>
+            <span class="n">cp_list</span> <span class="o">=</span> <span class="n">get_cp_index</span><span class="p">(</span><span class="n">change_points</span><span class="p">,</span> <span class="n">tsd</span><span class="p">)</span>
+            <span class="n">eval_dict</span> <span class="o">=</span> <span class="n">f_measure</span><span class="p">(</span><span class="n">annotations</span><span class="o">=</span><span class="n">anno</span><span class="p">,</span> <span class="n">predictions</span><span class="o">=</span><span class="n">cp_list</span><span class="p">)</span>
+            <span class="n">eval_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Evaluation</span><span class="p">(</span>
+                    <span class="n">dataset_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">,</span>
+                    <span class="n">precision</span><span class="o">=</span><span class="n">eval_dict</span><span class="p">[</span><span class="s2">&quot;precision&quot;</span><span class="p">],</span>
+                    <span class="n">recall</span><span class="o">=</span><span class="n">eval_dict</span><span class="p">[</span><span class="s2">&quot;recall&quot;</span><span class="p">],</span>
+                    <span class="n">f_score</span><span class="o">=</span><span class="n">eval_dict</span><span class="p">[</span><span class="s2">&quot;f_score&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="c1"># break</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_agg</span> <span class="o">=</span> <span class="n">EvalAggregate</span><span class="p">(</span><span class="n">eval_list</span><span class="p">)</span>
+        <span class="n">eval_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_agg</span><span class="o">.</span><span class="n">get_eval_dataframe</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">eval_df</span>
+
+<div class="viewcode-block" id="TuringEvaluator.get_eval_aggregate"><a class="viewcode-back" href="../../../kats.detectors.changepoint_evaluator.html#kats.detectors.changepoint_evaluator.TuringEvaluator.get_eval_aggregate">[docs]</a>    <span class="k">def</span> <span class="nf">get_eval_aggregate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns the EvalAggregate object, which can then be used for</span>
+<span class="sd">        for further processing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_agg</span></div>
+
+<div class="viewcode-block" id="TuringEvaluator.load_data"><a class="viewcode-back" href="../../../kats.detectors.changepoint_evaluator.html#kats.detectors.changepoint_evaluator.TuringEvaluator.load_data">[docs]</a>    <span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        loads data, the source is either simulator or hive</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_data_from_simulator</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_load_data_from_simulator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="n">ts_dict</span><span class="p">,</span> <span class="n">ts_anno</span> <span class="o">=</span> <span class="n">generate_from_simulator</span><span class="p">()</span>
+        <span class="n">ts2_dict</span><span class="p">,</span> <span class="n">ts2_anno</span> <span class="o">=</span> <span class="n">generate_from_simulator</span><span class="p">(</span>
+            <span class="n">cp_arr</span><span class="o">=</span><span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">150</span><span class="p">],</span> <span class="n">level_arr</span><span class="o">=</span><span class="p">[</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">,</span> <span class="mf">1.35</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">eg_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;dataset_name&quot;</span><span class="p">:</span> <span class="s2">&quot;eg_1&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;time_series&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">ts_dict</span><span class="p">),</span>
+                    <span class="s2">&quot;annotation&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">ts_anno</span><span class="p">),</span>
+                <span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;dataset_name&quot;</span><span class="p">:</span> <span class="s2">&quot;eg_2&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;time_series&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">ts_dict</span><span class="p">),</span>
+                    <span class="s2">&quot;annotation&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">ts2_anno</span><span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">eg_df</span>
+
+    <span class="k">def</span> <span class="nf">_parse_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df_row</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="n">this_dataset</span> <span class="o">=</span> <span class="n">df_row</span><span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">]</span>
+        <span class="n">this_ts</span> <span class="o">=</span> <span class="n">df_row</span><span class="p">[</span><span class="s2">&quot;time_series&quot;</span><span class="p">]</span>
+        <span class="n">this_anno</span> <span class="o">=</span> <span class="n">df_row</span><span class="p">[</span><span class="s2">&quot;annotation&quot;</span><span class="p">]</span>
+
+        <span class="n">this_anno_json_acc</span> <span class="o">=</span> <span class="n">this_anno</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">this_dataset</span><span class="p">)</span>
+
+        <span class="n">this_anno_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">this_anno_json_acc</span><span class="p">)</span>
+
+        <span class="n">this_ts_json_acc</span> <span class="o">=</span> <span class="n">this_ts</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\&quot;</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">this_ts_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">this_ts_json_acc</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">this_ts_json_acc</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;(\w+):&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;&quot;\1&quot;:&#39;</span><span class="p">,</span> <span class="n">this_ts_json_acc</span><span class="p">)</span>
+            <span class="n">this_ts_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">this_ts_json_acc</span><span class="p">)</span>
+
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">this_ts_dict</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+        <span class="n">ts</span><span class="o">.</span><span class="n">sort_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ts</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ts</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]</span>
+        <span class="n">first_time_val</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\d</span><span class="si">{4}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">first_time_val</span><span class="p">):</span>
+            <span class="c1"># pyre-fixme[16]: `DataFrame` has no attribute `time`.</span>
+            <span class="n">ts</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\d</span><span class="si">{4}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">first_time_val</span><span class="p">):</span>
+            <span class="n">ts</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;%Y-%m&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ts</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
+
+        <span class="n">tsd</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span>
+            <span class="n">ts</span><span class="p">,</span>
+            <span class="n">use_unix_time</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">unix_time_units</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">,</span>
+            <span class="n">tz</span><span class="o">=</span><span class="s2">&quot;US/Pacific&quot;</span><span class="p">,</span>
+            <span class="n">time_col_name</span><span class="o">=</span><span class="s2">&quot;time&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">this_dataset</span><span class="p">,</span> <span class="n">tsd</span><span class="p">,</span> <span class="n">this_anno_dict</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

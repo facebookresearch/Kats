@@ -1,0 +1,258 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.models.stlf module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.models.theta module" href="kats.models.theta.html" />
+    <link rel="prev" title="kats.models.sarima module" href="kats.models.sarima.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.models.stlf">
+<span id="kats-models-stlf-module"></span><h1>kats.models.stlf module<a class="headerlink" href="#module-kats.models.stlf" title="Permalink to this headline">¶</a></h1>
+<p>STLF forecasting model</p>
+<p>This model starts from decomposing the time series data with STL decomposition
+then it fits individual foreasting model on the de-seasonalized components
+it re-seasonalizes the forecasted results with seasonal data to produce the final
+forecasting results.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.stlf.</span></span><span class="sig-name descname"><span class="pre">STLFModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.stlf.STLFParams" title="kats.models.stlf.STLFParams"><span class="pre">kats.models.stlf.STLFParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/stlf.html#STLFModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.stlf.STLFModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>Model class for STLF</p>
+<p>This class provides fit, predict, and plot methods for STLF model</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFModel.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.stlf.STLFModel.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>the input time series data as <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFModel.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.stlf.STLFModel.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>the parameter class defined with <cite>STLFParams</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFModel.deseasonalize">
+<span class="sig-name descname"><span class="pre">deseasonalize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/models/stlf.html#STLFModel.deseasonalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.stlf.STLFModel.deseasonalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>De-seasonalize the time series data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The seasonal and de-seasonalized data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/stlf.html#STLFModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.stlf.STLFModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit STLF model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The fitted STLF model object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFModel.get_parameter_search_space">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><span class="pre">object</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/stlf.html#STLFModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.stlf.STLFModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide a parameter space for STLF model</p>
+<p>Move the implementation of get_parameter_search_space() out of stlf
+to keep HPT implementation tighter, and avoid the dependency conflict issue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of dicts contains parameter search space</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/stlf.html#STLFModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.stlf.STLFModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot forecasted results from Prophet model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/stlf.html#STLFModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.stlf.STLFModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>predict with the fitted STLF model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – the steps or length of prediction horizon</p></li>
+<li><p><strong>include_history</strong> – if include the historical data, default as False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><cite>time</cite>, <cite>fcst</cite>, <cite>fcst_lower</cite>, and <cite>fcst_upper</cite></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>The predicted dataframe with following columns</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.stlf.</span></span><span class="sig-name descname"><span class="pre">STLFParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/stlf.html#STLFParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.stlf.STLFParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>Parameter class for Prophet model</p>
+<p>This is the parameter class for STLF model, stands for STL-decomposition based
+forecasting model.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFParams.method">
+<span class="sig-name descname"><span class="pre">method</span></span><a class="headerlink" href="#kats.models.stlf.STLFParams.method" title="Permalink to this definition">¶</a></dt>
+<dd><p>str, the forecasting model to fit on the de-seasonalized component
+it currently supports prophet, linear, quadratic, and theta method.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFParams.m">
+<span class="sig-name descname"><span class="pre">m</span></span><a class="headerlink" href="#kats.models.stlf.STLFParams.m" title="Permalink to this definition">¶</a></dt>
+<dd><p>int, the length of one seasonal cycle</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.stlf.STLFParams.validate_params">
+<span class="sig-name descname"><span class="pre">validate_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/stlf.html#STLFParams.validate_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.stlf.STLFParams.validate_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate the parameters for STLF model</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="kats.models.html">kats.models package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kats.models.arima.html">kats.models.arima module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.bayesian_var.html">kats.models.bayesian_var module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.ensemble.html">kats.models.ensemble package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.harmonic_regression.html">kats.models.harmonic_regression module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.holtwinters.html">kats.models.holtwinters module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.linear_model.html">kats.models.linear_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.lstm.html">kats.models.lstm module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.metalearner.html">kats.models.metalearner package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.model.html">kats.models.model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.nowcasting.html">kats.models.nowcasting package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.prophet.html">kats.models.prophet module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.quadratic_model.html">kats.models.quadratic_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.reconciliation.html">kats.models.reconciliation package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.sarima.html">kats.models.sarima module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">kats.models.stlf module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="kats.models.html">kats.models package</a><ul>
+      <li>Previous: <a href="kats.models.sarima.html" title="previous chapter">kats.models.sarima module</a></li>
+      <li>Next: <a href="kats.models.theta.html" title="next chapter">kats.models.theta module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.models.stlf.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,389 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>kats.models.metalearner.metalearner_hpt module &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="kats.models.metalearner.metalearner_modelselect module" href="kats.models.metalearner.metalearner_modelselect.html" />
+    <link rel="prev" title="kats.models.metalearner.get_metadata module" href="kats.models.metalearner.get_metadata.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-kats.models.metalearner.metalearner_hpt">
+<span id="kats-models-metalearner-metalearner-hpt-module"></span><h1>kats.models.metalearner.metalearner_hpt module<a class="headerlink" href="#module-kats.models.metalearner.metalearner_hpt" title="Permalink to this headline">¶</a></h1>
+<p>A module for meta-learner hyper-parameter selection.</p>
+<dl class="simple">
+<dt>This module contains two classes, including:</dt><dd><ul class="simple">
+<li><p><a class="reference internal" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT" title="kats.models.metalearner.metalearner_hpt.MetaLearnHPT"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaLearnHPT</span></code></a> for recommending hyper-parameters of forecasting models;</p></li>
+<li><p><a class="reference internal" href="#kats.models.metalearner.metalearner_hpt.MultitaskNet" title="kats.models.metalearner.metalearner_hpt.MultitaskNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultitaskNet</span></code></a> for multi-task neural network built with pytorch.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.metalearner.metalearner_hpt.</span></span><span class="sig-name descname"><span class="pre">MetaLearnHPT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.core.frame.DataFrame</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_y</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.core.frame.DataFrame</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">categorical_idx</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerical_idx</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_model</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_model</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A class for meta-learner framework on hyper-parameters tuning.</p>
+<p>MetaLearnHPT is a framework for choosing hyper-parameter for forecasting models. It uses a multi-task neural network for recommendation, with time series features as inputs, and the hyper-parameters of a given model as outputs.
+For training, it uses time series features as inputs and the corresponding best hyper-parameters as labels. For prediction, it takes time series or time series features to predict the best hyper-parameters.
+MetaLearnHPT provides get_default_model, build_network, train, pred, pred_by_feature, save_model, load_model and plot.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.data_x">
+<span class="sig-name descname"><span class="pre">data_x</span></span><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.data_x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A <cite>pandas.DataFrame</cite> object of time series features. data_x should not be None unless load_model is True. Default is None.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.data_y">
+<span class="sig-name descname"><span class="pre">data_y</span></span><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.data_y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A <cite>pandas.DataFrame</cite> object of the corresponding best hyper-parameters. data_y should not be None unless load_model is True. Default is None.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.categorical_idx">
+<span class="sig-name descname"><span class="pre">categorical_idx</span></span><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.categorical_idx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A list of strings of the names of the categorical hyper-parameters. Default is None.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.numerical_idx">
+<span class="sig-name descname"><span class="pre">numerical_idx</span></span><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.numerical_idx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A list of strings of the names of the numerical hyper-parameters. Default is None.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.default_model">
+<span class="sig-name descname"><span class="pre">default_model</span></span><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.default_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A string of the name of the forecast model whose default settings will be used.
+Can be ‘arima’, ‘sarima’, ‘theta’, ‘prophet’, ‘holtwinters’, ‘stlf’ or None. Default is None.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.scale">
+<span class="sig-name descname"><span class="pre">scale</span></span><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to normalize time series features to zero mean and unit variance. Default is True.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.load_model">
+<span class="sig-name descname"><span class="pre">load_model</span></span><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT.load_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to load a trained model. Default is False.</p>
+</dd></dl>
+
+<dl>
+<dt>Sample Usage:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw</span> <span class="o">=</span> <span class="n">MetaLearnHPT</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">default_model</span><span class="o">=</span><span class="s1">&#39;holtwinters&#39;</span><span class="p">)</span> <span class="c1"># Use default Holt-Winter&#39;s model as an example.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw</span><span class="o">.</span><span class="n">build_network</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw</span><span class="o">.</span><span class="n">pred</span><span class="p">(</span><span class="n">ts</span><span class="o">=</span><span class="n">TSdata</span><span class="p">)</span> <span class="c1"># Recommend hyper-parameters for TSdata.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw</span><span class="o">.</span><span class="n">save_model</span><span class="p">(</span><span class="s1">&#39;my_model_binary.pkl&#39;</span><span class="p">)</span> <span class="c1"># Save trained model to a binary</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw2</span><span class="o">=</span><span class="n">MetaLearnHPT</span><span class="p">(</span><span class="n">load_model</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># Load a trained model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw2</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="s1">&#39;my_model_binary.pkl&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw</span> <span class="o">=</span> <span class="n">MetaLearnHPT</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y_holtwinters</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;trend&#39;</span><span class="p">,</span><span class="s1">&#39;damped&#39;</span><span class="p">,</span> <span class="s1">&#39;seasonal&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;seasonal_periods&#39;</span><span class="p">])</span> <span class="c1"># Example for building customized MetaLearnHPT object.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw</span><span class="o">.</span><span class="n">build_network</span><span class="p">(</span><span class="n">n_hidden_shared</span><span class="o">=</span><span class="p">[</span><span class="mi">30</span><span class="p">],</span> <span class="n">n_hidden_cat_combo</span><span class="o">=</span><span class="p">[[</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">]],</span><span class="n">n_hidden_num</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mlhpt_hw</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">loss_scale</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.build_network">
+<span class="sig-name descname"><span class="pre">build_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_hidden_shared</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_cat_combo</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_num</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT.build_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.build_network" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a multi-task neural network.</p>
+<p>This function builds a multi-task neural network according to given neural network structure (i.e., n_hidden_shared, n_hidden_cat_combo, n_hidden_num).
+If the MetaLearnHPT object is initiated as a default_model (i.e., default_model is not None), then a default neural network structure will be built and cannot accept customized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_hidden_shared</strong> – Optional; A list of numbers of hidden neurons in each shared hidden layer.
+For example, n_hidden_shared = [first_shared_hid_dim, second_shared_hid_dim, ….]. Default is None.</p></li>
+<li><p><strong>n_hidden_cat_combo</strong> – Optional; A list of lists of task-specific hidden layers’ sizes of each categorical response variables.
+For example, if we have 3 categorical y, then
+n_hidden_cat_combo = [[first_spec_hid_dim_cat1, second_spec_hid_dim_cat1, …],
+[first_spec_hid_dim_cat2, second_spec_hid_dim_cat2, …],
+[first_spec_hid_dim_cat3, second_spec_hid_dim_cat3, …]].
+Length of n_hidden_cat_combo must match the number of categorical y. Default is None.</p></li>
+<li><p><strong>n_hidden_num</strong> – Optional; A list of task-specific hidden layers’ sizes of numerical response variables.
+For example, n_hidden_num = [first_spec_hid_dim, second_spec_hid_dim, …]. Default is None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.get_default_model">
+<span class="sig-name descname"><span class="pre">get_default_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT.get_default_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.get_default_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the name of default_model. It the instance is a customized model, return None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A string reprsenting the default model or None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">load_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT.load_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a pre-trained model from a binary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file_path</strong> – A string representing the path to load a pre-trained model.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot loss paths of classification/regression on both training and validation set.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.pred">
+<span class="sig-name descname"><span class="pre">pred</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts_scale</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT.pred"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.pred" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict hyper-parameters for a new time series data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_ts</strong> – <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object representing the time series for which to generate hyper-parameters</p></li>
+<li><p><strong>ts_scale</strong> – A boolean to specify whether or not to rescale time series data (i.e., divide its value by its maximum value) before calculating its features. Default is True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <cite>pandas.DataFrame</cite> object storing the recommended hyper-parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.pred_by_feature">
+<span class="sig-name descname"><span class="pre">pred_by_feature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">pandas.core.frame.DataFrame</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT.pred_by_feature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.pred_by_feature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict hyper-parameters for time series features.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>source_x</strong> – Time series features.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of dictionaries storing the recommended hyper-parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.save_model">
+<span class="sig-name descname"><span class="pre">save_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT.save_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.save_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save trained model to a binary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file_path</strong> – A string representing the path to save a trained model, which should contain either ‘.p’ or ‘.pkl’ file extension.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MetaLearnHPT.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loss_scale</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_epochs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'SGD'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">momentum</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_epochs_stop</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MetaLearnHPT.train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MetaLearnHPT.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train the pre-built multi-task neural network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>loss_scale</strong> – Optional; A float to specify the hyper-parameter to scale regression loss and classification loss, which controls the trade-off between the accuracy of regression task and classification task.
+A larger loss_scale value gives a more accurate prediction for classification part, and a lower value gives a more accurate prediction for regression part. Default is 1.0.</p></li>
+<li><p><strong>lr</strong> – Optional; A float for learning rate. Default is 0.001.</p></li>
+<li><p><strong>n_epochs</strong> – Optional; An integer for the number of epochs. Default is 1000.</p></li>
+<li><p><strong>batch_size</strong> – Optional; An integer for the batch size. Default is 128.</p></li>
+<li><p><strong>method</strong> – Optional; A string for the name of optimizer. Can be ‘SGD’ or ‘Adam’. Default is ‘SGD’.</p></li>
+<li><p><strong>val_size</strong> – Optional; A float for the proportion of validation set of. It should be within (0, 1). Default is 0.1.</p></li>
+<li><p><strong>momentum</strong> – Optional; A fload for the momentum for SGD. Default value is 0.9.</p></li>
+<li><p><strong>n_epochs_stop</strong> – Optional; An integer or a float for early stopping condition. If the number of epochs is larger than n_epochs_stop and there is no improvement on validation set, we stop training.
+One can turn off the early stopping feature by setting n_epochs_stop = np.inf. Default is 20.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MultitaskNet">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.metalearner.metalearner_hpt.</span></span><span class="sig-name descname"><span class="pre">MultitaskNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_and_n_hidden_shared</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_and_output_cat_combo</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_and_output_num</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MultitaskNet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MultitaskNet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>A class for multi-task neural network.</p>
+<p>Build a multi-task neural network used by MetaLearnHPT. It can also be used to single-task learning. Currently only support Relu activation function.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MultitaskNet.input_and_n_hidden_shared">
+<span class="sig-name descname"><span class="pre">input_and_n_hidden_shared</span></span><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MultitaskNet.input_and_n_hidden_shared" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of integers contains the dimension of input and numbers of hidden neurons in each shared hidden layer.
+The first value in this list is dimension of input, which is dimension of feature vector.
+For example, input_and_n_hidden_shared = [input_dim, first_shared_hid_dim, second_shared_hid_dim, ….].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MultitaskNet.n_hidden_and_output_cat_combo">
+<span class="sig-name descname"><span class="pre">n_hidden_and_output_cat_combo</span></span><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MultitaskNet.n_hidden_and_output_cat_combo" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of lists of task-specific hidden layers’ sizes of each categorical response variables and their dimension of output.
+For example, if we have 3 categorical y with 3, 2, 4 classes respectively, then
+n_hidden_and_output_cat_combo = [[first_spec_hid_dim_cat1, second_spec_hid_dim_cat1, …, 3],
+[first_spec_hid_dim_cat2, second_spec_hid_dim_cat2, …, 2],
+[first_spec_hid_dim_cat3, second_spec_hid_dim_cat3, …, 4]].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MultitaskNet.n_hidden_and_output_num">
+<span class="sig-name descname"><span class="pre">n_hidden_and_output_num</span></span><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MultitaskNet.n_hidden_and_output_num" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of integers contains task-specific hidden layers’ sizes of numerical response variables and the dimension of output,
+which is the number of numerical response variables in data_y.
+For example, if we have three numerical response variables in y, then
+n_hidden_and_output_num = [first_spec_hid_dim, second_spec_hid_dim, …, 3]</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.metalearner_hpt.MultitaskNet.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/metalearner/metalearner_hpt.html#MultitaskNet.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.metalearner_hpt.MultitaskNet.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward function in neural networks.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="kats.models.html">kats.models package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kats.models.arima.html">kats.models.arima module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.bayesian_var.html">kats.models.bayesian_var module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.ensemble.html">kats.models.ensemble package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.harmonic_regression.html">kats.models.harmonic_regression module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.holtwinters.html">kats.models.holtwinters module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.linear_model.html">kats.models.linear_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.lstm.html">kats.models.lstm module</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="kats.models.metalearner.html">kats.models.metalearner package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="kats.models.metalearner.get_metadata.html">kats.models.metalearner.get_metadata module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">kats.models.metalearner.metalearner_hpt module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.metalearner.metalearner_modelselect.html">kats.models.metalearner.metalearner_modelselect module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.metalearner.metalearner_predictability.html">kats.models.metalearner.metalearner_predictability module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.metalearner.html#module-kats.models.metalearner">kats.models.metalearner module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.model.html">kats.models.model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.nowcasting.html">kats.models.nowcasting package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.prophet.html">kats.models.prophet module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.quadratic_model.html">kats.models.quadratic_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.reconciliation.html">kats.models.reconciliation package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.sarima.html">kats.models.sarima module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="kats.models.html">kats.models package</a><ul>
+  <li><a href="kats.models.metalearner.html">kats.models.metalearner package</a><ul>
+      <li>Previous: <a href="kats.models.metalearner.get_metadata.html" title="previous chapter">kats.models.metalearner.get_metadata module</a></li>
+      <li>Next: <a href="kats.models.metalearner.metalearner_modelselect.html" title="next chapter">kats.models.metalearner.metalearner_modelselect module</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/kats.models.metalearner.metalearner_hpt.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

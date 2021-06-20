@@ -1,0 +1,573 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>kats.models.bayesian_var &#8212; Kats 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for kats.models.bayesian_var</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) Facebook, Inc. and its affiliates.</span>
+<span class="c1"># This source code is licensed under the MIT license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd"> Bayesian estimation of Vector Autoregressive Model using</span>
+<span class="sd"> Minnesota prior on the coefficient matrix. This version is</span>
+<span class="sd"> useful for regularization when they are too many coefficients</span>
+<span class="sd"> to be estimated.</span>
+
+<span class="sd"> Implementation inspired by the following two articles/papers:</span>
+<span class="sd">    https://www.mathworks.com/help/econ/normalbvarm.html#mw_4a1ab118-9ef3-4380-8c5a-12b848254117</span>
+<span class="sd">    http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf (page 5)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">kats.models.model</span> <span class="k">as</span> <span class="nn">m</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">Params</span><span class="p">,</span> <span class="n">TimeSeriesData</span>
+<span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="kn">import</span> <span class="n">inv</span>  <span class="c1"># @manual</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">block_diag</span>  <span class="c1"># @manual</span>
+
+
+<div class="viewcode-block" id="BayesianVARParams"><a class="viewcode-back" href="../../../kats.models.bayesian_var.html#kats.models.bayesian_var.BayesianVARParams">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">BayesianVARParams</span><span class="p">(</span><span class="n">Params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parameter class for Bayesian VAR model</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        p: Historical lag to use</span>
+<span class="sd">        Below parameters are hyperparameters in the covariance matrix for coefficient prior.</span>
+<span class="sd">        See page 5 in http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf for more details.</span>
+<span class="sd">        phi_0: tightness on the variance of the first lag</span>
+<span class="sd">        phi_1: relative tightness of other variables</span>
+<span class="sd">        phi_2: relative tightness of the exogenous variables</span>
+<span class="sd">        phi_3: decay with lag is parameterized as lag^phi_3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">phi_0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span>
+    <span class="n">phi_1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span>
+    <span class="n">phi_2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">phi_3</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="k">def</span> <span class="nf">validate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Lag order should be positive, but got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_0</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_1</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_2</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_3</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_1</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Parameter phi_1 should generally be &lt;= 1. &quot;</span>
+            <span class="s2">&quot;See page 5 of http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf&quot;</span>
+            <span class="s2">&quot;for more details.&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BayesianVAR"><a class="viewcode-back" href="../../../kats.models.bayesian_var.html#kats.models.bayesian_var.BayesianVAR">[docs]</a><span class="k">class</span> <span class="nc">BayesianVAR</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Model class for bayesian VAR</span>
+
+<span class="sd">    This class provides fit, predict, and plot methods for bayesian VAR model</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        data: the input time series data as `TimeSeriesData`</span>
+<span class="sd">        params: the parameter class defined with `BayesianVARParams`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">BayesianVARParams</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Ignore the input time column and re-index to 0...T</span>
+        <span class="n">copy_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span> <span class="o">=</span> <span class="n">copy_data</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># pyre-fixme[16]: `DataFrame` has no attribute `time`.</span>
+        <span class="n">copy_data</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">copy_data</span><span class="p">))</span>
+        <span class="n">copy_data</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">copy_data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_freq</span> <span class="o">=</span> <span class="n">BayesianVAR</span><span class="o">.</span><span class="n">_check_get_freq</span><span class="p">(</span>
+            <span class="n">copy_data</span>
+        <span class="p">)</span>  <span class="c1"># check for consistent frequency</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">copy_data</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">BayesianVAR</span><span class="o">.</span><span class="n">_convert_timeseries_np</span><span class="p">(</span><span class="n">copy_data</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">),</span> <span class="s2">&quot;Expected same amount of data on time axis for X and Y&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">p</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_0</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">phi_0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_1</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">phi_1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_2</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">phi_2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_3</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">phi_3</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Initializing Bayesian VAR model with: &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;BVAR(p=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="si">}</span><span class="s2">, m=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="si">}</span><span class="s2">, r=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">r</span><span class="si">}</span><span class="s2">, T=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="si">}</span><span class="s2">, N=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;phi_0=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">phi_0</span><span class="si">}</span><span class="s2">, phi_1=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">phi_1</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;phi_2=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">phi_2</span><span class="si">}</span><span class="s2">, phi_3=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">phi_3</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_check_get_freq</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">time_diff</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="n">diff_unique</span> <span class="o">=</span> <span class="n">time_diff</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">diff_unique</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Frequency of metrics is not constant: </span><span class="si">{</span><span class="n">diff_unique</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="s2">&quot;Please check for missing or duplicate values&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">diff_unique</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_convert_timeseries_np</span><span class="p">(</span>
+        <span class="n">timeseries</span><span class="p">:</span> <span class="n">TimeSeriesData</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="n">data_df</span> <span class="o">=</span> <span class="n">timeseries</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+        <span class="n">Y</span> <span class="o">=</span> <span class="n">data_df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="n">m</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">timeseries</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span>
+
+    <span class="k">def</span> <span class="nf">_get_training_residuals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">residuals</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Performing one-step ahead forecasting on history on from t=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="si">}</span><span class="s2"> to t=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="c1"># create dataframe with each column corresponding to the residual</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">):</span>
+            <span class="n">point_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_point_t</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+            <span class="n">residuals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span><span class="o">-</span><span class="n">point_pred</span><span class="p">)</span>
+        <span class="n">times_new</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">start_date</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">times</span><span class="p">]</span>
+        <span class="n">df_resid</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">residuals</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">times_new</span><span class="p">,</span>
+                                <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">df_resid</span>
+
+<div class="viewcode-block" id="BayesianVAR.fit"><a class="viewcode-back" href="../../../kats.models.bayesian_var.html#kats.models.bayesian_var.BayesianVAR.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Fit Bayesian VAR model&quot;&quot;&quot;</span>
+
+        <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `sigma_ols`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma_ols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_sigma_ols</span><span class="p">()</span>
+
+        <span class="n">mu_prior</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">):</span>
+            <span class="n">mu_prior</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">*</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">mu_prior</span> <span class="o">=</span> <span class="n">mu_prior</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+        <span class="n">v_prior</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_v_prior</span><span class="p">()</span>
+
+        <span class="n">Z_sig_Z_sum</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">Z_sig_y_sum</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">):</span>
+            <span class="n">Z_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_Zt</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">t</span>
+            <span class="p">)</span>  <span class="c1"># shape: m x [m * (m * p + r + 1)]</span>
+
+            <span class="n">z_sum_term</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">Z_t</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma_ols</span><span class="p">)</span>
+            <span class="p">)</span> <span class="o">@</span> <span class="n">Z_t</span>  <span class="c1"># shape: [m * (m * p + r + 1)] x [m * (m * p + r + 1)]</span>
+            <span class="n">y_sum_term</span> <span class="o">=</span> <span class="p">(</span><span class="n">Z_t</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma_ols</span><span class="p">))</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">[</span>
+                <span class="p">:,</span> <span class="n">t</span>
+            <span class="p">]</span>  <span class="c1"># shape: [m * (m * p + r + 1)] x 1</span>
+
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">==</span> <span class="n">z_sum_term</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">z_sum_term</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">==</span> <span class="n">y_sum_term</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">y_sum_term</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+            <span class="n">Z_sig_Z_sum</span> <span class="o">+=</span> <span class="n">z_sum_term</span>
+            <span class="n">Z_sig_y_sum</span> <span class="o">+=</span> <span class="n">y_sum_term</span>
+
+        <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `v_posterior`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_posterior</span> <span class="o">=</span> <span class="n">inv</span><span class="p">(</span>
+            <span class="n">inv</span><span class="p">(</span><span class="n">v_prior</span><span class="p">)</span> <span class="o">+</span> <span class="n">Z_sig_Z_sum</span>
+        <span class="p">)</span>  <span class="c1"># shape: [m * (m * p + r + 1)] x [m * (m * p + r + 1)]</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_posterior</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">v_posterior</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `mu_posterior`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mu_posterior</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_posterior</span> <span class="o">@</span> <span class="p">(</span>
+            <span class="n">inv</span><span class="p">(</span><span class="n">v_prior</span><span class="p">)</span> <span class="o">@</span> <span class="n">mu_prior</span> <span class="o">+</span> <span class="n">Z_sig_y_sum</span>
+        <span class="p">)</span>  <span class="c1"># shape: [m * (m * p + r + 1)] x 1</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_posterior</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_posterior</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `resid`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_training_residuals</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+    <span class="k">def</span> <span class="nf">_construct_z</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Need t=</span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2"> &gt;= p=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">==</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">new_yt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fliplr</span><span class="p">(</span><span class="n">Y</span><span class="p">[:,</span> <span class="n">t</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="p">:</span> <span class="n">t</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">new_yt</span><span class="p">,</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>  <span class="c1"># shape: [(m * p + r + 1) x 1]</span>
+
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,)</span> <span class="o">==</span> <span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,)</span><span class="si">}</span><span class="s2"> but got </span><span class="si">{</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="n">z</span>
+
+    <span class="k">def</span> <span class="nf">_construct_Zt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_z</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+        <span class="n">Z_t</span> <span class="o">=</span> <span class="n">block_diag</span><span class="p">(</span><span class="o">*</span><span class="p">([</span><span class="n">z</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">))</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">==</span> <span class="n">Z_t</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">Z_t</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Z_t</span>  <span class="c1"># shape: m x [m * (m * p + m + 1)]</span>
+
+    <span class="k">def</span> <span class="nf">_construct_X_OLS</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">X_OLS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">):</span>
+            <span class="n">X_OLS</span><span class="p">[:,</span> <span class="n">t</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_z</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">t</span>
+            <span class="p">)</span>  <span class="c1"># X_OLS ignores first p values</span>
+
+        <span class="k">return</span> <span class="n">X_OLS</span>
+
+    <span class="k">def</span> <span class="nf">_compute_sigma_ols</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">Y_suffix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="p">:]</span>
+        <span class="n">X_OLS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_X_OLS</span><span class="p">()</span>
+
+        <span class="n">beta_ols</span> <span class="o">=</span> <span class="p">(</span><span class="n">Y_suffix</span> <span class="o">@</span> <span class="n">X_OLS</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">@</span> <span class="n">inv</span><span class="p">(</span><span class="n">X_OLS</span> <span class="o">@</span> <span class="n">X_OLS</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">sse</span> <span class="o">=</span> <span class="p">(</span><span class="n">Y_suffix</span> <span class="o">-</span> <span class="n">beta_ols</span> <span class="o">@</span> <span class="n">X_OLS</span><span class="p">)</span> <span class="o">@</span> <span class="p">(</span>
+            <span class="n">Y_suffix</span> <span class="o">-</span> <span class="n">beta_ols</span> <span class="o">@</span> <span class="n">X_OLS</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># should produce [m x m] matrix</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">==</span> <span class="n">sse</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">)</span><span class="si">}</span><span class="s2">, but got </span><span class="si">{</span><span class="n">sse</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">&gt;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">sse</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_sigma_ijl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">lag</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">is_exogenous</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Taken from page 5 of http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">h</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_3</span>
+
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">j</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_0</span> <span class="o">/</span> <span class="n">h</span><span class="p">(</span><span class="n">lag</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">is_exogenous</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_2</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># endogenous variable j</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_0</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">phi_1</span> <span class="o">/</span> <span class="n">h</span><span class="p">(</span><span class="n">lag</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">variance</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">variance</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_construct_v_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="p">))</span>
+
+        <span class="n">variance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">element_ind</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">):</span>  <span class="c1"># iterate through the m classes of lagged variables</span>
+                <span class="k">for</span> <span class="n">lag</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>  <span class="c1"># iterate through the lags</span>
+                    <span class="n">cov</span><span class="p">[</span><span class="n">element_ind</span><span class="p">][</span><span class="n">element_ind</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigma_ijl</span><span class="p">(</span>
+                        <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">lag</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">is_exogenous</span><span class="o">=</span><span class="kc">False</span>
+                    <span class="p">)</span>
+                    <span class="n">element_ind</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">for</span> <span class="n">_ex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r</span><span class="p">):</span>  <span class="c1"># exogenous variables</span>
+                <span class="n">cov</span><span class="p">[</span><span class="n">element_ind</span><span class="p">][</span><span class="n">element_ind</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigma_ijl</span><span class="p">(</span>
+                    <span class="n">i</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">is_exogenous</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+                <span class="n">element_ind</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># constant term of 1</span>
+            <span class="n">cov</span><span class="p">[</span><span class="n">element_ind</span><span class="p">][</span><span class="n">element_ind</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigma_ijl</span><span class="p">(</span>
+                <span class="n">i</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">is_exogenous</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">element_ind</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">element_ind</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Final element: </span><span class="si">{</span><span class="n">element_ind</span><span class="si">}</span><span class="s2">, expected: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mu_coefficients</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="n">cov</span>  <span class="c1"># shape: [m * (m * p + r + 1)] x [m * (m * p + r + 1)] matrix</span>
+
+    <span class="k">def</span> <span class="nf">_evaluate_point_t</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X_new</span><span class="p">,</span> <span class="n">Y_new</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Need t=</span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2"> &gt; p=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="si">}</span><span class="s2">.&quot;</span>
+
+        <span class="n">Z_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_Zt</span><span class="p">(</span><span class="n">X_new</span><span class="p">,</span> <span class="n">Y_new</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+        <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `mu_posterior`.</span>
+        <span class="n">point_prediction</span> <span class="o">=</span> <span class="n">Z_t</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_posterior</span>  <span class="c1"># shape [m x 1]</span>
+
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,)</span> <span class="o">==</span> <span class="n">point_prediction</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">return</span> <span class="n">point_prediction</span>
+
+    <span class="k">def</span> <span class="nf">_look_ahead_step</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">X_ahead</span><span class="p">,</span> <span class="n">Y_curr</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>  <span class="c1"># Y_curr has one less element than X_ahead</span>
+        <span class="k">assert</span> <span class="n">Y_curr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">X_ahead</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">t_ahead</span> <span class="o">=</span> <span class="n">X_ahead</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># -1 for 0-indexed array</span>
+
+        <span class="n">Z_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_Zt</span><span class="p">(</span><span class="n">X_ahead</span><span class="p">,</span> <span class="n">Y_curr</span><span class="p">,</span> <span class="n">t_ahead</span><span class="p">)</span>
+        <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `mu_posterior`.</span>
+        <span class="n">look_ahead_pred</span> <span class="o">=</span> <span class="n">Z_t</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_posterior</span>  <span class="c1"># shape [m x 1]</span>
+
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,)</span> <span class="o">==</span> <span class="n">look_ahead_pred</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">return</span> <span class="n">look_ahead_pred</span>
+
+    <span class="c1"># pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.</span>
+<div class="viewcode-block" id="BayesianVAR.predict"><a class="viewcode-back" href="../../../kats.models.bayesian_var.html#kats.models.bayesian_var.BayesianVAR.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">include_history</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TimeSeriesData</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Predict with the fitted VAR model</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            steps: Number of time steps to forecast</span>
+<span class="sd">            include_history: return fitted values also</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Disctionary of predicted results for each metric. Each metric result</span>
+<span class="sd">            has following columns: `time`, `fcst`, `fcst_lower`, and `fcst_upper`</span>
+<span class="sd">            Note confidence intervals of forecast are not yet implemented.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">,</span> <span class="s2">&quot;Please fit the model before forecasting with .fit()&quot;</span>
+
+        <span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">forecast_vals</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">include_history</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Performing one-step ahead forecasting on history on from t=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="si">}</span><span class="s2"> to t=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">):</span>
+                <span class="n">point_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_point_t</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+                <span class="n">time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Performing one-step ahead forecasting with history on t=</span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+                <span class="n">forecast_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point_pred</span><span class="p">)</span>
+
+        <span class="c1"># future forecasting -- X_ahead is one time step ahead of Y_curr</span>
+        <span class="n">X_ahead</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span>
+        <span class="n">Y_curr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Performing future forecasting from t=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="si">}</span><span class="s2"> to t=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="o">+</span><span class="n">steps</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">_t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">steps</span><span class="p">):</span>
+            <span class="n">ahead_time</span> <span class="o">=</span> <span class="n">X_ahead</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_freq</span>
+            <span class="n">X_ahead</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">X_ahead</span><span class="p">,</span> <span class="n">ahead_time</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">look_ahead_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_look_ahead_step</span><span class="p">(</span><span class="n">X_ahead</span><span class="p">,</span> <span class="n">Y_curr</span><span class="p">)</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="n">ahead_time</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Performing future forecasting with t=</span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+            <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+            <span class="n">forecast_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">look_ahead_pred</span><span class="p">)</span>
+
+            <span class="n">Y_curr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">Y_curr</span><span class="p">,</span> <span class="n">look_ahead_pred</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="s2">&quot;Forecast produced no values. Please set steps &gt; 0 or include_history=True.&quot;</span>
+
+        <span class="n">indiv_forecasts</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">forecast_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">&quot;Upper and lower confidence intervals of forecast not yet implemented for Bayesian VAR model.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">times_new</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">start_date</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">times</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="n">c_forecast</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">times_new</span><span class="p">,</span>
+                    <span class="s2">&quot;fcst&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">forecast_vals</span><span class="p">[</span><span class="n">f_t</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">f_t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">forecast_length</span><span class="p">)],</span>
+                    <span class="s2">&quot;fcst_lower&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">forecast_length</span><span class="p">,</span>
+                    <span class="s2">&quot;fcst_upper&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">forecast_length</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">indiv_forecasts</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">c_forecast</span><span class="p">)</span>
+
+        <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `forecast`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forecast</span> <span class="o">=</span> <span class="n">indiv_forecasts</span>
+        <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `forecast_max_time`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forecast_max_time</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">times_new</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forecast</span></div>
+
+    <span class="c1"># pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.</span>
+    <span class="c1"># pyre-fixme[40]: Non-static method `plot` cannot override a static method</span>
+    <span class="c1">#  defined in `m.Model`.</span>
+<div class="viewcode-block" id="BayesianVAR.plot"><a class="viewcode-back" href="../../../kats.models.bayesian_var.html#kats.models.bayesian_var.BayesianVAR.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Plot forecasted results from Bayesian VAR model&quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;forecast&quot;</span><span class="p">),</span> <span class="s2">&quot;Please run .predict() before plotting&quot;</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Input Timeseries &amp; Forecast&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;C</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `forecast`.</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">forecast</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">color</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sigma_u</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="c1"># pyre-fixme[16]: `BayesianVAR` has no attribute `sigma_ols`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sigma_ols</span><span class="p">,</span>
+            <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
+            <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">k_ar</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Kats</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.consts.html">kats.consts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.detectors.html">kats.detectors package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.graphics.html">kats.graphics package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.models.html">kats.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.tsfeatures.html">kats.tsfeatures package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kats.utils.html">kats.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      
+      
+      
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
