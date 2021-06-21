@@ -114,7 +114,7 @@ features = TsFeatures().transform(air_passengers_ts)
 
 ## Changelog
 
-### Version 0.1 (TODO)
+### Version 0.1.0
 
 - Initial release
 
