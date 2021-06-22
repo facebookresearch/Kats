@@ -1,4 +1,34 @@
 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!--
+    <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
+    <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
+    -->
+    <link rel="preconnect" href="https://www.google-analytics.com">
+    <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+    <!--
+    <title data-react-helmet="true">Kats | Kats</title>
+    <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
+    <meta data-react-helmet="true" name="description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:url" content="https://facebookresearch.github.io/Kats/">
+    -->
+    <link data-react-helmet="true" rel="shortcut icon" href="/Kats/img/KatsHeroLogo.png">
+    <!--
+    <link data-react-helmet="true" rel="canonical" href="https://facebookresearch.github.io/Kats/">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="en">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="x-default">
+    -->
+    <link rel="stylesheet" href="/Kats/assets/css/styles.99fd060a.css">
+    <!--
+    <link rel="preload" href="/Kats/assets/js/runtime~main.9e005abd.js" as="script">
+    <link rel="preload" href="/Kats/assets/js/main.6382ca5e.js" as="script">
+    -->
+    </head>
+
+
 <!DOCTYPE html>
 
 <html>
@@ -9,6 +39,7 @@
     <title>kats.tsfeatures.tsfeatures module &#8212; Kats 0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
@@ -17,861 +48,114 @@
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="kats.utils package" href="kats.utils.html" />
     <link rel="prev" title="kats.tsfeatures package" href="kats.tsfeatures.html" />
-   
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!--
+    <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
+    <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
+    -->
+    <link rel="preconnect" href="https://www.google-analytics.com">
+    <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+    <!--
+    <title data-react-helmet="true">Kats | Kats</title>
+    <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
+    <meta data-react-helmet="true" name="description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:url" content="https://facebookresearch.github.io/Kats/">
+    -->
+    <link data-react-helmet="true" rel="shortcut icon" href="/Kats/img/KatsHeroLogo.png">
+    <!--
+    <link data-react-helmet="true" rel="canonical" href="https://facebookresearch.github.io/Kats/">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="en">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="x-default">
+    -->
+    <link rel="stylesheet" href="/Kats/assets/css/styles.99fd060a.css">
+    <!--
+    <link rel="preload" href="/Kats/assets/js/runtime~main.9e005abd.js" as="script">
+    <link rel="preload" href="/Kats/assets/js/main.6382ca5e.js" as="script">
+    -->
+    </head>
 
   </head><body>
   
 
     <div class="document">
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){var t=null;try{t=localStorage.getItem("theme")}catch(t){}return t}();t(null!==e?e:"light")}()</script>
+<!--<div id="__docusaurus">-->
+<div id="docusaurus-base-url-issue-banner-container"></div>
+<div><a href="#main" class="skipToContent_1oUP">Skip to main content</a></div>
+<nav class="navbar navbar--fixed-top">
+  <div class="navbar__inner">
+      <div class="navbar__items">
+          <button aria-label="Navigation bar toggle" class="navbar__toggle" type="button" tabindex="0">
+              <svg aria-label="Menu" width="30" height="30" viewBox="0 0 30 30" role="img" focusable="false">
+                  <title>Menu</title>
+                  <path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path>
+              </svg>
+          </button>
+          <a class="navbar__brand" href="/Kats/">
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--light_3UqQ navbar__logo"/>
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--dark_hz6m navbar__logo"/>
+              <strong class="navbar__title">Kats</strong>
+          </a>
+          <a href="https://facebookresearch.github.io/Kats/api/" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">API</a>
+          <a href="https://github.com/facebookresearch/Kats/tree/master/tutorials" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">Tutorials</a>
+      </div>
+      <!--
+      <div class="navbar__items navbar__items--right">
+          <a href="https://github.com/facebookresearch/kats" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">Kats@GitHub</a>
+          <div class="react-toggle displayOnlyInLargeViewport_GrZ2" role="button" tabindex="-1">
+              <div class="react-toggle-track">
+                  <div class="react-toggle-track-check">
+                      <span class="toggle_71bT">🌜</span>
+                  </div>
+                  <div class="react-toggle-track-x">
+                      <span class="toggle_71bT">🌞</span>
+                  </div>
+              </div>
+              <div class="react-toggle-thumb"></div>
+              <input type="checkbox" class="react-toggle-screenreader-only" aria-label="Switch between dark and light mode"/>
+          </div>
+      </div>
+      -->
+  </div>
+  <div role="presentation" class="navbar-sidebar__backdrop"></div>
+  <div class="navbar-sidebar">
+      <div class="navbar-sidebar__brand">
+          <a class="navbar__brand" href="/Kats/">
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--light_3UqQ navbar__logo"/>
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--dark_hz6m navbar__logo"/>
+              <strong class="navbar__title">Kats</strong>
+          </a>
+      </div>
+      <div class="navbar-sidebar__items">
+          <div class="menu">
+              <ul class="menu__list">
+                  <li class="menu__list-item">
+                      <a href="https://facebookresearch.github.io/Kats/api/" target="_blank" rel="noopener noreferrer" class="menu__link">API</a>
+                  </li>
+                  <li class="menu__list-item">
+                      <a href="https://github.com/facebookresearch/Kats/tree/master/tutorials" target="_blank" rel="noopener noreferrer" class="menu__link">Tutorials</a>
+                  </li>
+                  <li class="menu__list-item">
+                      <a href="https://github.com/facebookresearch/kats" target="_blank" rel="noopener noreferrer" class="menu__link">Kats@GitHub</a>
+                  </li>
+              </ul>
+          </div>
+      </div>
+  </div>
+</nav>
+<div class="main-wrapper">
+  
       <div class="documentwrapper">
         <div class="bodywrapper">
           
 
           <div class="body" role="main">
             
-  <section id="module-kats.tsfeatures.tsfeatures">
-<span id="kats-tsfeatures-tsfeatures-module"></span><h1>kats.tsfeatures.tsfeatures module<a class="headerlink" href="#module-kats.tsfeatures.tsfeatures" title="Permalink to this headline">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.tsfeatures.tsfeatures.</span></span><span class="sig-name descname"><span class="pre">TsFeatures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spectral_freq</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stl_period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbins</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lag_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acfpacf_lag</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decomp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'additive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iqr_mult</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_fast</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_slow</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">21</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_features</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Process time series data into features for machine learning models, with the
-function to opt-in/out feature and feature groups in the calculations.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.window_size">
-<span class="sig-name descname"><span class="pre">window_size</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.window_size" title="Permalink to this definition">¶</a></dt>
-<dd><p>int; Length of the sliding window for getting level shift features,
-lumpiness, and stability of time series.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.spectral_freq">
-<span class="sig-name descname"><span class="pre">spectral_freq</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.spectral_freq" title="Permalink to this definition">¶</a></dt>
-<dd><p>int; Frequency parameter in getting periodogram through scipy for
-calculating Shannon entropy.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.stl_period">
-<span class="sig-name descname"><span class="pre">stl_period</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.stl_period" title="Permalink to this definition">¶</a></dt>
-<dd><p>int; Period parameter for performing seasonality trend decomposition
-using LOESS with statsmodels.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.nbins">
-<span class="sig-name descname"><span class="pre">nbins</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.nbins" title="Permalink to this definition">¶</a></dt>
-<dd><p>int; Number of bins to equally segment time series array for getting flat
-spot feature.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.lag_size">
-<span class="sig-name descname"><span class="pre">lag_size</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.lag_size" title="Permalink to this definition">¶</a></dt>
-<dd><p>int; Maximum number of lag values for calculating Hurst Exponent.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.acfpacf_lag">
-<span class="sig-name descname"><span class="pre">acfpacf_lag</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.acfpacf_lag" title="Permalink to this definition">¶</a></dt>
-<dd><p>int; Largest lag number for returning ACF/PACF features via statsmodels.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.decomp">
-<span class="sig-name descname"><span class="pre">decomp</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.decomp" title="Permalink to this definition">¶</a></dt>
-<dd><p>str; Additive or Multiplicative mode for performing outlier detection using
-Kats.Detectors.outlier.OutlierDetector.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.iqr_mult">
-<span class="sig-name descname"><span class="pre">iqr_mult</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.iqr_mult" title="Permalink to this definition">¶</a></dt>
-<dd><p>float; IQR range for determining outliers through
-Kats.Detectors.outlier.OutlierDetector.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.threshold">
-<span class="sig-name descname"><span class="pre">threshold</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.threshold" title="Permalink to this definition">¶</a></dt>
-<dd><p>float; threshold for trend intensity; higher threshold gives
-trend with high intensity (0.8 by default).  If we only want to use the
-p-value to determine changepoints, set threshold = 0.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.window">
-<span class="sig-name descname"><span class="pre">window</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.window" title="Permalink to this definition">¶</a></dt>
-<dd><p>int; length of window for all nowcasting features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.n_fast">
-<span class="sig-name descname"><span class="pre">n_fast</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.n_fast" title="Permalink to this definition">¶</a></dt>
-<dd><p>int; length of “fast” or short period exponential moving average in the MACD
-algorithm in the nowcasting features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.n_slow">
-<span class="sig-name descname"><span class="pre">n_slow</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.n_slow" title="Permalink to this definition">¶</a></dt>
-<dd><p>int; length of “slow” or long period exponential moving average in the MACD
-algorithm in the nowcasting features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.selected_features">
-<span class="sig-name descname"><span class="pre">selected_features</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.selected_features" title="Permalink to this definition">¶</a></dt>
-<dd><p>None or List[str]; list of feature/feature group name(s)
-selected to be calculated. We will try only calculating selected
-features, since some features are bundled in the calculations. This process
-helps with boosting efficiency, and we will only output selected features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.feature_group_mapping">
-<span class="sig-name descname"><span class="pre">feature_group_mapping</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.feature_group_mapping" title="Permalink to this definition">¶</a></dt>
-<dd><p>The dictionary with the mapping from individual features
-to their bundled feature groups.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.final_filter">
-<span class="sig-name descname"><span class="pre">final_filter</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.final_filter" title="Permalink to this definition">¶</a></dt>
-<dd><p>A dicitonary with boolean as the values to filter out the features
-not selected, yet calculated due to underlying bundles.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.stl_features">
-<span class="sig-name descname"><span class="pre">stl_features</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.stl_features" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting stl features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.level_shift_features">
-<span class="sig-name descname"><span class="pre">level_shift_features</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.level_shift_features" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting level shift features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.acfpacf_features">
-<span class="sig-name descname"><span class="pre">acfpacf_features</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.acfpacf_features" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting ACF/PACF features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.special_ac">
-<span class="sig-name descname"><span class="pre">special_ac</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.special_ac" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting  features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.holt_params">
-<span class="sig-name descname"><span class="pre">holt_params</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.holt_params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting holt parameter features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.hw_params">
-<span class="sig-name descname"><span class="pre">hw_params</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.hw_params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting holt-winters parameter features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.statistics">
-<span class="sig-name descname"><span class="pre">statistics</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.statistics" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting raw statistics features.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.cusum_detector">
-<span class="sig-name descname"><span class="pre">cusum_detector</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.cusum_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting features using cusum detector
-in Kats.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.robust_stat_detector">
-<span class="sig-name descname"><span class="pre">robust_stat_detector</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.robust_stat_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting features using robust stat detector
-in Kats.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.bocp_detector">
-<span class="sig-name descname"><span class="pre">bocp_detector</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.bocp_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting stl features features using bocp detector
-in Kats.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.outlier_detector">
-<span class="sig-name descname"><span class="pre">outlier_detector</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.outlier_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting stl features using outlier detector
-in Kats.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.trend_detector">
-<span class="sig-name descname"><span class="pre">trend_detector</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.trend_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting stl features using trend detector
-in Kats.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.nowcasting">
-<span class="sig-name descname"><span class="pre">nowcasting</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.nowcasting" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting stl features using nowcasting detector
-in Kats.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.seasonalities">
-<span class="sig-name descname"><span class="pre">seasonalities</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.seasonalities" title="Permalink to this definition">¶</a></dt>
-<dd><p>Switch for calculating/outputting stl features using cusum detector
-in Kats.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.default">
-<span class="sig-name descname"><span class="pre">default</span></span><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.default" title="Permalink to this definition">¶</a></dt>
-<dd><p>The default status of the switch for opt-in/out feature calculations.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_acf_features">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_acf_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_acf_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diff1y_acf_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diff2y_acf_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_acf_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_acf_features" title="Permalink to this definition">¶</a></dt>
-<dd><p>Aggregating extracted ACF features from get_acfpacf_features function.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-<li><p><strong>y_acf_list</strong> – List of ACF values acquired from original time series.</p></li>
-<li><p><strong>diff1y_acf_list</strong> – List of ACF values acquired from differenced time series.</p></li>
-<li><p><strong>diff2y_acf_list</strong> – List of ACF values acquired from twice differenced time series.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Auto-correlation function (ACF) features.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_acfpacf_features">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_acfpacf_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acfpacf_lag</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_acfpacf_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_acfpacf_features" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate ACF and PACF based features. Calculate seasonal ACF, PACF based features
-Reference: <a class="reference external" href="https://stackoverflow.com/questions/36038927/whats-the-difference-between-pandas-acf-and-statsmodel-acf">https://stackoverflow.com/questions/36038927/whats-the-difference-between-pandas-acf-and-statsmodel-acf</a>
-R code: <a class="reference external" href="https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html">https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html</a>
-Paper: Meta-learning how to forecast time series</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>acfpacf_lag</strong> – int; Largest lag number for returning ACF/PACF features via statsmodels.
-Default value is 6.</p></li>
-<li><p><strong>period</strong> – int; Seasonal period. Default value is 7.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Aggregated ACF, PACF features.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_binarize_mean">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_binarize_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_binarize_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_binarize_mean" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts time series array into a binarized version.
-Time-series values above its mean are given 1, and those below the mean are 0.
-Return the average value of the binarized vector.
-Reference: <a class="reference external" href="https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html">https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The binarized version of time series array.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_bocp_detector">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_bocp_detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_bocp_detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_bocp_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run the Kats BOCP Detector on the Time Series, extract features from the outputs of the detection.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ts</strong> – The univariate time series array in the form of Kats TimeSeriesData object.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>(1) Number of changepoints detected by BOCP Detector, (2) Max value of the
-confidience of the changepoints detected, (3) Mean value of the confidience</p>
-<blockquote>
-<div><p>of the changepoints detected.</p>
-</div></blockquote>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_crossing_points">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_crossing_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_crossing_points"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_crossing_points" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculating crossing points: the number of times a time series crosses the median line.
-Reference: <a class="reference external" href="https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html">https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The number of times a time series crosses the median line.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_cusum_detector">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_cusum_detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_cusum_detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_cusum_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run the Kats CUSUM Detector on the Time Series, extract features from the outputs of the detection.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ts</strong> – The univariate time series array in the form of Kats TimeSeriesData object.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Outputs of the CUSUM Detector, which include (1) Number of changepoints, either 1
-or 0, (2) Confidence of the changepoint detected, 0 if not changepoint, (3) index,
-or position of the changepoint detected within the time series, (4) delta of the
-mean levels before and after the changepoint, (5) log-likelihood ratio of changepoint,
-(6) Boolean - whether regression is detected by CUSUM, (7) Boolean - whether
-changepoint is stable, (8) p-value of changepoint.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_flat_spots">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_flat_spots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbins</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_flat_spots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_flat_spots" title="Permalink to this definition">¶</a></dt>
-<dd><p>Getting flat spots: Maximum run-lengths across equally-sized segments of time series</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>nbins</strong> – int; Number of bins to segment time series data into.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Maximum run-lengths across segmented time series array.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_het_arch">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_het_arch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_het_arch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_het_arch" title="Permalink to this definition">¶</a></dt>
-<dd><p>reference: <a class="reference external" href="https://www.statsmodels.org/dev/generated/statsmodels.stats.diagnostic.het_arch.html">https://www.statsmodels.org/dev/generated/statsmodels.stats.diagnostic.het_arch.html</a>
-Engle’s Test for Autoregressive Conditional Heteroscedasticity (ARCH)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Lagrange multiplier test statistic</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_histogram_mode">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_histogram_mode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbins</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_histogram_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_histogram_mode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Measures the mode of the data vector using histograms with a given number of bins.
-Reference: <a class="reference external" href="https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html">https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>nbins</strong> – int; Number of bins to get the histograms. Default value is 10.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Mode of the data vector using histograms.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_holt_params">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_holt_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_holt_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_holt_params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Estimates the smoothing parameter for the level-alpha and the smoothing parameter
-for the trend-beta of Holt’s linear trend method.
-‘alpha’: Level parameter of the Holt model.
-‘beta’: Trend parameter of the Hold model.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Level and trend parameter of a fitted Holt model.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_hurst">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_hurst</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lag_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_hurst"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_hurst" title="Permalink to this definition">¶</a></dt>
-<dd><p>Getting: Hurst Exponent wiki: <a class="reference external" href="https://en.wikipedia.org/wiki/Hurst_exponent">https://en.wikipedia.org/wiki/Hurst_exponent</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>lag_size</strong> – int; Size for getting lagged time series data. Default value
-is 30.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The Hurst Exponent of the time series array</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_hw_params">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_hw_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_hw_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_hw_params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Estimates the smoothing parameter for the level-alpha, trend-beta of HW’s linear trend,
-and additive seasonal trend-gamma.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>period</strong> – int; Seaonal period for fitting exponential smoothing model. Default
-value is 7.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Level, trend and seasonal parameter of a fitted Holt-Winter’s model.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_length">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_length</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_length"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_length" title="Permalink to this definition">¶</a></dt>
-<dd><p>Getting the length of time series array.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Length of the time series array.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_level_shift">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_level_shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_level_shift"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_level_shift" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculating level shift features.
-level_shift_idx: Location of the maximum mean value difference,</p>
-<blockquote>
-<div><p>between two consecutive sliding windows</p>
-</div></blockquote>
-<dl class="simple">
-<dt>level_shift_size: Size of the maximum mean value difference,</dt><dd><p>between two consecutive sliding windows</p>
-</dd>
-</dl>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>window_size</strong> – int; Length of the sliding window. Default value is 20.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Level shift features including level_shift_idx, and level_shift_size</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_linearity">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_linearity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_linearity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_linearity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Getting linearity feature: R square from a fitted linear regression.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>R square from a fitted linear regression.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_lumpiness">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_lumpiness</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_lumpiness"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_lumpiness" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculating the lumpiness of time series.
-Lumpiness is defined as the variance of the chunk-wise variances.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>window_size</strong> – int; Window size to split the data into chunks for getting
-variances. Default value is 20.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Lumpiness of the time series array.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_mean">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_mean" title="Permalink to this definition">¶</a></dt>
-<dd><p>Getting the average value of time series array.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Average of the time series array.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_nowcasting">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_nowcasting</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_fast</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_slow</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">21</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_nowcasting"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_nowcasting" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run the Kats Nowcasting transformer on the Time Series, extract aggregated features from the outputs of the transformation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>window</strong> – int; Length of window size for all Nowcasting features. Default value is 5.</p></li>
-<li><p><strong>n_fast</strong> – int; length of “fast” or short period exponential moving average in the MACD
-algorithm in the nowcasting features. Default value is 12.</p></li>
-<li><p><strong>n_slow</strong> – int; length of “slow” or long period exponential moving average in the MACD
-algorithm in the nowcasting features. Default value is 21.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Mean values of the Kats Nowcasting algorithm time series outputs using the parameters
-(window, n_fast, n_slow) indicated above. These outputs inclue : (1) Mean of Rate of
-Change (ROC) time series, (2) Mean of Moving Average (MA) time series,(3) Mean of
-Momentum (MOM) time series, (4) Mean of LAG time series, (5) Means of MACD, MACDsign,
-and MACDdiff from Kats Nowcasting.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_outlier_detector">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_outlier_detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">decomp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'additive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iqr_mult</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_outlier_detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_outlier_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run the Kats Outlier Detector on the Time Series, extract features from the outputs of the detection.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ts</strong> – The univariate time series array in the form of Kats TimeSeriesData object.</p></li>
-<li><p><strong>decomp</strong> – str; Additive or Multiplicative mode for performing outlier detection using
-OutlierDetector. Default value is ‘additive’.</p></li>
-<li><p><strong>iqr_mult</strong> – float; IQR range for determining outliers through
-OutlierDetector. Default value is 3.0.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Number of outliers by the Outlier Detector.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_pacf_features">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_pacf_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pacf_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diff1y_pacf_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diff2y_pacf_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_pacf_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_pacf_features" title="Permalink to this definition">¶</a></dt>
-<dd><p>Aggregating extracted PACF features from get_acfpacf_features function.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-<li><p><strong>y_pacf_list</strong> – List of PACF values acquired from original time series.</p></li>
-<li><p><strong>diff1y_pacf_list</strong> – List of PACF values acquired from differenced time series.</p></li>
-<li><p><strong>diff2y_pacf_list</strong> – List of PACF values acquired from twice differenced time series.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Partial auto-correlation function (PACF) features.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_robust_stat_detector">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_robust_stat_detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_robust_stat_detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_robust_stat_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run the Kats Robust Stat Detector on the Time Series, extract features from the outputs of the detection.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ts</strong> – The univariate time series array in the form of Kats TimeSeriesData object.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(1) Number changepoints detected by the Robust Stat Detector, and (2) Mean of
-the Metric values from the Robust Stat Detector.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_seasonalities">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_seasonalities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_seasonalities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_seasonalities" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run the Kats seaonality detectors to get the estimated seasonal period, then extract trend,
-seasonality and residual magnitudes.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ts</strong> – The univariate time series array in the form of Kats TimeSeriesData object.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Returns the detected seasonality period.
-Slope acquired via fitting simple linear regression model on the trend component
-as trend magnitude.
-Difference between the 95 percentile and 5 percentile of the seasonal component
-as the seasonality magnitude.
-Standard deviation of the residual component.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_special_ac">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_special_ac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_special_ac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_special_ac" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gettting special_ac features.
-firstmin_ac: the time of first minimum in the autocorrelation function
-firstzero_ac: the time of first zero crossing the autocorrelation function.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Special autocorrelation features described above.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_spectral_entropy">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_spectral_entropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_spectral_entropy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_spectral_entropy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Getting normalized Shannon entropy of power spectral density.
-PSD is calculated using scipy’s periodogram.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>freq</strong> – int; Frequency for calculating the PSD via scipy periodogram.
-Default value is 1.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Normalized Shannon entropy.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_stability">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_stability</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_stability"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_stability" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculating the stability of time series.
-Stability is defined as the variance of chunk-wise means.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>window_size</strong> – int; Window size to split the data into chunks for getting
-variances. Default value is 20.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Stability of the time series array.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_std1st_der">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_std1st_der</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_std1st_der"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_std1st_der" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculating std1st_der: the standard deviation of the first derivative of the time series.
-Reference: <a class="reference external" href="https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html">https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The standard deviation of the first derivative of the time series.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_stl_features">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_stl_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_stl_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_stl_features" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate STL based features for a time series, including strength of
-trend, seasonality, spikiness, peak/trough.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p></li>
-<li><p><strong>period</strong> – int; Period parameter for performing seasonality trend decomposition
-using LOESS with statsmodels. Default value is 7.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Seasonality features including strength of trend, seasonality, spikiness,
-peak/trough.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_trend_detector">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_trend_detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_status</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_trend_detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_trend_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run the Kats Trend Detector on the Time Series, extract features from the outputs of the detection.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ts</strong> – The univariate time series array in the form of Kats TimeSeriesData object.</p></li>
-<li><p><strong>threshold</strong> – float; threshold for trend intensity; higher threshold gives trend
-with high intensity (0.8 by default).  If we only want to use the p-value
-to determine changepoints, set threshold = 0.</p></li>
-<li><p><strong>extra_args</strong> – A dictionary containing information for disabling calculation
-of a certain feature. Default value is None, i.e. no feature is disabled.</p></li>
-<li><p><strong>default_status</strong> – Default status of the switch for calculate the features or not.
-Default value is True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(1) Number of trends detected by the Kats Trend Detector, (2) Number of increasing
-trends, (3) Mean of the abolute values of Taus of the trends detected.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_unitroot_kpss">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_unitroot_kpss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_unitroot_kpss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_unitroot_kpss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Getting a test statistic based on KPSS test.
-Test a null hypothesis that an observable time series is stationary around a deterministic trend.
-A vector comprising the statistic for the KPSS unit root test with linear trend and lag one
-Wiki: <a class="reference external" href="https://en.wikipedia.org/wiki/KPSS_test">https://en.wikipedia.org/wiki/KPSS_test</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Test statistics acquired using KPSS test.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.get_var">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.get_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.get_var" title="Permalink to this definition">¶</a></dt>
-<dd><p>Getting the variance of time series array.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – The univariate time series array in the form of 1d numpy array.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Variance of the time series array.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.tsfeatures.tsfeatures.TsFeatures.transform">
-<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/tsfeatures/tsfeatures.html#TsFeatures.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.tsfeatures.tsfeatures.TsFeatures.transform" title="Permalink to this definition">¶</a></dt>
-<dd><p>The overall high-level function for transforming
-time series into a number of features</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> – Kats TimeSeriesData object.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Returning maps (dictionary) with feature name and value pair.
-For univariate input return a map of {feature: value}.
-For multivarite input return a list of maps.</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
+  <section id="kats-tsfeatures-tsfeatures-module">
+<h1>kats.tsfeatures.tsfeatures module<a class="headerlink" href="#kats-tsfeatures-tsfeatures-module" title="Permalink to this headline">¶</a></h1>
 </section>
 
 
@@ -879,6 +163,48 @@ For multivarite input return a list of maps.</p>
           
         </div>
       </div>
+</div>
+<footer class="footer">
+    <div class="container">
+        <div class="row footer__links">
+            <div class="col footer__col">
+                <div class="footer__title">Links</div>
+                <ul class="footer__items">
+                    <li class="footer__item">
+                        <a href="https://github.com/facebookresearch/Kats" target="_blank" rel="noopener noreferrer" class="footer__link-item">Kats@GitHub</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col footer__col">
+                <div class="footer__title">Legal</div>
+                <ul class="footer__items">
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/privacy/" target="_blank" rel="noreferrer noopener" class="footer__link-item">Privacy</a>
+                    </li>
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/terms/" target="_blank" rel="noreferrer noopener" class="footer__link-item">Terms</a>
+                    </li>
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/cookie-policy" target="_blank" rel="noreferrer noopener" class="footer__link-item">Cookies</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer__bottom text--center">
+            <div class="margin-bottom--sm">
+                <img src="https://docusaurus.io/img/oss_logo.png" alt="Facebook Open Source Logo" class="themedImage_1VuW themedImage--light_3UqQ footer__logo"/>
+                <img src="https://docusaurus.io/img/oss_logo.png" alt="Facebook Open Source Logo" class="themedImage_1VuW themedImage--dark_hz6m footer__logo"/>
+            </div>
+            <div class="footer__copyright">Copyright © 2021 Facebook, Inc.</div>
+        </div>
+    </div>
+</footer>
+<!--
+</div>
+<script src="/Kats/assets/js/runtime~main.9e005abd.js"></script>
+<script src="/Kats/assets/js/main.6382ca5e.js"></script>
+-->
+
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="index.html">Kats</a></h1>
@@ -898,7 +224,7 @@ For multivarite input return a list of maps.</p>
 <li class="toctree-l1"><a class="reference internal" href="kats.models.html">kats.models package</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">kats.tsfeatures.tsfeatures module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.tsfeatures.html#module-kats.tsfeatures">kats.tsfeatures module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.tsfeatures.html#kats-tsfeatures-module">kats.tsfeatures module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.utils.html">kats.utils package</a></li>

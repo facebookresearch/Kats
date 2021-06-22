@@ -1,4 +1,34 @@
 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!--
+    <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
+    <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
+    -->
+    <link rel="preconnect" href="https://www.google-analytics.com">
+    <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+    <!--
+    <title data-react-helmet="true">Kats | Kats</title>
+    <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
+    <meta data-react-helmet="true" name="description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:url" content="https://facebookresearch.github.io/Kats/">
+    -->
+    <link data-react-helmet="true" rel="shortcut icon" href="/Kats/img/KatsHeroLogo.png">
+    <!--
+    <link data-react-helmet="true" rel="canonical" href="https://facebookresearch.github.io/Kats/">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="en">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="x-default">
+    -->
+    <link rel="stylesheet" href="/Kats/assets/css/styles.99fd060a.css">
+    <!--
+    <link rel="preload" href="/Kats/assets/js/runtime~main.9e005abd.js" as="script">
+    <link rel="preload" href="/Kats/assets/js/main.6382ca5e.js" as="script">
+    -->
+    </head>
+
+
 <!DOCTYPE html>
 
 <html>
@@ -9,6 +39,7 @@
     <title>kats.models.arima module &#8212; Kats 0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
@@ -17,159 +48,114 @@
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="kats.models.bayesian_var module" href="kats.models.bayesian_var.html" />
     <link rel="prev" title="kats.models package" href="kats.models.html" />
-   
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!--
+    <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
+    <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
+    -->
+    <link rel="preconnect" href="https://www.google-analytics.com">
+    <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+    <!--
+    <title data-react-helmet="true">Kats | Kats</title>
+    <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
+    <meta data-react-helmet="true" name="description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:url" content="https://facebookresearch.github.io/Kats/">
+    -->
+    <link data-react-helmet="true" rel="shortcut icon" href="/Kats/img/KatsHeroLogo.png">
+    <!--
+    <link data-react-helmet="true" rel="canonical" href="https://facebookresearch.github.io/Kats/">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="en">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="x-default">
+    -->
+    <link rel="stylesheet" href="/Kats/assets/css/styles.99fd060a.css">
+    <!--
+    <link rel="preload" href="/Kats/assets/js/runtime~main.9e005abd.js" as="script">
+    <link rel="preload" href="/Kats/assets/js/main.6382ca5e.js" as="script">
+    -->
+    </head>
 
   </head><body>
   
 
     <div class="document">
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){var t=null;try{t=localStorage.getItem("theme")}catch(t){}return t}();t(null!==e?e:"light")}()</script>
+<!--<div id="__docusaurus">-->
+<div id="docusaurus-base-url-issue-banner-container"></div>
+<div><a href="#main" class="skipToContent_1oUP">Skip to main content</a></div>
+<nav class="navbar navbar--fixed-top">
+  <div class="navbar__inner">
+      <div class="navbar__items">
+          <button aria-label="Navigation bar toggle" class="navbar__toggle" type="button" tabindex="0">
+              <svg aria-label="Menu" width="30" height="30" viewBox="0 0 30 30" role="img" focusable="false">
+                  <title>Menu</title>
+                  <path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path>
+              </svg>
+          </button>
+          <a class="navbar__brand" href="/Kats/">
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--light_3UqQ navbar__logo"/>
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--dark_hz6m navbar__logo"/>
+              <strong class="navbar__title">Kats</strong>
+          </a>
+          <a href="https://facebookresearch.github.io/Kats/api/" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">API</a>
+          <a href="https://github.com/facebookresearch/Kats/tree/master/tutorials" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">Tutorials</a>
+      </div>
+      <!--
+      <div class="navbar__items navbar__items--right">
+          <a href="https://github.com/facebookresearch/kats" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">Kats@GitHub</a>
+          <div class="react-toggle displayOnlyInLargeViewport_GrZ2" role="button" tabindex="-1">
+              <div class="react-toggle-track">
+                  <div class="react-toggle-track-check">
+                      <span class="toggle_71bT">🌜</span>
+                  </div>
+                  <div class="react-toggle-track-x">
+                      <span class="toggle_71bT">🌞</span>
+                  </div>
+              </div>
+              <div class="react-toggle-thumb"></div>
+              <input type="checkbox" class="react-toggle-screenreader-only" aria-label="Switch between dark and light mode"/>
+          </div>
+      </div>
+      -->
+  </div>
+  <div role="presentation" class="navbar-sidebar__backdrop"></div>
+  <div class="navbar-sidebar">
+      <div class="navbar-sidebar__brand">
+          <a class="navbar__brand" href="/Kats/">
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--light_3UqQ navbar__logo"/>
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--dark_hz6m navbar__logo"/>
+              <strong class="navbar__title">Kats</strong>
+          </a>
+      </div>
+      <div class="navbar-sidebar__items">
+          <div class="menu">
+              <ul class="menu__list">
+                  <li class="menu__list-item">
+                      <a href="https://facebookresearch.github.io/Kats/api/" target="_blank" rel="noopener noreferrer" class="menu__link">API</a>
+                  </li>
+                  <li class="menu__list-item">
+                      <a href="https://github.com/facebookresearch/Kats/tree/master/tutorials" target="_blank" rel="noopener noreferrer" class="menu__link">Tutorials</a>
+                  </li>
+                  <li class="menu__list-item">
+                      <a href="https://github.com/facebookresearch/kats" target="_blank" rel="noopener noreferrer" class="menu__link">Kats@GitHub</a>
+                  </li>
+              </ul>
+          </div>
+      </div>
+  </div>
+</nav>
+<div class="main-wrapper">
+  
       <div class="documentwrapper">
         <div class="bodywrapper">
           
 
           <div class="body" role="main">
             
-  <section id="module-kats.models.arima">
-<span id="kats-models-arima-module"></span><h1>kats.models.arima module<a class="headerlink" href="#module-kats.models.arima" title="Permalink to this headline">¶</a></h1>
-<p>The ARIMA model (stand for Auto Regressive Integrated Moving Average) is a classical statistical model for time series data</p>
-<p>It contains three main components from its name
-- AR, Auto Regressive, means the variable of interest (time series) is regressed on its own lagged values
-- MA, Moving Average, means the regression error is a linear combination of error terms whose values occurred contemporaneously and at various times in the past
-- I, Integrated, means data values have been replaced with the difference between their values and the previous value
-We use the implementation in statsmodels &lt;<a class="reference external" href="https://www.statsmodels.org/stable/index.html">https://www.statsmodels.org/stable/index.html</a>&gt; and re-write the API to adapt Kats development style.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.arima.</span></span><span class="sig-name descname"><span class="pre">ARIMAModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.arima.ARIMAParams" title="kats.models.arima.ARIMAParams"><span class="pre">kats.models.arima.ARIMAParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
-<p>Model class for ARIMA model</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.data">
-<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.arima.ARIMAModel.data" title="Permalink to this definition">¶</a></dt>
-<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, the input historical time series data from TimeSeriesData</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.params">
-<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.arima.ARIMAModel.params" title="Permalink to this definition">¶</a></dt>
-<dd><p>The ARIMA model parameters from ARIMAParams</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transparams</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'css-mle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trend</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'c'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'lbfgs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_ar_lags</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel.fit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit ARIMA model with given parameters</p>
-<p>For more details on each parameter please refer to the following doc:
-<a class="reference external" href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.fit.html#statsmodels.tsa.arima_model.ARIMA.fit">https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.fit.html#statsmodels.tsa.arima_model.ARIMA.fit</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>start_params</strong> – Optional; An array_like object for the initial guess of the solution for the loglikelihood maximization</p></li>
-<li><p><strong>transparams</strong> – Optional; A boolean to specify whether or not to transform the parameters to ensure stationarity. Default is True</p></li>
-<li><p><strong>method</strong> – A string that specifies the loglikelihood to maximize. Can be ‘css-mle’, ‘mle’ and ‘css’. Default is ‘css-mle’</p></li>
-<li><p><strong>trend</strong> – A string that specifies the whether to include a constant in the trend or not. Can be ‘c’ and ‘nc’. Default is ‘c’</p></li>
-<li><p><strong>solver</strong> – Optional; A string that specifies specifies the solver to be used. Can be ‘bfgs’, ‘newton’, ‘cg’, ‘ncg’ and ‘powell’. Default is ‘bfgs’</p></li>
-<li><p><strong>maxiter</strong> – Optional; A integer for the maximum number of function iterations. Default is 500</p></li>
-<li><p><strong>tol</strong> – Optional; The convergence tolerance for the fitting. Default is 1e-08</p></li>
-<li><p><strong>full_output</strong> – Optional; A boolean to specify whether to show all output from the solver in the results. Default is True</p></li>
-<li><p><strong>disp</strong> – Optional; A integer to control the frequency of the output during the iterations. Default is 5</p></li>
-<li><p><strong>callback</strong> – Optional; A callable object to be called after each iteration. Default is None</p></li>
-<li><p><strong>Optional; An integer to specify the AR lag parameter to fit the start_params. Default is None</strong> (<em>start_ar_lags</em>) – </p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.get_parameter_search_space">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get default ARIMA parameter search space.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>None</strong> – </p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dictionary with the default ARIMA parameter search space</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.plot">
-<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel.plot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot forecast results from the ARIMA model</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.predict">
-<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel.predict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Predict with fitted ARIMA model</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>steps</strong> – An integer for forecast steps</p></li>
-<li><p><strong>include_history</strong> – Optional; A boolearn to specify whether to include historical data. Default is False.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A pd.DataFrame that contains the forecast and confidence interval</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.arima.</span></span><span class="sig-name descname"><span class="pre">ARIMAParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
-<p>Parameter class for ARIMA model</p>
-<p>This is the parameter class for ARIMA model, it contains all necessary parameters from the following ARIMA implementation:
-<a class="reference external" href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.html">https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.html</a></p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.p">
-<span class="sig-name descname"><span class="pre">p</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.p" title="Permalink to this definition">¶</a></dt>
-<dd><p>An integer for trend autoregressive (AR) order</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.d">
-<span class="sig-name descname"><span class="pre">d</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.d" title="Permalink to this definition">¶</a></dt>
-<dd><p>An integer for trend difference order</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.q">
-<span class="sig-name descname"><span class="pre">q</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.q" title="Permalink to this definition">¶</a></dt>
-<dd><p>An integer for trend moving average (MA) order</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.exog">
-<span class="sig-name descname"><span class="pre">exog</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.exog" title="Permalink to this definition">¶</a></dt>
-<dd><p>Optional; An array of exogenous regressors</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.dates">
-<span class="sig-name descname"><span class="pre">dates</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.dates" title="Permalink to this definition">¶</a></dt>
-<dd><p>Optional; pandas-compatible datetime object</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.freq">
-<span class="sig-name descname"><span class="pre">freq</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.freq" title="Permalink to this definition">¶</a></dt>
-<dd><p>Optional; frequency of a given time series</p>
-</dd></dl>
-
-</dd></dl>
-
+  <section id="kats-models-arima-module">
+<h1>kats.models.arima module<a class="headerlink" href="#kats-models-arima-module" title="Permalink to this headline">¶</a></h1>
 </section>
 
 
@@ -177,6 +163,48 @@ We use the implementation in statsmodels &lt;<a class="reference external" href=
           
         </div>
       </div>
+</div>
+<footer class="footer">
+    <div class="container">
+        <div class="row footer__links">
+            <div class="col footer__col">
+                <div class="footer__title">Links</div>
+                <ul class="footer__items">
+                    <li class="footer__item">
+                        <a href="https://github.com/facebookresearch/Kats" target="_blank" rel="noopener noreferrer" class="footer__link-item">Kats@GitHub</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col footer__col">
+                <div class="footer__title">Legal</div>
+                <ul class="footer__items">
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/privacy/" target="_blank" rel="noreferrer noopener" class="footer__link-item">Privacy</a>
+                    </li>
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/terms/" target="_blank" rel="noreferrer noopener" class="footer__link-item">Terms</a>
+                    </li>
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/cookie-policy" target="_blank" rel="noreferrer noopener" class="footer__link-item">Cookies</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer__bottom text--center">
+            <div class="margin-bottom--sm">
+                <img src="https://docusaurus.io/img/oss_logo.png" alt="Facebook Open Source Logo" class="themedImage_1VuW themedImage--light_3UqQ footer__logo"/>
+                <img src="https://docusaurus.io/img/oss_logo.png" alt="Facebook Open Source Logo" class="themedImage_1VuW themedImage--dark_hz6m footer__logo"/>
+            </div>
+            <div class="footer__copyright">Copyright © 2021 Facebook, Inc.</div>
+        </div>
+    </div>
+</footer>
+<!--
+</div>
+<script src="/Kats/assets/js/runtime~main.9e005abd.js"></script>
+<script src="/Kats/assets/js/main.6382ca5e.js"></script>
+-->
+
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="index.html">Kats</a></h1>
@@ -211,7 +239,7 @@ We use the implementation in statsmodels &lt;<a class="reference external" href=
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

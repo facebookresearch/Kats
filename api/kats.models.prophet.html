@@ -1,4 +1,34 @@
 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!--
+    <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
+    <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
+    -->
+    <link rel="preconnect" href="https://www.google-analytics.com">
+    <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+    <!--
+    <title data-react-helmet="true">Kats | Kats</title>
+    <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
+    <meta data-react-helmet="true" name="description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:url" content="https://facebookresearch.github.io/Kats/">
+    -->
+    <link data-react-helmet="true" rel="shortcut icon" href="/Kats/img/KatsHeroLogo.png">
+    <!--
+    <link data-react-helmet="true" rel="canonical" href="https://facebookresearch.github.io/Kats/">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="en">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="x-default">
+    -->
+    <link rel="stylesheet" href="/Kats/assets/css/styles.99fd060a.css">
+    <!--
+    <link rel="preload" href="/Kats/assets/js/runtime~main.9e005abd.js" as="script">
+    <link rel="preload" href="/Kats/assets/js/main.6382ca5e.js" as="script">
+    -->
+    </head>
+
+
 <!DOCTYPE html>
 
 <html>
@@ -9,6 +39,7 @@
     <title>kats.models.prophet module &#8212; Kats 0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
@@ -17,246 +48,114 @@
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="kats.models.quadratic_model module" href="kats.models.quadratic_model.html" />
     <link rel="prev" title="kats.models.nowcasting.nowcasting module" href="kats.models.nowcasting.nowcasting.html" />
-   
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!--
+    <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
+    <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
+    -->
+    <link rel="preconnect" href="https://www.google-analytics.com">
+    <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+    <!--
+    <title data-react-helmet="true">Kats | Kats</title>
+    <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
+    <meta data-react-helmet="true" name="description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:url" content="https://facebookresearch.github.io/Kats/">
+    -->
+    <link data-react-helmet="true" rel="shortcut icon" href="/Kats/img/KatsHeroLogo.png">
+    <!--
+    <link data-react-helmet="true" rel="canonical" href="https://facebookresearch.github.io/Kats/">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="en">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="x-default">
+    -->
+    <link rel="stylesheet" href="/Kats/assets/css/styles.99fd060a.css">
+    <!--
+    <link rel="preload" href="/Kats/assets/js/runtime~main.9e005abd.js" as="script">
+    <link rel="preload" href="/Kats/assets/js/main.6382ca5e.js" as="script">
+    -->
+    </head>
 
   </head><body>
   
 
     <div class="document">
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){var t=null;try{t=localStorage.getItem("theme")}catch(t){}return t}();t(null!==e?e:"light")}()</script>
+<!--<div id="__docusaurus">-->
+<div id="docusaurus-base-url-issue-banner-container"></div>
+<div><a href="#main" class="skipToContent_1oUP">Skip to main content</a></div>
+<nav class="navbar navbar--fixed-top">
+  <div class="navbar__inner">
+      <div class="navbar__items">
+          <button aria-label="Navigation bar toggle" class="navbar__toggle" type="button" tabindex="0">
+              <svg aria-label="Menu" width="30" height="30" viewBox="0 0 30 30" role="img" focusable="false">
+                  <title>Menu</title>
+                  <path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path>
+              </svg>
+          </button>
+          <a class="navbar__brand" href="/Kats/">
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--light_3UqQ navbar__logo"/>
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--dark_hz6m navbar__logo"/>
+              <strong class="navbar__title">Kats</strong>
+          </a>
+          <a href="https://facebookresearch.github.io/Kats/api/" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">API</a>
+          <a href="https://github.com/facebookresearch/Kats/tree/master/tutorials" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">Tutorials</a>
+      </div>
+      <!--
+      <div class="navbar__items navbar__items--right">
+          <a href="https://github.com/facebookresearch/kats" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">Kats@GitHub</a>
+          <div class="react-toggle displayOnlyInLargeViewport_GrZ2" role="button" tabindex="-1">
+              <div class="react-toggle-track">
+                  <div class="react-toggle-track-check">
+                      <span class="toggle_71bT">🌜</span>
+                  </div>
+                  <div class="react-toggle-track-x">
+                      <span class="toggle_71bT">🌞</span>
+                  </div>
+              </div>
+              <div class="react-toggle-thumb"></div>
+              <input type="checkbox" class="react-toggle-screenreader-only" aria-label="Switch between dark and light mode"/>
+          </div>
+      </div>
+      -->
+  </div>
+  <div role="presentation" class="navbar-sidebar__backdrop"></div>
+  <div class="navbar-sidebar">
+      <div class="navbar-sidebar__brand">
+          <a class="navbar__brand" href="/Kats/">
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--light_3UqQ navbar__logo"/>
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--dark_hz6m navbar__logo"/>
+              <strong class="navbar__title">Kats</strong>
+          </a>
+      </div>
+      <div class="navbar-sidebar__items">
+          <div class="menu">
+              <ul class="menu__list">
+                  <li class="menu__list-item">
+                      <a href="https://facebookresearch.github.io/Kats/api/" target="_blank" rel="noopener noreferrer" class="menu__link">API</a>
+                  </li>
+                  <li class="menu__list-item">
+                      <a href="https://github.com/facebookresearch/Kats/tree/master/tutorials" target="_blank" rel="noopener noreferrer" class="menu__link">Tutorials</a>
+                  </li>
+                  <li class="menu__list-item">
+                      <a href="https://github.com/facebookresearch/kats" target="_blank" rel="noopener noreferrer" class="menu__link">Kats@GitHub</a>
+                  </li>
+              </ul>
+          </div>
+      </div>
+  </div>
+</nav>
+<div class="main-wrapper">
+  
       <div class="documentwrapper">
         <div class="bodywrapper">
           
 
           <div class="body" role="main">
             
-  <section id="module-kats.models.prophet">
-<span id="kats-models-prophet-module"></span><h1>kats.models.prophet module<a class="headerlink" href="#module-kats.models.prophet" title="Permalink to this headline">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetModel">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.prophet.</span></span><span class="sig-name descname"><span class="pre">ProphetModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.prophet.ProphetParams" title="kats.models.prophet.ProphetParams"><span class="pre">kats.models.prophet.ProphetParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/prophet.html#ProphetModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.prophet.ProphetModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
-<p>Model class for Prophet</p>
-<p>This class provides fit, predict, and plot methods for Prophet model</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetModel.data">
-<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.prophet.ProphetModel.data" title="Permalink to this definition">¶</a></dt>
-<dd><p>the input time series data as in <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a></p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetModel.params">
-<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.prophet.ProphetModel.params" title="Permalink to this definition">¶</a></dt>
-<dd><p>the parameter class definied with <cite>ProphetParams</cite></p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetModel.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/prophet.html#ProphetModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.prophet.ProphetModel.fit" title="Permalink to this definition">¶</a></dt>
-<dd><p>fit Prophet model</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>None.</strong> – </p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The fitted prophet model object</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetModel.get_parameter_search_space">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><span class="pre">object</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/prophet.html#ProphetModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.prophet.ProphetModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
-<dd><p>get default parameter search space for Prophet model</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetModel.plot">
-<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/prophet.html#ProphetModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.prophet.ProphetModel.plot" title="Permalink to this definition">¶</a></dt>
-<dd><p>plot forecasted results from Prophet model</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetModel.predict">
-<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/prophet.html#ProphetModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.prophet.ProphetModel.predict" title="Permalink to this definition">¶</a></dt>
-<dd><p>predict with fitted Prophet model</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>steps</strong> – the steps or length of prediction horizon</p></li>
-<li><p><strong>include_history</strong> – if include the historical data, default as False</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><cite>time</cite>, <cite>fcst</cite>, <cite>fcst_lower</cite>, and <cite>fcst_upper</cite></p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>The predicted dataframe with following columns</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.prophet.</span></span><span class="sig-name descname"><span class="pre">ProphetParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">growth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">changepoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_changepoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">changepoint_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yearly_seasonality</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weekly_seasonality</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">daily_seasonality</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holidays</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonality_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'additive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonality_prior_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holidays_prior_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">changepoint_prior_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mcmc_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uncertainty_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">floor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_seasonalities</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/prophet.html#ProphetParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.prophet.ProphetParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
-<p>Parameter class for Prophet model</p>
-<p>This is the parameter class for prophet model, it contains all necessary
-parameters as definied in Prophet implementation:
-<a class="reference external" href="https://github.com/facebook/prophet/blob/master/python/prophet/forecaster.py">https://github.com/facebook/prophet/blob/master/python/prophet/forecaster.py</a></p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.growth">
-<span class="sig-name descname"><span class="pre">growth</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.growth" title="Permalink to this definition">¶</a></dt>
-<dd><p>String ‘linear’ or ‘logistic’ to specify a linear or logistic
-trend.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.changepoints">
-<span class="sig-name descname"><span class="pre">changepoints</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.changepoints" title="Permalink to this definition">¶</a></dt>
-<dd><p>List of dates at which to include potential changepoints. If
-not specified, potential changepoints are selected automatically.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.n_changepoints">
-<span class="sig-name descname"><span class="pre">n_changepoints</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.n_changepoints" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of potential changepoints to include. Not used
-if input <cite>changepoints</cite> is supplied. If <cite>changepoints</cite> is not supplied,
-then n_changepoints potential changepoints are selected uniformly from
-the first <cite>changepoint_range</cite> proportion of the history.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.changepoint_range">
-<span class="sig-name descname"><span class="pre">changepoint_range</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.changepoint_range" title="Permalink to this definition">¶</a></dt>
-<dd><p>Proportion of history in which trend changepoints will
-be estimated. Defaults to 0.8 for the first 80%. Not used if
-<cite>changepoints</cite> is specified.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.yearly_seasonality">
-<span class="sig-name descname"><span class="pre">yearly_seasonality</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.yearly_seasonality" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit yearly seasonality.
-Can be ‘auto’, True, False, or a number of Fourier terms to generate.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.weekly_seasonality">
-<span class="sig-name descname"><span class="pre">weekly_seasonality</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.weekly_seasonality" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit weekly seasonality.
-Can be ‘auto’, True, False, or a number of Fourier terms to generate.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.daily_seasonality">
-<span class="sig-name descname"><span class="pre">daily_seasonality</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.daily_seasonality" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit daily seasonality.
-Can be ‘auto’, True, False, or a number of Fourier terms to generate.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.holidays">
-<span class="sig-name descname"><span class="pre">holidays</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.holidays" title="Permalink to this definition">¶</a></dt>
-<dd><p>pd.DataFrame with columns holiday (string) and ds (date type)
-and optionally columns lower_window and upper_window which specify a
-range of days around the date to be included as holidays.
-lower_window=-2 will include 2 days prior to the date as holidays. Also
-optionally can have a column prior_scale specifying the prior scale for
-that holiday.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.seasonality_mode">
-<span class="sig-name descname"><span class="pre">seasonality_mode</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.seasonality_mode" title="Permalink to this definition">¶</a></dt>
-<dd><p>‘additive’ (default) or ‘multiplicative’.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.seasonality_prior_scale">
-<span class="sig-name descname"><span class="pre">seasonality_prior_scale</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.seasonality_prior_scale" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parameter modulating the strength of the
-seasonality model. Larger values allow the model to fit larger seasonal
-fluctuations, smaller values dampen the seasonality. Can be specified
-for individual seasonalities using add_seasonality.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.holidays_prior_scale">
-<span class="sig-name descname"><span class="pre">holidays_prior_scale</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.holidays_prior_scale" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parameter modulating the strength of the holiday
-components model, unless overridden in the holidays input.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.changepoint_prior_scale">
-<span class="sig-name descname"><span class="pre">changepoint_prior_scale</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.changepoint_prior_scale" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parameter modulating the flexibility of the
-automatic changepoint selection. Large values will allow many
-changepoints, small values will allow few changepoints.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.mcmc_samples">
-<span class="sig-name descname"><span class="pre">mcmc_samples</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.mcmc_samples" title="Permalink to this definition">¶</a></dt>
-<dd><p>Integer, if greater than 0, will do full Bayesian inference
-with the specified number of MCMC samples. If 0, will do MAP
-estimation.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.interval_width">
-<span class="sig-name descname"><span class="pre">interval_width</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.interval_width" title="Permalink to this definition">¶</a></dt>
-<dd><p>Float, width of the uncertainty intervals provided
-for the forecast. If mcmc_samples=0, this will be only the uncertainty
-in the trend using the MAP estimate of the extrapolated generative
-model. If mcmc.samples&gt;0, this will be integrated over all model
-parameters, which will include uncertainty in seasonality.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.uncertainty_samples">
-<span class="sig-name descname"><span class="pre">uncertainty_samples</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.uncertainty_samples" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of simulated draws used to estimate
-uncertainty intervals. Settings this value to 0 or False will disable
-uncertainty estimation and speed up the calculation.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.cap">
-<span class="sig-name descname"><span class="pre">cap</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.cap" title="Permalink to this definition">¶</a></dt>
-<dd><p>capacity, provided for logistic growth</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.floor">
-<span class="sig-name descname"><span class="pre">floor</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.floor" title="Permalink to this definition">¶</a></dt>
-<dd><p>floor, the fcst value must be greater than the specified floor</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.custom_seasonlities">
-<span class="sig-name descname"><span class="pre">custom_seasonlities</span></span><a class="headerlink" href="#kats.models.prophet.ProphetParams.custom_seasonlities" title="Permalink to this definition">¶</a></dt>
-<dd><p>customized seasonalities, dict with keys
-“name”, “period”, “fourier_order”</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kats.models.prophet.ProphetParams.validate_params">
-<span class="sig-name descname"><span class="pre">validate_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/prophet.html#ProphetParams.validate_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.prophet.ProphetParams.validate_params" title="Permalink to this definition">¶</a></dt>
-<dd><p>validate Prophet parameters</p>
-<p>This method validates some key parameters including growth rate
-and custom_seasonalities.</p>
-</dd></dl>
-
-</dd></dl>
-
+  <section id="kats-models-prophet-module">
+<h1>kats.models.prophet module<a class="headerlink" href="#kats-models-prophet-module" title="Permalink to this headline">¶</a></h1>
 </section>
 
 
@@ -264,6 +163,48 @@ and custom_seasonalities.</p>
           
         </div>
       </div>
+</div>
+<footer class="footer">
+    <div class="container">
+        <div class="row footer__links">
+            <div class="col footer__col">
+                <div class="footer__title">Links</div>
+                <ul class="footer__items">
+                    <li class="footer__item">
+                        <a href="https://github.com/facebookresearch/Kats" target="_blank" rel="noopener noreferrer" class="footer__link-item">Kats@GitHub</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col footer__col">
+                <div class="footer__title">Legal</div>
+                <ul class="footer__items">
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/privacy/" target="_blank" rel="noreferrer noopener" class="footer__link-item">Privacy</a>
+                    </li>
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/terms/" target="_blank" rel="noreferrer noopener" class="footer__link-item">Terms</a>
+                    </li>
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/cookie-policy" target="_blank" rel="noreferrer noopener" class="footer__link-item">Cookies</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer__bottom text--center">
+            <div class="margin-bottom--sm">
+                <img src="https://docusaurus.io/img/oss_logo.png" alt="Facebook Open Source Logo" class="themedImage_1VuW themedImage--light_3UqQ footer__logo"/>
+                <img src="https://docusaurus.io/img/oss_logo.png" alt="Facebook Open Source Logo" class="themedImage_1VuW themedImage--dark_hz6m footer__logo"/>
+            </div>
+            <div class="footer__copyright">Copyright © 2021 Facebook, Inc.</div>
+        </div>
+    </div>
+</footer>
+<!--
+</div>
+<script src="/Kats/assets/js/runtime~main.9e005abd.js"></script>
+<script src="/Kats/assets/js/main.6382ca5e.js"></script>
+-->
+
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="index.html">Kats</a></h1>
@@ -298,7 +239,7 @@ and custom_seasonalities.</p>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

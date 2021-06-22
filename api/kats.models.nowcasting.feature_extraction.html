@@ -1,4 +1,34 @@
 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!--
+    <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
+    <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
+    -->
+    <link rel="preconnect" href="https://www.google-analytics.com">
+    <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+    <!--
+    <title data-react-helmet="true">Kats | Kats</title>
+    <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
+    <meta data-react-helmet="true" name="description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:url" content="https://facebookresearch.github.io/Kats/">
+    -->
+    <link data-react-helmet="true" rel="shortcut icon" href="/Kats/img/KatsHeroLogo.png">
+    <!--
+    <link data-react-helmet="true" rel="canonical" href="https://facebookresearch.github.io/Kats/">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="en">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="x-default">
+    -->
+    <link rel="stylesheet" href="/Kats/assets/css/styles.99fd060a.css">
+    <!--
+    <link rel="preload" href="/Kats/assets/js/runtime~main.9e005abd.js" as="script">
+    <link rel="preload" href="/Kats/assets/js/main.6382ca5e.js" as="script">
+    -->
+    </head>
+
+
 <!DOCTYPE html>
 
 <html>
@@ -9,6 +39,7 @@
     <title>kats.models.nowcasting.feature_extraction module &#8212; Kats 0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
@@ -17,244 +48,114 @@
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="kats.models.nowcasting.model_io module" href="kats.models.nowcasting.model_io.html" />
     <link rel="prev" title="kats.models.nowcasting package" href="kats.models.nowcasting.html" />
-   
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!--
+    <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
+    <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
+    -->
+    <link rel="preconnect" href="https://www.google-analytics.com">
+    <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+    <!--
+    <title data-react-helmet="true">Kats | Kats</title>
+    <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
+    <meta data-react-helmet="true" name="description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:description" content="One stop shop for time series analysis in Python">
+    <meta data-react-helmet="true" property="og:url" content="https://facebookresearch.github.io/Kats/">
+    -->
+    <link data-react-helmet="true" rel="shortcut icon" href="/Kats/img/KatsHeroLogo.png">
+    <!--
+    <link data-react-helmet="true" rel="canonical" href="https://facebookresearch.github.io/Kats/">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="en">
+    <link data-react-helmet="true" rel="alternate" href="https://facebookresearch.github.io/Kats/" hreflang="x-default">
+    -->
+    <link rel="stylesheet" href="/Kats/assets/css/styles.99fd060a.css">
+    <!--
+    <link rel="preload" href="/Kats/assets/js/runtime~main.9e005abd.js" as="script">
+    <link rel="preload" href="/Kats/assets/js/main.6382ca5e.js" as="script">
+    -->
+    </head>
 
   </head><body>
   
 
     <div class="document">
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){var t=null;try{t=localStorage.getItem("theme")}catch(t){}return t}();t(null!==e?e:"light")}()</script>
+<!--<div id="__docusaurus">-->
+<div id="docusaurus-base-url-issue-banner-container"></div>
+<div><a href="#main" class="skipToContent_1oUP">Skip to main content</a></div>
+<nav class="navbar navbar--fixed-top">
+  <div class="navbar__inner">
+      <div class="navbar__items">
+          <button aria-label="Navigation bar toggle" class="navbar__toggle" type="button" tabindex="0">
+              <svg aria-label="Menu" width="30" height="30" viewBox="0 0 30 30" role="img" focusable="false">
+                  <title>Menu</title>
+                  <path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path>
+              </svg>
+          </button>
+          <a class="navbar__brand" href="/Kats/">
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--light_3UqQ navbar__logo"/>
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--dark_hz6m navbar__logo"/>
+              <strong class="navbar__title">Kats</strong>
+          </a>
+          <a href="https://facebookresearch.github.io/Kats/api/" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">API</a>
+          <a href="https://github.com/facebookresearch/Kats/tree/master/tutorials" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">Tutorials</a>
+      </div>
+      <!--
+      <div class="navbar__items navbar__items--right">
+          <a href="https://github.com/facebookresearch/kats" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">Kats@GitHub</a>
+          <div class="react-toggle displayOnlyInLargeViewport_GrZ2" role="button" tabindex="-1">
+              <div class="react-toggle-track">
+                  <div class="react-toggle-track-check">
+                      <span class="toggle_71bT">🌜</span>
+                  </div>
+                  <div class="react-toggle-track-x">
+                      <span class="toggle_71bT">🌞</span>
+                  </div>
+              </div>
+              <div class="react-toggle-thumb"></div>
+              <input type="checkbox" class="react-toggle-screenreader-only" aria-label="Switch between dark and light mode"/>
+          </div>
+      </div>
+      -->
+  </div>
+  <div role="presentation" class="navbar-sidebar__backdrop"></div>
+  <div class="navbar-sidebar">
+      <div class="navbar-sidebar__brand">
+          <a class="navbar__brand" href="/Kats/">
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--light_3UqQ navbar__logo"/>
+              <img src="/Kats/img/KatsHeroLogo.png" alt="Project Logo" class="themedImage_1VuW themedImage--dark_hz6m navbar__logo"/>
+              <strong class="navbar__title">Kats</strong>
+          </a>
+      </div>
+      <div class="navbar-sidebar__items">
+          <div class="menu">
+              <ul class="menu__list">
+                  <li class="menu__list-item">
+                      <a href="https://facebookresearch.github.io/Kats/api/" target="_blank" rel="noopener noreferrer" class="menu__link">API</a>
+                  </li>
+                  <li class="menu__list-item">
+                      <a href="https://github.com/facebookresearch/Kats/tree/master/tutorials" target="_blank" rel="noopener noreferrer" class="menu__link">Tutorials</a>
+                  </li>
+                  <li class="menu__list-item">
+                      <a href="https://github.com/facebookresearch/kats" target="_blank" rel="noopener noreferrer" class="menu__link">Kats@GitHub</a>
+                  </li>
+              </ul>
+          </div>
+      </div>
+  </div>
+</nav>
+<div class="main-wrapper">
+  
       <div class="documentwrapper">
         <div class="bodywrapper">
           
 
           <div class="body" role="main">
             
-  <section id="module-kats.models.nowcasting.feature_extraction">
-<span id="kats-models-nowcasting-feature-extraction-module"></span><h1>kats.models.nowcasting.feature_extraction module<a class="headerlink" href="#module-kats.models.nowcasting.feature_extraction" title="Permalink to this headline">¶</a></h1>
-<p>This is a file with functions which turn time series into ML features.</p>
-<p>Typical use case is to create various features for the nowcasting model.
-The features are rolling, i.e. they are the times series as well.</p>
-<blockquote>
-<div><p>Typical usage example:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">ROC</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-</pre></div>
-</div>
-</div></blockquote>
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.BBANDS">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">BBANDS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#BBANDS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.BBANDS" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds two Bolllinger Band columns</p>
-<p>A Bollinger Band is a technical analysis tool defined by a
-set of trendlines plotted two standard deviations (positively and negatively)
-away from a simple moving average (SMA) of a security’s price, but which can
-be adjusted to user preferences.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe</p></li>
-<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added 2 BollingerBand columns.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.EMA">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">EMA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#EMA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.EMA" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds the Exponetial Moving Average column</p>
-<p>The exponential moving average (EMA) is a technical chart indicator that
-tracks the price of an investment (like a stock or commodity) over time.
-The EMA is a type of weighted moving average (WMA) that gives more</p>
-<blockquote>
-<div><p>weighting or importance to recent price data</p>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe</p></li>
-<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added EMA column.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.LAG">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">LAG</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pandas.core.frame.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#LAG"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.LAG" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds another column indicating lagged value at the past n steps.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe.</p></li>
-<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added column.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.MA">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">MA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pandas.core.frame.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#MA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.MA" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds another column indicating moving average in the past n steps.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe.</p></li>
-<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added column.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.MACD">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">MACD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pandas.core.frame.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_fast</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_slow</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">21</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#MACD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.MACD" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds three columns indicating MACD: <a class="reference external" href="https://www.investopedia.com/terms/m/macd.asp">https://www.investopedia.com/terms/m/macd.asp</a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe</p></li>
-<li><p><strong>n_fast</strong> – an integer on how many steps looking back fast.</p></li>
-<li><p><strong>n_slow</strong> – an integer on how many steps looking back slow.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added 3 columns.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.MOM">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">MOM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pandas.core.frame.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#MOM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.MOM" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds another column indicating momentum: difference of current value and n steps back.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe.</p></li>
-<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added column.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.ROC">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">ROC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pandas.core.frame.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#ROC"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.ROC" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds another column indicating return comparing to step n back.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe.</p></li>
-<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added column.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.RSI">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">RSI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#RSI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.RSI" title="Permalink to this definition">¶</a></dt>
-<dd><p>Relative Strength Index (RSI)
-Compares the magnitude of recent gains and losses over a specified time
-period to measure speed and change of price movements of a security. It is
-primarily used to attempt to identify overbought or oversold conditions in
-the trading of an asset.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe</p></li>
-<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added RSI column.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.TRIX">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">TRIX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#TRIX"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.TRIX" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds the TRIX indicator column</p>
-<p>The triple exponential average (TRIX) indicator is an oscillator
-used to identify oversold and overbought markets, and it can
-also be used as a momentum indicator.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe</p></li>
-<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added TRIX column.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.TSI">
-<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">TSI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#TSI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.TSI" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds the TSI column</p>
-<p>The true strength index (TSI) is a technical momentum oscillator
-used to identify trends and reversals</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – a pandas dataframe</p></li>
-<li><p><strong>r</strong> – an integer on how many steps looking back, for window 1.</p></li>
-<li><p><strong>s</strong> – an integer on how many steps looking back, for window 2.</p></li>
-<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
-otherwise the column named y will be the target.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dataframe with all the columns from input df, and the added TSI column.</p>
-</dd>
-</dl>
-</dd></dl>
-
+  <section id="kats-models-nowcasting-feature-extraction-module">
+<h1>kats.models.nowcasting.feature_extraction module<a class="headerlink" href="#kats-models-nowcasting-feature-extraction-module" title="Permalink to this headline">¶</a></h1>
 </section>
 
 
@@ -262,6 +163,48 @@ otherwise the column named y will be the target.</p></li>
           
         </div>
       </div>
+</div>
+<footer class="footer">
+    <div class="container">
+        <div class="row footer__links">
+            <div class="col footer__col">
+                <div class="footer__title">Links</div>
+                <ul class="footer__items">
+                    <li class="footer__item">
+                        <a href="https://github.com/facebookresearch/Kats" target="_blank" rel="noopener noreferrer" class="footer__link-item">Kats@GitHub</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col footer__col">
+                <div class="footer__title">Legal</div>
+                <ul class="footer__items">
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/privacy/" target="_blank" rel="noreferrer noopener" class="footer__link-item">Privacy</a>
+                    </li>
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/terms/" target="_blank" rel="noreferrer noopener" class="footer__link-item">Terms</a>
+                    </li>
+                    <li class="footer__item">
+                        <a href="https://opensource.facebook.com/legal/cookie-policy" target="_blank" rel="noreferrer noopener" class="footer__link-item">Cookies</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer__bottom text--center">
+            <div class="margin-bottom--sm">
+                <img src="https://docusaurus.io/img/oss_logo.png" alt="Facebook Open Source Logo" class="themedImage_1VuW themedImage--light_3UqQ footer__logo"/>
+                <img src="https://docusaurus.io/img/oss_logo.png" alt="Facebook Open Source Logo" class="themedImage_1VuW themedImage--dark_hz6m footer__logo"/>
+            </div>
+            <div class="footer__copyright">Copyright © 2021 Facebook, Inc.</div>
+        </div>
+    </div>
+</footer>
+<!--
+</div>
+<script src="/Kats/assets/js/runtime~main.9e005abd.js"></script>
+<script src="/Kats/assets/js/main.6382ca5e.js"></script>
+-->
+
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="index.html">Kats</a></h1>
@@ -292,7 +235,7 @@ otherwise the column named y will be the target.</p></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">kats.models.nowcasting.feature_extraction module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.model_io.html">kats.models.nowcasting.model_io module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.nowcasting.html">kats.models.nowcasting.nowcasting module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.html#module-kats.models.nowcasting">kats.models.nowcasting module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.html#kats-models-nowcasting-module">kats.models.nowcasting module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.prophet.html">kats.models.prophet module</a></li>
@@ -302,7 +245,7 @@ otherwise the column named y will be the target.</p></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
