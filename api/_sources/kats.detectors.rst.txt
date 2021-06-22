@@ -16,11 +16,8 @@ kats\.detectors package
     kats.detectors.residual_translation
     kats.detectors.robust_stat_detection
     kats.detectors.seasonality
-    kats.detectors.slow_drift_detector
-    kats.detectors.sprt_detector
     kats.detectors.stat_sig_detector
     kats.detectors.trend_mk
-    kats.detectors.window_slo_detector
 
 kats\.detectors module
 ______________________
