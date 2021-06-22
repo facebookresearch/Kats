@@ -47,11 +47,17 @@ Here are a few sample snippets from a subset of Kats offerings:
 Using `Prophet` model to forecast the `air_passengers` data set.
 
 ```python
+import pandas as pd
+
 from kats.consts import TimeSeriesData
 from kats.models.prophet import ProphetModel, ProphetParams
 
 # take `air_passengers` data as an example
-air_passengers_df = pd.read_csv("../kats/data/air_passengers.csv")
+air_passengers_df = pd.read_csv(
+    "../kats/data/air_passengers.csv",
+    header=0,
+    names=["time", "passengers"],
+)
 
 # convert to TimeSeriesData object
 air_passengers_ts = TimeSeriesData(air_passengers_df)
