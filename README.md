@@ -111,7 +111,11 @@ We can extract meaningful features from the given time series data
 from kats.tsfeatures.tsfeatures import TsFeatures
 
 # take `air_passengers` data as an example
-air_passengers_df = pd.read_csv("../kats/data/air_passengers.csv")
+air_passengers_df = pd.read_csv(
+    "../kats/data/air_passengers.csv",
+    header=0,
+    names=["time", "passengers"],
+)
 
 # convert to TimeSeriesData object
 air_passengers_ts = TimeSeriesData(air_passengers_df)
