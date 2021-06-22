@@ -81,6 +81,8 @@ Using `CUSUM` detection algorithm on simulated data set.
 
 ```python
 # import packages
+import numpy as np
+
 from kats.consts import TimeSeriesData
 from kats.detectors.cusum_detection import CUSUMDetector
 
