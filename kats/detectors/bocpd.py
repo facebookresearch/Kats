@@ -255,7 +255,6 @@ class BOCPDetector(Detector):
         ), f"Expected equivalent models in .models and .parameter_types, but got {self.models.keys()} and {self.parameter_type.keys()}"
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
         self,
         model: BOCPDModelType = BOCPDModelType.NORMAL_KNOWN_MODEL,
@@ -687,7 +686,6 @@ class _BayesOnlineChangePoint(Detector):
         self._message_shape = (self.T, self.P)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
         self,
         model: Any,

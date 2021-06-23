@@ -42,7 +42,6 @@ class RobustStatDetector(Detector):
             raise ValueError(msg)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self,
                 p_value_cutoff: float = 1e-2,
                 smoothing_window_size: int = 5,

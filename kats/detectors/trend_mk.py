@@ -331,7 +331,6 @@ class MKDetector(Detector):
         return {"ds": anchor_date, "trend_direction": trend, "p": p, "Tau": Tau}
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
         self,
         window_size: int = 20,

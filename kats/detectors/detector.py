@@ -34,7 +34,7 @@ class Detector(ABC):
             self.data.time = pd.to_datetime(self.data.time)
 
     @abstractmethod
-    def detector(self, method: Optional[str] = None) -> None:
+    def detector(self, method: Optional[str] = None) -> Any:
         # TODO
         return
 

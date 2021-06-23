@@ -184,7 +184,6 @@ class HourlyRatioDetector(Detector):
         return (lab, pvalue)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self, support_fraction=0.9) -> List[TimeSeriesChangePoint]:
         """Run detection algorithm.
 

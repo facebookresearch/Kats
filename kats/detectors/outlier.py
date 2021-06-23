@@ -285,7 +285,6 @@ class MultivariateAnomalyDetector(Detector):
         return residual_score
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self) -> pd.DataFrame:
         """
         Fit the detection model and return the results

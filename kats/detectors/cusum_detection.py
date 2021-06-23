@@ -374,7 +374,6 @@ class CUSUMDetector(Detector):
         return magnitude
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self, **kwargs) -> List[Tuple[TimeSeriesChangePoint, CUSUMMetadata]]:
         """
         Find the change point and calculate related statistics.
