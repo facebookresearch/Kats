@@ -6,9 +6,17 @@
 # generated files
 *.o
 *.pyc
+*.so
 .ipynb_checkpoints/
 
+# Editor temporaries
+*.swn
+*.swo
+*.swp
+*~
+
 # Installation files
+build/
 dist/
 *.egg-info/
 
