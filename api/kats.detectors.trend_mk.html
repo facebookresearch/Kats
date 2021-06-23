@@ -158,8 +158,245 @@
 
           <div class="body" role="main">
             
-  <section id="kats-detectors-trend-mk-module">
-<h1>kats.detectors.trend_mk module<a class="headerlink" href="#kats-detectors-trend-mk-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.detectors.trend_mk">
+<span id="kats-detectors-trend-mk-module"></span><h1>kats.detectors.trend_mk module<a class="headerlink" href="#module-kats.detectors.trend_mk" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.trend_mk.</span></span><span class="sig-name descname"><span class="pre">MKDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multivariate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kats.detectors.detector.html#kats.detectors.detector.Detector" title="kats.detectors.detector.Detector"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.detectors.detector.Detector</span></code></a></p>
+<p>MKDetector (MK stands for Mann-Kendall) is a non-parametric statistical test
+used to determine whether there is a monotonic trend in a given time series.
+See <a class="reference external" href="https://vsp.pnnl.gov/help/vsample/Design_Trend_Mann_Kendall.htm">https://vsp.pnnl.gov/help/vsample/Design_Trend_Mann_Kendall.htm</a> for
+details.</p>
+<p>The basic idea is to check whether there is a monotonic trend based on a
+look back number of time steps (<cite>window_size</cite>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – <cite>TimeSeriesData</cite>, this is time series data at one-day granularity.
+This time series can be either univariate or multivariate.
+We require more than training_days points in each time series.</p></li>
+<li><p><strong>threshold</strong> – <cite>float</cite>, threshold for trend intensity; higher threshold gives
+trend with high intensity (0.8 by default).  If we only want to use
+the p-value to determine changepoints, set threshold = 0.</p></li>
+<li><p><strong>alpha</strong> – <cite>float</cite>, significance level (0.05 by default)</p></li>
+<li><p><strong>multivariate</strong> – <cite>bool</cite>, whether the input time series is multivariate</p></li>
+</ul>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kats.consts</span> <span class="kn">import</span> <span class="n">TimeSeriesData</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kats.detectors.trend_mk</span> <span class="kn">import</span> <span class="n">MKDetector</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># read data and rename the two columns required by TimeSeriesData</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># structure</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;../filename.csv&quot;</span><span class="p">)</span> <span class="c1"># demo file does not exist</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">TSdata</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># create MKDetector with given data and params</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">MKDetector</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">TSdata</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># call detector method to fit model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">detected_time_points</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">window_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;up&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># plot the results</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">detected_time_points</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector.MKtest">
+<span class="sig-name descname"><span class="pre">MKtest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.9)"><span class="pre">datetime.datetime</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector.MKtest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector.MKtest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the Mann-Kendall (MK) test for trend detection.</p>
+<p>(Mann 1945, Kendall 1975, Gilbert 1987)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ts</strong> – the dataframe of input data with time as index.
+This time series should not present seasonality for MK test.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>tuple containing:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>anchor_date(datetime): the last time point in ts; the date for</dt><dd><p>which alert is triggered</p>
+</dd>
+</dl>
+<p>trend(str): tells the trend (decreasing, increasing, or no trend)
+p(float): p-value of the significance test
+Tau(float): Kendall Tau-b statistic (<a class="reference external" href="https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient#Tau-b">https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient#Tau-b</a>)</p>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)">tuple</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector.detector">
+<span class="sig-name descname"><span class="pre">detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_days</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'both'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesChangePoint" title="kats.consts.TimeSeriesChangePoint"><span class="pre">kats.consts.TimeSeriesChangePoint</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#kats.detectors.trend_mk.MKMetadata" title="kats.detectors.trend_mk.MKMetadata"><span class="pre">kats.detectors.trend_mk.MKMetadata</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector.detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector.detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs MK test sequentially.</p>
+<p>It finds the trend and calculates the related statistics for all time
+points in a given time series.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>window_size</strong> – int, the number of look back days for checking trend
+persistence</p></li>
+<li><p><strong>training_days</strong> – int, the number of days for time series smoothing;
+should be greater or equal to window_size
+If training_days is None, we will perform trend detection on the
+whole time series; otherwise, we will perform trend detection
+only for the anchor point using the previous training_days data.</p></li>
+<li><p><strong>direction</strong> – string, the direction of the trend to be detected, choose
+from {“down”, “up”, “both”}</p></li>
+<li><p><strong>freq</strong> – str, the type of seasonality shown in the time series,
+choose from {‘weekly’,’monthly’,’yearly’}</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector.get_MK_results">
+<span class="sig-name descname"><span class="pre">get_MK_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">MK_statistics</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector.get_MK_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector.get_MK_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain a subset of MK_statistics given the desired direction</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector.get_MK_statistics">
+<span class="sig-name descname"><span class="pre">get_MK_statistics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector.get_MK_statistics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector.get_MK_statistics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the dataframe of MK_statistics.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector.get_top_k_metrics">
+<span class="sig-name descname"><span class="pre">get_top_k_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_point</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.9)"><span class="pre">datetime.datetime</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector.get_top_k_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector.get_top_k_metrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get k metrics that show the most significant trend at a time point.</p>
+<p>Works only for multivariate data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time_point</strong> – the time point to be investigated.</p></li>
+<li><p><strong>top_k</strong> – the number of top metrics.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>a dataframe consists of top_k metrics and their corresponding</dt><dd><p>Kendall Tau and trend.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector.multivariate_MKtest">
+<span class="sig-name descname"><span class="pre">multivariate_MKtest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.9)"><span class="pre">datetime.datetime</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector.multivariate_MKtest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector.multivariate_MKtest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the Multivariate Mann-Kendall (MK) test.</p>
+<p>Proposed by R. M. Hirsch and J. R. Slack (1984).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ts</strong> – the dataframe of input data with time as index.  This time
+series should not present seasonality for MK test.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>tuple containing:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>anchor_date(datetime): the last time point in ts; the date for</dt><dd><p>which alert is triggered.</p>
+</dd>
+<dt>trend:_dict: tells the trend (decreasing, increasing, or no trend)</dt><dd><p>for each metric.</p>
+</dd>
+</dl>
+<p>p: p-value of the significance test.
+Tau_dict: Dictionary of Kendall Tau-b statistics for each univariate</p>
+<blockquote>
+<div><p>time series, and Tau_dict[“overall”] gives the Tau-b statistic
+for the multivariate time series.</p>
+</div></blockquote>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)">tuple</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">detected_time_points</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesChangePoint" title="kats.consts.TimeSeriesChangePoint"><span class="pre">kats.consts.TimeSeriesChangePoint</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#kats.detectors.trend_mk.MKMetadata" title="kats.detectors.trend_mk.MKMetadata"><span class="pre">kats.detectors.trend_mk.MKMetadata</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the original time series data, and the detected time points.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector.plot_heat_map">
+<span class="sig-name descname"><span class="pre">plot_heat_map</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector.plot_heat_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector.plot_heat_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the Tau of each metric in a heatmap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a dataframe contains Tau for all metrics at all time points.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKDetector.runDetector">
+<span class="sig-name descname"><span class="pre">runDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKDetector.runDetector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKDetector.runDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs MK test for a time point in the input data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ts</strong> – the dataframe of input data with noise and seasonality removed.
+Its index is time.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary consisting of MK test statistics for the anchor time</dt><dd><p>point, including trend, p-value and Kendall Tau.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKMetadata">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.detectors.trend_mk.</span></span><span class="sig-name descname"><span class="pre">MKMetadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_multivariate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">trend_direction</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tau</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/detectors/trend_mk.html#MKMetadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.detectors.trend_mk.MKMetadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Metadata object for changepoint of MKDetector</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKMetadata.detector_type">
+<span class="sig-name descname"><span class="pre">detector_type</span></span><a class="headerlink" href="#kats.detectors.trend_mk.MKMetadata.detector_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detector, Type of detector changepoint is for.  Right
+now, this is always MKDetector.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKMetadata.is_multivariate">
+<span class="sig-name descname"><span class="pre">is_multivariate</span></span><a class="headerlink" href="#kats.detectors.trend_mk.MKMetadata.is_multivariate" title="Permalink to this definition">¶</a></dt>
+<dd><p>boolean, Whether this is a changepoint for a
+multivariate time series.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKMetadata.trend_direction">
+<span class="sig-name descname"><span class="pre">trend_direction</span></span><a class="headerlink" href="#kats.detectors.trend_mk.MKMetadata.trend_direction" title="Permalink to this definition">¶</a></dt>
+<dd><p>string, Direction of trend, either ‘increasing’ or
+‘decreasing’.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.detectors.trend_mk.MKMetadata.Tau">
+<span class="sig-name descname"><span class="pre">Tau</span></span><a class="headerlink" href="#kats.detectors.trend_mk.MKMetadata.Tau" title="Permalink to this definition">¶</a></dt>
+<dd><p>float or Dict, Kendall’s Tau value for changepoint.
+This is a float in the univariate case and a Dict in the</p>
+<blockquote>
+<div><p>multivariate case.</p>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -239,7 +476,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.detectors.seasonality.html">kats.detectors.seasonality module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.detectors.stat_sig_detector.html">kats.detectors.stat_sig_detector module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">kats.detectors.trend_mk module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.detectors.html#kats-detectors-module">kats.detectors module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.detectors.html#module-kats.detectors">kats.detectors module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.graphics.html">kats.graphics package</a></li>

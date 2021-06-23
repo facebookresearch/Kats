@@ -5,9 +5,11 @@
     <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
     <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
     -->
+    <!--
     <link rel="preconnect" href="https://www.google-analytics.com">
     <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
     <script async src="https://www.google-analytics.com/analytics.js"></script>
+    -->
     <!--
     <title data-react-helmet="true">Kats | Kats</title>
     <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
@@ -51,9 +53,11 @@
     <link rel="alternate" type="application/rss+xml" href="/Kats/blog/rss.xml" title="Kats Blog RSS Feed">
     <link rel="alternate" type="application/atom+xml" href="/Kats/blog/atom.xml" title="Kats Blog Atom Feed">
     -->
+    <!--
     <link rel="preconnect" href="https://www.google-analytics.com">
     <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-149862507-1","auto"),ga("send","pageview")</script>
     <script async src="https://www.google-analytics.com/analytics.js"></script>
+    -->
     <!--
     <title data-react-helmet="true">Kats | Kats</title>
     <meta data-react-helmet="true" property="og:title" content="Kats | Kats">
@@ -234,7 +238,6 @@
 
     <span class="c1"># pyre-fixme[14]: Inconsistent override [14]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Could not find parameter `method` in overriding signature.</span>
     <span class="c1"># pyre-fixme[14]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Returned type `Dict[str, typing.Any]` is not a subtype of the overridden return `None`.</span>
-    <span class="c1"># pyre-fixme[15]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Returned type `Dict[str, typing.Any]` is not a subtype of the overridden return `None`</span>
 <div class="viewcode-block" id="ACFDetector.detector"><a class="viewcode-back" href="../../../kats.detectors.seasonality.html#kats.detectors.seasonality.ACFDetector.detector">[docs]</a>    <span class="k">def</span> <span class="nf">detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">lags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">diff</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -343,7 +346,6 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="c1"># pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.</span>
-    <span class="c1"># pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.</span>
 <div class="viewcode-block" id="FFTDetector.detector"><a class="viewcode-back" href="../../../kats.detectors.seasonality.html#kats.detectors.seasonality.FFTDetector.detector">[docs]</a>    <span class="k">def</span> <span class="nf">detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_spacing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mad_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Detect seasonality with FFT</span>
 

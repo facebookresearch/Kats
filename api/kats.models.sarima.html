@@ -158,8 +158,208 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-sarima-module">
-<h1>kats.models.sarima module<a class="headerlink" href="#kats-models-sarima-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.sarima">
+<span id="kats-models-sarima-module"></span><h1>kats.models.sarima module<a class="headerlink" href="#module-kats.models.sarima" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.sarima.</span></span><span class="sig-name descname"><span class="pre">SARIMAModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.sarima.SARIMAParams" title="kats.models.sarima.SARIMAParams"><span class="pre">kats.models.sarima.SARIMAParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/sarima.html#SARIMAModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.sarima.SARIMAModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>Model class for SARIMA.</p>
+<p>This class provides fit, predict and plot methods for SARIMA model.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAModel.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAModel.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object for input time series.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAModel.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAModel.params" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#kats.models.sarima.SARIMAParams" title="kats.models.sarima.SARIMAParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">SARIMAParams</span></code></a> for model parameters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transformed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">includes_fixed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov_kwds</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'lbfgs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_score</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_complex_step</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_hessian</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_memory</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/sarima.html#SARIMAModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.sarima.SARIMAModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit SARIMA model by maximum likelihood via Kalman filter.</p>
+<p>See reference <a class="reference external" href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.fit.html#statsmodels.tsa.statespace.sarimax.SARIMAX.fit">https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.fit.html#statsmodels.tsa.statespace.sarimax.SARIMAX.fit</a> for more details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start_params</strong> – Optional; An array_like object for the initial guess of the solution for the loglikelihood maximization.</p></li>
+<li><p><strong>transformed</strong> – Optional; A boolean to specify whether or not start_params is already transformed. Default is True.</p></li>
+<li><p><strong>includes_fixed</strong> – Optional; A boolean to specify whether or not start_params includes the fixed parameters in addition to the free parameters. Default is False.</p></li>
+<li><p><strong>cov_type</strong> – Optional; A string for the method for calculating the covariance matrix of parameter estimates. Can be ‘opg’ (outer product of gradient estimator), ‘oim’ (observed information matrix estimato),
+‘approx’ (observed information matrix estimator), ‘robust’ (approximate (quasi-maximum likelihood) covariance matrix), or ‘robust_approx’. Default is ‘opg’ when memory conservation is not used, otherwise default is ‘approx’.</p></li>
+<li><p><strong>cov_kwds</strong> – Optional; A dictionary of arguments for covariance matrix computation. See reference for more details.</p></li>
+<li><p><strong>method</strong> – Optional; A string for solver from scipy.optimize to be used. Can be ‘newton’, ‘nm’, ‘bfgs’, ‘lbfgs’, ‘powell’, ‘cg’, ‘ncg’ or ‘basinhopping’. Default is ‘lbfgs’.</p></li>
+<li><p><strong>maxiter</strong> – Optional; An integer for the maximum number of iterations to perform. Default is 50.</p></li>
+<li><p><strong>full_output</strong> – Optional; A boolean to specify whether or not to have all available output in the Results object’s mle_retvals attribute. Default is True.</p></li>
+<li><p><strong>disp</strong> – Optional; A boolean to specify whether or not to print convergence messages. Default is False.</p></li>
+<li><p><strong>callback</strong> – Optional; A callable object to be called after each iteration. Default is None.</p></li>
+<li><p><strong>return_params</strong> – Optional; A boolean to specify whether or not to return only the array of maximizing parameters. Default is False.</p></li>
+<li><p><strong>optim_score</strong> – Optional; A string for the method by which the score vector is calculated. Can be ‘harvey’, ‘approx’ or None. Default is None.</p></li>
+<li><p><strong>optim_complex_step</strong> – Optional; A boolean to specify whether or not to use complex step differentiation when approximating the score. Default is True.</p></li>
+<li><p><strong>optim_hessian</strong> – Optional; A string for the method by which the Hessian is numerically approximated. Can be ‘opg’, ‘oim’, ‘approx’. Default is None.</p></li>
+<li><p><strong>low_memory</strong> – Optional; A boolean to specify whether or not to reduce memory usage. If True, some features of the results object will not be available. Default is False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAModel.get_parameter_search_space">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/sarima.html#SARIMAModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.sarima.SARIMAModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default SARIMA parameter search space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dictionary representing the default SARIMA parameter search space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/sarima.html#SARIMAModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.sarima.SARIMAModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot forecasted results from SARIMA model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/sarima.html#SARIMAModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.sarima.SARIMAModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict with fitted SARIMA model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – An integer for forecast steps.</p></li>
+<li><p><strong>include_history</strong> – Optional; A boolearn to specify whether to include historical data. Default is False.</p></li>
+<li><p><strong>alpha</strong> – A float for confidence level. Default is 0.05.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> of forecasts and confidence intervals.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.sarima.</span></span><span class="sig-name descname"><span class="pre">SARIMAParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">exog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonal_order</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Tuple</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">(0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">measurement_error</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_varying_regression</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mle_regression</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simple_differencing</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_stationarity</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_invertibility</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hamilton_representation</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concentrate_scale</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trend_offset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_exact_diffuse</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/sarima.html#SARIMAParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.sarima.SARIMAParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>Parameter class for SARIMA model</p>
+<p>This is the parameter class for SARIMA model, it contains all necessary parameters as defined in SARIMA model implementation:
+<a class="reference external" href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html">https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html</a>.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.p">
+<span class="sig-name descname"><span class="pre">p</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.p" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for trend autoregressive (AR) order.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.d">
+<span class="sig-name descname"><span class="pre">d</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.d" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for trend difference order.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.q">
+<span class="sig-name descname"><span class="pre">q</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.q" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for trend moving average (MA) order.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.exog">
+<span class="sig-name descname"><span class="pre">exog</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.exog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; An array of exogenous regressors.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.seasonal_order">
+<span class="sig-name descname"><span class="pre">seasonal_order</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.seasonal_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A tuple for (P,D,Q,s) order of the seasonal component for AR order, difference order, MA order, and periodicity. Default is (0,0,0,0).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.trend">
+<span class="sig-name descname"><span class="pre">trend</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.trend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A string or an iterable for deterministic trend. Can be ‘c’ (constant), ‘t’ (linear trend with time), ‘ct’ (both constant and linear trend), or an iterable of integers defining the non-zero polynomial exponents to include. Default is None (not to include trend).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.measurement_error">
+<span class="sig-name descname"><span class="pre">measurement_error</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.measurement_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to assume the observed time series were measured with error. Default is False.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.time_varying_regression">
+<span class="sig-name descname"><span class="pre">time_varying_regression</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.time_varying_regression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not coefficients on the regressors (if provided) are allowed to vary over time. Default is False.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.mle_regression">
+<span class="sig-name descname"><span class="pre">mle_regression</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.mle_regression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to estimate coefficients of regressors as part of maximum likelihood estimation or through Kalman filter.
+If time_varying_regression is True, this must be set to False. Default is True.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.simple_differencing">
+<span class="sig-name descname"><span class="pre">simple_differencing</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.simple_differencing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to use partially conditional maximum likelihood estimation.
+See <a class="reference external" href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html">https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html</a> for more details. Default is False.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.enforce_stationarity">
+<span class="sig-name descname"><span class="pre">enforce_stationarity</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.enforce_stationarity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to transform the AR parameters to enforce stationarity in AR component. Default is True.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.enforce_invertibility">
+<span class="sig-name descname"><span class="pre">enforce_invertibility</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.enforce_invertibility" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to transform the MA parameters to enforce invertibility in MA component. Default is True.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.hamilton_representation">
+<span class="sig-name descname"><span class="pre">hamilton_representation</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.hamilton_representation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to use the Hamilton representation or the Harvey representation (if False). Default is False.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.concentrate_scale">
+<span class="sig-name descname"><span class="pre">concentrate_scale</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.concentrate_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to concentrate the scale (variance of the error term) out of the likelihood. Default is False.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.trend_offset">
+<span class="sig-name descname"><span class="pre">trend_offset</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.trend_offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; An integer for the offset at which to start time trend value. Default is 1.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.use_exact_diffuse">
+<span class="sig-name descname"><span class="pre">use_exact_diffuse</span></span><a class="headerlink" href="#kats.models.sarima.SARIMAParams.use_exact_diffuse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to use exact diffuse initialization for non-stationary states. Default is False.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.sarima.SARIMAParams.validate_params">
+<span class="sig-name descname"><span class="pre">validate_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/sarima.html#SARIMAParams.validate_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.sarima.SARIMAParams.validate_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Not implemented.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -243,7 +443,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

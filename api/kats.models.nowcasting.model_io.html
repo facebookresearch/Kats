@@ -158,8 +158,36 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-nowcasting-model-io-module">
-<h1>kats.models.nowcasting.model_io module<a class="headerlink" href="#kats-models-nowcasting-model-io-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.nowcasting.model_io">
+<span id="kats-models-nowcasting-model-io-module"></span><h1>kats.models.nowcasting.model_io module<a class="headerlink" href="#module-kats.models.nowcasting.model_io" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.model_io.deserialize_from_zippy">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.model_io.</span></span><span class="sig-name descname"><span class="pre">deserialize_from_zippy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><span class="pre">bytes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_case_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/model_io.html#deserialize_from_zippy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.model_io.deserialize_from_zippy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs model serialization for Zippydb.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>is an encoded sklearn model.</strong> (<em>Input</em>) – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A compressed version of the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.model_io.serialize_for_zippy">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.model_io.</span></span><span class="sig-name descname"><span class="pre">serialize_for_zippy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><span class="pre">bytes</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/model_io.html#serialize_for_zippy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.model_io.serialize_for_zippy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs model compression.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>is an sklearn model.</strong> (<em>Input</em>) – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A compressed version of the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -239,7 +267,7 @@
 <li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.feature_extraction.html">kats.models.nowcasting.feature_extraction module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">kats.models.nowcasting.model_io module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.nowcasting.html">kats.models.nowcasting.nowcasting module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.html#kats-models-nowcasting-module">kats.models.nowcasting module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.html#module-kats.models.nowcasting">kats.models.nowcasting module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.prophet.html">kats.models.prophet module</a></li>
@@ -249,7 +277,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

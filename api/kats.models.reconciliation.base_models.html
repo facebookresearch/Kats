@@ -158,8 +158,113 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-reconciliation-base-models-module">
-<h1>kats.models.reconciliation.base_models module<a class="headerlink" href="#kats-models-reconciliation-base-models-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.reconciliation.base_models">
+<span id="kats-models-reconciliation-base-models-module"></span><h1>kats.models.reconciliation.base_models module<a class="headerlink" href="#module-kats.models.reconciliation.base_models" title="Permalink to this headline">¶</a></h1>
+<p>This module contains 1) helper functions for evaluating forecasting models (i.e., calc_mape and calc_mae); 2) the BaseTHModel class for storing information of base models;
+and 3) the GetAggregateTS class for aggregating base time series to higher levels.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.BaseTHModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.reconciliation.base_models.</span></span><span class="sig-name descname"><span class="pre">BaseTHModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><span class="pre">object</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residuals</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcsts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/reconciliation/base_models.html#BaseTHModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.base_models.BaseTHModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base class for temporal hierarhical models.</p>
+<p>The object stores the information of base model. We allow users to pass model info (i.e., model_name and model_params),
+or to pass residuals and forecasts of a trained model directly.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.BaseTHModel.level">
+<span class="sig-name descname"><span class="pre">level</span></span><a class="headerlink" href="#kats.models.reconciliation.base_models.BaseTHModel.level" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer representing the level of the base model, should be a positive integer.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.BaseTHModel.model_name">
+<span class="sig-name descname"><span class="pre">model_name</span></span><a class="headerlink" href="#kats.models.reconciliation.base_models.BaseTHModel.model_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A string representing the name of forecast model; Default is None.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.BaseTHModel.model_params">
+<span class="sig-name descname"><span class="pre">model_params</span></span><a class="headerlink" href="#kats.models.reconciliation.base_models.BaseTHModel.model_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A parameter object storing the parameters of forecasting model; Default is None.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.BaseTHModel.residuals">
+<span class="sig-name descname"><span class="pre">residuals</span></span><a class="headerlink" href="#kats.models.reconciliation.base_models.BaseTHModel.residuals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A np.array of residuals of forecasting model, which is necessary if both model_name and model_params are None. Default is None.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.BaseTHModel.fcsts">
+<span class="sig-name descname"><span class="pre">fcsts</span></span><a class="headerlink" href="#kats.models.reconciliation.base_models.BaseTHModel.fcsts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A np.array of forecasts generated by the forecasting model, which is necessary if both model_name and model_params are None. Default is None.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.GetAggregateTS">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.reconciliation.base_models.</span></span><span class="sig-name descname"><span class="pre">GetAggregateTS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/reconciliation/base_models.html#GetAggregateTS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.base_models.GetAggregateTS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class for aggregating time series to different levels.</p>
+<p>This class provides aggregate.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.GetAggregateTS.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.reconciliation.base_models.GetAggregateTS.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>A TimeSeriesData object representing the time series to be aggregated.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.GetAggregateTS.aggregate">
+<span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">levels</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/reconciliation/base_models.html#GetAggregateTS.aggregate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.base_models.GetAggregateTS.aggregate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for aggregating time series.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>levels</strong> – A list of integers representing the levels which the time series to be aggregated for.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary of aggregated time series for each level.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.calc_mae">
+<span class="sig-prename descclassname"><span class="pre">kats.models.reconciliation.base_models.</span></span><span class="sig-name descname"><span class="pre">calc_mae</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">truth</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><a class="reference internal" href="_modules/kats/models/reconciliation/base_models.html#calc_mae"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.base_models.calc_mae" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate mae.</p>
+<p>MAE = average(abs(truth-predictions))</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> – a np.array storing predictions.</p></li>
+<li><p><strong>truth</strong> – a np.array storing true values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A float representing the MAE.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.reconciliation.base_models.calc_mape">
+<span class="sig-prename descclassname"><span class="pre">kats.models.reconciliation.base_models.</span></span><span class="sig-name descname"><span class="pre">calc_mape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">truth</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><a class="reference internal" href="_modules/kats/models/reconciliation/base_models.html#calc_mape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.base_models.calc_mape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate mape.
+MAPE = average(abs((truth-predictions)/truth))</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> – a np.array storing predictions.</p></li>
+<li><p><strong>truth</strong> – a np.array storing true values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A float representing the MAPE.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -241,14 +346,14 @@
 <li class="toctree-l2 current"><a class="reference internal" href="kats.models.reconciliation.html">kats.models.reconciliation package</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">kats.models.reconciliation.base_models module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.reconciliation.thm.html">kats.models.reconciliation.thm module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kats.models.reconciliation.html#kats-models-reconciliation-module">kats.models.reconciliation module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.reconciliation.html#module-kats.models.reconciliation">kats.models.reconciliation module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.sarima.html">kats.models.sarima module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

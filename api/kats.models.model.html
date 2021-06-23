@@ -158,8 +158,66 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-model-module">
-<h1>kats.models.model module<a class="headerlink" href="#kats-models-model-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.model">
+<span id="kats-models-model-module"></span><h1>kats.models.model module<a class="headerlink" href="#module-kats.models.model" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.model.Model">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.model.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.models.model.ParamsType</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate_frequency</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate_dimension</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/model.html#Model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.model.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.model.Model.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/model.html#Model.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.model.Model.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>abstract method to fit model</p>
+<p>This is a declaration for model fitting</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.model.Model.get_parameter_search_space">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/model.html#Model.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.model.Model.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>method to query default parameter search space</p>
+<p>abstract method to be implemented by downstream forecasting models</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.model.Model.plot">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcst</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/model.html#Model.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.model.Model.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot method for forecasting models</p>
+<p>This method provides the plotting functionality for all forecasting
+models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – <cite>TimeSeriesData</cite>, the historical time series data set</p></li>
+<li><p><strong>fcst</strong> – forecasted results from forecasting models</p></li>
+<li><p><strong>include_history</strong> – if True, include the historical data when plotting.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.model.Model.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/model.html#Model.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.model.Model.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>abstract method to predict</p>
+<p>This is a declaration for predict method</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.model.Model.setup_data">
+<span class="sig-name descname"><span class="pre">setup_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/model.html#Model.setup_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.model.Model.setup_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>abstract method to set up dataset</p>
+<p>This is a declaration for setup data method</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.model.Model.validate_inputs">
+<span class="sig-name descname"><span class="pre">validate_inputs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/model.html#Model.validate_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.model.Model.validate_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>abstract method to validate the inputs</p>
+<p>This is a declaration for validate_inputs method</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -243,7 +301,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

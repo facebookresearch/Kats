@@ -158,8 +158,141 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-bayesian-var-module">
-<h1>kats.models.bayesian_var module<a class="headerlink" href="#kats-models-bayesian-var-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.bayesian_var">
+<span id="kats-models-bayesian-var-module"></span><h1>kats.models.bayesian_var module<a class="headerlink" href="#module-kats.models.bayesian_var" title="Permalink to this headline">¶</a></h1>
+<p>Bayesian estimation of Vector Autoregressive Model using
+Minnesota prior on the coefficient matrix. This version is
+useful for regularization when they are too many coefficients
+to be estimated.</p>
+<dl class="simple">
+<dt>Implementation inspired by the following two articles/papers:</dt><dd><p><a class="reference external" href="https://www.mathworks.com/help/econ/normalbvarm.html#mw_4a1ab118-9ef3-4380-8c5a-12b848254117">https://www.mathworks.com/help/econ/normalbvarm.html#mw_4a1ab118-9ef3-4380-8c5a-12b848254117</a>
+<a class="reference external" href="http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf">http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf</a> (page 5)</p>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVAR">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.bayesian_var.</span></span><span class="sig-name descname"><span class="pre">BayesianVAR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.bayesian_var.BayesianVARParams" title="kats.models.bayesian_var.BayesianVARParams"><span class="pre">kats.models.bayesian_var.BayesianVARParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/bayesian_var.html#BayesianVAR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.bayesian_var.BayesianVAR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>Model class for bayesian VAR</p>
+<p>This class provides fit, predict, and plot methods for bayesian VAR model</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVAR.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.bayesian_var.BayesianVAR.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>the input time series data as <cite>TimeSeriesData</cite></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVAR.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.bayesian_var.BayesianVAR.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>the parameter class defined with <cite>BayesianVARParams</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVAR.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/bayesian_var.html#BayesianVAR.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.bayesian_var.BayesianVAR.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit Bayesian VAR model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVAR.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/bayesian_var.html#BayesianVAR.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.bayesian_var.BayesianVAR.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot forecasted results from Bayesian VAR model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVAR.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/bayesian_var.html#BayesianVAR.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.bayesian_var.BayesianVAR.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict with the fitted VAR model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – Number of time steps to forecast</p></li>
+<li><p><strong>include_history</strong> – return fitted values also</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Disctionary of predicted results for each metric. Each metric result
+has following columns: <cite>time</cite>, <cite>fcst</cite>, <cite>fcst_lower</cite>, and <cite>fcst_upper</cite>
+Note confidence intervals of forecast are not yet implemented.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVARParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.bayesian_var.</span></span><span class="sig-name descname"><span class="pre">BayesianVARParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi_0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.02</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi_1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi_2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi_3</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/bayesian_var.html#BayesianVARParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.bayesian_var.BayesianVARParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>Parameter class for Bayesian VAR model</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVARParams.p">
+<span class="sig-name descname"><span class="pre">p</span></span><a class="headerlink" href="#kats.models.bayesian_var.BayesianVARParams.p" title="Permalink to this definition">¶</a></dt>
+<dd><p>Historical lag to use</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Below</span> <span class="pre">parameters</span> <span class="pre">are</span> <span class="pre">hyperparameters</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">covariance</span> <span class="pre">matrix</span> <span class="pre">for</span> <span class="pre">coefficient</span> <span class="pre">prior.</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">See</span> <span class="pre">page</span> <span class="pre">5</span> <span class="pre">in</span> <span class="pre">http</span></span></dt>
+<dd><p>//apps.eui.eu/Personal/Canova/Articles/ch10.pdf for more details.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVARParams.phi_0">
+<span class="sig-name descname"><span class="pre">phi_0</span></span><a class="headerlink" href="#kats.models.bayesian_var.BayesianVARParams.phi_0" title="Permalink to this definition">¶</a></dt>
+<dd><p>tightness on the variance of the first lag</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVARParams.phi_1">
+<span class="sig-name descname"><span class="pre">phi_1</span></span><a class="headerlink" href="#kats.models.bayesian_var.BayesianVARParams.phi_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>relative tightness of other variables</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVARParams.phi_2">
+<span class="sig-name descname"><span class="pre">phi_2</span></span><a class="headerlink" href="#kats.models.bayesian_var.BayesianVARParams.phi_2" title="Permalink to this definition">¶</a></dt>
+<dd><p>relative tightness of the exogenous variables</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.bayesian_var.BayesianVARParams.phi_3">
+<span class="sig-name descname"><span class="pre">phi_3</span></span><a class="headerlink" href="#kats.models.bayesian_var.BayesianVARParams.phi_3" title="Permalink to this definition">¶</a></dt>
+<dd><p>decay with lag is parameterized as lag^phi_3</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -243,7 +376,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

@@ -158,8 +158,118 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-reconciliation-thm-module">
-<h1>kats.models.reconciliation.thm module<a class="headerlink" href="#kats-models-reconciliation-thm-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.reconciliation.thm">
+<span id="kats-models-reconciliation-thm-module"></span><h1>kats.models.reconciliation.thm module<a class="headerlink" href="#module-kats.models.reconciliation.thm" title="Permalink to this headline">¶</a></h1>
+<p>This module contains the class TemporalHierarchicalModel class.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.reconciliation.thm.TemporalHierarchicalModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.reconciliation.thm.</span></span><span class="sig-name descname"><span class="pre">TemporalHierarchicalModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">baseModels</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.models.reconciliation.base_models.html#kats.models.reconciliation.base_models.BaseTHModel" title="kats.models.reconciliation.base_models.BaseTHModel"><span class="pre">kats.models.reconciliation.base_models.BaseTHModel</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/reconciliation/thm.html#TemporalHierarchicalModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.thm.TemporalHierarchicalModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Temporal hierarchical model class.</p>
+<p>This framework combines the base models of different temporal aggregation
+levels to generate reconciled forecasts.
+This class provides fit, get_S, get_W, predict and median_validation.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.reconciliation.thm.TemporalHierarchicalModel.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.reconciliation.thm.TemporalHierarchicalModel.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>A TimeSeriesData object storing the time series data for level 1
+(i.e., the most disaggregate level).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.reconciliation.thm.TemporalHierarchicalModel.baseModels">
+<span class="sig-name descname"><span class="pre">baseModels</span></span><a class="headerlink" href="#kats.models.reconciliation.thm.TemporalHierarchicalModel.baseModels" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list BaseTHModel objects representing the base models for
+different levels.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.reconciliation.thm.TemporalHierarchicalModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/reconciliation/thm.html#TemporalHierarchicalModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.thm.TemporalHierarchicalModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit all base models.</p>
+<p>If base model only has residuals and forecasts, store the information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.reconciliation.thm.TemporalHierarchicalModel.get_S">
+<span class="sig-name descname"><span class="pre">get_S</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><a class="reference internal" href="_modules/kats/models/reconciliation/thm.html#TemporalHierarchicalModel.get_S"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.thm.TemporalHierarchicalModel.get_S" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate S matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A np.array representing the S matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.reconciliation.thm.TemporalHierarchicalModel.get_W">
+<span class="sig-name descname"><span class="pre">get_W</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'struc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1e-05</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><a class="reference internal" href="_modules/kats/models/reconciliation/thm.html#TemporalHierarchicalModel.get_W"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.thm.TemporalHierarchicalModel.get_W" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate W matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> – Reconciliation method for temporal hierarchical model. Valid
+methods include ‘struc’, ‘svar’, ‘hvar’, ‘mint_sample’, and
+‘mint_shrink’.</p></li>
+<li><p><strong>eps</strong> – Epsilons added to W for numerical stability.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>W matrix. (If W is a diagnoal matrix, only returns its diagnoal elements).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.reconciliation.thm.TemporalHierarchicalModel.median_validation">
+<span class="sig-name descname"><span class="pre">median_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dist_metric</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'mae'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/reconciliation/thm.html#TemporalHierarchicalModel.median_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.thm.TemporalHierarchicalModel.median_validation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filtering out bad fcsts based on median forecasts.</p>
+<p>This function detects the levels whose forecasts are greatly deviate
+from median forecasts, which is a strong indication of bad forecasts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – The number of forecasts needed for level 1 for validation.</p></li>
+<li><p><strong>dist_metric</strong> – The distance metric used to measure the distance between
+the base forecasts and the median forecasts.</p></li>
+<li><p><strong>threshold</strong> – The threshold for deviance. The forecast whose distance
+from the median forecast is greater than threshold*std is taken
+as bad forecasts. Default is 3.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of integers representing the levels whose forecasts are bad.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.reconciliation.thm.TemporalHierarchicalModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'struc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin_fcst</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcst_levels</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_timestamp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v1.2.5)"><span class="pre">pandas._libs.tslibs.timestamps.Timestamp</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/reconciliation/thm.html#TemporalHierarchicalModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.reconciliation.thm.TemporalHierarchicalModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate reconciled forecasts (with time index).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – The number of forecasts needed for level 1.</p></li>
+<li><p><strong>methd</strong> – The name of the reconciliation method. Can be ‘bu’
+(bottom-up), ‘median’, ‘struc’ (structure-variance), ‘svar’,
+‘hvar’, ‘mint_shrink’ or ‘mint_sample’.</p></li>
+<li><p><strong>freq</strong> – The frequency of the time series at level 1. If None, then we
+infer the frequency via ts.infer_freq_robust().</p></li>
+<li><p><strong>origin_fcst</strong> – Whether or not to return the forecasts of base models.</p></li>
+<li><p><strong>fcst_levels</strong> – The levels to generate forecasts for. Default is None,
+which generates forecasts for all the levels of the base models.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary of forecasts, whose key is the level and the
+corresponding value is a np.array storing the forecasts.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -241,14 +351,14 @@
 <li class="toctree-l2 current"><a class="reference internal" href="kats.models.reconciliation.html">kats.models.reconciliation package</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="kats.models.reconciliation.base_models.html">kats.models.reconciliation.base_models module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">kats.models.reconciliation.thm module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kats.models.reconciliation.html#kats-models-reconciliation-module">kats.models.reconciliation module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.reconciliation.html#module-kats.models.reconciliation">kats.models.reconciliation module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.sarima.html">kats.models.sarima module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

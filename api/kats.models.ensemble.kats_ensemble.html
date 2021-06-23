@@ -158,8 +158,223 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-ensemble-kats-ensemble-module">
-<h1>kats.models.ensemble.kats_ensemble module<a class="headerlink" href="#kats-models-ensemble-kats-ensemble-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.ensemble.kats_ensemble">
+<span id="kats-models-ensemble-kats-ensemble-module"></span><h1>kats.models.ensemble.kats_ensemble module<a class="headerlink" href="#module-kats.models.ensemble.kats_ensemble" title="Permalink to this headline">¶</a></h1>
+<p>Kats ensemble model</p>
+<p>Implementation of the Kats ensemble model. It starts from seasonality detection, if seasonality detected, it
+continues to perform STL decomposition, then fit forecasting models on de-seasonalized components and aggregate;
+otherwise it simiply leverage individual forecasting models and ensembling. We provided two ensembling methods,
+weighted average and median ensembling.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.ensemble.kats_ensemble.</span></span><span class="sig-name descname"><span class="pre">KatsEnsemble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Decomposition based ensemble model in Kats
+This is the holistic ensembling class based on decomposition when seasonality presents</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.aggregate">
+<span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.aggregate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.aggregate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Aggregate the results from predict method</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>final results in pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.backTestExecutor">
+<span class="sig-name descname"><span class="pre">backTestExecutor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.backTestExecutor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.backTestExecutor" title="Permalink to this definition">¶</a></dt>
+<dd><p>wrapper for back test executor</p>
+<p>services which use KatsEnsemble need to write their own backtest wrapper</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The dict of backtesting results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.clean_dummy_CI">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">clean_dummy_CI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fcsts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_zero</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.clean_dummy_CI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.clean_dummy_CI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper method to clean dummy prediction interval</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fcsts</strong> – the dict of forecasting results from individual models</p></li>
+<li><p><strong>use_zero</strong> – flag to use zero to fill nan, default as True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the cleaned results in a dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.deseasonalize">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">deseasonalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">decomposition_method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.deseasonalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.deseasonalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>STL decomposition to given TimeSeriesData</p>
+<p>Static method to perform decomposition on the input data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, input time series data</p></li>
+<li><p><strong>decomposition_method</strong> – the specific method for decomposition</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Tuple of seasonal data and de-seasonalized data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble" title="kats.models.ensemble.kats_ensemble.KatsEnsemble"><span class="pre">kats.models.ensemble.kats_ensemble.KatsEnsemble</span></a><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit individual forecasting models via calling fitExecutor</p>
+<p>This is the fit methdo to fit individual forecasting model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.fitExecutor">
+<span class="sig-name descname"><span class="pre">fitExecutor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">models</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.models.ensemble.ensemble.EnsembleParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">should_auto_backtest</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.fitExecutor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.fitExecutor" title="Permalink to this definition">¶</a></dt>
+<dd><p>callable forecast executor</p>
+<p>This is native implementation with Python’s multiprocessing
+fit individual model in <cite>models</cite> with given <cite>data</cite>. Services
+who use KatsEnsemble need to implement their own executor for better
+performance, if no executor function is given, the native version will be
+used.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, given TimeSeriesData, could be original or de-seasonalized</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.models">
+<span class="sig-name descname"><span class="pre">models</span></span><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.models" title="Permalink to this definition">¶</a></dt>
+<dd><p>EnsembleParams object containing model params
+in BaseModelParams</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.should_auto_backtest">
+<span class="sig-name descname"><span class="pre">should_auto_backtest</span></span><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.should_auto_backtest" title="Permalink to this definition">¶</a></dt>
+<dd><p>boolean flag for additional back testing runs</p>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Tuple of fitted individual model and weights</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.forecast">
+<span class="sig-name descname"><span class="pre">forecast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.forecast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.forecast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Holistic forecast method in Kats ensemble</p>
+<p>combine fit and predict methods to produce forecasted results
+this is especially useful for services which prefer to produce
+final forecasts without saving the fitted model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>steps</strong> – the length of forecasting horizon</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Tuple of predicted values and weights</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.forecastExecutor">
+<span class="sig-name descname"><span class="pre">forecastExecutor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">models</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.models.ensemble.ensemble.EnsembleParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">should_auto_backtest</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.forecastExecutor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.forecastExecutor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forecast Executor</p>
+<p>This is a callable execution function to
+(1). fit model
+(2). predict with a given steps
+(3). back testing (optional)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, the input time series data as in <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a></p></li>
+<li><p><strong>models</strong> – the ensemble parameters as in <cite>EnsembleParams</cite></p></li>
+<li><p><strong>steps</strong> – the length of forecasting horizon</p></li>
+<li><p><strong>should_auto_backtest</strong> – flag to automatically perform back test, default as False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The predicted values from each individual model and weights</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot forecast results</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble" title="kats.models.ensemble.kats_ensemble.KatsEnsemble"><span class="pre">kats.models.ensemble.kats_ensemble.KatsEnsemble</span></a><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predit future for each individual model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>steps</strong> – number of steps ahead to forecast</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.reseasonalize">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">reseasonalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sea_data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">desea_predict</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decomposition_method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonality_length</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.reseasonalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.reseasonalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Re-seasonalize the time series data</p>
+<p>Static method to re-seasonalize the input data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sea_data</strong> – <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, the seasonal data from deseasonalize method</p></li>
+<li><p><strong>desea_predict</strong> – dict of forecasted results for the deseasonalized
+data for each individual forecasting method</p></li>
+<li><p><strong>decomposition_method</strong> – the specific method for decomposition</p></li>
+<li><p><strong>seasonality_lenth</strong> – the length of seasonality</p></li>
+<li><p><strong>steps</strong> – the length of forecasting horizon</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dict of re-seasonalized data for each individual forecasting model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.kats_ensemble.KatsEnsemble.seasonality_detector">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">seasonality_detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a><a class="reference internal" href="_modules/kats/models/ensemble/kats_ensemble.html#KatsEnsemble.seasonality_detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.kats_ensemble.KatsEnsemble.seasonality_detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detect seasonalities from given TimeSeriesData</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> – <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, the input <cite>TimeSeriesData</cite></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Flag for the presence of seasonality</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -233,7 +448,7 @@
 <li class="toctree-l3 current"><a class="current reference internal" href="#">kats.models.ensemble.kats_ensemble module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.ensemble.median_ensemble.html">kats.models.ensemble.median_ensemble module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.ensemble.weighted_avg_ensemble.html">kats.models.ensemble.weighted_avg_ensemble module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kats.models.ensemble.html#kats-models-ensemble-module">kats.models.ensemble module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.ensemble.html#module-kats.models.ensemble">kats.models.ensemble module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.harmonic_regression.html">kats.models.harmonic_regression module</a></li>
@@ -250,7 +465,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

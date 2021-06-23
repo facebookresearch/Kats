@@ -158,8 +158,108 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-theta-module">
-<h1>kats.models.theta module<a class="headerlink" href="#kats-models-theta-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.theta">
+<span id="kats-models-theta-module"></span><h1>kats.models.theta module<a class="headerlink" href="#module-kats.models.theta" title="Permalink to this headline">¶</a></h1>
+<p>Implementation of theta model which is basically a simple
+exponential smoothing model with drift.</p>
+<p>For more details refer to: <a class="reference external" href="https://robjhyndman.com/papers/Theta.pdf">https://robjhyndman.com/papers/Theta.pdf</a></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.theta.</span></span><span class="sig-name descname"><span class="pre">ThetaModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#kats.models.theta.ThetaParams" title="kats.models.theta.ThetaParams"><span class="pre">kats.models.theta.ThetaParams</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/theta.html#ThetaModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.theta.ThetaModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>Model class for Theta</p>
+<p>This class provides fit, predict, and plot methods for STLF model</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaModel.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.theta.ThetaModel.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>the input time series data as <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaModel.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.theta.ThetaModel.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>the parameter class defined with <cite>ThetaParams</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaModel.check_seasonality">
+<span class="sig-name descname"><span class="pre">check_seasonality</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/theta.html#ThetaModel.check_seasonality"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.theta.ThetaModel.check_seasonality" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if the metirc to be forecasted is seasonal or not</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaModel.deseasonalize">
+<span class="sig-name descname"><span class="pre">deseasonalize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a><a class="reference internal" href="_modules/kats/models/theta.html#ThetaModel.deseasonalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.theta.ThetaModel.deseasonalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the deseasonalized input time series</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/theta.html#ThetaModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.theta.ThetaModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit Theta model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaModel.get_parameter_search_space">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/theta.html#ThetaModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.theta.ThetaModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide a parameter space for Theta model</p>
+<p>Move the implementation of get_parameter_search_space() out of arima
+to avoid the massive dependencies of arima and huge build size.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/theta.html#ThetaModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.theta.ThetaModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot forecasted results from Theta model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/theta.html#ThetaModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.theta.ThetaModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict with the fitted Theta model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – Number of time steps to forecast</p></li>
+<li><p><strong>include_history</strong> – If True, fitted values for training data are also returned</p></li>
+<li><p><strong>freq</strong> – optional, frequency of timeseries data.
+Defaults to automatically inferring from time index.</p></li>
+<li><p><strong>alpha</strong> – optional, significance level of confidence interval.
+Defaults to 0.05</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><cite>time</cite>, <cite>fcst</cite>, <cite>fcst_lower</cite>, and <cite>fcst_upper</cite></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>DataFrame of predicted results with following columns</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.theta.</span></span><span class="sig-name descname"><span class="pre">ThetaParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/theta.html#ThetaParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.theta.ThetaParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>Parameter class for Theta model</p>
+<p>This is the parameter class for Theta forecasting model.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaParams.m">
+<span class="sig-name descname"><span class="pre">m</span></span><a class="headerlink" href="#kats.models.theta.ThetaParams.m" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of observations before the seasonal pattern repeats
+For ex, m=12 for montly data with yearly seasonality</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.theta.ThetaParams.validate_params">
+<span class="sig-name descname"><span class="pre">validate_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/theta.html#ThetaParams.validate_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.theta.ThetaParams.validate_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate the parameters for theta model</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -243,7 +343,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

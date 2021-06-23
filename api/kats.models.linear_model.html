@@ -158,8 +158,87 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-linear-model-module">
-<h1>kats.models.linear_model module<a class="headerlink" href="#kats-models-linear-model-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.linear_model">
+<span id="kats-models-linear-model-module"></span><h1>kats.models.linear_model module<a class="headerlink" href="#module-kats.models.linear_model" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.linear_model.</span></span><span class="sig-name descname"><span class="pre">LinearModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.linear_model.LinearModelParams" title="kats.models.linear_model.LinearModelParams"><span class="pre">kats.models.linear_model.LinearModelParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/linear_model.html#LinearModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.linear_model.LinearModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>Model class for Linear Model.</p>
+<p>This class provides the fit, predict and plot methods for the Linear Model</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModel.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.linear_model.LinearModel.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, the input time series data as <cite>TimeSeriesData</cite></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModel.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.linear_model.LinearModel.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>the parameter class defined with <cite>LinearModelParams</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/linear_model.html#LinearModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.linear_model.LinearModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>fit Linear Model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModel.get_parameter_search_space">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><span class="pre">object</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/linear_model.html#LinearModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.linear_model.LinearModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>get default parameter search space for Linear model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/linear_model.html#LinearModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.linear_model.LinearModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot Forecasted results from the Linar Model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/linear_model.html#LinearModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.linear_model.LinearModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>predict with fitted linear model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – the steps or length of the prediction horizon</p></li>
+<li><p><strong>include_history</strong> – whether to include the historical data in the prediction</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><cite>time</cite>, <cite>fcst</cite>, <cite>fcst_lower</cite>, and <cite>fcst_upper</cite></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>The predicted dataframe with the following columns</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModelParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.linear_model.</span></span><span class="sig-name descname"><span class="pre">LinearModelParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/linear_model.html#LinearModelParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.linear_model.LinearModelParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>Parameter class for Linear model.</p>
+<p>This is the parameter class for the linear model.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModelParams.alpha">
+<span class="sig-name descname"><span class="pre">alpha</span></span><a class="headerlink" href="#kats.models.linear_model.LinearModelParams.alpha" title="Permalink to this definition">¶</a></dt>
+<dd><p>The alpha level for the confidence interval. The default alpha = 0.05 returns a 95% confidence interval</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.linear_model.LinearModelParams.validate_params">
+<span class="sig-name descname"><span class="pre">validate_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/linear_model.html#LinearModelParams.validate_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.linear_model.LinearModelParams.validate_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate Linear Model Parameters</p>
+<p>Since the linear model does not require key parameters to be defined this is not required for this class</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -243,7 +322,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

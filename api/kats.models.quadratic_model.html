@@ -158,8 +158,85 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-quadratic-model-module">
-<h1>kats.models.quadratic_model module<a class="headerlink" href="#kats-models-quadratic-model-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.quadratic_model">
+<span id="kats-models-quadratic-model-module"></span><h1>kats.models.quadratic_model module<a class="headerlink" href="#module-kats.models.quadratic_model" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.quadratic_model.QuadraticModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.quadratic_model.</span></span><span class="sig-name descname"><span class="pre">QuadraticModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.quadratic_model.QuadraticModelParams" title="kats.models.quadratic_model.QuadraticModelParams"><span class="pre">kats.models.quadratic_model.QuadraticModelParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/quadratic_model.html#QuadraticModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.quadratic_model.QuadraticModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>Model class for Quadratic Model.</p>
+<p>This class provides the fit, predict and plot methods for the Quadratic Model</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.quadratic_model.QuadraticModel.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.quadratic_model.QuadraticModel.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>the input time series data as <a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.quadratic_model.QuadraticModel.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.quadratic_model.QuadraticModel.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>the parameter class defined with <cite>QuadraticModelParams</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.quadratic_model.QuadraticModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/quadratic_model.html#QuadraticModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.quadratic_model.QuadraticModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>fit Quadratic Model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.quadratic_model.QuadraticModel.get_parameter_search_space">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><span class="pre">object</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/quadratic_model.html#QuadraticModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.quadratic_model.QuadraticModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>get default parameter search space for Quadratic model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.quadratic_model.QuadraticModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/quadratic_model.html#QuadraticModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.quadratic_model.QuadraticModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot Forecasted results from the Quadratic Model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.quadratic_model.QuadraticModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/quadratic_model.html#QuadraticModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.quadratic_model.QuadraticModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>predict with fitted quadratic model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – the steps or length of the prediction horizon</p></li>
+<li><p><strong>include_history</strong> – whether to include the historical data in the prediction</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><cite>time</cite>, <cite>fcst</cite>, <cite>fcst_lower</cite>, and <cite>fcst_upper</cite></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>The predicted dataframe with the following columns</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.quadratic_model.QuadraticModelParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.quadratic_model.</span></span><span class="sig-name descname"><span class="pre">QuadraticModelParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/quadratic_model.html#QuadraticModelParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.quadratic_model.QuadraticModelParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>Parameter class for Quadratic model.</p>
+<p>This is the parameter class for the quadratic model.
+.. attribute:: alpha</p>
+<blockquote>
+<div><p>The alpha level for the confidence interval. The default alpha = 0.05 returns a 95% confidence interval</p>
+</div></blockquote>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.quadratic_model.QuadraticModelParams.validate_params">
+<span class="sig-name descname"><span class="pre">validate_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/quadratic_model.html#QuadraticModelParams.validate_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.quadratic_model.QuadraticModelParams.validate_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate Quadratic Model Parameters</p>
+<p>Since the quadratic model does not require key parameters to be defined this is not required for this class</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -243,7 +320,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

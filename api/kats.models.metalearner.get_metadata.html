@@ -158,8 +158,120 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-metalearner-get-metadata-module">
-<h1>kats.models.metalearner.get_metadata module<a class="headerlink" href="#kats-models-metalearner-get-metadata-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.metalearner.get_metadata">
+<span id="kats-models-metalearner-get-metadata-module"></span><h1>kats.models.metalearner.get_metadata module<a class="headerlink" href="#module-kats.models.metalearner.get_metadata" title="Permalink to this headline">¶</a></h1>
+<p>A module for computing the meta-data of time series.</p>
+<p>This module contains the class for computing the meta-data of time series. The meta-data of a time series is consists of three parts: 1) time series features;
+2) the best hyper-parameters of each candidate models and their corresponding errors; and 3) the best model.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.metalearner.get_metadata.</span></span><span class="sig-name descname"><span class="pre">GetMetaData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">data:</span> <span class="pre">kats.consts.TimeSeriesData</span></em>, <em class="sig-param"><span class="pre">all_models:</span> <span class="pre">Dict[str</span></em>, <em class="sig-param"><span class="pre">Any]</span> <span class="pre">=</span> <span class="pre">{'arima':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.arima.ARIMAModel'&gt;</span></em>, <em class="sig-param"><span class="pre">'holtwinters':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.holtwinters.HoltWintersModel'&gt;</span></em>, <em class="sig-param"><span class="pre">'prophet':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.prophet.ProphetModel'&gt;</span></em>, <em class="sig-param"><span class="pre">'sarima':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.sarima.SARIMAModel'&gt;</span></em>, <em class="sig-param"><span class="pre">'stlf':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.stlf.STLFModel'&gt;</span></em>, <em class="sig-param"><span class="pre">'theta':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.theta.ThetaModel'&gt;}</span></em>, <em class="sig-param"><span class="pre">all_params:</span> <span class="pre">Dict[str</span></em>, <em class="sig-param"><span class="pre">Any]</span> <span class="pre">=</span> <span class="pre">{'arima':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.arima.ARIMAParams'&gt;</span></em>, <em class="sig-param"><span class="pre">'holtwinters':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.holtwinters.HoltWintersParams'&gt;</span></em>, <em class="sig-param"><span class="pre">'prophet':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.prophet.ProphetParams'&gt;</span></em>, <em class="sig-param"><span class="pre">'sarima':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.sarima.SARIMAParams'&gt;</span></em>, <em class="sig-param"><span class="pre">'stlf':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.stlf.STLFParams'&gt;</span></em>, <em class="sig-param"><span class="pre">'theta':</span> <span class="pre">&lt;class</span> <span class="pre">'kats.models.theta.ThetaParams'&gt;}</span></em>, <em class="sig-param"><span class="pre">min_length:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">30</span></em>, <em class="sig-param"><span class="pre">scale:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em>, <em class="sig-param"><span class="pre">method:</span> <span class="pre">kats.consts.SearchMethodEnum</span> <span class="pre">=</span> <span class="pre">&lt;SearchMethodEnum.RANDOM_SEARCH_UNIFORM:</span> <span class="pre">2&gt;</span></em>, <em class="sig-param"><span class="pre">executor:</span> <span class="pre">Optional[Any]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">error_method:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'mae'</span></em>, <em class="sig-param"><span class="pre">num_trials:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">5</span></em>, <em class="sig-param"><span class="pre">num_arms:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">4</span></em>, <em class="sig-param"><span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/metalearner/get_metadata.html#GetMetaData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A class for generate meta-data of time series.</p>
+<dl class="simple">
+<dt>The meta-data of time series contains three components:</dt><dd><ol class="arabic simple">
+<li><p>Time series feature vector, such as entropy, seasonal features, ACF/PACF based features.</p></li>
+<li><p>Best hyper-parameters for each candidate models and their corresponding errors for a time series data.</p></li>
+<li><p>Best model for a time series data.</p></li>
+</ol>
+</dd>
+</dl>
+<p>This class provides tune_executor and get_meta_dat.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a> object representing the input time series data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.all_models">
+<span class="sig-name descname"><span class="pre">all_models</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.all_models" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A dictionary of candidate model classes. Default dictionary includes models of ARIMA, SARIMA, HoltWinters, Prophet, Theta, and STLF.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.all_params">
+<span class="sig-name descname"><span class="pre">all_params</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.all_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A dictionary of the corresponding candidate model parameter classes. Default includes model parameter classes of ARIMA, SARIMA, HoltWinters, Prophet, Theta, and STLF.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.min_length">
+<span class="sig-name descname"><span class="pre">min_length</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.min_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; An integer for the minimal length of a time series. Time series data whose length is shorter than min_length will be excluded. Default is 30.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.scale">
+<span class="sig-name descname"><span class="pre">scale</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean to specify whether or not to rescale the time series data by its maximum values. Default is True. Default is True.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.method">
+<span class="sig-name descname"><span class="pre">method</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.method" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A SearchMethodEnum object defining the search method for hyper-parameters tuning. Default is random search in the default parameter space.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.executor">
+<span class="sig-name descname"><span class="pre">executor</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.executor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A callable parallel executor for tuning individual candidate models in parallel. Default is the native implementation with Python’s multiprocessing.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.error_method">
+<span class="sig-name descname"><span class="pre">error_method</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.error_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A string for error metric used for model evaluation. Can be ‘mape’, ‘smape’, ‘mae’, ‘mase’, ‘mse’, or ‘rmse’. Default is ‘mae’.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.num_trials">
+<span class="sig-name descname"><span class="pre">num_trials</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.num_trials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; An integer for the number of trials in hyper-parameter search. Default is 5.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.num_arms">
+<span class="sig-name descname"><span class="pre">num_arms</span></span><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.num_arms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; An integer for the number of arms in hyper-parameter search. Default is 4.</p>
+</dd></dl>
+
+<dl>
+<dt>Sample Usage:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">TSdata</span> <span class="o">=</span> <span class="n">TimeSeriesData</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">MD</span> <span class="o">=</span> <span class="n">GetMetaData</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">TSdata</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hpt_res</span> <span class="o">=</span> <span class="n">MD</span><span class="o">.</span><span class="n">tune_executor</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_meta_data</span> <span class="o">=</span> <span class="n">MD</span><span class="o">.</span><span class="n">get_meta_data</span><span class="p">()</span> <span class="c1"># Get meta-data, hyper-parameter searching method and error metric.</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.get_meta_data">
+<span class="sig-name descname"><span class="pre">get_meta_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/metalearner/get_metadata.html#GetMetaData.get_meta_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.get_meta_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get meta data, as well as search method and type of error metric</p>
+<p>Meta data includes time series features, best hyper-params for each candidate models, and best model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dictionary storing the best hyper-parameters and the errors for each candidate model, the features of the time series data, the hyper-parameter searching method,
+the error metric used for model evaluation and the corresponding best model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.metalearner.get_metadata.GetMetaData.tune_executor">
+<span class="sig-name descname"><span class="pre">tune_executor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/metalearner/get_metadata.html#GetMetaData.tune_executor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.metalearner.get_metadata.GetMetaData.tune_executor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the best hyper parameters for each candidate model and their corresponding errors for the time series data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dictionary storing the best hyper-parameters and the errors for each candidate model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -238,7 +350,7 @@
 <li class="toctree-l3"><a class="reference internal" href="kats.models.metalearner.metalearner_hpt.html">kats.models.metalearner.metalearner_hpt module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.metalearner.metalearner_modelselect.html">kats.models.metalearner.metalearner_modelselect module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.metalearner.metalearner_predictability.html">kats.models.metalearner.metalearner_predictability module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kats.models.metalearner.html#kats-models-metalearner-module">kats.models.metalearner module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.metalearner.html#module-kats.models.metalearner">kats.models.metalearner module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.model.html">kats.models.model module</a></li>
@@ -250,7 +362,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

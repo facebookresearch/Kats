@@ -158,8 +158,146 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-harmonic-regression-module">
-<h1>kats.models.harmonic_regression module<a class="headerlink" href="#kats-models-harmonic-regression-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.harmonic_regression">
+<span id="kats-models-harmonic-regression-module"></span><h1>kats.models.harmonic_regression module<a class="headerlink" href="#module-kats.models.harmonic_regression" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.harmonic_regression.</span></span><span class="sig-name descname"><span class="pre">HarmonicRegressionModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.harmonic_regression.HarmonicRegressionParams" title="kats.models.harmonic_regression.HarmonicRegressionParams"><span class="pre">kats.models.harmonic_regression.HarmonicRegressionParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits harmonic regression to the time series.
+See fit_harmonics for details.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionModel.fit_harmonics">
+<span class="sig-name descname"><span class="pre">fit_harmonics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fourier_order</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionModel.fit_harmonics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionModel.fit_harmonics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs harmonic regression.
+Harmonic regression fits cosines
+amplitude*cos(freq*t + phase). Using double angle identity formulas,
+we have:
+beta1*cos(freq*t) + beta2*sin(freq*t). Thus, we can fit two coefficients,
+which will take care of the amplitude and the phase. If we generate the
+raw cos(freq*t) and sin(freq*t) for each freq we want to have,
+it becomes a linear regression. Since we ignore
+intercept, we demean the time series before fitting.</p>
+<p>Since the regression takes care of the phase, we can pick time 0 wherever
+we want, we just have to use the same for training, test, validation,
+and prediction. We pick that as the epoch; so when we generate
+the raw cos and sin values for the test set,
+and apply the parameters from the training, it will have the right phase.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>period</strong> (<em>float; seasonality in hours; e.g. 24 for daily</em>) – </p></li>
+<li><p><strong>fourier_order</strong> (<em>int; number of harmonics for the given frequency</em>) – </p></li>
+<li><p><strong>harms</strong> (<em>externally computed harmonics</em>) – </p></li>
+<li><p><strong>Returns</strong> – params: coefficients
+harms: feature matrix the generated raw cos and sin;
+for each fourier_order, there is one cos-sin pair.
+Number of colums: fourier_order*2</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionModel.fourier_series">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">fourier_series</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dates</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v1.2.5)"><span class="pre">pandas.core.series.Series</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">series_order</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionModel.fourier_series"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionModel.fourier_series" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides Fourier series components with the specified frequency
+and order. The starting time is always the epoch.
+:param dates:
+:type dates: pd.Series containing timestamps.
+:param period:
+:type period: Number of hours of the period.
+:param series_order:
+:type series_order: Number of components.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Matrix with seasonality features.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionModel.make_harm_eval">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">make_harm_eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">harmonics</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Callable</span><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionModel.make_harm_eval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionModel.make_harm_eval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines evaluation function for the optimizer
+:param harmonics:
+:type harmonics: the harmonics to fit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>The evaluation function for the optimizer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">plotly.graph_objs._figure.Figure</span><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Demeans the time series, fits the harmonics,</dt><dd><p>returns the plot and error metrics.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>Returns</strong> – Plot of the original time series and the fitted harmonics
+Dataframe with mean square error and absolute error</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dates</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v1.2.5)"><span class="pre">pandas.core.series.Series</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Predicts with harmonic regression values.</dt><dd><p>Call fit before calling this function.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dates</strong> (<em>dates to compute the predictions for</em>) – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>Pandas DataFrame with the dates (time) and the</em></p></li>
+<li><p><em>forecast values (fcst)</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionModel.setup_data">
+<span class="sig-name descname"><span class="pre">setup_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionModel.setup_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionModel.setup_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>abstract method to set up dataset</p>
+<p>This is a declaration for setup data method</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionModel.validate_inputs">
+<span class="sig-name descname"><span class="pre">validate_inputs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionModel.validate_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionModel.validate_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>abstract method to validate the inputs</p>
+<p>This is a declaration for validate_inputs method</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.harmonic_regression.HarmonicRegressionParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.harmonic_regression.</span></span><span class="sig-name descname"><span class="pre">HarmonicRegressionParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fourier_order</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/harmonic_regression.html#HarmonicRegressionParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.harmonic_regression.HarmonicRegressionParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+</dd></dl>
+
 </section>
 
 
@@ -243,7 +381,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

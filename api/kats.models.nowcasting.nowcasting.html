@@ -158,8 +158,151 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-nowcasting-nowcasting-module">
-<h1>kats.models.nowcasting.nowcasting module<a class="headerlink" href="#kats-models-nowcasting-nowcasting-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.nowcasting.nowcasting">
+<span id="kats-models-nowcasting-nowcasting-module"></span><h1>kats.models.nowcasting.nowcasting module<a class="headerlink" href="#module-kats.models.nowcasting.nowcasting" title="Permalink to this headline">¶</a></h1>
+<p>Nowcasting is the basic model for short-term forecasting.</p>
+<p>This modules contains class NowcastingParams, which is the class parameter
+and class NowcastingModel, which is the model.</p>
+<blockquote>
+<div><p>Typical usage example:</p>
+<p>nr = NowcastingModel(data = data, params = NowcastingParams(step = 10))
+nr.feature_extraction()
+nr.label_extraction()
+nr.fit()
+output = nr.predict()</p>
+</div></blockquote>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.nowcasting.</span></span><span class="sig-name descname"><span class="pre">NowcastingModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.nowcasting.nowcasting.NowcastingParams" title="kats.models.nowcasting.nowcasting.NowcastingParams"><span class="pre">kats.models.nowcasting.nowcasting.NowcastingParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_names</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>The class for Nowcasting Model.</p>
+<p>This class performs data processing and short term prediction, for time series
+based on machine learning methodology.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel.TimeSeriesData">
+<span class="sig-name descname"><span class="pre">TimeSeriesData</span></span><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel.TimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time Series Data Source.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel.NowcastingParams">
+<span class="sig-name descname"><span class="pre">NowcastingParams</span></span><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel.NowcastingParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>parameters for Nowcasting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel.feature_extraction">
+<span class="sig-name descname"><span class="pre">feature_extraction</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingModel.feature_extraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel.feature_extraction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts features for time series data.</p>
+<p>Example of output:
+.. list-table:: Title
+:widths: 10 50 25 25 25
+:header-rows: 1</p>
+<ul class="simple">
+<li><ul>
+<li><p>index
+- time
+- y
+- ROC_10
+- ROC_15</p></li>
+</ul>
+</li>
+<li><ul>
+<li><p>30
+- 2020-02-05 00:00:00
+- 7234.93
+- -0.278597
+- -0.266019</p></li>
+</ul>
+</li>
+<li><ul>
+<li><p>31
+- 2020-02-06 00:00:00
+- 7272.51
+- -0.275543
+- -0.271799</p></li>
+</ul>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel.label_extraction">
+<span class="sig-name descname"><span class="pre">label_extraction</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingModel.label_extraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel.label_extraction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts labels from time seires data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel.load_model">
+<span class="sig-name descname"><span class="pre">load_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_as_bytes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><span class="pre">bytes</span></a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingModel.load_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads model_as_str and decodes into the class NowcastingModel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_as_bytes</strong> – a binary variable, indicating whether to read as bytes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raises: NotImplementedError(“Subclasses should implement this!”)。</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts the time series in the future.</p>
+<p>Nowcasting forecasts at the time unit of step ahead.
+This is in order to keep precision and different from usual algorithms.
+If model or df are overwritten in the function, it won’t use the internal ones.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – An external sklearn model.</p></li>
+<li><p><strong>df</strong> – An external dataset.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A float variable, the forecast at future step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingModel.save_model">
+<span class="sig-name descname"><span class="pre">save_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.9)"><span class="pre">bytes</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingModel.save_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingModel.save_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves sklearn model as bytes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.nowcasting.</span></span><span class="sig-name descname"><span class="pre">NowcastingParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>The class for Nowcasting Parameters.</p>
+<p>Takes parameters for class NowcastingModel.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingParams.step">
+<span class="sig-name descname"><span class="pre">step</span></span><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingParams.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer indicating how many steps ahead we are forecasting. Default is 1.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.nowcasting.nowcasting.NowcastingParams.validate_params">
+<span class="sig-name descname"><span class="pre">validate_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/nowcasting/nowcasting.html#NowcastingParams.validate_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.nowcasting.NowcastingParams.validate_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raises: NotImplementedError(“Subclasses should implement this!”).</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -239,7 +382,7 @@
 <li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.feature_extraction.html">kats.models.nowcasting.feature_extraction module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.model_io.html">kats.models.nowcasting.model_io module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">kats.models.nowcasting.nowcasting module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.html#kats-models-nowcasting-module">kats.models.nowcasting module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.html#module-kats.models.nowcasting">kats.models.nowcasting module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.prophet.html">kats.models.prophet module</a></li>
@@ -249,7 +392,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

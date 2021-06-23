@@ -158,8 +158,122 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-holtwinters-module">
-<h1>kats.models.holtwinters module<a class="headerlink" href="#kats-models-holtwinters-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.holtwinters">
+<span id="kats-models-holtwinters-module"></span><h1>kats.models.holtwinters module<a class="headerlink" href="#module-kats.models.holtwinters" title="Permalink to this headline">¶</a></h1>
+<p>The Holt Winters model is a time series forecast model that applies exponential smoothing three times, it serves as the extension of the simple exponential smoothing forecast model.</p>
+<p>More details about the different exponential smoothing model can be found here:
+<a class="reference external" href="https://en.wikipedia.org/wiki/Exponential_smoothing">https://en.wikipedia.org/wiki/Exponential_smoothing</a>
+In this module we adopt the Holt Winters model implementation from the statsmodels package, full details can be found as follows:
+<a class="reference external" href="https://www.statsmodels.org/dev/generated/statsmodels.tsa.holtwinters.ExponentialSmoothing.html">https://www.statsmodels.org/dev/generated/statsmodels.tsa.holtwinters.ExponentialSmoothing.html</a>
+We rewrite the corresponding API to accommodate the Kats development style</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.holtwinters.</span></span><span class="sig-name descname"><span class="pre">HoltWintersModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.holtwinters.HoltWintersParams" title="kats.models.holtwinters.HoltWintersParams"><span class="pre">kats.models.holtwinters.HoltWintersParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/holtwinters.html#HoltWintersModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.holtwinters.HoltWintersModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>Model class for the HoltWinters model</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersModel.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.holtwinters.HoltWintersModel.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, the input historical time series data from TimeSeriesData</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersModel.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.holtwinters.HoltWintersModel.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>The HoltWinters model parameters from HoltWintersParams</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/holtwinters.html#HoltWintersModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.holtwinters.HoltWintersModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit the model with the specified input parameters</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersModel.get_parameter_search_space">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/holtwinters.html#HoltWintersModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.holtwinters.HoltWintersModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default HoltWinters parameter search space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary with the default HoltWinters parameter search space</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/holtwinters.html#HoltWintersModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.holtwinters.HoltWintersModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot forecast results from the HoltWinters model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/holtwinters.html#HoltWintersModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.holtwinters.HoltWintersModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict with fitted HoltWinters model</p>
+<p>If the alpha keyword argument is specified, an empirical confidence interval is computed through a K-fold cross validation and a linear regression model, the forecast outcome will include a confidence interval there; otherwise no confidence interval is included in the final forecast. Please refer to the ‘emp_confidence_int’ module for full detailed implementation of the empirical confidence interval computation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – </p></li>
+<li><p><strong>include_history</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A pd.DataFrame with the forecast and confidence interval (if empirical confidence interval calculation is triggered)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.holtwinters.</span></span><span class="sig-name descname"><span class="pre">HoltWintersParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trend</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'add'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damped</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonal</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seasonal_periods</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/holtwinters.html#HoltWintersParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.holtwinters.HoltWintersParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>Parameter class for the HoltWinters model</p>
+<p>Not all parameters from the statsmodels API have been implemented here, the full list of the parameter can be found:
+<a class="reference external" href="https://www.statsmodels.org/dev/generated/statsmodels.tsa.holtwinters.ExponentialSmoothing.html">https://www.statsmodels.org/dev/generated/statsmodels.tsa.holtwinters.ExponentialSmoothing.html</a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersParams.trend">
+<span class="sig-name descname"><span class="pre">trend</span></span><a class="headerlink" href="#kats.models.holtwinters.HoltWintersParams.trend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A string that specifies the type of trend component. Can be ‘add’ and ‘mul’ or ‘additive’ and ‘multiplicative’. Default is ‘add’</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersParams.damped">
+<span class="sig-name descname"><span class="pre">damped</span></span><a class="headerlink" href="#kats.models.holtwinters.HoltWintersParams.damped" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A boolean indicates whether the trend should be damped or not. Default is False</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersParams.seasonal">
+<span class="sig-name descname"><span class="pre">seasonal</span></span><a class="headerlink" href="#kats.models.holtwinters.HoltWintersParams.seasonal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; A string that specifies the type of seasonal component Can be ‘add’ and ‘mul’ or ‘additive’ and ‘multiplicative’. Default is None</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersParams.seasonal_periods">
+<span class="sig-name descname"><span class="pre">seasonal_periods</span></span><a class="headerlink" href="#kats.models.holtwinters.HoltWintersParams.seasonal_periods" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; An integer that specifies the period for the seasonal component, e.g. 4 for quarterly data and 7 for weekly seasonality of daily data. Default is None</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.holtwinters.HoltWintersParams.validate_params">
+<span class="sig-name descname"><span class="pre">validate_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/holtwinters.html#HoltWintersParams.validate_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.holtwinters.HoltWintersParams.validate_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate the types and values of the input parameters
+:param None:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -243,7 +357,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

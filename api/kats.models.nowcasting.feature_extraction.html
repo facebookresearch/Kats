@@ -158,8 +158,228 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-nowcasting-feature-extraction-module">
-<h1>kats.models.nowcasting.feature_extraction module<a class="headerlink" href="#kats-models-nowcasting-feature-extraction-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.nowcasting.feature_extraction">
+<span id="kats-models-nowcasting-feature-extraction-module"></span><h1>kats.models.nowcasting.feature_extraction module<a class="headerlink" href="#module-kats.models.nowcasting.feature_extraction" title="Permalink to this headline">¶</a></h1>
+<p>This is a file with functions which turn time series into ML features.</p>
+<p>Typical use case is to create various features for the nowcasting model.
+The features are rolling, i.e. they are the times series as well.</p>
+<blockquote>
+<div><p>Typical usage example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">ROC</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.BBANDS">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">BBANDS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#BBANDS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.BBANDS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds two Bolllinger Band columns</p>
+<p>A Bollinger Band is a technical analysis tool defined by a
+set of trendlines plotted two standard deviations (positively and negatively)
+away from a simple moving average (SMA) of a security’s price, but which can
+be adjusted to user preferences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe</p></li>
+<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added 2 BollingerBand columns.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.EMA">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">EMA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#EMA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.EMA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the Exponetial Moving Average column</p>
+<p>The exponential moving average (EMA) is a technical chart indicator that
+tracks the price of an investment (like a stock or commodity) over time.
+The EMA is a type of weighted moving average (WMA) that gives more</p>
+<blockquote>
+<div><p>weighting or importance to recent price data</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe</p></li>
+<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added EMA column.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.LAG">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">LAG</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#LAG"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.LAG" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds another column indicating lagged value at the past n steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe.</p></li>
+<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added column.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.MA">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">MA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#MA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.MA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds another column indicating moving average in the past n steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe.</p></li>
+<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added column.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.MACD">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">MACD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_fast</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_slow</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">21</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#MACD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.MACD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds three columns indicating MACD: <a class="reference external" href="https://www.investopedia.com/terms/m/macd.asp">https://www.investopedia.com/terms/m/macd.asp</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe</p></li>
+<li><p><strong>n_fast</strong> – an integer on how many steps looking back fast.</p></li>
+<li><p><strong>n_slow</strong> – an integer on how many steps looking back slow.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added 3 columns.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.MOM">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">MOM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#MOM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.MOM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds another column indicating momentum: difference of current value and n steps back.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe.</p></li>
+<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added column.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.ROC">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">ROC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#ROC"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.ROC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds another column indicating return comparing to step n back.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe.</p></li>
+<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added column.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.RSI">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">RSI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#RSI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.RSI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Relative Strength Index (RSI)
+Compares the magnitude of recent gains and losses over a specified time
+period to measure speed and change of price movements of a security. It is
+primarily used to attempt to identify overbought or oversold conditions in
+the trading of an asset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe</p></li>
+<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added RSI column.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.TRIX">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">TRIX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#TRIX"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.TRIX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the TRIX indicator column</p>
+<p>The triple exponential average (TRIX) indicator is an oscillator
+used to identify oversold and overbought markets, and it can
+also be used as a momentum indicator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe</p></li>
+<li><p><strong>n</strong> – an integer on how many steps looking back.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added TRIX column.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kats.models.nowcasting.feature_extraction.TSI">
+<span class="sig-prename descclassname"><span class="pre">kats.models.nowcasting.feature_extraction.</span></span><span class="sig-name descname"><span class="pre">TSI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/nowcasting/feature_extraction.html#TSI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.nowcasting.feature_extraction.TSI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the TSI column</p>
+<p>The true strength index (TSI) is a technical momentum oscillator
+used to identify trends and reversals</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – a pandas dataframe</p></li>
+<li><p><strong>r</strong> – an integer on how many steps looking back, for window 1.</p></li>
+<li><p><strong>s</strong> – an integer on how many steps looking back, for window 2.</p></li>
+<li><p><strong>column</strong> – Optional. If column is provided, will calculate based on provided column
+otherwise the column named y will be the target.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe with all the columns from input df, and the added TSI column.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -239,7 +459,7 @@
 <li class="toctree-l3 current"><a class="current reference internal" href="#">kats.models.nowcasting.feature_extraction module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.model_io.html">kats.models.nowcasting.model_io module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.nowcasting.html">kats.models.nowcasting.nowcasting module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.html#kats-models-nowcasting-module">kats.models.nowcasting module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.nowcasting.html#module-kats.models.nowcasting">kats.models.nowcasting module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.prophet.html">kats.models.prophet module</a></li>
@@ -249,7 +469,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

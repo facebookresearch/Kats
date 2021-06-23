@@ -158,8 +158,54 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-ensemble-ensemble-module">
-<h1>kats.models.ensemble.ensemble module<a class="headerlink" href="#kats-models-ensemble-ensemble-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.ensemble.ensemble">
+<span id="kats-models-ensemble-ensemble-module"></span><h1>kats.models.ensemble.ensemble module<a class="headerlink" href="#module-kats.models.ensemble.ensemble" title="Permalink to this headline">¶</a></h1>
+<p>Ensemble techniques for forecasting</p>
+<p>This implements a set of ensemble techniques including weighted averaging, median ensemble
+and STL-based ensembling method. This is the parent class for all ensemble models.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.ensemble.ensemble.BaseEnsemble">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.ensemble.ensemble.</span></span><span class="sig-name descname"><span class="pre">BaseEnsemble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">kats.models.ensemble.ensemble.EnsembleParams</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/ensemble/ensemble.html#BaseEnsemble"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.ensemble.BaseEnsemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base ensemble class</p>
+<p>Implement parent class for ensemble.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.ensemble.BaseEnsemble.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/ensemble/ensemble.html#BaseEnsemble.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.ensemble.BaseEnsemble.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit method for ensemble model</p>
+<p>This method fits each individual model for ensembling
+and create a dict of model and fitted obj, such as
+{‘m1’: fitted_m1_obj, ‘m2’: fitted_m2_obj}</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.ensemble.ensemble.BaseEnsemble.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/ensemble/ensemble.html#BaseEnsemble.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.ensemble.BaseEnsemble.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot method for ensemble model (not implemented yet)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.ensemble.ensemble.BaseModelParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.ensemble.ensemble.</span></span><span class="sig-name descname"><span class="pre">BaseModelParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.models.model.html#kats.models.model.Model" title="kats.models.model.Model"><span class="pre">kats.models.model.Model</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/ensemble/ensemble.html#BaseModelParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.ensemble.ensemble.BaseModelParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Ensemble parameter class</p>
+<p>This class contains three attributes:</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.ensemble.ensemble.BaseModelParams.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#kats.models.ensemble.ensemble.BaseModelParams.model" title="Permalink to this definition">¶</a></dt>
+<dd><p>model names (str)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.ensemble.ensemble.BaseModelParams.model_params">
+<span class="sig-name descname"><span class="pre">model_params</span></span><a class="headerlink" href="#kats.models.ensemble.ensemble.BaseModelParams.model_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>model_param is defined in base models</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -233,7 +279,7 @@
 <li class="toctree-l3"><a class="reference internal" href="kats.models.ensemble.kats_ensemble.html">kats.models.ensemble.kats_ensemble module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.ensemble.median_ensemble.html">kats.models.ensemble.median_ensemble module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kats.models.ensemble.weighted_avg_ensemble.html">kats.models.ensemble.weighted_avg_ensemble module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kats.models.ensemble.html#kats-models-ensemble-module">kats.models.ensemble module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kats.models.ensemble.html#module-kats.models.ensemble">kats.models.ensemble module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.harmonic_regression.html">kats.models.harmonic_regression module</a></li>
@@ -250,7 +296,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>

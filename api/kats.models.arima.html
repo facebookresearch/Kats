@@ -158,8 +158,143 @@
 
           <div class="body" role="main">
             
-  <section id="kats-models-arima-module">
-<h1>kats.models.arima module<a class="headerlink" href="#kats-models-arima-module" title="Permalink to this headline">¶</a></h1>
+  <section id="module-kats.models.arima">
+<span id="kats-models-arima-module"></span><h1>kats.models.arima module<a class="headerlink" href="#module-kats.models.arima" title="Permalink to this headline">¶</a></h1>
+<p>The ARIMA model (stand for Auto Regressive Integrated Moving Average) is a classical statistical model for time series data</p>
+<p>It contains three main components from its name
+- AR, Auto Regressive, means the variable of interest (time series) is regressed on its own lagged values
+- MA, Moving Average, means the regression error is a linear combination of error terms whose values occurred contemporaneously and at various times in the past
+- I, Integrated, means data values have been replaced with the difference between their values and the previous value
+We use the implementation in statsmodels &lt;<a class="reference external" href="https://www.statsmodels.org/stable/index.html">https://www.statsmodels.org/stable/index.html</a>&gt; and re-write the API to adapt Kats development style.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.arima.</span></span><span class="sig-name descname"><span class="pre">ARIMAModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><span class="pre">kats.consts.TimeSeriesData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#kats.models.arima.ARIMAParams" title="kats.models.arima.ARIMAParams"><span class="pre">kats.models.arima.ARIMAParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">kats.models.model.ParamsType</span></code>]</p>
+<p>Model class for ARIMA model</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#kats.models.arima.ARIMAModel.data" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="kats.consts.html#kats.consts.TimeSeriesData" title="kats.consts.TimeSeriesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.TimeSeriesData</span></code></a>, the input historical time series data from TimeSeriesData</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#kats.models.arima.ARIMAModel.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ARIMA model parameters from ARIMAParams</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transparams</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'css-mle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trend</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'c'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'lbfgs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_ar_lags</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><span class="pre">None</span></a><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit ARIMA model with given parameters</p>
+<p>For more details on each parameter please refer to the following doc:
+<a class="reference external" href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.fit.html#statsmodels.tsa.arima_model.ARIMA.fit">https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.fit.html#statsmodels.tsa.arima_model.ARIMA.fit</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start_params</strong> – Optional; An array_like object for the initial guess of the solution for the loglikelihood maximization</p></li>
+<li><p><strong>transparams</strong> – Optional; A boolean to specify whether or not to transform the parameters to ensure stationarity. Default is True</p></li>
+<li><p><strong>method</strong> – A string that specifies the loglikelihood to maximize. Can be ‘css-mle’, ‘mle’ and ‘css’. Default is ‘css-mle’</p></li>
+<li><p><strong>trend</strong> – A string that specifies the whether to include a constant in the trend or not. Can be ‘c’ and ‘nc’. Default is ‘c’</p></li>
+<li><p><strong>solver</strong> – Optional; A string that specifies specifies the solver to be used. Can be ‘bfgs’, ‘newton’, ‘cg’, ‘ncg’ and ‘powell’. Default is ‘bfgs’</p></li>
+<li><p><strong>maxiter</strong> – Optional; A integer for the maximum number of function iterations. Default is 500</p></li>
+<li><p><strong>tol</strong> – Optional; The convergence tolerance for the fitting. Default is 1e-08</p></li>
+<li><p><strong>full_output</strong> – Optional; A boolean to specify whether to show all output from the solver in the results. Default is True</p></li>
+<li><p><strong>disp</strong> – Optional; A integer to control the frequency of the output during the iterations. Default is 5</p></li>
+<li><p><strong>callback</strong> – Optional; A callable object to be called after each iteration. Default is None</p></li>
+<li><p><strong>Optional; An integer to specify the AR lag parameter to fit the start_params. Default is None</strong> (<em>start_ar_lags</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.get_parameter_search_space">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_parameter_search_space</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel.get_parameter_search_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel.get_parameter_search_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default ARIMA parameter search space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>None</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary with the default ARIMA parameter search space</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot forecast results from the ARIMA model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_history</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.5)"><span class="pre">pandas.core.frame.DataFrame</span></a><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAModel.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict with fitted ARIMA model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – An integer for forecast steps</p></li>
+<li><p><strong>include_history</strong> – Optional; A boolearn to specify whether to include historical data. Default is False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A pd.DataFrame that contains the forecast and confidence interval</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">kats.models.arima.</span></span><span class="sig-name descname"><span class="pre">ARIMAParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kats/models/arima.html#ARIMAParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kats.models.arima.ARIMAParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">kats.consts.Params</span></code></p>
+<p>Parameter class for ARIMA model</p>
+<p>This is the parameter class for ARIMA model, it contains all necessary parameters from the following ARIMA implementation:
+<a class="reference external" href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.html">https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.html</a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.p">
+<span class="sig-name descname"><span class="pre">p</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.p" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for trend autoregressive (AR) order</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.d">
+<span class="sig-name descname"><span class="pre">d</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.d" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for trend difference order</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.q">
+<span class="sig-name descname"><span class="pre">q</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.q" title="Permalink to this definition">¶</a></dt>
+<dd><p>An integer for trend moving average (MA) order</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.exog">
+<span class="sig-name descname"><span class="pre">exog</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.exog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; An array of exogenous regressors</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.dates">
+<span class="sig-name descname"><span class="pre">dates</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.dates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; pandas-compatible datetime object</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kats.models.arima.ARIMAParams.freq">
+<span class="sig-name descname"><span class="pre">freq</span></span><a class="headerlink" href="#kats.models.arima.ARIMAParams.freq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional; frequency of a given time series</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -243,7 +378,7 @@
 <li class="toctree-l2"><a class="reference internal" href="kats.models.stlf.html">kats.models.stlf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.theta.html">kats.models.theta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kats.models.var.html">kats.models.var module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kats.models.html#kats-models-module">kats.models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kats.models.html#module-kats.models">kats.models module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kats.tsfeatures.html">kats.tsfeatures package</a></li>
