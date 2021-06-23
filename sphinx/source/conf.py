@@ -146,7 +146,14 @@ html_theme = "alabaster"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ["_static"]
+
+# Relative to html_static_path or fully qualified paths.
+html_css_files = [
+    'custom.css',
+]
+
+# html_js_files = []
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -236,8 +243,23 @@ texinfo_documents = [
     )
 ]
 
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"https://docs.python.org/": None}
+# Configuration for intersphinx
+# https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+intersphinx_mapping = {
+    "matplotlib": ("https://matplotlib.org/", None),
+    "numba": ("https://numba.pydata.org/numba-doc/latest/", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    # WARNING: failed to reach any of the inventories with the following issues:
+    # intersphinx inventory 'https://facebook.github.io/prophet/docs/objects.inv'
+    # "prophet": ("https://facebook.github.io/prophet/docs/", None),
+    "python": (f"https://docs.python.org/{sys.version_info.major}", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
+    "seaborn": ("https://seaborn.pydata.org/", None),
+    "sklearn": ("https://scikit-learn.org/stable", None),
+    "statsmodels": ("https://www.statsmodels.org/stable/", None),
+    "torch": ("https://pytorch.org/docs/stable", None),
+}
 
 # -- Autodocs Configuration -------------------------------------------
 
