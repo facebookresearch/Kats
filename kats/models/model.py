@@ -4,10 +4,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
-from typing import Generic, TypeVar
+from typing import Generic, Optional, TypeVar
 
 import pandas as pd
 from kats.consts import TimeSeriesData
@@ -26,13 +24,13 @@ class Model(Generic[ParamsType]):
     Attributes:
         data: `TimeSeriesData` object
         params: model parameters
-        validate_frequency: validate the frequency of time series, default as False
-        validate_dimension: validate the dimension of time series, default as False
+        validate_frequency: validate the frequency of time series
+        validate_dimension: validate the dimension of time series
     """
 
     def __init__(
         self,
-        data: TimeSeriesData,
+        data: Optional[TimeSeriesData],
         params: ParamsType,
         validate_frequency: bool = False,
         validate_dimension: bool = False,
@@ -79,15 +77,13 @@ class Model(Generic[ParamsType]):
     ) -> None:
         """plot method for forecasting models
 
-        This method provides the plotting functionality for all forecasting models
+        This method provides the plotting functionality for all forecasting
+        models.
 
         Args:
             data: `TimeSeriesData`, the historical time series data set
             fcst: forecasted results from forecasting models
-            include_history: if include the historical data when plotting, default as False
-
-        Returns:
-            None. The method simply plots the results
+            include_history: if True, include the historical data when plotting.
         """
         logging.info("Generating chart for forecast result.")
         fig = plt.figure(facecolor="w", figsize=(10, 6))
