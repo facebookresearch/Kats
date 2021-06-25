@@ -8,6 +8,7 @@
 *.pyc
 *.so
 .ipynb_checkpoints/
+*.pkl
 
 # Editor temporaries
 *.swn
