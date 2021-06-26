@@ -324,7 +324,6 @@ class ProphetModel(m.Model):
         if raw:
             return fcst.tail()
 
-        # if include_history:
         logging.info("Generated forecast data from Prophet model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 
