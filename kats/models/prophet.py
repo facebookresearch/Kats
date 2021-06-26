@@ -320,12 +320,11 @@ class ProphetModel(m.Model):
             if self.params.floor is not None:
                 future["floor"] = self.params.floor
 
-        fcst = self.model.predict(future).tail(steps)
+        fcst = self.model.predict(future)
         if raw:
-            return fcst
+            return fcst.tail()
 
         # if include_history:
-        fcst = self.model.predict(future)
         logging.info("Generated forecast data from Prophet model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 
