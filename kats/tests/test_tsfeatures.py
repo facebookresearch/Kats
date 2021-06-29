@@ -329,6 +329,7 @@ class TSfeaturesTest(TestCase):
                 }
             )
         df["value"] = df["value"].astype(dtype = pd.Int64Dtype())
+        # pyre-fixme[61]: `df` may not be initialized here.
         ts = TimeSeriesData(df)
 
         ts_features = TsFeatures(selected_features = [

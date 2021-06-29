@@ -352,6 +352,7 @@ class KatsEnsemble:
                     given_models.append(tmp)
 
             self.model_params = model_params = EnsembleParams(given_models)
+            # pyre-fixme[61]: `fitExecutor` may not be initialized here.
             self.fitted, self.weights = fitExecutor(
                 data=desea_data,
                 models=model_params,
@@ -360,6 +361,7 @@ class KatsEnsemble:
         else:
             # fit models on the original data
             self.model_params = model_params = EnsembleParams(self.params["models"].models)
+            # pyre-fixme[61]: `fitExecutor` may not be initialized here.
             self.fitted, self.weights = fitExecutor(
                 data=self.data,
                 models=model_params,
@@ -536,6 +538,7 @@ class KatsEnsemble:
 
         # we need to transform err to weights if it's weighted avg
         if self.params["aggregation"] == "weightedavg":
+            # pyre-fixme[61]: `forecast_error` may not be initialized here.
             assert forecast_error is not None
             original_weights = {
                 model: 1 / (err + sys.float_info.epsilon)
