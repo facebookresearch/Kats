@@ -322,7 +322,7 @@ class ProphetModel(m.Model):
 
         fcst = self.model.predict(future)
         if raw:
-            return fcst.tail()
+            return fcst.tail(steps)
 
         logging.info("Generated forecast data from Prophet model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
