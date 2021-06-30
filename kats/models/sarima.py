@@ -259,7 +259,7 @@ class SARIMAModel(m.Model):
         self.include_history = include_history
         self.freq = kwargs.get("freq", self.data.infer_freq_robust())
         self.alpha = alpha
-        fcst = self.model.get_forecast(steps)
+        fcst = self.model.get_forecast(steps, exog=kwargs.get('exog'))
 
         logging.info("Generated forecast data from SARIMA model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
