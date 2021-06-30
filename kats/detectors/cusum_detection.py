@@ -230,6 +230,7 @@ class CUSUMDetector(Detector):
 
         if start_point is None:
             cusum_ts = np.cumsum(ts_int - np.mean(ts_int))
+            # pyre-fixme[61]: `changepoint_func` may not be initialized here.
             changepoint = min(changepoint_func(cusum_ts), len(ts_int) - 2)
         else:
             changepoint = start_point
@@ -242,6 +243,7 @@ class CUSUMDetector(Detector):
             mean = (mu0 + mu1) / 2
             # here is where cusum is happening
             cusum_ts = np.cumsum(ts_int - mean)
+            # pyre-fixme[61]: `changepoint_func` may not be initialized here.
             next_changepoint = max(1, min(changepoint_func(cusum_ts), len(ts_int) - 2))
             if next_changepoint == changepoint:
                 break
@@ -260,10 +262,13 @@ class CUSUMDetector(Detector):
             delta_int = None
         else:
             llr_int = self._get_llr(
+                # pyre-fixme[61]: `mu0` may not be initialized here.
+                # pyre-fixme[61]: `mu1` may not be initialized here.
                 ts_int, {"mu0": mu0, "mu1": mu1, "changepoint": changepoint}
             )
             # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
             pval_int = 1 - chi2.cdf(llr_int, 2)
+            # pyre-fixme[61]: `mu0` may not be initialized here.
             delta_int = mu1 - mu0
             changepoint += interest_window[0]
 
@@ -739,6 +744,7 @@ class MultiCUSUMDetector(CUSUMDetector):
                 1, min(changepoint_func(cusum_ts), len(cusum_ts) - 2)
             )
 
+            # pyre-fixme[61]: `changepoint` may not be initialized here.
             if next_changepoint == changepoint:
                 break
             else:
@@ -760,11 +766,13 @@ class MultiCUSUMDetector(CUSUMDetector):
         sigma0 = sigma1 = np.cov(ts, rowvar=False)
 
         return {
+            # pyre-fixme[61]: `changepoint` may not be initialized here.
             "changepoint": changepoint,
             "mu0": mu0,
             "mu1": mu1,
             "sigma0": sigma0,
             "sigma1": sigma1,
+            # pyre-fixme[61]: `changepoint` may not be initialized here.
             "changetime": self.data.time[changepoint],
             "stable_changepoint": stable_changepoint,
             "delta": mu1 - mu0,

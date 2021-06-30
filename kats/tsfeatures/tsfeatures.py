@@ -279,12 +279,19 @@ class TsFeatures:
             ] = v  # final filter for filtering out features user didn't request and keep only the requested ones
 
         # setting default value for the switches of calculating the group of features or not
+        # pyre-fixme[61]: `default` may not be initialized here.
         self.stl_features = kwargs.get("stl_features", default)
+        # pyre-fixme[61]: `default` may not be initialized here.
         self.level_shift_features = kwargs.get("level_shift_features", default)
+        # pyre-fixme[61]: `default` may not be initialized here.
         self.acfpacf_features = kwargs.get("acfpacf_features", default)
+        # pyre-fixme[61]: `default` may not be initialized here.
         self.special_ac = kwargs.get("special_ac", default)
+        # pyre-fixme[61]: `default` may not be initialized here.
         self.holt_params = kwargs.get("holt_params", default)
+        # pyre-fixme[61]: `default` may not be initialized here.
         self.hw_params = kwargs.get("hw_params", default)
+        # pyre-fixme[61]: `default` may not be initialized here.
         self.statistics = kwargs.get("statistics", default)
         self.cusum_detector = kwargs.get("cusum_detector", False)
         self.robust_stat_detector = kwargs.get("robust_stat_detector", False)
@@ -296,6 +303,7 @@ class TsFeatures:
 
         # For lower level of the features
         self.__kwargs__ = kwargs
+        # pyre-fixme[61]: `default` may not be initialized here.
         self.default = default
 
     def transform(self, x: TimeSeriesData):
@@ -1763,6 +1771,7 @@ class TsFeatures:
             res = STL(ts.value.values, period=_period).fit()
 
             if extra_args is not None and extra_args.get("seasonal_period", default_status):
+                # pyre-fixme[61]: `_period` may not be initialized here.
                 seasonality_features["seasonal_period"] = _period
 
             # getting seasonality magnitude

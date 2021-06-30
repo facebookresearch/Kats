@@ -3,20 +3,25 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-from datetime import datetime
 import unittest
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 import pytz
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
+from kats.consts import (
+    DEFAULT_TIME_NAME,
+    DEFAULT_VALUE_NAME,
+    TimeSeriesData,
+    TSIterator,
+)
 from pandas.testing import (
     assert_frame_equal,
     assert_index_equal,
     assert_series_equal,
 )
-
-from kats.consts import DEFAULT_TIME_NAME, DEFAULT_VALUE_NAME, TimeSeriesData, TSIterator
 
 # tentative, for test purpose
 print(os.getcwd())
@@ -24,13 +29,9 @@ print(os.getcwd())
 # Constant values to reuse across test cases
 if "kats/tests" in os.getcwd():
     DATA_FILE = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/air_passengers.csv"
-            )
-            )
-elif "/home/runner/work/" in os.getcwd(): # for github Action
+        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
+    )
+elif "/home/runner/work/" in os.getcwd():  # for Github Action
     DATA_FILE = "kats/data/air_passengers.csv"
 else:
     DATA_FILE = "kats/kats/data/air_passengers.csv"
@@ -51,7 +52,8 @@ MULTIVAR_AIR_DF_DATETIME = MULTIVAR_AIR_DF.copy(deep=True)
 MULTIVAR_AIR_DF_DATETIME.ds = MULTIVAR_AIR_DF_DATETIME.ds.apply(
     lambda x: parser.parse(x)
 )
-MULTIVAR_VALUE_DF = MULTIVAR_AIR_DF[[VALUE_COL_NAME, VALUE_COL_NAME + "_1"]]
+MULTIVAR_VALUE_DF_COLS = [VALUE_COL_NAME, VALUE_COL_NAME + "_1"]
+MULTIVAR_VALUE_DF = MULTIVAR_AIR_DF[MULTIVAR_VALUE_DF_COLS]
 AIR_TIME_SERIES = AIR_DF.ds
 AIR_TIME_SERIES_PD_DATETIME = pd.to_datetime(AIR_TIME_SERIES)
 AIR_TIME_SERIES_UNIXTIME = AIR_TIME_SERIES_PD_DATETIME.apply(
@@ -311,16 +313,24 @@ class TimeSeriesDataInitTest(unittest.TestCase):
         assert_series_equal(self.ts_time_empty_value_empty.time, EMPTY_TIME_SERIES)
         assert_series_equal(self.ts_time_empty_value_empty.value, EMPTY_VALUE_SERIES)
         # Testing intialization from two empty no name Series
-        assert_series_equal(self.ts_time_empty_value_empty_no_name.time, EMPTY_TIME_SERIES)
-        assert_series_equal(self.ts_time_empty_value_empty_no_name.value, EMPTY_VALUE_SERIES)
+        assert_series_equal(
+            self.ts_time_empty_value_empty_no_name.time, EMPTY_TIME_SERIES
+        )
+        assert_series_equal(
+            self.ts_time_empty_value_empty_no_name.value, EMPTY_VALUE_SERIES
+        )
         # Testing initialization from time as empty Series and value as empty
         # DataFrame
         assert_series_equal(self.ts_time_empty_value_empty_df.time, EMPTY_TIME_SERIES)
         assert_series_equal(self.ts_time_empty_value_empty_df.value, EMPTY_VALUE_SERIES)
         # Testing initialization from time as empty Series and value as empty
         # DataFrame
-        assert_series_equal(self.ts_time_empty_value_empty_df_with_cols.time, EMPTY_TIME_SERIES)
-        assert_series_equal(self.ts_time_empty_value_empty_df_with_cols.value, EMPTY_VALUE_SERIES)
+        assert_series_equal(
+            self.ts_time_empty_value_empty_df_with_cols.time, EMPTY_TIME_SERIES
+        )
+        assert_series_equal(
+            self.ts_time_empty_value_empty_df_with_cols.value, EMPTY_VALUE_SERIES
+        )
 
     # Testing incorrect initializations
     def test_incorrect_init_types(self) -> None:
@@ -1084,6 +1094,19 @@ class TimeSeriesDataOpsTest(unittest.TestCase):
         self.assertEqual(
             self.ts_date_transform_concat_multi[: len(self.ts_multi_1)], self.ts_multi_1
         )
+        # Multivariate test case where we select a specific column
+        for col in self.ts_date_transform_concat_multi.value.columns:
+            ts_univ = TimeSeriesData(
+                time=self.ts_date_transform_concat_multi.time,
+                value=self.ts_date_transform_concat_multi.value[col],
+                time_col_name=self.ts_date_transform_concat_multi.time_col_name,
+            )
+            self.assertEqual(self.ts_date_transform_concat_multi[col], ts_univ)
+        # Multivariate test case where we select multiple columns
+        self.assertEqual(
+            self.ts_date_transform_concat_multi[MULTIVAR_VALUE_DF_COLS],
+            self.ts_date_transform_concat_multi,
+        )
         # Full/Empty cases
         self.assertEqual(self.ts_univ_1[:], self.ts_univ_1)
         self.assertEqual(
@@ -1092,17 +1115,17 @@ class TimeSeriesDataOpsTest(unittest.TestCase):
                 time=pd.Series(name=TIME_COL_NAME),
                 value=pd.Series(name=VALUE_COL_NAME),
                 time_col_name=TIME_COL_NAME,
-            )
+            ),
         )
 
     def test_plot(self) -> None:
         # Univariate test case
         print(self.ts_univ_1.to_dataframe().head())
         print(self.ts_univ_1.to_dataframe().columns)
-        self.ts_univ_1.plot(cols = ["y"])
+        self.ts_univ_1.plot(cols=["y"])
 
         # Multivariate test case
-        self.ts_multi_1.plot(cols = ["y", "y_1"])
+        self.ts_multi_1.plot(cols=["y", "y_1"])
 
 
 class TimeSeriesDataMiscTest(unittest.TestCase):
@@ -1179,6 +1202,7 @@ class TSIteratorTest(unittest.TestCase):
         val = next(kats_iterator)
         assert_series_equal(val.time, pd.Series([pd.Timestamp("2020-03-03")]))
         assert_series_equal(val.value, pd.Series([130, 230], name=2))
+
     def test_ts_iterator_comprehension(self) -> None:
         kats_data = TimeSeriesData(
             time=pd.to_datetime(

@@ -20,6 +20,7 @@ from __future__ import annotations
 import copy
 import datetime
 import logging
+from collections.abc import Iterable
 from enum import Enum, auto, unique
 from typing import List, Optional, Union, cast
 
@@ -165,6 +166,7 @@ class TimeSeriesData:
       max: A float or `pandas.Series` representing the max value(s) of the
         time series.
     """
+
     _min: float = np.nan
     _max: float = np.nan
 
@@ -433,6 +435,14 @@ class TimeSeriesData:
         return len(self.value)
 
     def __getitem__(self, sliced) -> TimeSeriesData:
+        if isinstance(sliced, str) or (
+            isinstance(sliced, Iterable) and all(isinstance(s, str) for s in sliced)
+        ):
+            return TimeSeriesData(
+                time=self.time,
+                value=self.value[sliced],
+                time_col_name=self.time_col_name,
+            )
         return TimeSeriesData(
             time=self.time[sliced],
             value=self.value[sliced],
