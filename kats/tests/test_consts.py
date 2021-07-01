@@ -31,7 +31,7 @@ if "kats/tests" in os.getcwd():
     DATA_FILE = os.path.abspath(
         os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
     )
-elif "/home/runner/work/" in os.getcwd():  # for Githun Action
+elif "/home/runner/work/" in os.getcwd():  # for Github Action
     DATA_FILE = "kats/data/air_passengers.csv"
 else:
     DATA_FILE = "kats/kats/data/air_passengers.csv"
