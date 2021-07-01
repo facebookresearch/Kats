@@ -22,7 +22,7 @@ import datetime
 import logging
 from collections.abc import Iterable
 from enum import Enum, auto, unique
-from typing import List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import dateutil
 import matplotlib.pyplot as plt
@@ -31,6 +31,8 @@ import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
 from pandas.testing import assert_frame_equal, assert_series_equal
 from pandas.tseries.frequencies import to_offset
+
+FigSize = Tuple[int, int]
 
 
 # Constants
@@ -880,36 +882,65 @@ class TimeSeriesData:
         df = df.reset_index().rename(columns={"index": self.time_col_name})
         return TimeSeriesData(df, time_col_name=self.time_col_name)
 
-    def plot(self, cols: List[str]) -> None:
+    def plot(self,
+             cols: Optional[List[str]] = None,
+             ax: Optional[plt.Axes] = None,
+             grid: bool = True,
+             figsize: Optional[FigSize] = None,
+             plot_kwargs: Optional[Dict[str, Any]] = None,
+             grid_kwargs: Optional[Dict[str, Any]] = None) -> plt.Axes:
         """Plots the time series.
 
         Args:
-          cols: List of variables (strings) to plot (against time).
+            cols: List of variable names to plot against time. If None,
+                plot all variables in the time series data.
+            ax: optional Axes to use. If None, create one.
+            grid: if True, draw gridlines.
+            figsize: if ax is None, the figsize to create. If None, defaults to
+                (10, 6).
+            plot_kwargs: optional additional arguments to pass to pandas.plot().
+            grid_kwargs: optional additional arguments to pass to Axes.grid().
+        Returns:
+            The matplotlib Axes.
         """
 
         if self.is_empty():
-            return
+            raise ValueError("No data to plot")
         # Make sure columns are valid
         df = self.to_dataframe()
         all_cols = list(df.columns)
         all_cols.remove(self.time_col_name)
-        if not set(cols).issubset(all_cols):
+        if cols is None:
+            cols = all_cols
+        elif not set(cols).issubset(all_cols):
             logging.error(f"Columns to plot: {cols} are not all in the timeseries")
             raise ValueError("Invalid columns passed")
+        if figsize is None:
+            figsize = (10, 6)
+        if plot_kwargs is None:
+            plot_kwargs = {}
+        grid_kwargs_ = {
+            "which": "major",
+            "c":"gray",
+            "ls": "-",
+            "lw": 1,
+            "alpha": 0.2
+        }
+        if grid_kwargs is not None:
+            grid_kwargs_.update(**grid_kwargs)
+
         # Plot
         logging.info("Plotting time series")
-        fig = plt.figure(facecolor="w", figsize=(10, 6))
-        ax = fig.add_subplot(111)
-        for col in cols:
-            ax.plot(
-                df[self.time_col_name].to_numpy(),
-                df[col].to_numpy(),
-                "k",
-            )
-        ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+        else:
+            fig = plt.gcf()
+        if grid:
+            ax.grid(True, **grid_kwargs_)
         fig.tight_layout()
         # pyre-ignore[29]: `pd.core.accessor.CachedAccessor` is not a function.
-        self.to_dataframe().plot(x=self.time_col_name, y=cols, ax=ax)
+        df.plot(x=self.time_col_name, y=cols, ax=ax, **plot_kwargs)
+        return ax
 
 
 class TimeSeriesIterator:
