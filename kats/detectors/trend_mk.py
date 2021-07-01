@@ -466,6 +466,7 @@ class MKDetector(Detector):
                 MK_results = MK_statistics.loc[
                     MK_statistics["trend_direction"] != "no trend", :
                 ]
+        # pyre-fixme[61]: `MK_results` may not be initialized here.
         return MK_results
 
     def _convert_detected_tps(

@@ -158,9 +158,11 @@ class STLFModel(m.Model):
                 params=params)
             model.fit()
         # pyre-fixme[16]: `STLFModel` has no attribute `model`.
+        # pyre-fixme[61]: `model` may not be initialized here.
         self.model = model
         # pyre-fixme[7]: Expected `None` but got `Union[linear_model.LinearModel,
         #  prophet.ProphetModel, quadratic_model.QuadraticModel, theta.ThetaModel]`.
+        # pyre-fixme[61]: `model` may not be initialized here.
         return model
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.

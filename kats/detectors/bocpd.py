@@ -970,6 +970,7 @@ class _BayesOnlineChangePoint(Detector):
 
             change_points = np.where(change_prob > threshold[t])[0]
             output[t_name] = {
+                # pyre-fixme[61]: `change_prob` may not be initialized here.
                 "change_prob": change_prob,
                 "change_points": change_points,
                 "run_length_prob": rt_posterior[:,:,t]

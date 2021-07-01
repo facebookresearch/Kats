@@ -1119,13 +1119,34 @@ class TimeSeriesDataOpsTest(unittest.TestCase):
         )
 
     def test_plot(self) -> None:
+        # TODO add visual tests
+
         # Univariate test case
-        print(self.ts_univ_1.to_dataframe().head())
-        print(self.ts_univ_1.to_dataframe().columns)
-        self.ts_univ_1.plot(cols=["y"])
+        ax = self.ts_univ_1.plot(cols=["y"])
+        self.assertIsNotNone(ax)
 
         # Multivariate test case
-        self.ts_multi_1.plot(cols=["y", "y_1"])
+        ax = self.ts_multi_1.plot()
+        self.assertIsNotNone(ax)
+
+        # Test more parameter overrides.
+        ax = self.ts_multi_1.plot(figsize=(8, 3),
+                                  plot_kwargs={"cmap": "Purples"},
+                                  grid=False)
+        self.assertIsNotNone(ax)
+
+        # Test grid and ax parameter overrides.
+        ax = self.ts_univ_1.plot(ax=ax,
+                                 grid_kwargs={"lw": 2, "ls": ":"})
+        self.assertIsNotNone(ax)
+
+        # Columns not in data.
+        with self.assertRaises(ValueError):
+            self.ts_univ_1.plot(cols=["z"])
+
+        # No data to plot.
+        with self.assertRaises(ValueError):
+            self.ts_empty.plot()
 
 
 class TimeSeriesDataMiscTest(unittest.TestCase):
