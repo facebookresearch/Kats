@@ -563,6 +563,7 @@ class MetaLearnHPT:
 
         self.model.eval()
         new_feature = TsFeatures().transform(ts)
+        # pyre-fixme[16]: `List` has no attribute `values`.
         new_feature_vector = np.asarray(list(new_feature.values()))
 
         if np.any(np.isnan(new_feature_vector)):

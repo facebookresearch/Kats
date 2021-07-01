@@ -271,6 +271,7 @@ class MetaLearnPredictability:
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
             logging.info(msg)
         features = TsFeatures().transform(ts)
+        # pyre-fixme[16]: `List` has no attribute `values`.
         x = np.array(list(features.values()))
         if np.sum(np.isnan(x)) > 0:
             msg = (

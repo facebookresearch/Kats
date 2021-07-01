@@ -7,7 +7,7 @@ import logging
 import statsmodels
 from functools import partial
 from itertools import groupby
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -44,40 +44,41 @@ all feature group names in feature_group_mapping attribute.
 
 
 class TsFeatures:
-    """Process time series data into features for machine learning models, with the
-    function to opt-in/out feature and feature groups in the calculations.
+    """Process time series data into features for machine learning models.
 
     Attributes:
-        window_size: int; Length of the sliding window for getting level shift features,
-            lumpiness, and stability of time series.
-        spectral_freq: int; Frequency parameter in getting periodogram through scipy for
-            calculating Shannon entropy.
-        stl_period: int; Period parameter for performing seasonality trend decomposition
-            using LOESS with statsmodels.
-        nbins: int; Number of bins to equally segment time series array for getting flat
-            spot feature.
+        window_size: int; Length of the sliding window for getting level shift
+            features, lumpiness, and stability of time series.
+        spectral_freq: int; Frequency parameter in getting periodogram through
+            scipy for calculating Shannon entropy.
+        stl_period: int; Period parameter for performing seasonality trend
+            decomposition using LOESS with statsmodels.
+        nbins: int; Number of bins to equally segment time series array for
+            getting flat spot feature.
         lag_size: int; Maximum number of lag values for calculating Hurst Exponent.
-        acfpacf_lag: int; Largest lag number for returning ACF/PACF features via statsmodels.
-        decomp: str; Additive or Multiplicative mode for performing outlier detection using
-            Kats.Detectors.outlier.OutlierDetector.
+        acfpacf_lag: int; Largest lag number for returning ACF/PACF features
+            via statsmodels.
+        decomp: str; Additive or Multiplicative mode for performing outlier
+            detection using Kats.Detectors.outlier.OutlierDetector.
         iqr_mult: float; IQR range for determining outliers through
             Kats.Detectors.outlier.OutlierDetector.
         threshold: float; threshold for trend intensity; higher threshold gives
-            trend with high intensity (0.8 by default).  If we only want to use the
-            p-value to determine changepoints, set threshold = 0.
+            trend with high intensity (0.8 by default).  If we only want to use
+            the p-value to determine changepoints, set threshold = 0.
         window: int; length of window for all nowcasting features.
-        n_fast: int; length of "fast" or short period exponential moving average in the MACD
-            algorithm in the nowcasting features.
-        n_slow: int; length of "slow" or long period exponential moving average in the MACD
-            algorithm in the nowcasting features.
+        n_fast: int; length of "fast" or short period exponential moving average
+            in the MACD algorithm in the nowcasting features.
+        n_slow: int; length of "slow" or long period exponential moving average
+            in the MACD algorithm in the nowcasting features.
         selected_features: None or List[str]; list of feature/feature group name(s)
             selected to be calculated. We will try only calculating selected
-            features, since some features are bundled in the calculations. This process
-            helps with boosting efficiency, and we will only output selected features.
-        feature_group_mapping: The dictionary with the mapping from individual features
-            to their bundled feature groups.
-        final_filter: A dicitonary with boolean as the values to filter out the features
-            not selected, yet calculated due to underlying bundles.
+            features, since some features are bundled in the calculations. This
+            process helps with boosting efficiency, and we will only output
+            selected features.
+        feature_group_mapping: The dictionary with the mapping from individual
+            features to their bundled feature groups.
+        final_filter: A dicitonary with boolean as the values to filter out the
+            features not selected, yet calculated due to underlying bundles.
         stl_features: Switch for calculating/outputting stl features.
         level_shift_features: Switch for calculating/outputting level shift features.
         acfpacf_features: Switch for calculating/outputting ACF/PACF features.
@@ -85,20 +86,20 @@ class TsFeatures:
         holt_params: Switch for calculating/outputting holt parameter features.
         hw_params: Switch for calculating/outputting holt-winters parameter features.
         statistics: Switch for calculating/outputting raw statistics features.
-        cusum_detector: Switch for calculating/outputting features using cusum detector
-            in Kats.
-        robust_stat_detector: Switch for calculating/outputting features using robust stat detector
-            in Kats.
-        bocp_detector: Switch for calculating/outputting stl features features using bocp detector
-            in Kats.
-        outlier_detector: Switch for calculating/outputting stl features using outlier detector
-            in Kats.
-        trend_detector: Switch for calculating/outputting stl features using trend detector
-            in Kats.
-        nowcasting: Switch for calculating/outputting stl features using nowcasting detector
-            in Kats.
-        seasonalities: Switch for calculating/outputting stl features using cusum detector
-            in Kats.
+        cusum_detector: Switch for calculating/outputting features using cusum
+            detector in Kats.
+        robust_stat_detector: Switch for calculating/outputting features using
+            robust stat detector in Kats.
+        bocp_detector: Switch for calculating/outputting stl features features
+            using bocp detector in Kats.
+        outlier_detector: Switch for calculating/outputting stl features using
+            outlier detector in Kats.
+        trend_detector: Switch for calculating/outputting stl features using
+            trend detector in Kats.
+        nowcasting: Switch for calculating/outputting stl features using
+            nowcasting detector in Kats.
+        seasonalities: Switch for calculating/outputting stl features using
+            cusum detector in Kats.
         default: The default status of the switch for opt-in/out feature calculations.
     """
 
@@ -240,9 +241,13 @@ class TsFeatures:
 
         self._total_feature_len_ = len(f2g.keys())
         for f in kwargs.keys():
-            assert (
-                f in f2g.keys() or f in g2f.keys()
-            ), f"""couldn't find your desired feature/group "{f}", please check spelling"""
+            if not (f in f2g.keys() or f in g2f.keys()):
+                msg = (
+                    f"couldn't find your desired feature/group '{f}', please "
+                    "check spelling"
+                )
+                logging.error(msg)
+                raise ValueError(msg)
 
         # Higher level of features:
         # Once disabled, won't even go inside these groups of features
@@ -254,31 +259,40 @@ class TsFeatures:
             default = False
             self.final_filter = {k: default for k in f2g.keys()}
             for f in selected_features:
-                assert (
-                    f in f2g.keys() or f in g2f.keys()
-                ), f"""couldn't find your desired feature/group "{f}", please check spelling"""
+                if not (f in f2g.keys() or f in g2f.keys()):
+                    msg = (
+                        f"couldn't find your desired feature/group '{f}', please "
+                        "check spelling"
+                    )
+                    logging.error(msg)
+                    raise ValueError(msg)
                 if f in g2f.keys():  # the opt-in request is for a feature group
                     kwargs[f] = True
                     for feature in g2f[f]:
                         kwargs[feature] = kwargs.get(feature, True)
                         self.final_filter[feature] = True
                 elif f in f2g.keys():  # the opt-in request is for a certain feature
-                    assert kwargs.get(
-                        f2g[f], True
-                    ), f"""feature group: {f2g[f]} has to be opt-in based on your opt-in request of feature: {f}"""
-                    assert kwargs.get(
-                        f, True
-                    ), f"""you have requested to both opt-in and opt-out feature: {f}"""
+                    if not kwargs.get(f2g[f], True):
+                        msg = (
+                            f"feature group: {f2g[f]} has to be opt-in based on "
+                            f"your opt-in request of feature: {f}"
+                        )
+                        logging.error(msg)
+                        raise ValueError(msg)
+                    if not kwargs.get(f, True):
+                        msg = f"requested to both opt-in and opt-out feature: {f}"
+                        logging.error(msg)
+                        raise ValueError(msg)
                     kwargs[f2g[f]] = True  # need to opt-in the feature group first
                     kwargs[f] = True  # opt-in the feature
                     self.final_filter[f] = True
 
         for k, v in kwargs.items():
-            self.final_filter[
-                k
-            ] = v  # final filter for filtering out features user didn't request and keep only the requested ones
+            # final filter for filtering out features user didn't request and
+            # keep only the requested ones
+            self.final_filter[k] = v
 
-        # setting default value for the switches of calculating the group of features or not
+        # setting default value for the switches of calculating the group of features
         # pyre-fixme[61]: `default` may not be initialized here.
         self.stl_features = kwargs.get("stl_features", default)
         # pyre-fixme[61]: `default` may not be initialized here.
@@ -306,7 +320,9 @@ class TsFeatures:
         # pyre-fixme[61]: `default` may not be initialized here.
         self.default = default
 
-    def transform(self, x: TimeSeriesData):
+    def transform(
+        self, x: TimeSeriesData
+    ) -> Union[Dict[str, float], List[Dict[str, float]]]:
         """
         The overall high-level function for transforming
         time series into a number of features
@@ -317,17 +333,18 @@ class TsFeatures:
         Returns:
             Returning maps (dictionary) with feature name and value pair.
             For univariate input return a map of {feature: value}.
-            For multivarite input return a list of maps.
+            For multivariate input return a list of maps.
         """
 
         if len(x) < 5:
-            msg = "Length of time series is too short to calculate features!"
+            msg = "Length of time series is too short to calculate features"
             logging.error(msg)
             raise ValueError(msg)
 
         if type(x.value.values) != np.ndarray:
             logging.warning(
-                f"expecting values to be a np.ndarray, instead got {type(x.value.values)}"
+                "expecting values to be a np.ndarray, instead got "
+                f"{type(x.value.values)}"
             )
             # make sure that values are numpy array for feeding to Numba
             df = pd.DataFrame(
@@ -357,14 +374,15 @@ class TsFeatures:
 
         return ts_features
 
-    def _transform_1d(self, x: np.ndarray, ts: TimeSeriesData):
+    def _transform_1d(  # noqa: C901
+        self, x: np.ndarray, ts: TimeSeriesData
+    ) -> Dict[str, float]:
         """
         Transform single (univariate) time series
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
-            ts: The univariate time series array in the form of Kats Timeseries
-                Data object.
+            ts: The univariate time series array.
 
         Returns:
             The dictionary with all the features aggregated from the outputs of
@@ -427,30 +445,9 @@ class TsFeatures:
             )
 
         # single features
-        _dict_features_ = {}
+        dict_stat_features = {}
         if self.statistics:
-            dict_features = {
-                "length": partial(self.get_length),
-                "mean": partial(self.get_mean),
-                "var": partial(self.get_var),
-                "entropy": partial(self.get_spectral_entropy, freq=self.spectral_freq),
-                "lumpiness": partial(self.get_lumpiness, window_size=self.window_size),
-                "stability": partial(self.get_stability, window_size=self.window_size),
-                "flat_spots": partial(self.get_flat_spots, nbins=self.nbins),
-                "hurst": partial(self.get_hurst, lag_size=self.lag_size),
-                "std1st_der": partial(self.get_std1st_der),
-                "crossing_points": partial(self.get_crossing_points),
-                "binarize_mean": partial(self.get_binarize_mean),
-                "unitroot_kpss": partial(self.get_unitroot_kpss),
-                "heterogeneity": partial(self.get_het_arch),
-                "histogram_mode": partial(self.get_histogram_mode, nbins=self.nbins),
-                "linearity": partial(self.get_linearity),
-            }
-
-            _dict_features_ = {}
-            for k, v in dict_features.items():
-                if self.__kwargs__.get(k, self.default):
-                    _dict_features_[k] = v(x)
+            dict_stat_features = self.get_statistics_features(x)
 
         # calculate cusum detector features
         dict_cusum_detector_features = {}
@@ -514,7 +511,7 @@ class TsFeatures:
             )
 
         return {
-            **_dict_features_,
+            **dict_stat_features,
             **dict_stl_features,
             **dict_level_shift_features,
             **dict_acfpacf_features,
@@ -533,7 +530,7 @@ class TsFeatures:
     # length
     @staticmethod
     @jit(nopython=True)
-    def get_length(x: np.ndarray):
+    def get_length(x: np.ndarray) -> float:
         """
         Getting the length of time series array.
 
@@ -549,7 +546,7 @@ class TsFeatures:
     # mean
     @staticmethod
     @jit(nopython=True)
-    def get_mean(x: np.ndarray):
+    def get_mean(x: np.ndarray) -> float:
         """
         Getting the average value of time series array.
 
@@ -565,7 +562,7 @@ class TsFeatures:
     # variance
     @staticmethod
     @jit(nopython=True)
-    def get_var(x: np.ndarray):
+    def get_var(x: np.ndarray) -> float:
         """
         Getting the variance of time series array.
 
@@ -581,7 +578,7 @@ class TsFeatures:
     # spectral entropy
     @staticmethod
     @jit(forceobj=True)
-    def get_spectral_entropy(x: np.ndarray, freq: int = 1):
+    def get_spectral_entropy(x: np.ndarray, freq: int = 1) -> float:
         """
         Getting normalized Shannon entropy of power spectral density.
         PSD is calculated using scipy's periodogram.
@@ -589,7 +586,6 @@ class TsFeatures:
         Args:
             x: The univariate time series array in the form of 1d numpy array.
             freq: int; Frequency for calculating the PSD via scipy periodogram.
-                Default value is 1.
 
         Returns:
             Normalized Shannon entropy.
@@ -607,7 +603,7 @@ class TsFeatures:
     # lumpiness
     @staticmethod
     @jit(forceobj=True)
-    def get_lumpiness(x: np.ndarray, window_size: int = 20):
+    def get_lumpiness(x: np.ndarray, window_size: int = 20) -> float:
         """
         Calculating the lumpiness of time series.
         Lumpiness is defined as the variance of the chunk-wise variances.
@@ -627,9 +623,9 @@ class TsFeatures:
     # stability
     @staticmethod
     @jit(forceobj=True)
-    def get_stability(x: np.ndarray, window_size: int = 20):
+    def get_stability(x: np.ndarray, window_size: int = 20) -> float:
         """
-        Calculating the stability of time series.
+        Calculate the stability of time series.
         Stability is defined as the variance of chunk-wise means.
 
         Args:
@@ -644,6 +640,40 @@ class TsFeatures:
         v = [np.mean(x_w) for x_w in np.array_split(x, len(x) // window_size + 1)]
         return np.var(v)
 
+    def get_statistics_features(self, x: np.ndarray) -> Dict[str, float]:
+        """
+        Calculate simple statistical features for a time series.
+
+        Args:
+          x: The univariate time series array in the form of 1d numpy array.
+
+        Returns:
+            Many statistical features including entropy and crossing points.
+        """
+        dict_features = {
+            "length": partial(self.get_length),
+            "mean": partial(self.get_mean),
+            "var": partial(self.get_var),
+            "entropy": partial(self.get_spectral_entropy, freq=self.spectral_freq),
+            "lumpiness": partial(self.get_lumpiness, window_size=self.window_size),
+            "stability": partial(self.get_stability, window_size=self.window_size),
+            "flat_spots": partial(self.get_flat_spots, nbins=self.nbins),
+            "hurst": partial(self.get_hurst, lag_size=self.lag_size),
+            "std1st_der": partial(self.get_std1st_der),
+            "crossing_points": partial(self.get_crossing_points),
+            "binarize_mean": partial(self.get_binarize_mean),
+            "unitroot_kpss": partial(self.get_unitroot_kpss),
+            "heterogeneity": partial(self.get_het_arch),
+            "histogram_mode": partial(self.get_histogram_mode, nbins=self.nbins),
+            "linearity": partial(self.get_linearity),
+        }
+
+        result = {}
+        for k, v in dict_features.items():
+            if self.__kwargs__.get(k, self.default):
+                result[k] = v(x)
+        return result
+
     # STL decomposition based features
     @staticmethod
     @jit(forceobj=True)
@@ -652,23 +682,23 @@ class TsFeatures:
         period: int = 7,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
-    ):
+    ) -> Dict[str, float]:
         """
-        Calculate STL based features for a time series, including strength of
-        trend, seasonality, spikiness, peak/trough.
+        Calculate STL based features for a time series.
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
-            period: int; Period parameter for performing seasonality trend decomposition
-                using LOESS with statsmodels. Default value is 7.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            period: int; Period parameter for performing seasonality trend
+                decomposition using LOESS with statsmodels.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is
+                disabled.
+            default_status: Default status of the switch for calculate the
+                features or not.
 
         Returns:
-            Seasonality features including strength of trend, seasonality, spikiness,
-            peak/trough.
+            Seasonality features including strength of trend, seasonality,
+            spikiness, peak/trough.
         """
 
         stl_features = {}
@@ -683,7 +713,9 @@ class TsFeatures:
             )
 
         # strength of seasonality
-        if extra_args is not None and extra_args.get("seasonality_strength", default_status):
+        if extra_args is not None and extra_args.get(
+            "seasonality_strength", default_status
+        ):
             stl_features["seasonality_strength"] = 1 - np.var(res.resid) / np.var(
                 res.seasonal + res.resid
             )
@@ -714,21 +746,22 @@ class TsFeatures:
         window_size: int = 20,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
-    ):
+    ) -> Dict[str, float]:
         """
-        Calculating level shift features.
-        level_shift_idx: Location of the maximum mean value difference,
-            between two consecutive sliding windows
-        level_shift_size: Size of the maximum mean value difference,
-            between two consecutive sliding windows
+        Calculate level shift features.
+
+        * level_shift_idx: Location of the maximum mean value difference,
+          between two consecutive sliding windows
+        * level_shift_size: Size of the maximum mean value difference,
+          between two consecutive sliding windows
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
-            window_size: int; Length of the sliding window. Default value is 20.
+            window_size: int; Length of the sliding window.
             extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+                of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features
+                or not.
 
         Returns:
             Level shift features including level_shift_idx, and level_shift_size
@@ -736,7 +769,10 @@ class TsFeatures:
 
         level_shift_features = {"level_shift_idx": np.nan, "level_shift_size": np.nan}
         if len(x) < window_size + 2:
-            msg = "Length of time series is shorter than window_size, unable to calculate level shift features!"
+            msg = (
+                "Length of time series is shorter than window_size, unable to "
+                "calculate level shift features"
+            )
             logging.error(msg)
             return level_shift_features
 
@@ -748,14 +784,16 @@ class TsFeatures:
 
         if extra_args is not None and extra_args.get("level_shift_idx", default_status):
             level_shift_features["level_shift_idx"] = np.argmax(mean_diff)
-        if extra_args is not None and extra_args.get("level_shift_size", default_status):
+        if extra_args is not None and extra_args.get(
+            "level_shift_size", default_status
+        ):
             level_shift_features["level_shift_size"] = mean_diff[np.argmax(mean_diff)]
         return level_shift_features
 
     # Flat spots
     @staticmethod
     @jit(forceobj=True)
-    def get_flat_spots(x: np.ndarray, nbins: int = 10):
+    def get_flat_spots(x: np.ndarray, nbins: int = 10) -> int:
         """
         Getting flat spots: Maximum run-lengths across equally-sized segments of time series
 
@@ -768,7 +806,10 @@ class TsFeatures:
         """
 
         if len(x) <= nbins:
-            msg = "Length of time series is shorter than nbins, unable to calculate flat spots feature!"
+            msg = (
+                "Length of time series is shorter than nbins, unable to "
+                "calculate flat spots feature"
+            )
             logging.error(msg)
             return np.nan
 
@@ -785,14 +826,13 @@ class TsFeatures:
     # Hurst Exponent
     @staticmethod
     @jit(forceobj=True)
-    def get_hurst(x: np.ndarray, lag_size: int = 30):
+    def get_hurst(x: np.ndarray, lag_size: int = 30) -> float:
         """
         Getting: Hurst Exponent wiki: https://en.wikipedia.org/wiki/Hurst_exponent
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
-            lag_size: int; Size for getting lagged time series data. Default value
-                is 30.
+            lag_size: int; Size for getting lagged time series data.
 
         Returns:
             The Hurst Exponent of the time series array
@@ -820,32 +860,26 @@ class TsFeatures:
         y_acf_list: List[float],
         diff1y_acf_list: List[float],
         diff2y_acf_list: List[float],
-    ):
+    ) -> Tuple[float, float, float, float, float, float, float]:
         """
         Aggregating extracted ACF features from get_acfpacf_features function.
 
         Args:
             extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+                of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the
+                features or not.
             y_acf_list: List of ACF values acquired from original time series.
             diff1y_acf_list: List of ACF values acquired from differenced time series.
-            diff2y_acf_list: List of ACF values acquired from twice differenced time series.
+            diff2y_acf_list: List of ACF values acquired from twice differenced
+                time series.
 
         Returns:
             Auto-correlation function (ACF) features.
         """
 
-        (
-            y_acf1,
-            y_acf5,
-            diff1y_acf1,
-            diff1y_acf5,
-            diff2y_acf1,
-            diff2y_acf5,
-            seas_acf1,
-        ) = (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+        y_acf1 = y_acf5 = diff1y_acf1 = diff1y_acf5 = diff2y_acf1 = np.nan
+        diff2y_acf5 = seas_acf1 = np.nan
 
         # y_acf1: first ACF value of the original series
         if extra_args.get("y_acf1", default_status):
@@ -894,29 +928,25 @@ class TsFeatures:
         y_pacf_list: List[float],
         diff1y_pacf_list: List[float],
         diff2y_pacf_list: List[float],
-    ):
+    ) -> Tuple[float, float, float, float]:
         """
         Aggregating extracted PACF features from get_acfpacf_features function.
 
         Args:
             extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+                of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the
+                features or not.
             y_pacf_list: List of PACF values acquired from original time series.
             diff1y_pacf_list: List of PACF values acquired from differenced time series.
-            diff2y_pacf_list: List of PACF values acquired from twice differenced time series.
+            diff2y_pacf_list: List of PACF values acquired from twice differenced
+                time series.
 
         Returns:
             Partial auto-correlation function (PACF) features.
         """
 
-        (
-            y_pacf5,
-            diff1y_pacf5,
-            diff2y_pacf5,
-            seas_pacf1,
-        ) = (np.nan, np.nan, np.nan, np.nan)
+        y_pacf5 = diff1y_pacf5 = diff2y_pacf5 = seas_pacf1 = np.nan
 
         # y_pacf5: sum of squares of first 5 PACF values of original series
         if extra_args.get("y_pacf5", default_status):
@@ -949,22 +979,23 @@ class TsFeatures:
         period: int = 7,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
-    ):
+    ) -> Dict[str, float]:
         """
-        Calculate ACF and PACF based features. Calculate seasonal ACF, PACF based features
+        Calculate ACF and PACF based features. Calculate seasonal ACF, PACF based features.
+
         Reference: https://stackoverflow.com/questions/36038927/whats-the-difference-between-pandas-acf-and-statsmodel-acf
         R code: https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html
         Paper: Meta-learning how to forecast time series
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
-            acfpacf_lag: int; Largest lag number for returning ACF/PACF features via statsmodels.
-                Default value is 6.
-            period: int; Seasonal period. Default value is 7.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            acfpacf_lag: int; Largest lag number for returning ACF/PACF features
+                via statsmodels.
+            period: int; Seasonal period.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the
+                features or not.
 
         Returns:
             Aggregated ACF, PACF features.
@@ -984,7 +1015,10 @@ class TsFeatures:
             "seas_pacf1": np.nan,
         }
         if len(x) < 10 or len(x) < period or len(np.unique(x)) == 1:
-            msg = "Length is shorter than period, or constant time series! Unable to calculate acf/pacf features!"
+            msg = (
+                "Length is shorter than period, or constant time series, "
+                "unable to calculate acf/pacf features"
+            )
             logging.error(msg)
             return acfpacf_features
 
@@ -1037,9 +1071,10 @@ class TsFeatures:
     # standard deviation of the first derivative
     @staticmethod
     @jit(forceobj=True)
-    def get_std1st_der(x: np.ndarray):
+    def get_std1st_der(x: np.ndarray) -> float:
         """
-        Calculating std1st_der: the standard deviation of the first derivative of the time series.
+        Calculate the standard deviation of the first derivative of the time series.
+
         Reference: https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html
 
         Args:
@@ -1049,15 +1084,16 @@ class TsFeatures:
             The standard deviation of the first derivative of the time series.
         """
 
-        std1st_der = np.std(np.gradient(x))
-        return std1st_der
+        return np.std(np.gradient(x))
 
     # crossing points
     @staticmethod
     @jit(nopython=True)
-    def get_crossing_points(x: np.ndarray):
+    def get_crossing_points(x: np.ndarray) -> float:
         """
-        Calculating crossing points: the number of times a time series crosses the median line.
+        Calculate the number of crossing points.
+
+        Crossing points happen when a time series crosses the median line.
         Reference: https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html
 
         Args:
@@ -1077,11 +1113,12 @@ class TsFeatures:
     # binarize mean
     @staticmethod
     @jit(nopython=True)
-    def get_binarize_mean(x: np.ndarray):
+    def get_binarize_mean(x: np.ndarray) -> float:
         """
         Converts time series array into a binarized version.
-        Time-series values above its mean are given 1, and those below the mean are 0.
-        Return the average value of the binarized vector.
+
+        Time-series values above its mean are given 1, and those below the mean
+        are 0. Returns the average value of the binarized vector.
         Reference: https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html
 
         Args:
@@ -1096,11 +1133,13 @@ class TsFeatures:
     # KPSS unit root test
     @staticmethod
     @jit(forceobj=True)
-    def get_unitroot_kpss(x: np.ndarray):
+    def get_unitroot_kpss(x: np.ndarray) -> float:
         """
-        Getting a test statistic based on KPSS test.
-        Test a null hypothesis that an observable time series is stationary around a deterministic trend.
-        A vector comprising the statistic for the KPSS unit root test with linear trend and lag one
+        Get the test statistic based on KPSS test.
+
+        Test a null hypothesis that an observable time series is stationary
+        around a deterministic trend. A vector comprising the statistic for the
+        KPSS unit root test with linear trend and lag one
         Wiki: https://en.wikipedia.org/wiki/KPSS_test
 
         Args:
@@ -1115,8 +1154,10 @@ class TsFeatures:
     # heterogeneity
     @staticmethod
     @jit(forceobj=True)
-    def get_het_arch(x: np.ndarray):
+    def get_het_arch(x: np.ndarray) -> float:
         """
+        Compute Engle's test for autogregressive Conditional Heteroscedasticity (ARCH).
+
         reference: https://www.statsmodels.org/dev/generated/statsmodels.stats.diagnostic.het_arch.html
         Engle’s Test for Autoregressive Conditional Heteroscedasticity (ARCH)
 
@@ -1132,7 +1173,7 @@ class TsFeatures:
     # histogram mode
     @staticmethod
     @jit(nopython=True)
-    def get_histogram_mode(x: np.ndarray, nbins: int = 10):
+    def get_histogram_mode(x: np.ndarray, nbins: int = 10) -> float:
         """
         Measures the mode of the data vector using histograms with a given number of bins.
         Reference: https://cran.r-project.org/web/packages/tsfeatures/vignettes/tsfeatures.html
@@ -1152,19 +1193,21 @@ class TsFeatures:
     @staticmethod
     @jit(forceobj=True)
     def get_special_ac(
-        x: np.ndarray, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
-    ):
+        x: np.ndarray,
+        extra_args: Optional[Dict[str, bool]] = None,
+        default_status: bool = True,
+    ) -> Dict[str, float]:
         """
-        Gettting special_ac features.
+        Compute special_ac features.
+
         firstmin_ac: the time of first minimum in the autocorrelation function
         firstzero_ac: the time of first zero crossing the autocorrelation function.
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
             extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+                of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features.
 
         Returns:
             Special autocorrelation features described above.
@@ -1196,9 +1239,9 @@ class TsFeatures:
     # Linearity
     @staticmethod
     @jit(forceobj=True)
-    def get_linearity(x: np.ndarray):
+    def get_linearity(x: np.ndarray) -> float:
         """
-        Getting linearity feature: R square from a fitted linear regression.
+        Compute linearity feature: R square from a fitted linear regression.
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
@@ -1213,20 +1256,22 @@ class TsFeatures:
     # Holt Parameters (2)
     @staticmethod
     def get_holt_params(
-        x: np.ndarray, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
-    ):
+        x: np.ndarray,
+        extra_args: Optional[Dict[str, bool]] = None,
+        default_status: bool = True,
+    ) -> Dict[str, float]:
         """
-        Estimates the smoothing parameter for the level-alpha and the smoothing parameter
-        for the trend-beta of Holt’s linear trend method.
-        'alpha': Level parameter of the Holt model.
-        'beta': Trend parameter of the Hold model.
+        Estimates the smoothing parameters for Holt's linear trend model.
+
+        * 'alpha': Level parameter of the Holt model.
+        * 'beta': Trend parameter of the Hold model.
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the
+                features or not.
 
         Returns:
             Level and trend parameter of a fitted Holt model.
@@ -1238,7 +1283,9 @@ class TsFeatures:
             if extra_args is not None and extra_args.get("holt_alpha", default_status):
                 holt_params_features["holt_alpha"] = m.params["smoothing_level"]
             if extra_args is not None and extra_args.get("holt_beta", default_status):
-                statsmodels_ver = float(re.findall('([0-9]+\\.[0-9]+)\\..*', statsmodels.__version__)[0])
+                statsmodels_ver = float(
+                    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
+                )
                 if statsmodels_ver < 0.12:
                     holt_params_features["holt_beta"] = m.params["smoothing_slope"]
                 elif statsmodels_ver >= 0.12:
@@ -1254,19 +1301,17 @@ class TsFeatures:
         period: int = 7,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
-    ):
+    ) -> Dict[str, float]:
         """
-        Estimates the smoothing parameter for the level-alpha, trend-beta of HW’s linear trend,
-        and additive seasonal trend-gamma.
+        Estimates the smoothing parameters for HW linear trend.
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
-            period: int; Seaonal period for fitting exponential smoothing model. Default
-                value is 7.
+            period: int; Seaonal period for fitting exponential smoothing model.
             extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+                of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the
+                features or not.
 
         Returns:
             Level, trend and seasonal parameter of a fitted Holt-Winter's model.
@@ -1275,7 +1320,9 @@ class TsFeatures:
         hw_params_features = {"hw_alpha": np.nan, "hw_beta": np.nan, "hw_gamma": np.nan}
         try:
             # addressing issue of use_boxcox arg in different versions of statsmodels
-            statsmodels_ver = float(re.findall('([0-9]+\\.[0-9]+)\\..*', statsmodels.__version__)[0])
+            statsmodels_ver = float(
+                re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
+            )
             _args_ = {
                 "seasonal_periods": period,
                 "trend": "add",
@@ -1284,10 +1331,10 @@ class TsFeatures:
             # performing version check on statsmodels
             if statsmodels_ver >= 0.12:
                 _args_["use_boxcox"] = True
-                _args_["initialization_method"] = 'estimated'
+                _args_["initialization_method"] = "estimated"
                 m = ExponentialSmoothing(x, **_args_).fit()
             elif statsmodels_ver < 0.12:
-                m = ExponentialSmoothing(x, **_args_).fit(use_boxcox = True)
+                m = ExponentialSmoothing(x, **_args_).fit(use_boxcox=True)
             if extra_args is not None and extra_args.get("hw_alpha", default_status):
                 hw_params_features["hw_alpha"] = m.params["smoothing_level"]
             if extra_args is not None and extra_args.get("hw_beta", default_status):
@@ -1304,25 +1351,27 @@ class TsFeatures:
     # CUSUM Detection Outputs (8)
     @staticmethod
     def get_cusum_detector(
-        ts: TimeSeriesData, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
-    ):
+        ts: TimeSeriesData,
+        extra_args: Optional[Dict[str, bool]] = None,
+        default_status: bool = True,
+    ) -> Dict[str, float]:
         """
-        Run the Kats CUSUM Detector on the Time Series, extract features from the outputs of the detection.
+        Extract features from the outputs of the Kats CUSUM Detector.
 
         Args:
-            ts: The univariate time series array in the form of Kats TimeSeriesData object.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            ts: The univariate time series array.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features.
 
         Returns:
-            Outputs of the CUSUM Detector, which include (1) Number of changepoints, either 1
-            or 0, (2) Confidence of the changepoint detected, 0 if not changepoint, (3) index,
-            or position of the changepoint detected within the time series, (4) delta of the
-            mean levels before and after the changepoint, (5) log-likelihood ratio of changepoint,
-            (6) Boolean - whether regression is detected by CUSUM, (7) Boolean - whether
-            changepoint is stable, (8) p-value of changepoint.
+            Outputs of the CUSUM Detector, which include (1) Number of changepoints,
+            either 1 or 0, (2) Confidence of the changepoint detected, 0 if not
+            changepoint, (3) index, or position of the changepoint detected
+            within the time series, (4) delta of the mean levels before and after
+            the changepoint, (5) log-likelihood ratio of changepoint, (6)
+            Boolean - whether regression is detected by CUSUM, (7) Boolean -
+            whether changepoint is stable, (8) p-value of changepoint.
         """
 
         cusum_detector_features = {
@@ -1344,7 +1393,9 @@ class TsFeatures:
                 cusum_detector_features["cusum_conf"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][0].confidence
                 )
-            if extra_args is not None and extra_args.get("cusum_cp_index", default_status):
+            if extra_args is not None and extra_args.get(
+                "cusum_cp_index", default_status
+            ):
                 cusum_detector_features["cusum_cp_index"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][1]._cp_index / len(ts)
                 )
@@ -1356,15 +1407,21 @@ class TsFeatures:
                 cusum_detector_features["cusum_llr"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][1]._llr
                 )
-            if extra_args is not None and extra_args.get("cusum_regression_detected", default_status):
+            if extra_args is not None and extra_args.get(
+                "cusum_regression_detected", default_status
+            ):
                 cusum_detector_features["cusum_regression_detected"] = (
                     False if len(cusum_cp) == 0 else cusum_cp[0][1]._regression_detected
                 )
-            if extra_args is not None and extra_args.get("cusum_stable_changepoint", default_status):
+            if extra_args is not None and extra_args.get(
+                "cusum_stable_changepoint", default_status
+            ):
                 cusum_detector_features["cusum_stable_changepoint"] = (
                     False if len(cusum_cp) == 0 else cusum_cp[0][1]._stable_changepoint
                 )
-            if extra_args is not None and extra_args.get("cusum_p_value", default_status):
+            if extra_args is not None and extra_args.get(
+                "cusum_p_value", default_status
+            ):
                 cusum_detector_features["cusum_p_value"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][1]._p_value
                 )
@@ -1375,21 +1432,22 @@ class TsFeatures:
     # Robust Stat Detection Outputs (2)
     @staticmethod
     def get_robust_stat_detector(
-        ts: TimeSeriesData, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
-    ):
+        ts: TimeSeriesData,
+        extra_args: Optional[Dict[str, bool]] = None,
+        default_status: bool = True,
+    ) -> Dict[str, float]:
         """
-        Run the Kats Robust Stat Detector on the Time Series, extract features from the outputs of the detection.
+        Extract features from the outputs of the Kats Robust Stat Detector.
 
         Args:
-            ts: The univariate time series array in the form of Kats TimeSeriesData object.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            ts: The univariate time series array.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features.
 
         Returns:
-            (1) Number changepoints detected by the Robust Stat Detector, and (2) Mean of
-            the Metric values from the Robust Stat Detector.
+            (1) Number changepoints detected by the Robust Stat Detector, and
+            (2) Mean of the Metric values from the Robust Stat Detector.
         """
 
         robust_stat_detector_features = {
@@ -1401,7 +1459,9 @@ class TsFeatures:
             robust_cp = robust.detector()
             if extra_args is not None and extra_args.get("robust_num", default_status):
                 robust_stat_detector_features["robust_num"] = len(robust_cp)
-            if extra_args is not None and extra_args.get("robust_metric_mean", default_status):
+            if extra_args is not None and extra_args.get(
+                "robust_metric_mean", default_status
+            ):
                 robust_stat_detector_features["robust_metric_mean"] = (
                     0
                     if len(robust_cp) == 0
@@ -1414,22 +1474,25 @@ class TsFeatures:
     # BOCP Detection Outputs (3)
     @staticmethod
     def get_bocp_detector(
-        ts: TimeSeriesData, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
-    ):
+        ts: TimeSeriesData,
+        extra_args: Optional[Dict[str, bool]] = None,
+        default_status: bool = True,
+    ) -> Dict[str, float]:
         """
-        Run the Kats BOCP Detector on the Time Series, extract features from the outputs of the detection.
+        Extract features from the output of the Kats BOCP Detector.
 
         Args:
-            ts: The univariate time series array in the form of Kats TimeSeriesData object.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            ts: The univariate time series.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features.
 
         Returns:
-            (1) Number of changepoints detected by BOCP Detector, (2) Max value of the
-            confidience of the changepoints detected, (3) Mean value of the confidience
-             of the changepoints detected.
+            (tuple): tuple containing:
+
+                Number of changepoints detected by BOCP Detector
+                Max value of the confidence of the changepoints detected
+                Mean value of the confidence of the changepoints detected.
         """
 
         bocp_detector_features = {
@@ -1442,13 +1505,17 @@ class TsFeatures:
             bocp_cp = bocp.detector(choose_priors=False)
             if extra_args is not None and extra_args.get("bocp_num", default_status):
                 bocp_detector_features["bocp_num"] = len(bocp_cp)
-            if extra_args is not None and extra_args.get("bocp_conf_max", default_status):
+            if extra_args is not None and extra_args.get(
+                "bocp_conf_max", default_status
+            ):
                 bocp_detector_features["bocp_conf_max"] = (
                     0
                     if len(bocp_cp) == 0
                     else np.max([cp[0].confidence for cp in bocp_cp])
                 )
-            if extra_args is not None and extra_args.get("bocp_conf_mean", default_status):
+            if extra_args is not None and extra_args.get(
+                "bocp_conf_mean", default_status
+            ):
                 bocp_detector_features["bocp_conf_mean"] = (
                     0
                     if len(bocp_cp) == 0
@@ -1466,20 +1533,19 @@ class TsFeatures:
         iqr_mult: float = 3.0,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
-    ):
+    ) -> Dict[str, float]:
         """
-        Run the Kats Outlier Detector on the Time Series, extract features from the outputs of the detection.
+        Extract features from the output of the Kats Outlier Detector.
 
         Args:
-            ts: The univariate time series array in the form of Kats TimeSeriesData object.
-            decomp: str; Additive or Multiplicative mode for performing outlier detection using
-                OutlierDetector. Default value is 'additive'.
+            ts: The univariate time series.
+            decomp: str; Additive or Multiplicative mode for performing outlier
+                detection using OutlierDetector.
             iqr_mult: float; IQR range for determining outliers through
-                OutlierDetector. Default value is 3.0.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+                OutlierDetector.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features.
 
         Returns:
             Number of outliers by the Outlier Detector.
@@ -1503,23 +1569,23 @@ class TsFeatures:
         threshold: float = 0.8,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
-    ):
+    ) -> Dict[str, float]:
         """
-        Run the Kats Trend Detector on the Time Series, extract features from the outputs of the detection.
+        Extract features from the output of the Kats Trend Detector.
 
         Args:
-            ts: The univariate time series array in the form of Kats TimeSeriesData object.
-            threshold: float; threshold for trend intensity; higher threshold gives trend
-                with high intensity (0.8 by default).  If we only want to use the p-value
-                to determine changepoints, set threshold = 0.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            ts: The univariate time series.
+            threshold: float; threshold for trend intensity; higher threshold
+                gives trend with high intensity (0.8 by default).  If we only
+                want to use the p-value to determine changepoints, set threshold = 0.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features.
 
         Returns:
-            (1) Number of trends detected by the Kats Trend Detector, (2) Number of increasing
-            trends, (3) Mean of the abolute values of Taus of the trends detected.
+            (1) Number of trends detected by the Kats Trend Detector, (2) Number
+            of increasing trends, (3) Mean of the abolute values of Taus of the
+            trends detected.
         """
 
         trend_detector_features = {
@@ -1532,7 +1598,9 @@ class TsFeatures:
             tdetected_time_points = tdetector.detector(direction="both")
             if extra_args is not None and extra_args.get("trend_num", default_status):
                 trend_detector_features["trend_num"] = len(tdetected_time_points)
-            if extra_args is not None and extra_args.get("trend_num_increasing", default_status):
+            if extra_args is not None and extra_args.get(
+                "trend_num_increasing", default_status
+            ):
                 trend_detector_features["trend_num_increasing"] = len(
                     [
                         p
@@ -1540,7 +1608,9 @@ class TsFeatures:
                         if p[1].trend_direction == "decreasing"
                     ]
                 )
-            if extra_args is not None and extra_args.get("trend_avg_abs_tau", default_status):
+            if extra_args is not None and extra_args.get(
+                "trend_avg_abs_tau", default_status
+            ):
                 trend_detector_features["trend_avg_abs_tau"] = (
                     0
                     if len(tdetected_time_points) == 0
@@ -1553,11 +1623,7 @@ class TsFeatures:
 
     @staticmethod
     @jit(nopython=True)
-    def _ewma(
-        arr: np.ndarray,
-        span: int,
-        min_periods: int
-    ):
+    def _ewma(arr: np.ndarray, span: int, min_periods: int) -> np.ndarray:
         """
         Exponentialy weighted moving average specified by a decay ``window``
         to provide better adjustments for small windows via:
@@ -1565,9 +1631,10 @@ class TsFeatures:
                    (1 + (1-a) + (1-a)^2 + ... + (1-a)^n).
 
         Args:
-        arr : np.ndarray; A single dimenisional numpy array.
-        span : int; The decay window, or 'span'.
-        min_periods: int; Minimum amount of data points we'd like to include in the output.
+            arr : np.ndarray; A single dimenisional numpy array.
+            span : int; The decay window, or 'span'.
+            min_periods: int; Minimum amount of data points we'd like to include
+                in the output.
 
         Returns:
             A np.ndarray. The exponentially weighted moving average of the array.
@@ -1583,12 +1650,12 @@ class TsFeatures:
         ewma_old = arr[0]
         ewma[0] = ewma_old
         for i in range(1, n):
-            w += (1-alpha)**i
-            ewma_old = ewma_old*(1-alpha) + arr[i]
+            w += (1 - alpha) ** i
+            ewma_old = ewma_old * (1 - alpha) + arr[i]
             ewma[i] = ewma_old / w
 
-        output_subset = ewma[(min_periods-1):]
-        output_array[-len(output_subset):] = output_subset
+        output_subset = ewma[(min_periods - 1) :]
+        output_array[-len(output_subset) :] = output_subset
         return output_array
 
     @staticmethod
@@ -1600,22 +1667,20 @@ class TsFeatures:
         n_slow: int = 21,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
-    ):
+    ) -> Sequence[float]:
         """
-        Internal function for actually performing feature engineering using the same procedure as
-        nowcasting feature_extraction under kats/models.
+        Perform feature engineering using the same procedure as nowcasting.
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
-            window: int; Length of window size for all Nowcasting features. Default value is 5.
-            n_fast: int; length of "fast" or short period exponential moving average in the MACD
-                algorithm in the nowcasting features. Default value is 12.
-            n_slow: int; length of "slow" or long period exponential moving average in the MACD
-                algorithm in the nowcasting features. Default value is 21.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            window: int; Length of window size for all Nowcasting features.
+            n_fast: int; length of "fast" or short period exponential moving
+                average in the MACD algorithm in the nowcasting features.
+            n_slow: int; length of "slow" or long period exponential moving
+                average in the MACD algorithm in the nowcasting features.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features.
 
         Returns:
             A list containing extracted nowcast features.
@@ -1626,42 +1691,60 @@ class TsFeatures:
 
         # ROC: indicating return comparing to step n back.
         if extra_args is not None and extra_args.get("nowcast_roc", default_status):
-            M = x[(window-1):] - x[:-(window-1)]
-            N = x[:-(window-1)]
+            M = x[(window - 1) :] - x[: -(window - 1)]
+            N = x[: -(window - 1)]
             arr = M / N
-            nowcasting_features[0] = np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0).mean()
+            nowcasting_features[0] = np.nan_to_num(
+                arr, nan=0.0, posinf=0.0, neginf=0.0
+            ).mean()
 
         # MOM: indicating momentum: difference of current value and n steps back.
         if extra_args is not None and extra_args.get("nowcast_mom", default_status):
             M = x[window:] - x[:-window]
-            nowcasting_features[1] = np.nan_to_num(M, nan=0.0, posinf = 0.0, neginf=0.0).mean()
+            nowcasting_features[1] = np.nan_to_num(
+                M, nan=0.0, posinf=0.0, neginf=0.0
+            ).mean()
 
         # MA: indicating moving average in the past n steps.
         if extra_args is not None and extra_args.get("nowcast_ma", default_status):
             ret = np.cumsum(x, dtype=float)
             ret[window:] = ret[window:] - ret[:-window]
-            ma = ret[window - 1:] / window
-            nowcasting_features[2] = np.nan_to_num(ma, nan=0.0, posinf=0.0, neginf=0.0).mean()
+            ma = ret[window - 1 :] / window
+            nowcasting_features[2] = np.nan_to_num(
+                ma, nan=0.0, posinf=0.0, neginf=0.0
+            ).mean()
 
         # LAG: indicating lagged value at the past n steps.
         if extra_args is not None and extra_args.get("nowcast_lag", default_status):
             N = x[:-window]
-            nowcasting_features[3] = np.nan_to_num(N, nan=0.0, posinf=0.0, neginf=0.0).mean()
+            nowcasting_features[3] = np.nan_to_num(
+                N, nan=0.0, posinf=0.0, neginf=0.0
+            ).mean()
 
         # MACD: https://www.investopedia.com/terms/m/macd.asp.
-        ema_fast = TsFeatures._ewma(x, n_fast, n_slow-1)
-        ema_slow = TsFeatures._ewma(x, n_slow, n_slow-1)
+        ema_fast = TsFeatures._ewma(x, n_fast, n_slow - 1)
+        ema_slow = TsFeatures._ewma(x, n_slow, n_slow - 1)
         MACD = ema_fast - ema_slow
         if extra_args is not None and extra_args.get("nowcast_macd", default_status):
-            nowcasting_features[4] = np.nan_to_num(np.nanmean(MACD), nan=0.0, posinf=0.0, neginf=0.0)
+            nowcasting_features[4] = np.nan_to_num(
+                np.nanmean(MACD), nan=0.0, posinf=0.0, neginf=0.0
+            )
 
         MACDsign = TsFeatures._ewma(MACD, 9, 8)
-        if extra_args is not None and extra_args.get("nowcast_macdsign", default_status):
-            nowcasting_features[5] = np.nan_to_num(np.nanmean(MACDsign), nan=0.0, posinf=0.0, neginf=0.0)
+        if extra_args is not None and extra_args.get(
+            "nowcast_macdsign", default_status
+        ):
+            nowcasting_features[5] = np.nan_to_num(
+                np.nanmean(MACDsign), nan=0.0, posinf=0.0, neginf=0.0
+            )
 
         MACDdiff = MACD - MACDsign
-        if extra_args is not None and extra_args.get("nowcast_macddiff", default_status):
-            nowcasting_features[6] = np.nan_to_num(np.nanmean(MACDdiff), nan=0.0, posinf=0.0, neginf=0.0)
+        if extra_args is not None and extra_args.get(
+            "nowcast_macddiff", default_status
+        ):
+            nowcasting_features[6] = np.nan_to_num(
+                np.nanmean(MACDdiff), nan=0.0, posinf=0.0, neginf=0.0
+            )
 
         return nowcasting_features
 
@@ -1674,28 +1757,30 @@ class TsFeatures:
         n_slow: int = 21,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
-    ):
+    ) -> Dict[str, float]:
         """
-        Run the Kats Nowcasting transformer on the Time Series, extract aggregated features from the outputs of the transformation.
+        Extract aggregated features from the output of the Kats nowcasting transformer.
 
         Args:
             x: The univariate time series array in the form of 1d numpy array.
-            window: int; Length of window size for all Nowcasting features. Default value is 5.
-            n_fast: int; length of "fast" or short period exponential moving average in the MACD
-                algorithm in the nowcasting features. Default value is 12.
-            n_slow: int; length of "slow" or long period exponential moving average in the MACD
-                algorithm in the nowcasting features. Default value is 21.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            window: int; Length of window size for all Nowcasting features.
+            n_fast: int; length of "fast" or short period exponential moving
+                average in the MACD algorithm in the nowcasting features.
+            n_slow: int; length of "slow" or long period exponential moving
+                average in the MACD algorithm in the nowcasting features.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. Default value is None, i.e. no
+                feature is disabled.
+            default_status: Default status of the switch for calculate the features.
 
         Returns:
-            Mean values of the Kats Nowcasting algorithm time series outputs using the parameters
-            (window, n_fast, n_slow) indicated above. These outputs inclue : (1) Mean of Rate of
-            Change (ROC) time series, (2) Mean of Moving Average (MA) time series,(3) Mean of
-            Momentum (MOM) time series, (4) Mean of LAG time series, (5) Means of MACD, MACDsign,
-            and MACDdiff from Kats Nowcasting.
+            Mean values of the Kats Nowcasting algorithm time series outputs
+            using the parameters
+            (window, n_fast, n_slow) indicated above. These outputs include:
+            (1) Mean of Rate of Change (ROC) time series, (2) Mean of Moving
+            Average (MA) time series,(3) Mean of Momentum (MOM) time series,
+            (4) Mean of LAG time series, (5) Means of MACD, MACDsign, and
+            MACDdiff from Kats Nowcasting.
         """
         nowcasting_features = {}
         features = [
@@ -1712,7 +1797,9 @@ class TsFeatures:
                 nowcasting_features[feature] = np.nan
 
         try:
-            _features = TsFeatures._get_nowcasting_np(x, window, n_fast, n_slow, extra_args, default_status)
+            _features = TsFeatures._get_nowcasting_np(
+                x, window, n_fast, n_slow, extra_args, default_status
+            )
             for idx, feature in enumerate(features):
                 if extra_args is not None and extra_args.get(feature, default_status):
                     nowcasting_features[feature] = _features[idx]
@@ -1723,18 +1810,18 @@ class TsFeatures:
     # seasonality features (4)
     @staticmethod
     def get_seasonalities(
-        ts: TimeSeriesData, extra_args: Optional[Dict[str, bool]] = None, default_status: bool = True
-    ):
+        ts: TimeSeriesData,
+        extra_args: Optional[Dict[str, bool]] = None,
+        default_status: bool = True,
+    ) -> Dict[str, float]:
         """
-        Run the Kats seaonality detectors to get the estimated seasonal period, then extract trend,
-        seasonality and residual magnitudes.
+        Extract features from the output of the Kats seaonality detectors.
 
         Args:
-            ts: The univariate time series array in the form of Kats TimeSeriesData object.
-            extra_args: A dictionary containing information for disabling calculation
-                of a certain feature. Default value is None, i.e. no feature is disabled.
-            default_status: Default status of the switch for calculate the features or not.
-                Default value is True.
+            ts: The univariate time series.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features.
 
         Returns:
             Returns the detected seasonality period.
@@ -1766,16 +1853,19 @@ class TsFeatures:
 
             if detected["seasonality_presence"]:
                 _period = int(np.min(detected["seasonalities"]))
-            elif not detected["seasonality_presence"]:
+            else:
                 _period = 7
             res = STL(ts.value.values, period=_period).fit()
 
-            if extra_args is not None and extra_args.get("seasonal_period", default_status):
-                # pyre-fixme[61]: `_period` may not be initialized here.
+            if extra_args is not None and extra_args.get(
+                "seasonal_period", default_status
+            ):
                 seasonality_features["seasonal_period"] = _period
 
             # getting seasonality magnitude
-            if extra_args is not None and extra_args.get("seasonality_mag", default_status):
+            if extra_args is not None and extra_args.get(
+                "seasonality_mag", default_status
+            ):
                 seasonality_features["seasonality_mag"] = np.round(
                     np.quantile(res.seasonal, 0.95) - np.quantile(res.seasonal, 0.05)
                 )
@@ -1790,7 +1880,9 @@ class TsFeatures:
                 seasonality_features["trend_mag"] = _res.params[0]
 
             # residual standard deviation
-            if extra_args is not None and extra_args.get("residual_std", default_status):
+            if extra_args is not None and extra_args.get(
+                "residual_std", default_status
+            ):
                 seasonality_features["residual_std"] = np.std(res.resid)
 
             return seasonality_features
