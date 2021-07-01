@@ -2932,7 +2932,7 @@ class TestCUSUMDetectorModel(TestCase):
         self.assertEqual(score_tsd.value[-72:].sum(), 0)
         # the increase regression is detected and is on for about 7 days
         # statsmodels version difference will result in different STL results
-        self.assertLess(np.abs((score_tsd.value > 0.01).sum()-168), 10)
+        self.assertLess(np.abs((score_tsd.value > 0.01).sum() - 168), 10)
         # make sure the time series time are the same
         self.assertTrue((score_tsd.time.values == tsd.time.values).all())
         # make sure the time series name are the same
@@ -3023,7 +3023,10 @@ class TestProphetDetector(TestCase):
         sim.add_noise(magnitude=0.1 * magnitude * np.random.rand())
         return sim.stl_sim()
 
-    def create_ts(self, length=100, magnitude=10, signal_to_noise_ratio=0.1, freq="1D"):
+    def create_ts(
+        self, seed=0, length=100, magnitude=10, signal_to_noise_ratio=0.1, freq="1D"
+    ):
+        np.random.seed(seed)
         sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
 
         sim.add_seasonality(magnitude, period=timedelta(days=7))
@@ -3055,7 +3058,7 @@ class TestProphetDetector(TestCase):
 
         sim_ts = sim.stl_sim()
 
-        self.add_trend_shift(sim_ts, length, freq, 1250)
+        self.add_trend_shift(sim_ts, length, freq, min_val + magnitude)
 
         return sim_ts
 
@@ -3438,30 +3441,26 @@ class TestProphetDetector(TestCase):
             )
             self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
 
-    def test_heteroscedastic_noise_signal(self):
-        """Tests the z-score strategy on signals with heteroscedastic noise
+    @unittest.skip(
+        "Prophet doesn't learn heteroskedastic seasonality with params used by ProphetDetectorModel"
+    )
+    def test_heteroskedastic_noise_signal(self):
+        """Tests the z-score strategy on signals with heteroskedastic noise
 
-        This test creates synthetic data with heteroscedastic noise. Then, it adds
+        This test creates synthetic data with heteroskedastic noise. Then, it adds
         anomalies of identical magnitudes to segments with different noise. Finally, it
         verifies that anomalies in low-noise segments have higher z-scores than those
         in high-noise segments. This occurs because low noise segments will have lower
         standard deviations, which result in higher z-scores.
         """
-        ts = self.create_ts(length=100 * 24, signal_to_noise_ratio=0, freq="1h")
+        ts = self.create_ts(length=100 * 24, signal_to_noise_ratio=0.05, freq="1h")
 
-        # add heteroscedastic noise to the data
+        # add heteroskedastic noise to the data
 
         ts.value *= (
-            (
-                (ts.time - pd.to_datetime("2020-01-01")) % timedelta(days=7)
-                > timedelta(days=3.5)
-            )
-            * np.random.rand(100 * 24)
-            * 0.5
-            * 2
-            + 1
-            - 0.5
-        )
+            (ts.time - pd.to_datetime("2020-01-01")) % timedelta(days=7)
+            > timedelta(days=3.5)
+        ) * np.random.rand(100 * 24) + 0.5
 
         ts.value[93 * 24] += 100
         ts.value[96 * 24] += 100
@@ -3479,7 +3478,7 @@ class TestProphetDetector(TestCase):
         """
         ts = self.create_ts(length=100 * 24, freq="1h")
 
-        ts.value[93 * 24] += 40
+        ts.value[93 * 24] += 60
         ts.value[96 * 24] += 30
 
         model = ProphetDetectorModel(score_func="z_score")
