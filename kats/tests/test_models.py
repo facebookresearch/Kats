@@ -465,6 +465,51 @@ class SARIMAModelTest(TestCase):
         m_daily.predict(steps=30, freq="D")
         m.plot()
 
+    def test_exog_forecast(self) -> None:
+        # Prepping data
+        steps = 10
+
+        endog = DATA_multi['0'][:-steps]
+        time = DATA_multi['time'][:-steps]
+
+        exog = DATA_multi['1'][:-steps].values
+        fcst_exog = DATA_multi['1'][-steps:].values # exog to be used for predictions
+
+        ts_data = TimeSeriesData(value=endog, time=time)
+        
+        params = SARIMAParams(
+            p=2,
+            d=1,
+            q=1,
+            trend="ct",
+            seasonal_order=(1, 0, 1, 12),
+            enforce_invertibility=False,
+            enforce_stationarity=False,
+            exog=exog
+        )
+        params.validate_params()
+        m = SARIMAModel(ts_data, params)
+        m.fit(
+            start_params=None,
+            # pyre-fixme[6]: Expected `bool` for 2nd param but got `None`.
+            transformed=None,
+            includes_fixed=None,
+            cov_type=None,
+            cov_kwds=None,
+            method="lbfgs",
+            maxiter=50,
+            full_output=1,
+            disp=False,
+            callback=None,
+            return_params=False,
+            optim_score=None,
+            optim_complex_step=None,
+            optim_hessian=None,
+            low_memory=False,
+        )
+        m.predict(steps=steps, exog=fcst_exog, freq="D")
+        m.plot()
+
     def test_others(self) -> None:
         params = SARIMAParams(
             p=2,
