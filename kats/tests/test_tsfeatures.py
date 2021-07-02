@@ -37,10 +37,13 @@ class TSfeaturesTest(TestCase):
     def test_tsfeatures(self) -> None:
         feature_vector = TsFeatures().transform(TSData)
 
+        # pyre-fixme[6]: Expected `str` for 1st param but got
+        #  `Union[typing.Dict[str, float], str]`.
         feature_vector_round = {key: round(feature_vector[key], 6) for key in feature_vector}
 
         # test there is no nan in feature vector
         self.assertEqual(
+            # pyre-fixme[16]: `List` has no attribute `values`.
             np.isnan(np.asarray(list(feature_vector.values()))).any(),
             False,
         )
@@ -113,10 +116,13 @@ class TSfeaturesTest(TestCase):
     def test_feature_selections(self) -> None:
         # test disabling functions
         feature_vector = TsFeatures(unitroot_kpss=False, histogram_mode=False, diff2y_pacf5=False, firstmin_ac=False).transform(TSData)
+        # pyre-fixme[6]: Expected `str` for 1st param but got
+        #  `Union[typing.Dict[str, float], str]`.
         feature_vector_round = {key: round(feature_vector[key], 6) for key in feature_vector}
 
         # test if there are 36 features in the feature vector now
         self.assertEqual(
+            # pyre-fixme[16]: `List` has no attribute `values`.
             len(np.asarray(list(feature_vector.values()))) == (TsFeatures()._total_feature_len_ - 4 - 28),
             True,
         )
@@ -187,6 +193,8 @@ class TSfeaturesTest(TestCase):
             'level_shift_idx'
         ]
         feature_vector = TsFeatures(selected_features = features).transform(TSData)
+        # pyre-fixme[6]: Expected `str` for 1st param but got
+        #  `Union[typing.Dict[str, float], str]`.
         feature_vector_round = {key: round(feature_vector[key], 6) for key in feature_vector}
 
         # test if there are 7 features in the feature vector now
@@ -247,6 +255,8 @@ class TSfeaturesTest(TestCase):
             "residual_std",
         ]
         feature_vector = TsFeatures(selected_features = extension_features).transform(TSData)
+        # pyre-fixme[6]: Expected `str` for 1st param but got
+        #  `Union[typing.Dict[str, float], str]`.
         feature_vector_round = {key: round(feature_vector[key], 6) for key in feature_vector}
 
         # test if there are 7 features in the feature vector now
@@ -301,6 +311,7 @@ class TSfeaturesTest(TestCase):
         feature_vector = TsFeatures().transform(TSData_short)
 
         self.assertEqual(
+            # pyre-fixme[16]: `List` has no attribute `values`.
             np.isnan(np.asarray(list(feature_vector.values()))).any(),
             True,
         )
@@ -342,6 +353,8 @@ class TSfeaturesTest(TestCase):
             'hw_gamma',
         ])
         feats = ts_features.transform(ts)
+        # pyre-fixme[6]: Expected `str` for 1st param but got
+        #  `Union[typing.Dict[str, float], str]`.
         feats = {key: round(feats[key], 3) for key in feats}
         if statsmodels_ver < 0.12:
             self.assertEqual(

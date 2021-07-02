@@ -16,13 +16,9 @@ from kats.models.theta import ThetaParams, ThetaModel
 
 if "kats/tests" in os.getcwd():
     DATA_FILE = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/air_passengers.csv"
-            )
-            )
-elif "/home/runner/work/" in os.getcwd(): # for github Action
+        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
+    )
+elif "/home/runner/work/" in os.getcwd():  # for github Action
     DATA_FILE = "kats/data/air_passengers.csv"
 else:
     DATA_FILE = "kats/kats/data/air_passengers.csv"
@@ -30,7 +26,9 @@ else:
 DATA = pd.read_csv(DATA_FILE)
 DATA.columns = ["time", "y"]
 TSData = TimeSeriesData(DATA)
-statsmodels_ver = float(re.findall('([0-9]+\\.[0-9]+)\\..*', statsmodels.__version__)[0])
+statsmodels_ver = float(
+    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
+)
 
 
 class cupikTest(TestCase):
@@ -71,10 +69,10 @@ class cupikTest(TestCase):
         )
 
     def test_thetamodel(self) -> None:
-        pipe = Pipeline([("theta_model", ThetaModel(params = ThetaParams()))])
+        pipe = Pipeline([("theta_model", ThetaModel(params=ThetaParams()))])
         fitted = pipe.fit(TSData)
         bools = (
-            # pyre-fixme[16]: `None` has no attribute `fitted_values`.
+            # pyre-fixme[16]: Optional type has no attribute `values`.
             ThetaModel(TSData, ThetaParams()).fit().fitted_values.values
             == fitted.fitted_values.values
         )
@@ -84,16 +82,15 @@ class cupikTest(TestCase):
         elif statsmodels_ver >= 0.12:
             self.assertEqual(fitted.predict(1).fcst.values[0], 433.1270492317991)
 
-
         # test if the model can be built on the output from the detector
         pipe = Pipeline(
             [
                 ("trend_detector", MKDetector(threshold=0.8)),
-                ("theta_model", ThetaModel(params = ThetaParams())),
+                ("theta_model", ThetaModel(params=ThetaParams())),
             ]
         )
         fitted = pipe.fit(TSData)
-        self.assertEqual(len(pipe.metadata['trend_detector'][0]), 2)
+        self.assertEqual(len(pipe.metadata["trend_detector"][0]), 2)
         if statsmodels_ver < 0.12:
             self.assertEqual(fitted.predict(1).fcst.values[0], 433.328591954023)
         elif statsmodels_ver >= 0.12:

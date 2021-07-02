@@ -378,6 +378,7 @@ class MetaLearnModelSelect:
             logging.info(msg)
 
         new_features = TsFeatures().transform(ts)
+        # pyre-fixme[16]: `List` has no attribute `values`.
         new_features_vector = np.asarray(list(new_features.values()))
         if np.any(np.isnan(new_features_vector)):
             msg = (
@@ -456,6 +457,7 @@ class MetaLearnModelSelect:
         if ts_scale:
             # scale time series to make ts features more stable
             ts.value /= ts.value.max()
+        # pyre-fixme[16]: `List` has no attribute `values`.
         test = np.asarray(list(TsFeatures().transform(ts).values()))
         test[np.isnan(test)] = 0.0
         if self.scale:

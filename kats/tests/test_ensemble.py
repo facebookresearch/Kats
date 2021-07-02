@@ -28,29 +28,21 @@ from kats.models.ensemble.weighted_avg_ensemble import WeightedAvgEnsemble
 
 if "kats/tests" in os.getcwd():
     data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/air_passengers.csv"
-            )
-        )
+        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
+    )
 
     daily_data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/peyton_manning.csv"
-            )
-        )
+        os.path.join(os.path.dirname("__file__"), "../", "data/peyton_manning.csv")
+    )
 
     multi_data_path = os.path.abspath(
         os.path.join(
             os.path.dirname("__file__"),
             "../",
-            "data/multivariate_anomaly_simulated_data.csv"
-            )
+            "data/multivariate_anomaly_simulated_data.csv",
         )
-elif "/home/runner/work/" in os.getcwd(): # for github Action
+    )
+elif "/home/runner/work/" in os.getcwd():  # for github Action
     data_path = "kats/data/air_passengers.csv"
     daily_data_path = "kats/data/peyton_manning.csv"
     multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
@@ -71,10 +63,12 @@ DATA_multi = pd.read_csv(multi_data_path)
 TSData_multi = TimeSeriesData(DATA_multi)
 
 np.random.seed(123321)
-DATA_dummy = pd.DataFrame({
-    "time": pd.date_range(start="2019-01-01", end="2019-12-31", freq="D"),
-    "y": [x + np.random.randint(20) for x in range(365)],
-})
+DATA_dummy = pd.DataFrame(
+    {
+        "time": pd.date_range(start="2019-01-01", end="2019-12-31", freq="D"),
+        "y": [x + np.random.randint(20) for x in range(365)],
+    }
+)
 TSData_dummy = TimeSeriesData(DATA_dummy)
 
 
@@ -292,9 +286,10 @@ class testWeightedAvgEnsemble(TestCase):
                     ),
                 ),
                 BaseModelParams(
-                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
-                    #  `ProphetParams`.
-                    "prophet", prophet.ProphetParams(seasonality_mode="multiplicative")
+                    "prophet",
+                    # pyre-fixme[6]: Expected `Model[typing.Any]` for 2nd param but
+                    #  got `ProphetParams`.
+                    prophet.ProphetParams(seasonality_mode="multiplicative"),
                 ),
                 # pyre-fixme[6]: Expected `Model` for 2nd param but got
                 #  `LinearModelParams`.
@@ -370,7 +365,7 @@ class testKatsEnsemble(TestCase):
                 # pyre-fixme[6]: Expected `Model` for 2nd param but got
                 #  `QuadraticModelParams`.
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ThetaParams`.
+                # pyre-fixme[6]: Expected `kats.models.model.Model[typing.Any]` for 2nd positional only parameter to call `BaseModelParams.__init__` but got `theta.ThetaParams`.
                 BaseModelParams("theta", theta.ThetaParams(m=12)),
             ]
         )
@@ -431,7 +426,8 @@ class testKatsEnsemble(TestCase):
                 # pyre-fixme[6]: Expected `Model` for 2nd param but got
                 #  `QuadraticModelParams`.
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ThetaParams`.
+                # pyre-fixme[6]: Expected `Model[typing.Any]` for 2nd param but got
+                #  `ThetaParams`.
                 BaseModelParams("theta", theta.ThetaParams(m=12)),
             ]
         )
@@ -482,7 +478,7 @@ class testKatsEnsemble(TestCase):
         }
 
         dummy_ts = TimeSeriesData(
-            time=pd.date_range(start='2020-01-01', end='2020-05-31', freq='D'),
+            time=pd.date_range(start="2020-01-01", end="2020-05-31", freq="D"),
             value=pd.Series(list(range(152))),
         )
         m = KatsEnsemble(data=dummy_ts, params=KatsEnsembleParam)
