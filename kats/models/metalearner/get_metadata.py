@@ -298,6 +298,7 @@ class GetMetaData:
         features_dict = TsFeatures().transform(self.data)
 
         # feature contains nan, pass
+        # pyre-fixme[16]: `List` has no attribute `values`.
         if np.isnan(list(features_dict.values())).any():
             msg = f"Feature vector contains NAN, features are {features_dict}."
             logging.warning(msg)
