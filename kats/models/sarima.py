@@ -248,8 +248,6 @@ class SARIMAModel(m.Model):
             steps: An integer for forecast steps.
             include_history: Optional; A boolearn to specify whether to include historical data. Default is False.
             alpha: A float for confidence level. Default is 0.05.
-
-        KWArgs:
             exog: A numpy array of exogenous values to be passed to forecast
 
         Returns:
