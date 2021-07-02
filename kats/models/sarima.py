@@ -240,7 +240,7 @@ class SARIMAModel(m.Model):
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
-        self, steps: int, include_history: bool = False, alpha: float = 0.05, **kwargs
+        self, steps: int, exog: np.array=None, include_history: bool = False, alpha: float = 0.05, **kwargs
     ) -> pd.DataFrame:
         """Predict with fitted SARIMA model.
 
@@ -248,6 +248,9 @@ class SARIMAModel(m.Model):
             steps: An integer for forecast steps.
             include_history: Optional; A boolearn to specify whether to include historical data. Default is False.
             alpha: A float for confidence level. Default is 0.05.
+
+        KWArgs:
+            exog: A numpy array of exogenous values to be passed to forecast
 
         Returns:
             A :class:`pandas.DataFrame` of forecasts and confidence intervals.
@@ -259,7 +262,13 @@ class SARIMAModel(m.Model):
         self.include_history = include_history
         self.freq = kwargs.get("freq", self.data.infer_freq_robust())
         self.alpha = alpha
-        fcst = self.model.get_forecast(steps, exog=kwargs.get('exog'))
+
+        if (self.params.exog is not None) and (exog is None):
+            msg = "SARIMA model was initialized with exogenous variables. Exogenous variables must be used to predict. use `exog=`"
+            logging.error(msg)
+            raise ValueError(msg)
+
+        fcst = self.model.get_forecast(steps, exog=exog)
 
         logging.info("Generated forecast data from SARIMA model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
