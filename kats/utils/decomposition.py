@@ -3,6 +3,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,42 +11,61 @@ import pandas as pd
 from kats.consts import TimeSeriesData
 from statsmodels.tsa.seasonal import STL, seasonal_decompose
 
+# from numpy.typing import ArrayLike
+ArrayLike = Union[np.ndarray, Sequence[float]]
+Figsize = Tuple[int, int]
+
+
+def _identity(x: ArrayLike) -> ArrayLike:
+    return x
+
 
 class TimeSeriesDecomposition:
     """Model class for Time Series Decomposition.
 
     This class provides utilities to decompose an input time series
 
+    Pass specific arguments to seasonal_decompose and STL functions via kwargs.
+
     Attributes:
         data: the input time series data as `TimeSeriesData`
         decomposition: `additive` or `multiplicative` decomposition
         method: `STL decompostion` or `seasonal_decompose`
-    Specific arguments to seasonal_decompose and STL functions can be passed via kwargs
     """
 
+    freq: Optional[str] = None
+    results: Optional[Dict[str, TimeSeriesData]] = None
+
     def __init__(
-        self, data: TimeSeriesData, decomposition="additive", method="STL", **kwargs
+        self,
+        data: TimeSeriesData,
+        decomposition: str = "additive",
+        method: str = "STL",
+        **kwargs,
     ) -> None:
-        self.data = data
-        if not isinstance(self.data.value, pd.Series):
-            msg = "Only support univariate time series, but get {type}.".format(
-                type=type(self.data.value)
-            )
+        if not isinstance(data.value, pd.Series):
+            msg = f"Only support univariate time series, but got {type(data.value)}."
             logging.error(msg)
             raise ValueError(msg)
+        self.data = data
         if decomposition in ("additive", "multiplicative"):
             self.decomposition = decomposition
         else:
-            logging.info("Invalid decomposition setting specified")
-            logging.info("Defaulting to Additive Decomposition")
+            logging.info(
+                "Invalid decomposition setting specified; "
+                "defaulting to Additive Decomposition."
+            )
             self.decomposition = "additive"
-        if method in ("STL", "seasonal_decompose"):
-            self.method = method
+        if method == "seasonal_decompose":
+            self.method = self.__decompose_seasonal
         else:
-            logging.info("Invalid decomposition setting specified")
-            logging.info("Possible Values: STL, seasonal_decompose")
-            logging.info("Defaulting to STL")
-            self.method = "STL"
+            if method != "STL":
+                logging.info(
+                    f"""Invalid decomposition setting {method} specified.
+                    Possible Values: STL, seasonal_decompose.
+                    Defaulting to STL."""
+                )
+            self.method = self.__decompose_STL
 
         ## The following are params for the STL Module
         self.period = kwargs.get("period", None)
@@ -60,19 +80,16 @@ class TimeSeriesDecomposition:
         self.trend_jump = kwargs.get("trend_jump", 1)
         self.low_pass_jump = kwargs.get("low_pass_jump", 1)
 
-    def __clean_ts(self):
+    def __clean_ts(self) -> pd.DataFrame:
         """Internal function to clean the time series.
 
-        Internal function to interpolate time series and infer frequency of time series required for decomposition
+        Internal function to interpolate time series and infer frequency of
+        time series required for decomposition.
         """
 
         original = pd.DataFrame(
-            list(self.data.value), index=self.data.time, columns=["y"]
+            list(self.data.value), index=pd.to_datetime(self.data.time), columns=["y"]
         )
-
-        original.columns = ["y"]
-
-        original.index = pd.to_datetime(original.index)
 
         if pd.infer_freq(original.index) is None:
             original = original.asfreq("D")
@@ -80,130 +97,93 @@ class TimeSeriesDecomposition:
 
         self.freq = pd.infer_freq(original.index)
 
-        original = original.interpolate(
-            method="polynomial", limit_direction="both", order=3
+        original.interpolate(
+            method="polynomial", limit_direction="both", order=3, inplace=True
         )
 
         ## This is a hack since polynomial interpolation is not working here
-        if sum((np.isnan(x) for x in original["y"])):
-            original = original.interpolate(method="linear", limit_direction="both")
+        if any(original["y"].isna()):
+            original.interpolate(method="linear", limit_direction="both", inplace=True)
 
+        # pyre-ignore[7]: Expected `DataFrame` but got
+        #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         return original
 
-    def __decompose_seasonal(self, original):
-        """Internal function to call seasonal_decompose to do the decomposition."""
-        if self.period is not None:
-            result = seasonal_decompose(
-                original, model=self.decomposition, period=self.period
-            )
-        else:
-            if "T" in self.freq:
-                result = seasonal_decompose(
-                    original, model=self.decomposition, period=2
-                )
+    def _get_period(self) -> Optional[int]:
+        period = self.period
+        freq = self.freq
+        if period is None:
+            if freq is not None and "T" in freq:
                 logging.warning(
-                    "Seasonal Decompose cannot handle sub day level granularity"
+                    """Seasonal Decompose cannot handle sub day level granularity.
+                    Please consider setting period yourself based on the input data.
+                    Defaulting to a period of 2."""
                 )
-                logging.warning(
-                    "Please consider setting period yourself based on the input data"
-                )
-                logging.warning("Defaulting to a period of 2")
-            else:
-                result = seasonal_decompose(original, model=self.decomposition)
+                period = 2
+        return period
 
-        output = {
+    def __decompose_seasonal(self, original: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        """Internal function to call seasonal_decompose to do the decomposition."""
+        period = self._get_period()
+        result = seasonal_decompose(original, model=self.decomposition, period=period)
+
+        return {
             "trend": result.trend,
             "seasonal": result.seasonal,
-            "resid": result.resid,
+            "rem": result.resid,
         }
 
-        return output
-
-    def __decompose_STL(self, original):
+    def __decompose_STL(self, original: pd.DataFrame) -> Dict[str, pd.DataFrame]:
         """Internal function to call STL to do the decomposition.
 
         The arguments to STL can be passed in the class via kwargs
         """
-        if "T" in self.freq and self.period is None:
-            logging.warning("STL cannot handle sub day level granularity")
-            logging.warning(
-                "Please consider setting period yourself based on the input data"
-            )
-            logging.warning("Defaulting to a period of 2")
-            self.period = 2
+        self.period = period = self._get_period()
+
         if self.decomposition == "additive":
-            result = STL(
-                original,
-                period=self.period,
-                seasonal=self.seasonal,
-                trend=self.trend,
-                low_pass=self.low_pass,
-                seasonal_deg=self.seasonal_deg,
-                trend_deg=self.trend_deg,
-                low_pass_deg=self.low_pass_deg,
-                robust=self.robust,
-                seasonal_jump=self.seasonal_jump,
-                trend_jump=self.trend_jump,
-                low_pass_jump=self.low_pass_jump,
-            ).fit()
-            output = {
-                "trend": result.trend,
-                "seasonal": result.seasonal,
-                "resid": result.resid,
-            }
+            data = original
+            post_transform = _identity
         else:
             if np.any(original <= 0):
                 logging.error(
                     "Multiplicative seasonality is not appropriate "
-                    "for zero and negative values"
+                    "for zero and negative values."
                 )
-            original_transformed = np.log(original)
-            result = STL(
-                original_transformed,
-                period=self.period,
-                seasonal=self.seasonal,
-                trend=self.trend,
-                low_pass=self.low_pass,
-                seasonal_deg=self.seasonal_deg,
-                trend_deg=self.trend_deg,
-                low_pass_deg=self.low_pass_deg,
-                robust=self.robust,
-                seasonal_jump=self.seasonal_jump,
-                trend_jump=self.trend_jump,
-                low_pass_jump=self.low_pass_jump,
-            ).fit()
-            output = {
-                "trend": np.exp(result.trend),
-                "seasonal": np.exp(result.seasonal),
-                "resid": np.exp(result.resid),
-            }
+            data = np.log(original)
+            post_transform = np.exp
 
-        return output
-
-    def __decompose(self, original):
-
-        if self.method == "STL":
-            output = self.__decompose_STL(original)
-        else:
-            output = self.__decompose_seasonal(original)
+        result = STL(
+            data,
+            period=period,
+            seasonal=self.seasonal,
+            trend=self.trend,
+            low_pass=self.low_pass,
+            seasonal_deg=self.seasonal_deg,
+            trend_deg=self.trend_deg,
+            low_pass_deg=self.low_pass_deg,
+            robust=self.robust,
+            seasonal_jump=self.seasonal_jump,
+            trend_jump=self.trend_jump,
+            low_pass_jump=self.low_pass_jump,
+        ).fit()
 
         return {
-            "trend": TimeSeriesData(
-                output["trend"].reset_index(), time_col_name=self.data.time_col_name
-            ),
-            "seasonal": TimeSeriesData(
-                output["seasonal"].reset_index(), time_col_name=self.data.time_col_name
-            ),
-            "rem": TimeSeriesData(
-                output["resid"].reset_index(), time_col_name=self.data.time_col_name
-            ),
+            "trend": post_transform(result.trend),
+            "seasonal": post_transform(result.seasonal),
+            "rem": post_transform(result.resid),
         }
 
-    def decomposer(self):
-        """Decompose the time series.
+    def __decompose(self, original: pd.DataFrame) -> Dict[str, TimeSeriesData]:
+        output = self.method(original)
+        return {
+            name: TimeSeriesData(
+                ts.reset_index(), time_col_name=self.data.time_col_name
+            )
+            for name, ts in output.items()
+        }
 
-        Args:
-            None.
+    def decomposer(self) -> Dict[str, TimeSeriesData]:
+        """Decompose the time series.
 
         Returns:
             A dictionary with three time series for the three components:
@@ -212,41 +192,50 @@ class TimeSeriesDecomposition:
             `rem` : Residual
         """
         original = self.__clean_ts()
-        self.results = self.__decompose(original)
+        self.results = result = self.__decompose(original)
+        return result
 
-        return self.results
-
-    def plot(self):
+    def plot(
+        self,
+        figsize: Optional[Figsize] = None,
+        linewidth: int = 3,
+        xlabel: str = "Time",
+        original_title: str = "Original Time Series",
+        trend_title="Trend",
+        seasonality_title="Seasonality",
+        residual_title="Residual",
+        subplot_kwargs: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Tuple[plt.Axes, plt.Axes, plt.Axes, plt.Axes]:
         """Plot the original time series and the three decomposed components."""
+        results = self.results
+        if results is None:
+            raise ValueError("Call decomposer() before plot().")
 
-        fig, ax = plt.subplots(nrows=4, ncols=1, figsize=(20, 10), sharex=True)
+        if figsize is None:
+            figsize = (20, 10)
+        if subplot_kwargs is None:
+            subplot_kwargs = {"hspace": 0.2}
 
-        ax[0].plot(
+        sharex = kwargs.pop("sharex", True)
+        fig, axs = plt.subplots(
+            nrows=4, ncols=1, figsize=figsize, sharex=sharex, **kwargs
+        )
+        titles = [trend_title, seasonality_title, residual_title]
+        parts = ["trend", "seasonal", "rem"]
+
+        axs[0].plot(
             self.data.time.values,
             self.data.value.values,
-            linewidth=3,
+            linewidth=linewidth,
         )
-        ax[0].set_title("Original Time Series")
-        ax[1].plot(
-            self.results["trend"].time.values,
-            self.results["trend"].value.values,
-            linewidth=3,
-        )
-        ax[1].set_title("Trend")
+        axs[0].set_title(original_title)
 
-        ax[2].plot(
-            self.results["seasonal"].time.values,
-            self.results["seasonal"].value.values,
-            linewidth=3,
-        )
-        ax[2].set_title("Seasonality")
+        for part, ax, title in zip(parts, axs, titles):
+            ts: TimeSeriesData = results[part]
+            ax.plot(ts.time.values, ts.value.values, linewidth=linewidth)
+            ax.set_title(title)
 
-        ax[3].plot(
-            self.results["rem"].time.values,
-            self.results["rem"].value.values,
-            linewidth=3,
-        )
-        ax[3].set_title("Residual")
-        ax[3].set_xlabel("Time")
-        plt.subplots_adjust(hspace=0.2)
-        return fig, ax
+        axs[3].set_xlabel(xlabel)
+        plt.subplots_adjust(**subplot_kwargs)
+        return (axs[0], axs[1], axs[2], axs[3])
