@@ -4,7 +4,7 @@
 
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Set
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 import re
 import numpy as np
 import pandas as pd
@@ -12,7 +12,7 @@ from collections import namedtuple
 import copy
 
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
-from kats.detectors.detector import Detector
+from kats.detectors.detector import Detector, DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.utils.simulator import Simulator
 
@@ -180,8 +180,9 @@ def f_measure(
 
 
 def generate_from_simulator(
-    cp_arr: Optional[List[int]] = None, level_arr: Optional[List[float]] = None,
-    ts_length: int = 450
+    cp_arr: Optional[List[int]] = None,
+    level_arr: Optional[List[float]] = None,
+    ts_length: int = 450,
 ) -> Tuple[Dict[str, Any], Dict[str, List[int]]]:
     if cp_arr is None:
         cp_arr = [100, 200, 350]
@@ -203,7 +204,7 @@ def generate_from_simulator(
 
 
 class BenchmarkEvaluator(ABC):
-    def __init__(self, detector: Detector):
+    def __init__(self, detector: Union[Type[Detector], Type[DetectorModel]]):
         self.detector = detector
 
     @abstractmethod
@@ -293,7 +294,13 @@ class TuringEvaluator(BenchmarkEvaluator):
     >>> avg_precision = eval_agg.get_average_precision()
     """
 
-    def __init__(self, detector: Detector, is_detector_model: bool = False):
+    ts_df: Optional[pd.DataFrame] = None
+
+    def __init__(
+        self,
+        detector: Union[Type[Detector], Type[DetectorModel]],
+        is_detector_model: bool = False,
+    ):
         super(TuringEvaluator, self).__init__(detector=detector)
         self.detector = detector
         self.eval_agg = None
@@ -340,20 +347,19 @@ class TuringEvaluator(BenchmarkEvaluator):
             model_params = {}
 
         if data is None:
-            # pyre-fixme[16]: `TuringEvaluator` has no attribute `ts_df`.
-            self.ts_df = self.load_data()
-        else:
-            self.ts_df = data
+            data = self.load_data()
+        self.ts_df = data
 
         eval_list = []
 
-        for _, row in self.ts_df.iterrows():
+        for _, row in data.iterrows():
             this_dataset = row["dataset_name"]
             if this_dataset in ignore_list:
                 continue
             data_name, tsd, anno = self._parse_data(row)
-            # pyre-fixme[29]: `Detector` is not a function.
+            # pyre-fixme[45]: Cannot instantiate abstract class `Detector`.
             detector = self.detector(**model_params)
+            # pyre-fixme[16]: `Detector` has no attribute `fit_predict`.
             anom_obj = detector.fit_predict(tsd)
 
             cp_list = get_cp_index_from_detector_model(
@@ -381,28 +387,23 @@ class TuringEvaluator(BenchmarkEvaluator):
         data: Optional[pd.DataFrame] = None,
         ignore_list: Optional[List[str]] = None,
     ) -> pd.DataFrame:
-
-        # this is to avoid a mutable default parameter
-        if not ignore_list:
-            ignore_list = []
-
         if model_params is None:
             model_params = {}
+        if ignore_list is None:
+            ignore_list = []
 
         if data is None:
-            # pyre-fixme[16]: `TuringEvaluator` has no attribute `ts_df`.
-            self.ts_df = self.load_data()
-        else:
-            self.ts_df = data
+            data = self.load_data()
+        self.ts_df = data
 
         eval_list = []
 
-        for _, row in self.ts_df.iterrows():
+        for _, row in data.iterrows():
             this_dataset = row["dataset_name"]
             if this_dataset in ignore_list:
                 continue
             data_name, tsd, anno = self._parse_data(row)
-            # pyre-fixme[29]: `Detector` is not a function.
+            # pyre-fixme[45]: Cannot instantiate abstract class `Detector`.
             detector = self.detector(tsd)
             change_points = detector.detector(**model_params)
             cp_list = get_cp_index(change_points, tsd)
@@ -463,11 +464,10 @@ class TuringEvaluator(BenchmarkEvaluator):
         this_anno = df_row["annotation"]
 
         this_anno_json_acc = this_anno.replace("'", "\"")
-        print(this_dataset)
 
         this_anno_dict = json.loads(this_anno_json_acc)
 
-        this_ts_json_acc = this_ts.replace("'", '\"')
+        this_ts_json_acc = this_ts.replace("'", "\"")
         try:
             this_ts_dict = json.loads(this_ts_json_acc)
         except Exception:
@@ -480,12 +480,15 @@ class TuringEvaluator(BenchmarkEvaluator):
         ts.columns = ["time", "y"]
         first_time_val = ts.time.values[0]
         if re.match(r"\d{4}-\d{2}-\d{2}", first_time_val):
-            # pyre-fixme[16]: `DataFrame` has no attribute `time`.
-            ts.time = pd.to_datetime(ts.time, format="%Y-%m-%d")
+            fmt = "%Y-%m-%d"
+            unit = None
         elif re.match(r"\d{4}-\d{2}", first_time_val):
-            ts.time = pd.to_datetime(ts.time, format="%Y-%m")
+            fmt = "%Y-%m"
+            unit = None
         else:
-            ts.time = pd.to_datetime(ts.time, unit="s")
+            fmt = None
+            unit = "s"
+        ts["time"] = pd.to_datetime(ts["time"], format=fmt, unit=unit)
 
         tsd = TimeSeriesData(
             ts,

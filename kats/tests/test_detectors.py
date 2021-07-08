@@ -3613,21 +3613,16 @@ class TestChangepointEvaluator(TestCase):
         model_params = {"p_value_cutoff": 5e-3, "comparison_window": 2}
 
         # Test RobustStatDetector
-        # pyre-fixme[6]: Expected `Detector` for 1st param but got
-        #  `Type[RobustStatDetector]`.
         turing_2 = TuringEvaluator(detector=RobustStatDetector)
         eval_agg_2_df = turing_2.evaluate(data=eg_df, model_params=model_params)
         self.assertEqual(eval_agg_2_df.shape[0], eg_df.shape[0])
 
         # Test CUSUMDetector
-        # pyre-fixme[6]: Expected `Detector` for 1st param but got
-        #  `Type[CUSUMDetector]`.
         turing_3 = TuringEvaluator(detector=CUSUMDetector)
         eval_agg_3_df = turing_3.evaluate(data=eg_df)
         self.assertEqual(eval_agg_3_df.shape[0], eg_df.shape[0])
 
         # Test BOCPDDetector
-        # pyre-fixme[6]: Expected `Detector` for 1st param but got `Type[BOCPDetector]`.
         turing_4 = TuringEvaluator(detector=BOCPDetector)
         eval_agg_4_df = turing_4.evaluate(data=eg_df)
         self.assertEqual(eval_agg_4_df.shape[0], eg_df.shape[0])
@@ -3644,15 +3639,11 @@ class TestChangepointEvaluator(TestCase):
         self.assertTrue(0.0 <= avg_f_score <= 1.0)
 
         # test load data
-        # pyre-fixme[6]: Expected `Detector` for 1st param but got
-        #  `Type[RobustStatDetector]`.
         turing_5 = TuringEvaluator(detector=RobustStatDetector)
         eval_agg_5_df = turing_5.evaluate(data=None, model_params=model_params)
         self.assertTrue(eval_agg_5_df.shape[0] > 0)
 
         # test ignore list
-        # pyre-fixme[6]: Expected `Detector` for 1st param but got
-        #  `Type[RobustStatDetector]`.
         turing_6 = TuringEvaluator(detector=RobustStatDetector)
         eval_agg_6_df = turing_6.evaluate(
             data=eg_df, model_params=model_params, ignore_list=["eg_2"]
@@ -3660,10 +3651,6 @@ class TestChangepointEvaluator(TestCase):
         self.assertEqual(eval_agg_6_df.shape[0], eg_df.shape[0] - 1)
 
         # test the detectormodels
-
-        # test BOCPD
-        # pyre-fixme[6]: Expected `Detector` for 1st param but got
-        #  `Type[BocpdDetectorModel]`.
         turing_7 = TuringEvaluator(detector=BocpdDetectorModel, is_detector_model=True)
         eval_agg_7_df = turing_7.evaluate(data=eg_df, model_params=None)
         self.assertEqual(eval_agg_7_df.shape[0], eg_df.shape[0])
@@ -3677,8 +3664,6 @@ class TestChangepointEvaluator(TestCase):
         }
 
         turing_8 = TuringEvaluator(
-            # pyre-fixme[6]: Expected `Detector` for 1st param but got
-            #  `Type[StatSigDetectorModel]`.
             detector=StatSigDetectorModel,
             is_detector_model=True,
         )
@@ -3746,8 +3731,6 @@ class TestChangepointEvaluator(TestCase):
             "remove_seasonality": False,
         }
 
-        # pyre-fixme[6]: Expected `Detector` for 1st param but got
-        #  `Type[CUSUMDetectorModel]`.
         turing_9 = TuringEvaluator(detector=CUSUMDetectorModel, is_detector_model=True)
         eval_agg_9_df = turing_9.evaluate(
             data=eg_df_daily,
@@ -3761,7 +3744,6 @@ class TestChangepointEvaluator(TestCase):
         )
 
         self.assertEqual(eval_agg_9_df.shape[0], eg_df_daily.shape[0])
-
 
 if __name__ == "__main__":
     unittest.main()
