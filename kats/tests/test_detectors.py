@@ -51,7 +51,10 @@ from kats.detectors.outlier import (
     MultivariateAnomalyDetectorType,
     OutlierDetector,
 )
-from kats.detectors.prophet_detector import ProphetDetectorModel
+from kats.detectors.prophet_detector import (
+    ProphetDetectorModel,
+    ProphetScoreFunction,
+)
 from kats.detectors.robust_stat_detection import RobustStatDetector
 from kats.detectors.seasonality import ACFDetector, FFTDetector
 from kats.detectors.stat_sig_detector import (
@@ -3363,7 +3366,7 @@ class TestProphetDetector(TestCase):
         This test verifies:
         (1) the default implementation of ProphetDetectorModel
         uses the 'deviation_from_predicted_val' scoring function;
-        (2) passing "z_score" as the 'score_func' results in
+        (2) passing ProphetScoreFunction.z_score as the 'score_func' results in
         ProphetDetectorModel implementing the 'z_score' scoring function;
         (3) the anomaly scores returned by each of these functions
         are identical to the actual deviation and actual z_score.
@@ -3383,7 +3386,7 @@ class TestProphetDetector(TestCase):
             ),
         )
 
-        z_score_model = ProphetDetectorModel(score_func="z_score")
+        z_score_model = ProphetDetectorModel(score_func=ProphetScoreFunction.z_score)
         z_score_response = z_score_model.fit_predict(ts[90:], ts[:90])
         actual_z_score = self.calc_z_score(
             ts.value[95],
@@ -3408,7 +3411,7 @@ class TestProphetDetector(TestCase):
         for anomaly_magnitude in (0, 100):
             ts.value[95] += anomaly_magnitude
 
-            model = ProphetDetectorModel(score_func="z_score")
+            model = ProphetDetectorModel(score_func=ProphetScoreFunction.z_score)
             response = model.fit_predict(ts[90:], ts[:90])
             actual_z_score = self.calc_z_score(
                 ts.value[95],
@@ -3431,7 +3434,7 @@ class TestProphetDetector(TestCase):
         for anomaly_magnitude in (0, 100):
             ts.value[95] += anomaly_magnitude
 
-            model = ProphetDetectorModel(score_func="z_score")
+            model = ProphetDetectorModel(score_func=ProphetScoreFunction.z_score)
             response = model.fit_predict(ts[90:], ts[:90])
             actual_z_score = self.calc_z_score(
                 ts.value[95],
@@ -3481,7 +3484,7 @@ class TestProphetDetector(TestCase):
         ts.value[93 * 24] += 60
         ts.value[96 * 24] += 30
 
-        model = ProphetDetectorModel(score_func="z_score")
+        model = ProphetDetectorModel(score_func=ProphetScoreFunction.z_score)
         response = model.fit_predict(ts[90 * 24 :], ts[: 90 * 24])
 
         self.assertGreater(response.scores.value[3 * 24], response.scores.value[6 * 24])
@@ -3513,7 +3516,7 @@ class TestProphetDetector(TestCase):
         ts2.value[93 * 24] += 20
         ts2.value[96 * 24] -= 20
 
-        model = ProphetDetectorModel(score_func="z_score")
+        model = ProphetDetectorModel(score_func=ProphetScoreFunction.z_score)
         response1 = model.fit_predict(test_ts[90 * 24 :], ts1[: 90 * 24])
         response2 = model.fit_predict(test_ts[90 * 24 :], ts2[: 90 * 24])
 

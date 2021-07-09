@@ -113,12 +113,14 @@ SCORE_FUNC_DICT = {
 class ProphetDetectorModel(DetectorModel):
     """Prophet based anomaly detection model.
 
-    A Detector Model that does anomaly detection, buy first using the Prophet
+    A Detector Model that does anomaly detection, by first using the Prophet
     library to forecast the interval for the next point, and comparing this
     to the actually observed data point.
 
     Attributes:
-        strictness_factor: interval_width as required by Prophet.
+        scoring_confidence_interval: interval_width as required by Prophet.
+            Confidence interval is used by some scoring strategies to compute
+            anomaly scores.
         uncertainty_samples: Number of samples required by Prophet to
             calculate uncertainty.
         serialized_model: json, representing data from a previously
@@ -127,21 +129,23 @@ class ProphetDetectorModel(DetectorModel):
 
     def __init__(
         self,
-        strictness_factor: float = 0.8,
-        uncertainty_samples: float = 50,
         serialized_model: Optional[bytes] = None,
+        score_func: ProphetScoreFunction = ProphetScoreFunction.deviation_from_predicted_val,
+        scoring_confidence_interval: float = 0.8,
         remove_outliers=False,
-        score_func: ProphetScoreFunction = ProphetScoreFunction.deviation_from_predicted_val.value,
+        outlier_threshold: float = 0.99,
+        uncertainty_samples: float = 50,
     ) -> None:
         if serialized_model:
             self.model = model_from_json(serialized_model)
         else:
             self.model = None
 
-        self.strictness_factor = strictness_factor
-        self.uncertainty_samples = uncertainty_samples
-        self.remove_outliers = remove_outliers
         self.score_func = score_func
+        self.scoring_confidence_interval = scoring_confidence_interval
+        self.remove_outliers = remove_outliers
+        self.outlier_threshold = outlier_threshold
+        self.uncertainty_samples = uncertainty_samples
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -203,14 +207,14 @@ class ProphetDetectorModel(DetectorModel):
 
         # No incremental training. Create a model and train from scratch
         self.model = Prophet(
-            interval_width=self.strictness_factor,
+            interval_width=self.scoring_confidence_interval,
             uncertainty_samples=self.uncertainty_samples,
         )
 
         data_df = timeseries_to_prophet_df(total_data)
 
         if self.remove_outliers:
-            data_df = self._remove_outliers(data_df)
+            data_df = self._remove_outliers(data_df, self.outlier_threshold)
 
         self.model.fit(data_df)
 
@@ -240,7 +244,7 @@ class ProphetDetectorModel(DetectorModel):
         response = AnomalyResponse(
             scores=TimeSeriesData(
                 time=data.time,
-                value=SCORE_FUNC_DICT[self.score_func](
+                value=SCORE_FUNC_DICT[self.score_func.value](
                     data=data,
                     predict_df=predict_df,
                     ci_threshold=self.model.interval_width,
