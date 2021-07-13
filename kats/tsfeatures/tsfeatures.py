@@ -2,13 +2,27 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+"""TsFeatures is a module for performing adhoc feature engineering on time series
+data using different statistics.
+
+The module process time series data into features for machine learning models.
+We include seasonality, autocorrelation, modeling parameter, changepoints,
+moving statistics, and raw statistics of time series array as the adhoc features.
+
+We also offer to compute part of the features or group of features using
+selected_features argument, you could also disable feature or group of
+features by setting feature_name/feature_group_name = False. You can find
+all feature group names in feature_group_mapping attribute.
+"""
+
 import re
 import logging
 import statsmodels
 from functools import partial
 from itertools import groupby
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
+from deprecated import deprecated
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -29,18 +43,105 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.stattools import acf, pacf, kpss
 
-"""TsFeatures is a module for performing adhoc feature engineering on time series
-data using different statistics.
 
-The module process time series data into features for machine learning models.
-We include seasonality, autocorrelation, modeling parameter, changepoints,
-moving statistics, and raw statistics of time series array as the adhoc features.
-
-We also offer to compute part of the features or group of features using
-selected_features argument, you could also disable feature or group of
-features by setting feature_name/feature_group_name = False. You can find
-all feature group names in feature_group_mapping attribute.
-"""
+_FEATURE_GROUP_MAPPING: Dict[str, List[str]] = {
+    "stl_features": [
+        "trend_strength",
+        "seasonality_strength",
+        "spikiness",
+        "peak",
+        "trough",
+    ],
+    "level_shift_features": [
+        "level_shift_idx",
+        "level_shift_size",
+    ],
+    "acfpacf_features": [
+        "y_acf1",
+        "y_acf5",
+        "diff1y_acf1",
+        "diff1y_acf5",
+        "diff2y_acf1",
+        "diff2y_acf5",
+        "y_pacf5",
+        "diff1y_pacf5",
+        "diff2y_pacf5",
+        "seas_acf1",
+        "seas_pacf1",
+    ],
+    "special_ac": [
+        "firstmin_ac",
+        "firstzero_ac",
+    ],
+    "holt_params": [
+        "holt_alpha",
+        "holt_beta",
+    ],
+    "hw_params": [
+        "hw_alpha",
+        "hw_beta",
+        "hw_gamma",
+    ],
+    "statistics": [
+        "length",
+        "mean",
+        "var",
+        "entropy",
+        "lumpiness",
+        "stability",
+        "flat_spots",
+        "hurst",
+        "std1st_der",
+        "crossing_points",
+        "binarize_mean",
+        "unitroot_kpss",
+        "heterogeneity",
+        "histogram_mode",
+        "linearity",
+    ],
+    "cusum_detector": [
+        "cusum_num",
+        "cusum_conf",
+        "cusum_cp_index",
+        "cusum_delta",
+        "cusum_llr",
+        "cusum_regression_detected",
+        "cusum_stable_changepoint",
+        "cusum_p_value",
+    ],
+    "robust_stat_detector": [
+        "robust_num",
+        "robust_metric_mean",
+    ],
+    "bocp_detector": [
+        "bocp_num",
+        "bocp_conf_max",
+        "bocp_conf_mean",
+    ],
+    "outlier_detector": [
+        "outlier_num",
+    ],
+    "trend_detector": [
+        "trend_num",
+        "trend_num_increasing",
+        "trend_avg_abs_tau",
+    ],
+    "nowcasting": [
+        "nowcast_roc",
+        "nowcast_ma",
+        "nowcast_mom",
+        "nowcast_lag",
+        "nowcast_macd",
+        "nowcast_macdsign",
+        "nowcast_macddiff",
+    ],
+    "seasonalities": [
+        "seasonal_period",
+        "trend_mag",
+        "seasonality_mag",
+        "residual_std",
+    ],
+}
 
 
 class TsFeatures:
@@ -103,6 +204,8 @@ class TsFeatures:
         default: The default status of the switch for opt-in/out feature calculations.
     """
 
+    _total_feature_len_: int = 0
+
     def __init__(
         self,
         window_size: int = 20,
@@ -135,111 +238,30 @@ class TsFeatures:
         self.n_slow = n_slow
 
         # Mapping group features
-        g2f = {
-            "stl_features": [
-                "trend_strength",
-                "seasonality_strength",
-                "spikiness",
-                "peak",
-                "trough",
-            ],
-            "level_shift_features": [
-                "level_shift_idx",
-                "level_shift_size",
-            ],
-            "acfpacf_features": [
-                "y_acf1",
-                "y_acf5",
-                "diff1y_acf1",
-                "diff1y_acf5",
-                "diff2y_acf1",
-                "diff2y_acf5",
-                "y_pacf5",
-                "diff1y_pacf5",
-                "diff2y_pacf5",
-                "seas_acf1",
-                "seas_pacf1",
-            ],
-            "special_ac": [
-                "firstmin_ac",
-                "firstzero_ac",
-            ],
-            "holt_params": [
-                "holt_alpha",
-                "holt_beta",
-            ],
-            "hw_params": [
-                "hw_alpha",
-                "hw_beta",
-                "hw_gamma",
-            ],
-            "statistics": [
-                "length",
-                "mean",
-                "var",
-                "entropy",
-                "lumpiness",
-                "stability",
-                "flat_spots",
-                "hurst",
-                "std1st_der",
-                "crossing_points",
-                "binarize_mean",
-                "unitroot_kpss",
-                "heterogeneity",
-                "histogram_mode",
-                "linearity",
-            ],
-            "cusum_detector": [
-                "cusum_num",
-                "cusum_conf",
-                "cusum_cp_index",
-                "cusum_delta",
-                "cusum_llr",
-                "cusum_regression_detected",
-                "cusum_stable_changepoint",
-                "cusum_p_value",
-            ],
-            "robust_stat_detector": [
-                "robust_num",
-                "robust_metric_mean",
-            ],
-            "bocp_detector": [
-                "bocp_num",
-                "bocp_conf_max",
-                "bocp_conf_mean",
-            ],
-            "outlier_detector": [
-                "outlier_num",
-            ],
-            "trend_detector": [
-                "trend_num",
-                "trend_num_increasing",
-                "trend_avg_abs_tau",
-            ],
-            "nowcasting": [
-                "nowcast_roc",
-                "nowcast_ma",
-                "nowcast_mom",
-                "nowcast_lag",
-                "nowcast_macd",
-                "nowcast_macdsign",
-                "nowcast_macddiff",
-            ],
-            "seasonalities": [
-                "seasonal_period",
-                "trend_mag",
-                "seasonality_mag",
-                "residual_std",
-            ],
-        }
-        self.feature_group_mapping = g2f
+        g2f = dict(_FEATURE_GROUP_MAPPING)
+        self.feature_group_mapping = dict(g2f)
+        f2g = self._compute_f2g(kwargs, g2f)
+
+        # Higher level of features:
+        # Once disabled, won't even go inside these groups of features
+        # for calculation
+        final_filter, default = self._compute_final_filter(
+            selected_features, f2g, g2f, kwargs
+        )
+        self.final_filter = final_filter
+
+        self._set_defaults(kwargs, default)
+        self._setup(spectral_freq, window_size, nbins, lag_size)
+
+    def _compute_f2g(
+        self, kwargs: Dict[str, Any], g2f: Dict[str, List[str]]
+    ) -> Dict[str, str]:
         f2g = {}
         for k, v in g2f.items():
             for f in v:
                 f2g[f] = k
 
-        self._total_feature_len_ = len(f2g.keys())
+        self._total_feature_len_ = len(f2g)
         for f in kwargs.keys():
             if not (f in f2g.keys() or f in g2f.keys()):
                 msg = (
@@ -248,16 +270,18 @@ class TsFeatures:
                 )
                 logging.error(msg)
                 raise ValueError(msg)
+        return f2g
 
-        # Higher level of features:
-        # Once disabled, won't even go inside these groups of features
-        # for calculation
-        if not selected_features:
-            default = True
-            self.final_filter = {k: default for k in f2g.keys()}
-        elif selected_features:
-            default = False
-            self.final_filter = {k: default for k in f2g.keys()}
+    def _compute_final_filter(
+        self,
+        selected_features: Optional[List[str]],
+        f2g: Dict[str, str],
+        g2f: Dict[str, List[str]],
+        kwargs: Dict[str, Any],
+    ) -> Tuple[Dict[str, bool], bool]:
+        default = not selected_features
+        final_filter = {k: default for k in f2g.keys()}
+        if selected_features:
             for f in selected_features:
                 if not (f in f2g.keys() or f in g2f.keys()):
                     msg = (
@@ -270,7 +294,7 @@ class TsFeatures:
                     kwargs[f] = True
                     for feature in g2f[f]:
                         kwargs[feature] = kwargs.get(feature, True)
-                        self.final_filter[feature] = True
+                        final_filter[feature] = True
                 elif f in f2g.keys():  # the opt-in request is for a certain feature
                     if not kwargs.get(f2g[f], True):
                         msg = (
@@ -285,27 +309,21 @@ class TsFeatures:
                         raise ValueError(msg)
                     kwargs[f2g[f]] = True  # need to opt-in the feature group first
                     kwargs[f] = True  # opt-in the feature
-                    self.final_filter[f] = True
+                    final_filter[f] = True
 
-        for k, v in kwargs.items():
-            # final filter for filtering out features user didn't request and
-            # keep only the requested ones
-            self.final_filter[k] = v
+        # final filter for filtering out features user didn't request and
+        # keep only the requested ones
+        final_filter.update(kwargs)
+        return final_filter, default
 
+    def _set_defaults(self, kwargs: Dict[str, Any], default: bool) -> None:
         # setting default value for the switches of calculating the group of features
-        # pyre-fixme[61]: `default` may not be initialized here.
         self.stl_features = kwargs.get("stl_features", default)
-        # pyre-fixme[61]: `default` may not be initialized here.
         self.level_shift_features = kwargs.get("level_shift_features", default)
-        # pyre-fixme[61]: `default` may not be initialized here.
         self.acfpacf_features = kwargs.get("acfpacf_features", default)
-        # pyre-fixme[61]: `default` may not be initialized here.
         self.special_ac = kwargs.get("special_ac", default)
-        # pyre-fixme[61]: `default` may not be initialized here.
         self.holt_params = kwargs.get("holt_params", default)
-        # pyre-fixme[61]: `default` may not be initialized here.
         self.hw_params = kwargs.get("hw_params", default)
-        # pyre-fixme[61]: `default` may not be initialized here.
         self.statistics = kwargs.get("statistics", default)
         self.cusum_detector = kwargs.get("cusum_detector", False)
         self.robust_stat_detector = kwargs.get("robust_stat_detector", False)
@@ -314,11 +332,30 @@ class TsFeatures:
         self.trend_detector = kwargs.get("trend_detector", False)
         self.nowcasting = kwargs.get("nowcasting", False)
         self.seasonalities = kwargs.get("seasonalities", False)
-
         # For lower level of the features
         self.__kwargs__ = kwargs
-        # pyre-fixme[61]: `default` may not be initialized here.
         self.default = default
+
+    def _setup(
+        self, spectral_freq: int, window_size: int, nbins: int, lag_size: int
+    ) -> None:
+        self.statistics_features = {
+            "length": partial(self.get_length),
+            "mean": partial(self.get_mean),
+            "var": partial(self.get_var),
+            "entropy": partial(self.get_spectral_entropy, freq=spectral_freq),
+            "lumpiness": partial(self.get_lumpiness, window_size=window_size),
+            "stability": partial(self.get_stability, window_size=window_size),
+            "flat_spots": partial(self.get_flat_spots, nbins=nbins),
+            "hurst": partial(self.get_hurst, lag_size=lag_size),
+            "std1st_der": partial(self.get_std1st_der),
+            "crossing_points": partial(self.get_crossing_points),
+            "binarize_mean": partial(self.get_binarize_mean),
+            "unitroot_kpss": partial(self.get_unitroot_kpss),
+            "heterogeneity": partial(self.get_het_arch),
+            "histogram_mode": partial(self.get_histogram_mode, nbins=nbins),
+            "linearity": partial(self.get_linearity),
+        }
 
     def transform(
         self, x: TimeSeriesData
@@ -402,7 +439,7 @@ class TsFeatures:
         # calculate level shift based features
         dict_level_shift_features = {}
         if self.level_shift_features:
-            dict_level_shift_features = self.get_level_shift(
+            dict_level_shift_features = self.get_level_shift_features(
                 x,
                 window_size=self.window_size,
                 extra_args=self.__kwargs__,
@@ -447,7 +484,12 @@ class TsFeatures:
         # single features
         dict_stat_features = {}
         if self.statistics:
-            dict_stat_features = self.get_statistics_features(x)
+            dict_stat_features = self.get_statistics(
+                x,
+                self.statistics_features,
+                extra_args=self.__kwargs__,
+                default_status=self.default,
+            )
 
         # calculate cusum detector features
         dict_cusum_detector_features = {}
@@ -640,37 +682,37 @@ class TsFeatures:
         v = [np.mean(x_w) for x_w in np.array_split(x, len(x) // window_size + 1)]
         return np.var(v)
 
-    def get_statistics_features(self, x: np.ndarray) -> Dict[str, float]:
+    @staticmethod
+    @jit(forceobj=True)
+    def get_statistics(
+        x: np.ndarray,
+        dict_features: Optional[Dict[str, partial]] = None,
+        extra_args: Optional[Dict[str, bool]] = None,
+        default_status: bool = True,
+    ) -> Dict[str, float]:
         """
         Calculate simple statistical features for a time series.
 
         Args:
-          x: The univariate time series array in the form of 1d numpy array.
+            x: The univariate time series array in the form of 1d numpy array.
+            dict_features: A dictionary of partial methods to compute the features.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is
+                disabled.
+            default_status: Default status of the switch for calculate the
+                features or not.
 
         Returns:
             Many statistical features including entropy and crossing points.
         """
-        dict_features = {
-            "length": partial(self.get_length),
-            "mean": partial(self.get_mean),
-            "var": partial(self.get_var),
-            "entropy": partial(self.get_spectral_entropy, freq=self.spectral_freq),
-            "lumpiness": partial(self.get_lumpiness, window_size=self.window_size),
-            "stability": partial(self.get_stability, window_size=self.window_size),
-            "flat_spots": partial(self.get_flat_spots, nbins=self.nbins),
-            "hurst": partial(self.get_hurst, lag_size=self.lag_size),
-            "std1st_der": partial(self.get_std1st_der),
-            "crossing_points": partial(self.get_crossing_points),
-            "binarize_mean": partial(self.get_binarize_mean),
-            "unitroot_kpss": partial(self.get_unitroot_kpss),
-            "heterogeneity": partial(self.get_het_arch),
-            "histogram_mode": partial(self.get_histogram_mode, nbins=self.nbins),
-            "linearity": partial(self.get_linearity),
-        }
+        if extra_args is None:
+            extra_args = {}
+        if dict_features is None:
+            dict_features = {}
 
         result = {}
         for k, v in dict_features.items():
-            if self.__kwargs__.get(k, self.default):
+            if extra_args.get(k, default_status):
                 result[k] = v(x)
         return result
 
@@ -738,10 +780,23 @@ class TsFeatures:
 
         return stl_features
 
+    @staticmethod
+    @jit(forceobj=True)
+    @deprecated(version="0.2.0", reason="Renamed to get_level_shift_features")
+    def get_level_shift(
+        x: np.ndarray,
+        window_size: int = 20,
+        extra_args: Optional[Dict[str, bool]] = None,
+        default_status: bool = True,
+    ) -> Dict[str, float]:
+        return TsFeatures.get_level_shift_features(
+            x, window_size, extra_args, default_status
+        )
+
     # Level shift
     @staticmethod
     @jit(forceobj=True)
-    def get_level_shift(
+    def get_level_shift_features(
         x: np.ndarray,
         window_size: int = 20,
         extra_args: Optional[Dict[str, bool]] = None,
@@ -1290,9 +1345,9 @@ class TsFeatures:
                     holt_params_features["holt_beta"] = m.params["smoothing_slope"]
                 elif statsmodels_ver >= 0.12:
                     holt_params_features["holt_beta"] = m.params["smoothing_trend"]
-            return holt_params_features
-        except Exception:
-            return holt_params_features
+        except Exception as e:
+            logging.warning(f"Holt Linear failed {e}")
+        return holt_params_features
 
     # Holt Winter’s Parameters (3)
     @staticmethod
@@ -1344,9 +1399,9 @@ class TsFeatures:
                     hw_params_features["hw_beta"] = m.params["smoothing_trend"]
             if extra_args is not None and extra_args.get("hw_gamma", default_status):
                 hw_params_features["hw_gamma"] = m.params["smoothing_seasonal"]
-            return hw_params_features
-        except Exception:
-            return hw_params_features
+        except Exception as e:
+            logging.warning(f"Holt-Winters failed {e}")
+        return hw_params_features
 
     # CUSUM Detection Outputs (8)
     @staticmethod
@@ -1425,9 +1480,9 @@ class TsFeatures:
                 cusum_detector_features["cusum_p_value"] = (
                     0 if len(cusum_cp) == 0 else cusum_cp[0][1]._p_value
                 )
-            return cusum_detector_features
-        except Exception:
-            return cusum_detector_features
+        except Exception as e:
+            logging.warning(f"Cusum Detector failed {e}")
+        return cusum_detector_features
 
     # Robust Stat Detection Outputs (2)
     @staticmethod
@@ -1467,9 +1522,9 @@ class TsFeatures:
                     if len(robust_cp) == 0
                     else np.sum([cp[1]._metric for cp in robust_cp]) / len(robust_cp)
                 )
-            return robust_stat_detector_features
-        except Exception:
-            return robust_stat_detector_features
+        except Exception as e:
+            logging.warning(f"Robust Stat Detector failed {e}")
+        return robust_stat_detector_features
 
     # BOCP Detection Outputs (3)
     @staticmethod
@@ -1521,9 +1576,9 @@ class TsFeatures:
                     if len(bocp_cp) == 0
                     else np.sum([cp[0].confidence for cp in bocp_cp]) / len(bocp_cp)
                 )
-            return bocp_detector_features
-        except Exception:
-            return bocp_detector_features
+        except Exception as e:
+            logging.warning(f"BOCPDetector failed {e}")
+        return bocp_detector_features
 
     # Outlier Detection Outputs (1)
     @staticmethod
@@ -1556,11 +1611,12 @@ class TsFeatures:
             odetector = outlier.OutlierDetector(ts, decomp=decomp, iqr_mult=iqr_mult)
             odetector.detector()
             if extra_args is not None and extra_args.get("outlier_num", default_status):
-                # pyre-fixme[16]: `OutlierDetector` has no attribute `outliers`.
-                outlier_detector_features["outlier_num"] = len(odetector.outliers[0])
-            return outlier_detector_features
-        except Exception:
-            return outlier_detector_features
+                outliers = odetector.outliers
+                assert outliers is not None and len(outliers) > 0
+                outlier_detector_features["outlier_num"] = len(outliers[0])
+        except Exception as e:
+            logging.warning(f"OutlierDetector failed {e}")
+        return outlier_detector_features
 
     # Trend Detection Outputs (3)
     @staticmethod
@@ -1617,9 +1673,9 @@ class TsFeatures:
                     else np.sum([abs(p[1].Tau) for p in tdetected_time_points])
                     / len(tdetected_time_points)
                 )
-            return trend_detector_features
-        except Exception:
-            return trend_detector_features
+        except Exception as e:
+            logging.warning(f"Trend Detector failed {e}")
+        return trend_detector_features
 
     @staticmethod
     @jit(nopython=True)
@@ -1803,9 +1859,9 @@ class TsFeatures:
             for idx, feature in enumerate(features):
                 if extra_args is not None and extra_args.get(feature, default_status):
                     nowcasting_features[feature] = _features[idx]
-            return nowcasting_features
-        except Exception:
-            return nowcasting_features
+        except Exception as e:
+            logging.warning(f"Nowcasting failed {e}")
+        return nowcasting_features
 
     # seasonality features (4)
     @staticmethod
@@ -1885,6 +1941,6 @@ class TsFeatures:
             ):
                 seasonality_features["residual_std"] = np.std(res.resid)
 
-            return seasonality_features
-        except Exception:
-            return seasonality_features
+        except Exception as e:
+            logging.warning(f"Seasonality failed {e}")
+        return seasonality_features

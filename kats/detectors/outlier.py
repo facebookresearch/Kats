@@ -38,6 +38,7 @@ class OutlierDetector(Detector):
         iqr_mult : iqr_mult * inter quartile range is used to classify outliers
     """
     outliers_index: Optional[List] = None
+    outliers: Optional[List[List]] = None
 
     def __init__(
         self, data: TimeSeriesData, decomp: str = "additive", iqr_mult: float = 3.0
