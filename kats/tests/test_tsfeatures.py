@@ -144,6 +144,11 @@ class TSfeaturesTest(TestCase):
             # nowcasting
             # seasonalities
         }
+        if statsmodels_ver >= 0.12:
+            expected["trend_strength"] = 0.426899
+            expected["seasonality_strength"] = 0.410921
+            expected["spikiness"] = 0.000661
+            expected["holt_alpha"] = 0.289034
         self.assertDictAlmostEqual(expected, features)
 
     def test_tsfeatures(self) -> None:
@@ -549,4 +554,9 @@ class TSfeaturesTest(TestCase):
             "nowcast_macdsign": np.nan,
             "nowcast_macddiff": np.nan,
         }
+        if statsmodels_ver >= 0.12:
+            expected["trend_strength"] = 0.426899
+            expected["seasonality_strength"] = 0.410921
+            expected["spikiness"] = 0.000661
+            expected["holt_alpha"] = 0.289034
         self.assertDictAlmostEqual(expected, features)
