@@ -20,7 +20,7 @@ import logging
 import statsmodels
 from functools import partial
 from itertools import groupby
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 from deprecated import deprecated
 import numpy as np
@@ -340,21 +340,21 @@ class TsFeatures:
         self, spectral_freq: int, window_size: int, nbins: int, lag_size: int
     ) -> None:
         self.statistics_features = {
-            "length": partial(self.get_length),
-            "mean": partial(self.get_mean),
-            "var": partial(self.get_var),
-            "entropy": partial(self.get_spectral_entropy, freq=spectral_freq),
-            "lumpiness": partial(self.get_lumpiness, window_size=window_size),
-            "stability": partial(self.get_stability, window_size=window_size),
-            "flat_spots": partial(self.get_flat_spots, nbins=nbins),
-            "hurst": partial(self.get_hurst, lag_size=lag_size),
-            "std1st_der": partial(self.get_std1st_der),
-            "crossing_points": partial(self.get_crossing_points),
-            "binarize_mean": partial(self.get_binarize_mean),
-            "unitroot_kpss": partial(self.get_unitroot_kpss),
-            "heterogeneity": partial(self.get_het_arch),
-            "histogram_mode": partial(self.get_histogram_mode, nbins=nbins),
-            "linearity": partial(self.get_linearity),
+            "length": TsFeatures.get_length,
+            "mean": TsFeatures.get_mean,
+            "var": TsFeatures.get_var,
+            "entropy": partial(TsFeatures.get_spectral_entropy, freq=spectral_freq),
+            "lumpiness": partial(TsFeatures.get_lumpiness, window_size=window_size),
+            "stability": partial(TsFeatures.get_stability, window_size=window_size),
+            "flat_spots": partial(TsFeatures.get_flat_spots, nbins=nbins),
+            "hurst": partial(TsFeatures.get_hurst, lag_size=lag_size),
+            "std1st_der": TsFeatures.get_std1st_der,
+            "crossing_points": TsFeatures.get_crossing_points,
+            "binarize_mean": TsFeatures.get_binarize_mean,
+            "unitroot_kpss": TsFeatures.get_unitroot_kpss,
+            "heterogeneity": TsFeatures.get_het_arch,
+            "histogram_mode": partial(TsFeatures.get_histogram_mode, nbins=nbins),
+            "linearity": TsFeatures.get_linearity,
         }
 
     def transform(
@@ -429,7 +429,7 @@ class TsFeatures:
         # calculate STL based features
         dict_stl_features = {}
         if self.stl_features:
-            dict_stl_features = self.get_stl_features(
+            dict_stl_features = TsFeatures.get_stl_features(
                 x,
                 period=self.stl_period,
                 extra_args=self.__kwargs__,
@@ -439,7 +439,7 @@ class TsFeatures:
         # calculate level shift based features
         dict_level_shift_features = {}
         if self.level_shift_features:
-            dict_level_shift_features = self.get_level_shift_features(
+            dict_level_shift_features = TsFeatures.get_level_shift_features(
                 x,
                 window_size=self.window_size,
                 extra_args=self.__kwargs__,
@@ -449,7 +449,7 @@ class TsFeatures:
         # calculate ACF, PACF based features
         dict_acfpacf_features = {}
         if self.acfpacf_features:
-            dict_acfpacf_features = self.get_acfpacf_features(
+            dict_acfpacf_features = TsFeatures.get_acfpacf_features(
                 x,
                 acfpacf_lag=self.acfpacf_lag,
                 period=self.stl_period,
@@ -460,21 +460,21 @@ class TsFeatures:
         # calculate special AC
         dict_specialac_features = {}
         if self.special_ac:
-            dict_specialac_features = self.get_special_ac(
+            dict_specialac_features = TsFeatures.get_special_ac(
                 x, extra_args=self.__kwargs__, default_status=self.default
             )
 
         # calculate holt params
         dict_holt_params_features = {}
         if self.holt_params:
-            dict_holt_params_features = self.get_holt_params(
+            dict_holt_params_features = TsFeatures.get_holt_params(
                 x, extra_args=self.__kwargs__, default_status=self.default
             )
 
         # calculate hw params
         dict_hw_params_features = {}
         if self.hw_params:
-            dict_hw_params_features = self.get_hw_params(
+            dict_hw_params_features = TsFeatures.get_hw_params(
                 x,
                 period=self.stl_period,
                 extra_args=self.__kwargs__,
@@ -484,7 +484,7 @@ class TsFeatures:
         # single features
         dict_stat_features = {}
         if self.statistics:
-            dict_stat_features = self.get_statistics(
+            dict_stat_features = TsFeatures.get_statistics(
                 x,
                 self.statistics_features,
                 extra_args=self.__kwargs__,
@@ -494,28 +494,28 @@ class TsFeatures:
         # calculate cusum detector features
         dict_cusum_detector_features = {}
         if self.cusum_detector:
-            dict_cusum_detector_features = self.get_cusum_detector(
+            dict_cusum_detector_features = TsFeatures.get_cusum_detector(
                 ts, extra_args=self.__kwargs__, default_status=self.default
             )
 
         # calculate robust stat detector features
         dict_robust_stat_detector_features = {}
         if self.robust_stat_detector:
-            dict_robust_stat_detector_features = self.get_robust_stat_detector(
+            dict_robust_stat_detector_features = TsFeatures.get_robust_stat_detector(
                 ts, extra_args=self.__kwargs__, default_status=self.default
             )
 
         # calculate bocp detector features
         dict_bocp_detector_features = {}
         if self.bocp_detector:
-            dict_bocp_detector_features = self.get_bocp_detector(
+            dict_bocp_detector_features = TsFeatures.get_bocp_detector(
                 ts, extra_args=self.__kwargs__, default_status=self.default
             )
 
         # calculate outlier detector features
         dict_outlier_detector_features = {}
         if self.outlier_detector:
-            dict_outlier_detector_features = self.get_outlier_detector(
+            dict_outlier_detector_features = TsFeatures.get_outlier_detector(
                 ts,
                 decomp=self.decomp,
                 iqr_mult=self.iqr_mult,
@@ -526,7 +526,7 @@ class TsFeatures:
         # calculate trend detector features
         dict_trend_detector_features = {}
         if self.trend_detector:
-            dict_trend_detector_features = self.get_trend_detector(
+            dict_trend_detector_features = TsFeatures.get_trend_detector(
                 ts,
                 threshold=self.threshold,
                 extra_args=self.__kwargs__,
@@ -536,7 +536,7 @@ class TsFeatures:
         # calculate nowcasting features
         dict_nowcasting_features = {}
         if self.nowcasting:
-            dict_nowcasting_features = self.get_nowcasting(
+            dict_nowcasting_features = TsFeatures.get_nowcasting(
                 x,
                 window=self.window,
                 n_fast=self.n_fast,
@@ -548,7 +548,7 @@ class TsFeatures:
         # calculate seasonality features
         dict_seasonality_features = {}
         if self.seasonalities:
-            dict_seasonality_features = self.get_seasonalities(
+            dict_seasonality_features = TsFeatures.get_seasonalities(
                 ts, extra_args=self.__kwargs__, default_status=self.default
             )
 
@@ -683,10 +683,12 @@ class TsFeatures:
         return np.var(v)
 
     @staticmethod
-    @jit(forceobj=True)
+    # Numba bug on Python 3.7 only causes this to return only the first feature
+    # in dict_features. Disable until we drop 3.7 support.
+    # @jit(forceobj=True)
     def get_statistics(
         x: np.ndarray,
-        dict_features: Optional[Dict[str, partial]] = None,
+        dict_features: Optional[Dict[str, Callable]] = None,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
     ) -> Dict[str, float]:
