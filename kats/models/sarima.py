@@ -271,7 +271,7 @@ class SARIMAModel(m.Model):
 
         # pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst`.
         self.y_fcst = fcst.predicted_mean
-        pred_interval = fcst.conf_int(alpha)
+        pred_interval = fcst.conf_int(alpha=self.alpha)
 
         if pred_interval.iloc[0, 0] < pred_interval.iloc[0, 1]:
             # pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst_lower`.
