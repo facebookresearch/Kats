@@ -3,6 +3,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+import pkgutil
+import io
 from unittest import TestCase
 
 import re
@@ -14,24 +16,27 @@ from kats.utils.cupik import Pipeline
 from kats.detectors.trend_mk import MKDetector
 from kats.models.theta import ThetaParams, ThetaModel
 
-if "kats/tests" in os.getcwd():
-    DATA_FILE = os.path.abspath(
-        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
-    )
-elif "/home/runner/work/" in os.getcwd():  # for github Action
-    DATA_FILE = "kats/data/air_passengers.csv"
-else:
-    DATA_FILE = "kats/kats/data/air_passengers.csv"
 
-DATA = pd.read_csv(DATA_FILE)
-DATA.columns = ["time", "y"]
-TSData = TimeSeriesData(DATA)
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
 
+def load_data(file_name):
+    ROOT="kats"
+    if "kats" in os.getcwd().lower():
+        path = 'data/'
+    else:
+        path = 'kats/data/'
+    data_object =  pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+
 
 class cupikTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
     def test_mkdetector(self) -> None:
 
         # We will be using 2 different scenarios to test if the results
@@ -45,13 +50,13 @@ class cupikTest(TestCase):
             ]
         )
         pipe.fit(
-            TSData, params={"trend_detector": {"window_size": 7, "direction": "up"}}
+            self.TSData, params={"trend_detector": {"window_size": 7, "direction": "up"}}
         )
 
         self.assertEqual(len(pipe.metadata["trend_detector"][0]), 50)
         self.assertEqual(
             len(pipe.metadata["trend_detector"][0]),
-            len(MKDetector(data=TSData).detector(window_size=7, direction="up")),
+            len(MKDetector(data=self.TSData).detector(window_size=7, direction="up")),
         )
 
         # Scene 2: Default parameters of MKDetector
@@ -60,20 +65,20 @@ class cupikTest(TestCase):
                 ("trend_detector", MKDetector(threshold=0.8)),
             ]
         )
-        pipe.fit(TSData)
+        pipe.fit(self.TSData)
 
         self.assertEqual(len(pipe.metadata["trend_detector"][0]), 2)
         self.assertEqual(
             len(pipe.metadata["trend_detector"][0]),
-            len(MKDetector(data=TSData).detector()),
+            len(MKDetector(data=self.TSData).detector()),
         )
 
     def test_thetamodel(self) -> None:
         pipe = Pipeline([("theta_model", ThetaModel(params=ThetaParams()))])
-        fitted = pipe.fit(TSData)
+        fitted = pipe.fit(self.TSData)
         bools = (
             # pyre-fixme[16]: Optional type has no attribute `values`.
-            ThetaModel(TSData, ThetaParams()).fit().fitted_values.values
+            ThetaModel(self.TSData, ThetaParams()).fit().fitted_values.values
             == fitted.fitted_values.values
         )
         self.assertEqual(np.sum(bools), 144)
@@ -89,7 +94,7 @@ class cupikTest(TestCase):
                 ("theta_model", ThetaModel(params=ThetaParams())),
             ]
         )
-        fitted = pipe.fit(TSData)
+        fitted = pipe.fit(self.TSData)
         self.assertEqual(len(pipe.metadata["trend_detector"][0]), 2)
         if statsmodels_ver < 0.12:
             self.assertEqual(fitted.predict(1).fcst.values[0], 433.328591954023)
