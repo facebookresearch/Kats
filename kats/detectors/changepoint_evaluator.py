@@ -129,28 +129,27 @@ def true_positives(T: Set[int], X: Set[int], margin: int = 5) -> Set[int]:
 
 
 # modified from https://github.com/alan-turing-institute/TCPDBench/blob/master/analysis/scripts/metrics.py
-def f_measure(
+def measure(
     annotations: Dict[str, List[int]],
     predictions: List[int],
     margin: int = 5,
     alpha: float = 0.5,
 ) -> Dict[str, float]:
-    """Compute the F-measure based on human annotations.
+    """Compute the F-measure, precision, and recall based on human annotations.
 
     Remember that all CP locations are 0-based!
 
-    >>> f_measure({1: [10, 20], 2: [11, 20], 3: [10], 4: [0, 5]}, [10, 20])
+    >>> measure({1: [10, 20], 2: [11, 20], 3: [10], 4: [0, 5]}, [10, 20])
     1.0
-    >>> f_measure({1: [], 2: [10], 3: [50]}, [10])
+    >>> measure({1: [], 2: [10], 3: [50]}, [10])
     0.9090909090909091
-    >>> f_measure({1: [], 2: [10], 3: [50]}, [])
+    >>> measure({1: [], 2: [10], 3: [50]}, [])
     0.8
 
     Args:
         annotations : dict from user_id to iterable of CP locations.
         predictions : iterable of predicted CP locations.
         alpha : value for the F-measure, alpha=0.5 gives the F1-measure.
-        return_PR : whether to return precision and recall too.
     """
     # ensure 0 is in all the sets
     Tks = {k + 1: set(annotations[uid]) for k, uid in enumerate(annotations)}
@@ -291,7 +290,7 @@ class TuringEvaluator(BenchmarkEvaluator):
     The above produces a dataframe with scores for each dataset
     To get an average over all datasets you can do
     >>> eval_agg = turing.get_eval_aggregate()
-    >>> avg_precision = eval_agg.get_average_precision()
+    >>> avg_precision = eval_agg.get_avg_precision()
     """
 
     ts_df: Optional[pd.DataFrame] = None
@@ -366,7 +365,7 @@ class TuringEvaluator(BenchmarkEvaluator):
                 anom_obj, alert_style_cp, threshold_low, threshold_high
             )
 
-            eval_dict = f_measure(annotations=anno, predictions=cp_list)
+            eval_dict = measure(annotations=anno, predictions=cp_list)
             eval_list.append(
                 Evaluation(
                     dataset_name=data_name,
@@ -407,7 +406,7 @@ class TuringEvaluator(BenchmarkEvaluator):
             detector = self.detector(tsd)
             change_points = detector.detector(**model_params)
             cp_list = get_cp_index(change_points, tsd)
-            eval_dict = f_measure(annotations=anno, predictions=cp_list)
+            eval_dict = measure(annotations=anno, predictions=cp_list)
             eval_list.append(
                 Evaluation(
                     dataset_name=data_name,
@@ -450,7 +449,7 @@ class TuringEvaluator(BenchmarkEvaluator):
                 },
                 {
                     "dataset_name": "eg_2",
-                    "time_series": str(ts_dict),
+                    "time_series": str(ts2_dict),
                     "annotation": str(ts2_anno),
                 },
             ]

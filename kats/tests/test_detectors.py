@@ -28,7 +28,7 @@ from kats.detectors.changepoint_evaluator import (
     TuringEvaluator,
     Evaluation,
     EvalAggregate,
-    f_measure,
+    measure,
 )
 from kats.detectors.cusum_detection import (
     CUSUMDetector,
@@ -3546,7 +3546,7 @@ class TestChangepointEvaluator(TestCase):
         avg_recall = eval_agg_2.get_avg_recall()
         self.assertAlmostEqual(avg_recall, 0.5, places=4)
 
-    def test_f_measure(self) -> None:
+    def test_measure(self) -> None:
         """
         tests the correctness of f-measure, by comparing results with
         https://arxiv.org/pdf/2003.06222.pdf and TCPDBench github
@@ -3565,7 +3565,7 @@ class TestChangepointEvaluator(TestCase):
         # scores are defined in
         # https://github.com/alan-turing-institute/TCPDBench/blob/master/analysis/output/summaries/summary_brent_spot.json
 
-        f_brent_spot = f_measure(
+        f_brent_spot = measure(
             annotations=brent_spot_anno, predictions=brent_spot_prophet_default_cploc
         )
         self.assertAlmostEqual(f_brent_spot["f_score"], 0.2485875706214689, places=3)
