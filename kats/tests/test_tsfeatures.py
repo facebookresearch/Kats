@@ -11,7 +11,7 @@ import statsmodels
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.tsfeatures.tsfeatures import TsFeatures
+from kats.tsfeatures.tsfeatures import _FEATURE_GROUP_MAPPING, TsFeatures
 
 if "kats/tests" in os.getcwd():
     DATA_FILE = os.path.abspath(
@@ -87,6 +87,13 @@ class TSfeaturesTest(TestCase):
                     self.assertAlmostEqual(v, features[k], places=4, msg=f"{k} differ")
             else:
                 self.assertEqual(v, features[k], msg=f"{k} differ")
+
+    def test_all_feature_names_unique(self) -> None:
+        features = set()
+        for _, feats in _FEATURE_GROUP_MAPPING.items():
+            for feat in feats:
+                self.assertFalse(feat in features, f"duplicate feature name {feat}")
+                features.add(feat)
 
     def test_tsfeatures_basic(self) -> None:
         ts = TimeSeriesData(df=SAMPLE_INPUT_TS_BOCPD_SCALED)

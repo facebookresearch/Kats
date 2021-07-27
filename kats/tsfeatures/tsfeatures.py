@@ -15,6 +15,7 @@ features by setting feature_name/feature_group_name = False. You can find
 all feature group names in feature_group_mapping attribute.
 """
 
+import inspect
 import re
 import logging
 import statsmodels
@@ -43,6 +44,58 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.stattools import acf, pacf, kpss
 
+
+"""
+Each entry in _ALL_TS_FEATURES is of the form
+```
+(method, params)
+```
+where `get_{method}` is the name of a method on TsFeatures that computes some
+features, and `params` is a dictionary of `{name: val}` pairs, where `name` is
+the name of an argument to the method, and `val` is the name of an attribute on
+the TsFeatures instance to pass as the value to that argument. For example,
+
+```
+("stl_features", {
+    "period": "stl_period",
+}),
+```
+
+is transformed into code like
+
+```
+if self.stl_features:
+    features = self.get_stl_features(x, extra_args=self.__kwargs__,
+                                     default_status=self.default,
+                                     period=self.stl_period)
+)
+else:
+    features = {}
+```
+
+in `TsFeatures._transform_1d()`. Notice that the first three arguments
+(`x`, `extra_args`, `default_status`) are always passed to all methods.
+
+`_transform_1d` passes as the first parameter either the time series data
+instance or the numpy array of values, based on whether the method takes
+`ts` or `x` as its first parameter, respectively.
+"""
+_ALL_TS_FEATURES: List[Tuple[str, Dict[str, str]]] = [
+    ("statistics", {"dict_features": "statistics_features"}),
+    ("stl_features", {"period": "stl_period"}),
+    ("level_shift_features", {"window_size": "window_size"}),
+    ("acfpacf_features", {"acfpacf_lag": "acfpacf_lag", "period": "stl_period"}),
+    ("special_ac", {}),
+    ("holt_params", {}),
+    ("hw_params", {"period": "stl_period"}),
+    ("cusum_detector", {}),
+    ("robust_stat_detector", {}),
+    ("bocp_detector", {}),
+    ("outlier_detector", {"decomp": "decomp", "iqr_mult": "iqr_mult"}),
+    ("trend_detector", {"threshold": "threshold"}),
+    ("nowcasting", {"window": "window", "n_fast": "n_fast", "n_slow": "n_slow"}),
+    ("seasonalities", {}),
+]
 
 _FEATURE_GROUP_MAPPING: Dict[str, List[str]] = {
     "stl_features": [
@@ -205,6 +258,8 @@ class TsFeatures:
     """
 
     _total_feature_len_: int = 0
+    _ts_methods: Dict[str, partial] = {}
+    _x_methods: Dict[str, partial] = {}
 
     def __init__(
         self,
@@ -252,6 +307,7 @@ class TsFeatures:
 
         self._set_defaults(kwargs, default)
         self._setup(spectral_freq, window_size, nbins, lag_size)
+        self._compile_methods()
 
     def _compute_f2g(
         self, kwargs: Dict[str, Any], g2f: Dict[str, List[str]]
@@ -357,6 +413,28 @@ class TsFeatures:
             "linearity": TsFeatures.get_linearity,
         }
 
+    def _compile_methods(self) -> None:
+        """Map method names to method instances for _transform_1d."""
+        for method, _ in _ALL_TS_FEATURES:
+            method_name = f"get_{method}"
+            func = vars(TsFeatures).get(method_name, None)
+            assert func is not None, (
+                "Internal error: ",
+                f"TsFeatures.{method_name} does not exist",
+            )
+            if isinstance(func, staticmethod):
+                func = getattr(TsFeatures, method_name)
+            else:
+                func = getattr(self, method_name)
+            assert func is not None
+            if "x" in inspect.signature(func).parameters:
+                methods = self._x_methods
+            else:
+                methods = self._ts_methods
+            methods[method] = partial(
+                func, extra_args=self.__kwargs__, default_status=self.default
+            )
+
     def transform(
         self, x: TimeSeriesData
     ) -> Union[Dict[str, float], List[Dict[str, float]]]:
@@ -411,9 +489,7 @@ class TsFeatures:
 
         return ts_features
 
-    def _transform_1d(  # noqa: C901
-        self, x: np.ndarray, ts: TimeSeriesData
-    ) -> Dict[str, float]:
+    def _transform_1d(self, x: np.ndarray, ts: TimeSeriesData) -> Dict[str, float]:
         """
         Transform single (univariate) time series
 
@@ -425,149 +501,20 @@ class TsFeatures:
             The dictionary with all the features aggregated from the outputs of
             each feature group calculator.
         """
-
-        # calculate STL based features
-        dict_stl_features = {}
-        if self.stl_features:
-            dict_stl_features = TsFeatures.get_stl_features(
-                x,
-                period=self.stl_period,
-                extra_args=self.__kwargs__,
-                default_status=self.default,
-            )
-
-        # calculate level shift based features
-        dict_level_shift_features = {}
-        if self.level_shift_features:
-            dict_level_shift_features = TsFeatures.get_level_shift_features(
-                x,
-                window_size=self.window_size,
-                extra_args=self.__kwargs__,
-                default_status=self.default,
-            )
-
-        # calculate ACF, PACF based features
-        dict_acfpacf_features = {}
-        if self.acfpacf_features:
-            dict_acfpacf_features = TsFeatures.get_acfpacf_features(
-                x,
-                acfpacf_lag=self.acfpacf_lag,
-                period=self.stl_period,
-                extra_args=self.__kwargs__,
-                default_status=self.default,
-            )
-
-        # calculate special AC
-        dict_specialac_features = {}
-        if self.special_ac:
-            dict_specialac_features = TsFeatures.get_special_ac(
-                x, extra_args=self.__kwargs__, default_status=self.default
-            )
-
-        # calculate holt params
-        dict_holt_params_features = {}
-        if self.holt_params:
-            dict_holt_params_features = TsFeatures.get_holt_params(
-                x, extra_args=self.__kwargs__, default_status=self.default
-            )
-
-        # calculate hw params
-        dict_hw_params_features = {}
-        if self.hw_params:
-            dict_hw_params_features = TsFeatures.get_hw_params(
-                x,
-                period=self.stl_period,
-                extra_args=self.__kwargs__,
-                default_status=self.default,
-            )
-
-        # single features
-        dict_stat_features = {}
-        if self.statistics:
-            dict_stat_features = TsFeatures.get_statistics(
-                x,
-                self.statistics_features,
-                extra_args=self.__kwargs__,
-                default_status=self.default,
-            )
-
-        # calculate cusum detector features
-        dict_cusum_detector_features = {}
-        if self.cusum_detector:
-            dict_cusum_detector_features = TsFeatures.get_cusum_detector(
-                ts, extra_args=self.__kwargs__, default_status=self.default
-            )
-
-        # calculate robust stat detector features
-        dict_robust_stat_detector_features = {}
-        if self.robust_stat_detector:
-            dict_robust_stat_detector_features = TsFeatures.get_robust_stat_detector(
-                ts, extra_args=self.__kwargs__, default_status=self.default
-            )
-
-        # calculate bocp detector features
-        dict_bocp_detector_features = {}
-        if self.bocp_detector:
-            dict_bocp_detector_features = TsFeatures.get_bocp_detector(
-                ts, extra_args=self.__kwargs__, default_status=self.default
-            )
-
-        # calculate outlier detector features
-        dict_outlier_detector_features = {}
-        if self.outlier_detector:
-            dict_outlier_detector_features = TsFeatures.get_outlier_detector(
-                ts,
-                decomp=self.decomp,
-                iqr_mult=self.iqr_mult,
-                extra_args=self.__kwargs__,
-                default_status=self.default,
-            )
-
-        # calculate trend detector features
-        dict_trend_detector_features = {}
-        if self.trend_detector:
-            dict_trend_detector_features = TsFeatures.get_trend_detector(
-                ts,
-                threshold=self.threshold,
-                extra_args=self.__kwargs__,
-                default_status=self.default,
-            )
-
-        # calculate nowcasting features
-        dict_nowcasting_features = {}
-        if self.nowcasting:
-            dict_nowcasting_features = TsFeatures.get_nowcasting(
-                x,
-                window=self.window,
-                n_fast=self.n_fast,
-                n_slow=self.n_slow,
-                extra_args=self.__kwargs__,
-                default_status=self.default,
-            )
-
-        # calculate seasonality features
-        dict_seasonality_features = {}
-        if self.seasonalities:
-            dict_seasonality_features = TsFeatures.get_seasonalities(
-                ts, extra_args=self.__kwargs__, default_status=self.default
-            )
-
-        return {
-            **dict_stat_features,
-            **dict_stl_features,
-            **dict_level_shift_features,
-            **dict_acfpacf_features,
-            **dict_specialac_features,
-            **dict_holt_params_features,
-            **dict_hw_params_features,
-            **dict_cusum_detector_features,
-            **dict_robust_stat_detector_features,
-            **dict_bocp_detector_features,
-            **dict_outlier_detector_features,
-            **dict_trend_detector_features,
-            **dict_nowcasting_features,
-            **dict_seasonality_features,
-        }
+        features = {}
+        for method, params in _ALL_TS_FEATURES:
+            if getattr(self, method, False):
+                logging.info(f"Generating {method} features...")
+                params = {name: getattr(self, val) for name, val in params.items()}
+                func = self._x_methods.get(method, None)
+                if func is None:
+                    func = self._ts_methods[method]
+                    more_features = func(ts, **params)
+                else:
+                    more_features = func(x, **params)
+                logging.debug(f"...generated {more_features}")
+                features.update(more_features)
+        return features
 
     # length
     @staticmethod
@@ -685,6 +632,7 @@ class TsFeatures:
     @staticmethod
     # Numba bug on Python 3.7 only causes this to return only the first feature
     # in dict_features. Disable until we drop 3.7 support.
+    # https://github.com/numba/numba/issues/7215
     # @jit(forceobj=True)
     def get_statistics(
         x: np.ndarray,
