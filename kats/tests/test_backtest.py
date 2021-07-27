@@ -5,6 +5,8 @@
 # This file defines tests for the Backtester classes
 
 import os
+import pkgutil
+import io
 import statistics
 import unittest
 import unittest.mock as mock
@@ -44,22 +46,7 @@ FIXED_WINDOW_TRAIN_PERCENTAGE = 50  # Fixed window ahead training percentage
 FIXED_WINDOW_PERCENTAGE = 25  # Fixed window ahead window percentage
 FLOAT_ROUNDING_PARAM = 3  # Number of decimal places to round low floats to 0
 CV_NUM_FOLDS = 3  # Number of folds for cross validation
-if "kats/tests" in os.getcwd():
-    DATA_FILE = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/air_passengers.csv"
-            )
-            )
-elif "/home/runner/work/" in os.getcwd(): # for Github Action
-    DATA_FILE = "kats/data/air_passengers.csv"
-else:
-    DATA_FILE = "kats/kats/data/air_passengers.csv"
 
-# Read Data File
-DATA = pd.read_csv(DATA_FILE)
-DATA.columns = ["time", "y"]
 
 """
 Following are ground truth error functions
@@ -102,11 +89,22 @@ error_funcs = {  # Maps error name to function that calculates error
     "rmse": rmse,
 }
 
+def load_data(file_name):
+    ROOT="kats"
+    if "kats" in os.getcwd().lower():
+        path = 'data/'
+    else:
+        path = 'kats/data/'
+    data_object =  pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+
 
 class SimpleBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
         cls.train_data = cls.TSData[: len(cls.TSData) - TIMESTEPS]
         cls.test_data = TimeSeriesData(DATA.tail(TIMESTEPS))
@@ -179,6 +177,8 @@ class ExpandingWindowBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
 
         cls.train_folds, cls.test_folds = cls.create_folds(
@@ -366,6 +366,8 @@ class RollingWindowBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
 
         cls.train_folds, cls.test_folds = cls.create_folds(
@@ -547,6 +549,8 @@ class FixedWindowBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
 
         # Creating folds
@@ -622,6 +626,7 @@ class CrossValidationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
+        DATA = load_data('air_passengers.csv')
         DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
 
@@ -643,6 +648,7 @@ class CrossValidationTest(unittest.TestCase):
         """
 
         # Create folds
+        DATA = self.TSData.to_dataframe()
         expanding_train_folds, expanding_test_folds = self.create_folds(
             data=DATA,
             train_size=EXPANDING_WINDOW_START / 100 * len(DATA),
@@ -778,6 +784,7 @@ class CrossValidationTest(unittest.TestCase):
         """
 
         # Create folds
+        DATA = self.TSData.to_dataframe()
         rolling_train_folds, rolling_test_folds = self.create_folds(
             data=DATA,
             train_size=EXPANDING_WINDOW_START / 100 * len(DATA),
