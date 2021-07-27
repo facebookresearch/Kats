@@ -7,6 +7,8 @@ import os
 import random
 import re
 import unittest
+import pkgutil
+import io
 from collections import Counter
 from collections.abc import Iterable
 from datetime import datetime, timedelta
@@ -14,6 +16,7 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+
 import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.bocpd import (
@@ -76,63 +79,39 @@ statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
 
-if "kats/tests" in os.getcwd():
-    data_path = os.path.abspath(
-        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
-    )
 
-    daily_data_path = os.path.abspath(
-        os.path.join(os.path.dirname("__file__"), "../", "data/peyton_manning.csv")
-    )
-
-    multi_data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/multivariate_anomaly_simulated_data.csv",
-        )
-    )
-elif "/home/runner/work/" in os.getcwd():  # for Github Action
-    data_path = "kats/data/air_passengers.csv"
-    daily_data_path = "kats/data/peyton_manning.csv"
-    multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
-elif "/kats/tutorial" in os.getcwd().lower():
-    data_path = "~/kats/kats/data/air_passengers.csv"
-    daily_data_path = "~/kats/kats/data/peyton_manning.csv"
-    multi_data_path = "~/kats/kats/data/multivariate_anomaly_simulated_data.csv"
-else:
-    data_path = "kats/kats/data/air_passengers.csv"
-    daily_data_path = "kats/kats/data/peyton_manning.csv"
-    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
-
-data = pd.read_csv(data_path)
-data.columns = ["time", "y"]
-ts_data = TimeSeriesData(data)
-# generate muliple series
-data_2 = data.copy()
-data_2["y_2"] = data_2["y"]
-ts_data_2 = TimeSeriesData(data_2)
-
-
-daily_data = pd.read_csv(daily_data_path)
-daily_data.columns = ["time", "y"]
-ts_data_daily = TimeSeriesData(daily_data)
-
-DATA_multi = pd.read_csv(multi_data_path)
-TSData_multi = TimeSeriesData(DATA_multi)
-
-TSData_empty = TimeSeriesData(pd.DataFrame([], columns=["time", "y"]))
-
+def load_data(file_name):
+    ROOT="kats"
+    if "kats" in os.getcwd().lower():
+        path = 'data/'
+    else:
+        path = 'kats/data/'
+    data_object =  pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
 
 # Anomaly detection tests
 class OutlierDetectionTest(TestCase):
+    def setUp(self):
+        data = load_data('air_passengers.csv')
+        data.columns = ["time", "y"]
+        self.ts_data = TimeSeriesData(data)
+        data_2 = data.copy()
+        data_2["y_2"] = data_2["y"]
+        self.ts_data_2 = TimeSeriesData(data_2)
+
+        daily_data = load_data("peyton_manning.csv")
+        daily_data.columns = ["time", "y"]
+        self.ts_data_daily = TimeSeriesData(daily_data)
+
+
+
     def test_additive_overrides(self) -> None:
-        m = OutlierDetector(ts_data, "additive")
+        m = OutlierDetector(self.ts_data, "additive")
 
         m.detector()
         outliers = m.remover(interpolate=True)
 
-        m2 = OutlierDetector(ts_data, "logarithmic")
+        m2 = OutlierDetector(self.ts_data, "logarithmic")
 
         m2.detector()
         outliers2 = m2.remover(interpolate=True)
@@ -140,33 +119,34 @@ class OutlierDetectionTest(TestCase):
         self.assertEqual(outliers.value.all(), outliers2.value.all())
 
     def test_outlier_detection_additive(self) -> None:
-        m = OutlierDetector(ts_data, "additive")
+        m = OutlierDetector(self.ts_data, "additive")
 
         m.detector()
         m.remover(interpolate=True)
 
-        m2 = OutlierDetector(ts_data_daily, "additive")
+        m2 = OutlierDetector(self.ts_data_daily, "additive")
         m2.detector()
         m2.remover(interpolate=True)
         # test for multiple time series
-        m3 = OutlierDetector(ts_data_2, "additive")
+        m3 = OutlierDetector(self.ts_data_2, "additive")
         m3.detector()
         m3.remover(interpolate=True)
 
     def test_outlier_detection_multiplicative(self) -> None:
-        m = OutlierDetector(ts_data, "multiplicative")
+        m = OutlierDetector(self.ts_data, "multiplicative")
         m.detector()
         m.remover(interpolate=True)
 
-        m2 = OutlierDetector(ts_data_daily, "multiplicative")
+        m2 = OutlierDetector(self.ts_data_daily, "multiplicative")
         m2.detector()
         m2.remover(interpolate=True)
         # test for multiple time series
-        m3 = OutlierDetector(ts_data_2, "additive")
+        m3 = OutlierDetector(self.ts_data_2, "additive")
         m3.detector()
         m3.remover(interpolate=True)
 
     def test_outlier_detector_exception(self) -> None:
+        data = self.ts_data.to_dataframe()
         data_new = pd.concat([data, data])
         ts_data_new = TimeSeriesData(data_new)
 
@@ -176,15 +156,19 @@ class OutlierDetectionTest(TestCase):
 
 
 class MultivariateVARDetectorTest(TestCase):
+    def setUp(self):
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_var_detector(self) -> None:
         np.random.seed(10)
 
         params = VARParams(maxlags=2)
-        d = MultivariateAnomalyDetector(TSData_multi, params, training_days=60)
+        d = MultivariateAnomalyDetector(self.TSData_multi, params, training_days=60)
         anomaly_score_df = d.detector()
         self.assertCountEqual(
             list(anomaly_score_df.columns),
-            list(TSData_multi.value.columns) + ["overall_anomaly_score", "p_value"],
+            list(self.TSData_multi.value.columns) + ["overall_anomaly_score", "p_value"],
         )
         d.plot()
         alpha = 0.05
@@ -196,7 +180,7 @@ class MultivariateVARDetectorTest(TestCase):
 
         params = BayesianVARParams(p=2)
         d = MultivariateAnomalyDetector(
-            TSData_multi,
+            self.TSData_multi,
             params,
             training_days=60,
             model_type=MultivariateAnomalyDetectorType.BAYESIAN_VAR,
@@ -204,7 +188,7 @@ class MultivariateVARDetectorTest(TestCase):
         anomaly_score_df = d.detector()
         self.assertCountEqual(
             list(anomaly_score_df.columns),
-            list(TSData_multi.value.columns) + ["overall_anomaly_score", "p_value"],
+            list(self.TSData_multi.value.columns) + ["overall_anomaly_score", "p_value"],
         )
         d.plot()
         alpha = 0.05
@@ -212,6 +196,7 @@ class MultivariateVARDetectorTest(TestCase):
         d.get_anomalous_metrics(anomalies[0], top_k=3)
 
     def test_runtime_errors(self) -> None:
+        DATA_multi = self.TSData_multi.to_dataframe()
         DATA_multi2 = pd.concat([DATA_multi, DATA_multi])
         TSData_multi2 = TimeSeriesData(DATA_multi2)
         params = VARParams(maxlags=2)
@@ -1216,8 +1201,16 @@ class BocpdDetectorModelTest(TestCase):
 
 # Other detection tests (seasonality, trend, etc)
 class ACFDetectorTest(TestCase):
+    def setUp(self):
+        daily_data = load_data("peyton_manning.csv")
+        daily_data.columns = ["time", "y"]
+        self.ts_data_daily = TimeSeriesData(daily_data)
+
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_acf_detector(self) -> None:
-        detector = ACFDetector(data=ts_data_daily)
+        detector = ACFDetector(data=self.ts_data_daily)
         res = detector.detector(lags=None, diff=1, alpha=0.01)
         self.assertEqual(res["seasonality_presence"], True)
         detector.remover()
@@ -1236,7 +1229,7 @@ class ACFDetectorTest(TestCase):
 
     def test_logging(self) -> None:
         with self.assertRaises(ValueError):
-            ACFDetector(data=TSData_multi)
+            ACFDetector(data=self.TSData_multi)
 
 
 class MKDetectorTest(TestCase):
@@ -1500,6 +1493,9 @@ class FFTDetectorTest(TestCase):
             pd.DataFrame({"time": self.series_times, "values": self.harms_sum})
         )
 
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_detector(self) -> None:
         detector = FFTDetector(data=self.data)
         result = detector.detector()
@@ -1510,7 +1506,7 @@ class FFTDetectorTest(TestCase):
 
     def test_logging(self) -> None:
         with self.assertRaises(ValueError):
-            FFTDetector(data=TSData_multi)
+            FFTDetector(data=self.TSData_multi)
 
 
 class SingleSpikeTest(TestCase):
@@ -2637,6 +2633,17 @@ class TestMultiStatSigDetector(TestCase):
 
 
 class HourlyRatioDectorTest(TestCase):
+    def setUp(self):
+        daily_data = load_data("peyton_manning.csv")
+        daily_data.columns = ["time", "y"]
+        self.ts_data_daily = TimeSeriesData(daily_data)
+
+        self.TSData_empty = TimeSeriesData(pd.DataFrame([], columns=["time", "y"]))
+
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
+
     def data_generation(self, freq="H", drop: bool = True, frac: float = 0.95):
         time = pd.date_range("2018-01-01", "2020-01-01", freq=freq)
         n = len(time)
@@ -2673,11 +2680,11 @@ class HourlyRatioDectorTest(TestCase):
         hr.plot()
 
     def test_other(self) -> None:
-        self.assertRaises(ValueError, HourlyRatioDetector, TSData_multi)
+        self.assertRaises(ValueError, HourlyRatioDetector, self.TSData_multi)
 
-        self.assertRaises(ValueError, HourlyRatioDetector, ts_data_daily)
+        self.assertRaises(ValueError, HourlyRatioDetector, self.ts_data_daily)
 
-        self.assertRaises(ValueError, HourlyRatioDetector, TSData_empty)
+        self.assertRaises(ValueError, HourlyRatioDetector, self.TSData_empty)
 
         ts = self.data_generation(freq="T")
         self.assertRaises(ValueError, HourlyRatioDetector, data=ts)
