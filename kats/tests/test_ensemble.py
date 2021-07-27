@@ -4,6 +4,8 @@
 
 import os
 import unittest
+import pkgutil
+import io
 import pandas as pd
 import numpy as np
 from unittest import TestCase
@@ -26,42 +28,6 @@ from kats.models.ensemble.kats_ensemble import KatsEnsemble
 from kats.models.ensemble.median_ensemble import MedianEnsembleModel
 from kats.models.ensemble.weighted_avg_ensemble import WeightedAvgEnsemble
 
-if "kats/tests" in os.getcwd():
-    data_path = os.path.abspath(
-        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
-    )
-
-    daily_data_path = os.path.abspath(
-        os.path.join(os.path.dirname("__file__"), "../", "data/peyton_manning.csv")
-    )
-
-    multi_data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/multivariate_anomaly_simulated_data.csv",
-        )
-    )
-elif "/home/runner/work/" in os.getcwd():  # for github Action
-    data_path = "kats/data/air_passengers.csv"
-    daily_data_path = "kats/data/peyton_manning.csv"
-    multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
-else:
-    data_path = "kats/kats/data/air_passengers.csv"
-    daily_data_path = "kats/kats/data/peyton_manning.csv"
-    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
-
-DATA = pd.read_csv(data_path)
-DATA.columns = ["time", "y"]
-TSData = TimeSeriesData(DATA)
-
-DATA_daily = pd.read_csv(daily_data_path)
-DATA_daily.columns = ["time", "y"]
-TSData_daily = TimeSeriesData(DATA_daily)
-
-DATA_multi = pd.read_csv(multi_data_path)
-TSData_multi = TimeSeriesData(DATA_multi)
-
 np.random.seed(123321)
 DATA_dummy = pd.DataFrame(
     {
@@ -71,11 +37,32 @@ DATA_dummy = pd.DataFrame(
 )
 TSData_dummy = TimeSeriesData(DATA_dummy)
 
+def load_data(file_name):
+    ROOT="kats"
+    if "kats" in os.getcwd().lower():
+        path = 'data/'
+    else:
+        path = 'kats/data/'
+    data_object =  pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
 class testBaseEnsemble(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
+
     def test_fit_forecast(self) -> None:
         params = EnsembleParams(
             [
@@ -109,12 +96,12 @@ class testBaseEnsemble(TestCase):
             ]
         )
 
-        m = BaseEnsemble(TSData, params)
+        m = BaseEnsemble(self.TSData, params)
         m.fit()
         m._predict_all(steps=30, freq="MS")
         m.plot()
 
-        m_daily = BaseEnsemble(TSData_daily, params)
+        m_daily = BaseEnsemble(self.TSData_daily, params)
         m_daily.fit()
         m_daily._predict_all(steps=30, freq="D")
         m.plot()
@@ -168,7 +155,7 @@ class testBaseEnsemble(TestCase):
         self.assertRaises(
             ValueError,
             BaseEnsemble,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
@@ -186,12 +173,25 @@ class testBaseEnsemble(TestCase):
         self.assertRaises(
             ValueError,
             BaseEnsemble,
-            TSData,
+            self.TSData,
             params,
         )
 
 
 class testMedianEnsemble(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
+
     def test_fit_forecast(self) -> None:
         params = EnsembleParams(
             [
@@ -224,12 +224,12 @@ class testMedianEnsemble(TestCase):
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
             ]
         )
-        m = MedianEnsembleModel(data=TSData, params=params)
+        m = MedianEnsembleModel(data=self.TSData, params=params)
         m.fit()
         m.predict(steps=30, freq="MS")
         m.plot()
 
-        m_daily = MedianEnsembleModel(data=TSData_daily, params=params)
+        m_daily = MedianEnsembleModel(data=self.TSData_daily, params=params)
         m_daily.fit()
         m_daily.predict(steps=30, freq="D")
         m_daily.plot()
@@ -257,12 +257,24 @@ class testMedianEnsemble(TestCase):
         self.assertRaises(
             ValueError,
             MedianEnsembleModel,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
 
 class testWeightedAvgEnsemble(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_fit_forecast(self) -> None:
         params = EnsembleParams(
             [
@@ -299,12 +311,12 @@ class testWeightedAvgEnsemble(TestCase):
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
             ]
         )
-        m = WeightedAvgEnsemble(data=TSData, params=params)
+        m = WeightedAvgEnsemble(data=self.TSData, params=params)
         m.fit()
         m.predict(steps=30, freq="MS", err_method="mape")
         m.plot()
 
-        m_daily = WeightedAvgEnsemble(data=TSData_daily, params=params)
+        m_daily = WeightedAvgEnsemble(data=self.TSData_daily, params=params)
         m_daily.fit()
         m_daily.predict(steps=30, freq="D")
         m.plot()
@@ -332,12 +344,17 @@ class testWeightedAvgEnsemble(TestCase):
         self.assertRaises(
             ValueError,
             WeightedAvgEnsemble,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
 
 class testKatsEnsemble(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
     def test_fit_forecast(self) -> None:
         model_params = EnsembleParams(
             [
@@ -381,13 +398,13 @@ class testKatsEnsemble(TestCase):
                     "decomposition_method": decomp,
                 }
 
-                m = KatsEnsemble(data=TSData, params=KatsEnsembleParam)
+                m = KatsEnsemble(data=self.TSData, params=KatsEnsembleParam)
                 m.fit()
                 m.predict(steps=30)
                 m.aggregate()
                 m.plot()
 
-                m = KatsEnsemble(data=TSData, params=KatsEnsembleParam)
+                m = KatsEnsemble(data=self.TSData, params=KatsEnsembleParam)
                 m.fit()
                 m.forecast(steps=30)
                 m.aggregate()
@@ -439,7 +456,7 @@ class testKatsEnsemble(TestCase):
             "decomposition_method": "random_decomp",
         }
         # test invalid decomposition method
-        m = KatsEnsemble(data=TSData, params=KatsEnsembleParam)
+        m = KatsEnsemble(data=self.TSData, params=KatsEnsembleParam)
         m.validate_params()
 
         # test invalid seasonality length
@@ -453,7 +470,7 @@ class testKatsEnsemble(TestCase):
         self.assertRaises(
             ValueError,
             KatsEnsemble,
-            TSData,
+            self.TSData,
             KatsEnsembleParam,
         )
 
@@ -467,7 +484,7 @@ class testKatsEnsemble(TestCase):
             "forecastExecutor": None,
         }
         with self.assertLogs(level="INFO"):
-            m = KatsEnsemble(data=TSData, params=KatsEnsembleParam)
+            m = KatsEnsemble(data=self.TSData, params=KatsEnsembleParam)
 
         # test non-seasonal data
         KatsEnsembleParam = {

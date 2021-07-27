@@ -5,6 +5,8 @@
 import os
 import unittest
 from unittest import TestCase
+import pkgutil
+import io
 
 import numpy as np
 import pandas as pd
@@ -44,51 +46,31 @@ from kats.utils.time_series_parameter_tuning import (
     TimeSeriesParameterTuning,
 )
 
-if "kats/tests" in os.getcwd():
-    data_path = os.path.abspath(
-        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
-    )
-
-    daily_data_path = os.path.abspath(
-        os.path.join(os.path.dirname("__file__"), "../", "data/peyton_manning.csv")
-    )
-
-    multi_data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/multivariate_anomaly_simulated_data.csv",
-        )
-    )
-elif "/home/runner/work/" in os.getcwd():  # for Github Action
-    data_path = "kats/data/air_passengers.csv"
-    daily_data_path = "kats/data/peyton_manning.csv"
-    multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
-else:
-    data_path = "kats/kats/data/air_passengers.csv"
-    daily_data_path = "kats/kats/data/peyton_manning.csv"
-    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
-
-DATA = pd.read_csv(data_path)
-DATA.columns = ["time", "y"]
-TSData = TimeSeriesData(DATA)
-
-DATA_daily = pd.read_csv(daily_data_path)
-DATA_daily.columns = ["time", "y"]
-TSData_daily = TimeSeriesData(DATA_daily)
-
-DATA_multi = pd.read_csv(multi_data_path)
-TSData_multi = TimeSeriesData(DATA_multi)
+def load_data(file_name):
+    ROOT="kats"
+    if "kats" in os.getcwd().lower():
+        path = 'data/'
+    else:
+        path = 'kats/data/'
+    data_object =  pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
 class DataValidationTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+
     def test_data_validation(self) -> None:
         # add the extra data point to break the frequency.
         extra_point = pd.DataFrame(
             [["1900-01-01", 2], ["2020-01-01", 2]], columns=["time", "y"]
         )
+        DATA = self.TSData.to_dataframe()
         data_with_extra_point = DATA.copy().append(extra_point)
 
         tsData_with_missing_point = TimeSeriesData(data_with_extra_point)
@@ -110,9 +92,21 @@ class DataValidationTest(TestCase):
 
 
 class ARIMAModelTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_fit_forecast(self) -> None:
         params = ARIMAParams(p=1, d=1, q=1)
-        m = ARIMAModel(data=TSData, params=params)
+        m = ARIMAModel(data=self.TSData, params=params)
         m.fit(
             start_params=None,
             transparams=True,
@@ -129,7 +123,7 @@ class ARIMAModelTest(TestCase):
         m.predict(steps=30)
         m.plot()
 
-        m_daily = ARIMAModel(data=TSData_daily, params=params)
+        m_daily = ARIMAModel(data=self.TSData_daily, params=params)
         m_daily.fit()
         m_daily.predict(steps=30, include_history=True)
         m.plot()
@@ -137,7 +131,7 @@ class ARIMAModelTest(TestCase):
     def test_others(self) -> None:
         params = ARIMAParams(p=1, d=1, q=1)
         params.validate_params()
-        m = ARIMAModel(data=TSData, params=params)
+        m = ARIMAModel(data=self.TSData, params=params)
 
         # test __str__ method
         self.assertEqual(m.__str__(), "ARIMA")
@@ -146,7 +140,7 @@ class ARIMAModelTest(TestCase):
         self.assertRaises(
             ValueError,
             ARIMAModel,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
@@ -180,27 +174,39 @@ class ARIMAModelTest(TestCase):
 
 
 class ThetaModelTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_fit_forecast(self) -> None:
         params = ThetaParams(m=12)
-        m = ThetaModel(TSData, params)
+        m = ThetaModel(self.TSData, params)
         m.fit()
         m.predict(steps=15, alpha=0.05)
         m.plot()
 
         params = ThetaParams()
-        m_daily = ThetaModel(data=TSData_daily, params=params)
+        m_daily = ThetaModel(data=self.TSData_daily, params=params)
         m_daily.fit()
         m_daily.predict(steps=30)
         m.plot()
 
         params = ThetaParams(m=12)
-        m = ThetaModel(TSData, params)
+        m = ThetaModel(self.TSData, params)
         m.fit()
         m.predict(steps=15, alpha=0.05, include_history=True)
         m.plot()
 
         params = ThetaParams()
-        m_daily = ThetaModel(data=TSData_daily, params=params)
+        m_daily = ThetaModel(data=self.TSData_daily, params=params)
         m_daily.fit()
         m_daily.predict(steps=30, include_history=True)
         m.plot()
@@ -212,17 +218,29 @@ class ThetaModelTest(TestCase):
         self.assertRaises(
             ValueError,
             ThetaModel,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
-        m = ThetaModel(TSData, params)
+        m = ThetaModel(self.TSData, params)
 
         # test __str__ method
         self.assertEqual(m.__str__(), "Theta")
 
 
 class HoltWintersModelTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_fit_forecast(self) -> None:
         params = HoltWintersParams(
             # pyre-fixme[6]: Expected `str` for 1st param but got `None`.
@@ -231,13 +249,13 @@ class HoltWintersModelTest(TestCase):
             seasonal=None,
             seasonal_periods=None,
         )
-        m = HoltWintersModel(data=TSData, params=params)
+        m = HoltWintersModel(data=self.TSData, params=params)
         m.fit()
         m.predict(steps=30)
         m.predict(steps=30, include_history=True, alpha=0.05)
         m.plot()
 
-        m_daily = HoltWintersModel(data=TSData_daily, params=params)
+        m_daily = HoltWintersModel(data=self.TSData_daily, params=params)
         m_daily.fit()
         m_daily.predict(steps=30)
         m.predict(
@@ -269,11 +287,11 @@ class HoltWintersModelTest(TestCase):
         self.assertRaises(
             ValueError,
             HoltWintersModel,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
-        m = HoltWintersModel(TSData, params)
+        m = HoltWintersModel(self.TSData, params)
 
         # test __str__ method
         self.assertEqual(m.__str__(), "HoltWinters")
@@ -313,10 +331,23 @@ class HoltWintersModelTest(TestCase):
 
 
 class LinearModelTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
+
     def test_fit_forecast(self) -> None:
         params = LinearModelParams(alpha=0.05)
         params.validate_params()
-        m = LinearModel(TSData, params)
+        m = LinearModel(self.TSData, params)
         m.fit()
         m.predict(steps=30, freq="MS")
         m.plot()
@@ -324,7 +355,7 @@ class LinearModelTest(TestCase):
         m.predict(steps=30, freq="MS", include_history=True)
         m.plot()
 
-        m_daily = LinearModel(TSData_daily, params)
+        m_daily = LinearModel(self.TSData_daily, params)
         m_daily.fit()
         m_daily.predict(steps=30, freq="D")
         m.plot()
@@ -338,11 +369,11 @@ class LinearModelTest(TestCase):
         self.assertRaises(
             ValueError,
             LinearModel,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
-        m = LinearModel(TSData, params)
+        m = LinearModel(self.TSData, params)
 
         # test __str__ method
         self.assertEqual(m.__str__(), "Linear Model")
@@ -363,9 +394,22 @@ class LinearModelTest(TestCase):
 
 
 class QuadraticModelTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
+
     def test_fit_forecast(self) -> None:
         params = QuadraticModelParams()
-        m = QuadraticModel(TSData, params)
+        m = QuadraticModel(self.TSData, params)
         m.fit()
         m.predict(steps=30, freq="MS")
         m.plot()
@@ -373,7 +417,7 @@ class QuadraticModelTest(TestCase):
         m.predict(steps=30, freq="MS", include_history=True)
         m.plot()
 
-        m_daily = QuadraticModel(TSData_daily, params)
+        m_daily = QuadraticModel(self.TSData_daily, params)
         m_daily.fit()
         m_daily.predict(steps=30, freq="D")
         m.plot()
@@ -387,11 +431,11 @@ class QuadraticModelTest(TestCase):
         self.assertRaises(
             ValueError,
             QuadraticModel,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
-        m = QuadraticModel(TSData, params)
+        m = QuadraticModel(self.TSData, params)
 
         # test __str__ method
         self.assertEqual(m.__str__(), "Quadratic")
@@ -412,22 +456,49 @@ class QuadraticModelTest(TestCase):
 
 
 class LSTMModelTest(TestCase):
+    def setUp(self):
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
     def test_fit_forecast(self) -> None:
         # use smaller time window and epochs for testing to reduce testing time
         params = LSTMParams(hidden_size=10, time_window=4, num_epochs=5)
-        m = LSTMModel(data=TSData, params=params)
+        m = LSTMModel(data=self.TSData, params=params)
         m.fit()
         m.predict(steps=15)
         m.plot()
 
-        m_daily = LSTMModel(data=TSData_daily, params=params)
+        m_daily = LSTMModel(data=self.TSData_daily, params=params)
         m_daily.fit()
         m_daily.predict(steps=30)
         m_daily.plot()
 
 
 class SARIMAModelTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
+
     def test_fit_forecast(self) -> None:
+        def setUp(self):
+            DATA = load_data('air_passengers.csv')
+            DATA.columns = ["time", "y"]
+            self.TSData = TimeSeriesData(DATA)
+
         params = SARIMAParams(
             p=2,
             d=1,
@@ -438,7 +509,7 @@ class SARIMAModelTest(TestCase):
             enforce_stationarity=False,
         )
         params.validate_params()
-        m = SARIMAModel(TSData, params)
+        m = SARIMAModel(self.TSData, params)
         m.fit(
             start_params=None,
             # pyre-fixme[6]: Expected `bool` for 2nd param but got `None`.
@@ -460,7 +531,7 @@ class SARIMAModelTest(TestCase):
         m.predict(steps=30, freq="MS")
         m.plot()
 
-        m_daily = SARIMAModel(TSData_daily, params)
+        m_daily = SARIMAModel(self.TSData_daily, params)
         m_daily.fit()
         m_daily.predict(steps=30, freq="D")
         m.plot()
@@ -476,7 +547,7 @@ class SARIMAModelTest(TestCase):
             enforce_stationarity=False,
         )
         params.validate_params()
-        m = SARIMAModel(TSData, params)
+        m = SARIMAModel(self.TSData, params)
 
         # test search space
         self.assertEqual(
@@ -535,52 +606,61 @@ class SARIMAModelTest(TestCase):
         self.assertRaises(
             ValueError,
             SARIMAModel,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
 
 class ProphetModelTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
     def test_fit_forecast(self) -> None:
         params = ProphetParams()
-        m = ProphetModel(TSData, params)
+        m = ProphetModel(self.TSData, params)
         m.fit()
         m.predict(steps=30, freq="MS")
         m.plot()
 
         # adding cap and floor
         params = ProphetParams(cap=1000, floor=10, growth="logistic")
-        m = ProphetModel(TSData, params)
+        m = ProphetModel(self.TSData, params)
         m.fit()
         m.predict(steps=30, freq="MS")
         m.plot()
 
-        m_daily = ProphetModel(TSData_daily, params)
+        m_daily = ProphetModel(self.TSData_daily, params)
         m_daily.fit()
         m_daily.predict(steps=30, freq="D")
         m.plot()
 
         # add historical fit
         params = ProphetParams()
-        m = ProphetModel(TSData, params)
+        m = ProphetModel(self.TSData, params)
         m.fit()
         m.predict(steps=30, freq="MS", include_history=True)
         m.plot()
 
-        m_daily = ProphetModel(TSData_daily, params)
+        m_daily = ProphetModel(self.TSData_daily, params)
         m_daily.fit()
         m_daily.predict(steps=30, freq="D", include_history=True)
         m.plot()
 
         # test logistic growth with cap
         params = ProphetParams(growth="logistic", cap=1000)
-        m = ProphetModel(TSData, params)
+        m = ProphetModel(self.TSData, params)
         m.fit()
         m.predict(steps=30, freq="MS")
         m.plot()
 
         params = ProphetParams(growth="logistic", cap=20)
-        m_daily = ProphetModel(TSData_daily, params)
+        m_daily = ProphetModel(self.TSData_daily, params)
         m_daily.fit()
         m_daily.predict(steps=30, freq="D")
         m.plot()
@@ -596,7 +676,7 @@ class ProphetModelTest(TestCase):
             ],
         )
         params.validate_params()  # Validate params and ensure no errors raised.
-        m = ProphetModel(TSData, params)
+        m = ProphetModel(self.TSData, params)
         m.fit()
         m.predict(steps=30, freq="MS")
         m.plot()
@@ -611,35 +691,48 @@ class ProphetModelTest(TestCase):
             ],
         )
         params.validate_params()  # Validate params and ensure no errors raised.
-        m_daily = ProphetModel(TSData_daily, params)
+        m_daily = ProphetModel(self.TSData_daily, params)
         m_daily.fit()
         m_daily.predict(steps=30, freq="D")
         m.plot()
 
 
 class testVARModel(TestCase):
+    def setUp(self):
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_fit_forecast(self) -> None:
         params = VARParams()
-        m = VARModel(TSData_multi, params)
+        m = VARModel(self.TSData_multi, params)
         m.fit()
         m.predict(steps=30, include_history=True)
 
 
 class testBayesianVARModel(TestCase):
+    def setUp(self):
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_fit_forecast(self) -> None:
         params = BayesianVARParams(p=3)
-        m = BayesianVAR(TSData_multi, params)
+        m = BayesianVAR(self.TSData_multi, params)
         m.fit()
         m.predict(steps=30, include_history=True)
         m.plot()
 
 
 class testEmpConfidenceInt(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
     def test_empConfInt_Prophet(self) -> None:
         params = ProphetParams(seasonality_mode="multiplicative")
         ci = EmpConfidenceInt(
             ALL_ERRORS,
-            TSData,
+            self.TSData,
             params,
             50,
             25,
@@ -651,16 +744,29 @@ class testEmpConfidenceInt(TestCase):
 
 
 class testSTLFModel(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily.columns = ["time", "y"]
+        self.TSData_daily = TimeSeriesData(DATA_daily)
+
+        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
+
     def test_fit_forecast(self) -> None:
         for method in ["theta", "prophet", "linear", "quadratic"]:
             params = STLFParams(m=12, method=method)
-            m = STLFModel(TSData, params)
+            m = STLFModel(self.TSData, params)
             m.fit()
             m.predict(steps=30)
             m.predict(steps=30, include_history=True)
 
         params = STLFParams(m=7, method="theta")
-        m_daily = STLFModel(TSData_daily, params)
+        m_daily = STLFModel(self.TSData_daily, params)
         m_daily.fit()
         m_daily.predict(steps=30)
         m.plot()
@@ -673,7 +779,7 @@ class testSTLFModel(TestCase):
         self.assertRaises(
             ValueError,
             STLFModel,
-            TSData_daily,
+            self.TSData_daily,
             params,
         )
 
@@ -693,12 +799,12 @@ class testSTLFModel(TestCase):
         self.assertRaises(
             ValueError,
             STLFModel,
-            TSData_multi,
+            self.TSData_multi,
             params,
         )
 
         # test __str__ method
-        m = STLFModel(TSData, params)
+        m = STLFModel(self.TSData, params)
         self.assertEqual(m.__str__(), "STLF")
 
 
