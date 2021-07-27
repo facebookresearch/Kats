@@ -2,7 +2,9 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import io
 import os
+import pkgutil
 import unittest
 from datetime import timedelta
 from unittest import TestCase
@@ -13,70 +15,45 @@ from kats.consts import TimeSeriesData
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
 
-if "kats/tests" in os.getcwd():
-    data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/air_passengers.csv"
-            )
-        )
 
-    daily_data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/peyton_manning.csv"
-            )
-        )
-
-    multi_data_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname("__file__"),
-            "../",
-            "data/multivariate_anomaly_simulated_data.csv"
-            )
-        )
-elif "/home/runner/work/" in os.getcwd(): # for github Action
-    data_path = "kats/data/air_passengers.csv"
-    daily_data_path = "kats/data/peyton_manning.csv"
-    multi_data_path = "kats/data/multivariate_anomaly_simulated_data.csv"
-else:
-    data_path = "kats/kats/data/air_passengers.csv"
-    daily_data_path = "kats/kats/data/peyton_manning.csv"
-    multi_data_path = "kats/kats/data/multivariate_anomaly_simulated_data.csv"
-
-data = pd.read_csv(data_path)
-data.columns = ["time", "y"]
-ts_data = TimeSeriesData(data)
-# generate multiple series
-data_2 = data.copy()
-data_2["y_2"] = data_2["y"]
-ts_data_2 = TimeSeriesData(data_2)
-# generate TimeSeriesData without "time" as time column name
-data_nonstandard_name = data.copy()
-data_nonstandard_name.columns = ["ds", "y"]
-ts_data_nonstandard_name = TimeSeriesData(df=data_nonstandard_name, time_col_name="ds")
-
-daily_data = pd.read_csv(daily_data_path)
-daily_data.columns = ["time", "y"]
-ts_data_daily = TimeSeriesData(daily_data)
-
-DATA_multi = pd.read_csv(multi_data_path)
-TSData_multi = TimeSeriesData(DATA_multi)
+def load_data(file_name):
+    ROOT = "kats"
+    if "kats" in os.getcwd().lower():
+        path = "data/"
+    else:
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 class DecompositionTest(TestCase):
+    def setUp(self):
+        data = load_data("air_passengers.csv")
+        data.columns = ["time", "y"]
+        self.ts_data = TimeSeriesData(data)
+
+        data_nonstandard_name = data.copy()
+        data_nonstandard_name.columns = ["ds", "y"]
+        self.ts_data_nonstandard_name = TimeSeriesData(
+            df=data_nonstandard_name, time_col_name="ds"
+        )
+
+        daily_data = load_data("peyton_manning.csv")
+        daily_data.columns = ["time", "y"]
+        self.ts_data_daily = TimeSeriesData(daily_data)
+
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
+        self.TSData_multi = TimeSeriesData(DATA_multi)
+
     def test_asserts(self) -> None:
         with self.assertRaises(ValueError):
-            timeseries = TimeSeriesData(DATA_multi)
-            TimeSeriesDecomposition(timeseries, "additive")
+            TimeSeriesDecomposition(self.TSData_multi, "additive")
 
     def test_defaults(self) -> None:
-        m1 = TimeSeriesDecomposition(ts_data, "additive")
+        m1 = TimeSeriesDecomposition(self.ts_data, "additive")
         output1 = m1.decomposer()
 
-        m2 = TimeSeriesDecomposition(ts_data, "logarithmic")
+        m2 = TimeSeriesDecomposition(self.ts_data, "logarithmic")
         output2 = m2.decomposer()
 
         self.assertEqual(output1["trend"].value.all(), output2["trend"].value.all())
@@ -85,7 +62,7 @@ class DecompositionTest(TestCase):
         )
         self.assertEqual(output1["rem"].value.all(), output2["rem"].value.all())
 
-        m3 = TimeSeriesDecomposition(ts_data, "additive", "STL2")
+        m3 = TimeSeriesDecomposition(self.ts_data, "additive", "STL2")
         output3 = m3.decomposer()
 
         self.assertEqual(output1["trend"].value.all(), output3["trend"].value.all())
@@ -95,26 +72,28 @@ class DecompositionTest(TestCase):
         self.assertEqual(output1["rem"].value.all(), output3["rem"].value.all())
 
     def test_nonstandard_time_col_name(self) -> None:
-        m = TimeSeriesDecomposition(ts_data_nonstandard_name, "multiplicative")
+        m = TimeSeriesDecomposition(self.ts_data_nonstandard_name, "multiplicative")
         m.decomposer()
         self.assertEqual(
             # pyre-fixme[16]: `TimeSeriesDecomposition` has no attribute `results`.
-            m.results["trend"].time_col_name, ts_data_nonstandard_name.time_col_name
+            m.results["trend"].time_col_name,
+            self.ts_data_nonstandard_name.time_col_name,
         )
         self.assertEqual(
-            m.results["seasonal"].time_col_name, ts_data_nonstandard_name.time_col_name
+            m.results["seasonal"].time_col_name,
+            self.ts_data_nonstandard_name.time_col_name,
         )
         self.assertEqual(
-            m.results["rem"].time_col_name, ts_data_nonstandard_name.time_col_name
+            m.results["rem"].time_col_name, self.ts_data_nonstandard_name.time_col_name
         )
 
     def test_decomposition_additive(self) -> None:
-        m = TimeSeriesDecomposition(ts_data, "additive")
+        m = TimeSeriesDecomposition(self.ts_data, "additive")
         output = m.decomposer()
 
         out = pd.merge(
             pd.DataFrame.from_dict(
-                {"time": pd.DatetimeIndex(ts_data.time), "y": ts_data.value}
+                {"time": pd.DatetimeIndex(self.ts_data.time), "y": self.ts_data.value}
             ),
             pd.DataFrame.from_dict(
                 {
@@ -133,12 +112,14 @@ class DecompositionTest(TestCase):
             np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2), 0, 5
         )
 
-        m_seasonal = TimeSeriesDecomposition(ts_data, "additive", "seasonal_decompose")
+        m_seasonal = TimeSeriesDecomposition(
+            self.ts_data, "additive", "seasonal_decompose"
+        )
         output = m_seasonal.decomposer()
 
         out = pd.merge(
             pd.DataFrame.from_dict(
-                {"time": pd.DatetimeIndex(ts_data.time), "y": ts_data.value}
+                {"time": pd.DatetimeIndex(self.ts_data.time), "y": self.ts_data.value}
             ),
             pd.DataFrame.from_dict(
                 {
@@ -157,12 +138,15 @@ class DecompositionTest(TestCase):
             np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2), 0, 5
         )
 
-        m2 = TimeSeriesDecomposition(ts_data_daily, "additive")
+        m2 = TimeSeriesDecomposition(self.ts_data_daily, "additive")
         output = m2.decomposer()
 
         out2 = pd.merge(
             pd.DataFrame.from_dict(
-                {"time": pd.DatetimeIndex(ts_data_daily.time), "y": ts_data_daily.value}
+                {
+                    "time": pd.DatetimeIndex(self.ts_data_daily.time),
+                    "y": self.ts_data_daily.value,
+                }
             ),
             pd.DataFrame.from_dict(
                 {
@@ -181,13 +165,16 @@ class DecompositionTest(TestCase):
         )
 
         m2_seasonal = TimeSeriesDecomposition(
-            ts_data_daily, "additive", "seasonal_decompose"
+            self.ts_data_daily, "additive", "seasonal_decompose"
         )
         output = m2_seasonal.decomposer()
 
         out2 = pd.merge(
             pd.DataFrame.from_dict(
-                {"time": pd.DatetimeIndex(ts_data_daily.time), "y": ts_data_daily.value}
+                {
+                    "time": pd.DatetimeIndex(self.ts_data_daily.time),
+                    "y": self.ts_data_daily.value,
+                }
             ),
             pd.DataFrame.from_dict(
                 {
@@ -206,12 +193,12 @@ class DecompositionTest(TestCase):
         )
 
     def test_decomposition_multiplicative(self) -> None:
-        m = TimeSeriesDecomposition(ts_data, "multiplicative")
+        m = TimeSeriesDecomposition(self.ts_data, "multiplicative")
         output = m.decomposer()
 
         out = pd.merge(
             pd.DataFrame.from_dict(
-                {"time": pd.DatetimeIndex(ts_data.time), "y": ts_data.value}
+                {"time": pd.DatetimeIndex(self.ts_data.time), "y": self.ts_data.value}
             ),
             pd.DataFrame.from_dict(
                 {
@@ -231,13 +218,13 @@ class DecompositionTest(TestCase):
         )
 
         m_seas = TimeSeriesDecomposition(
-            ts_data, "multiplicative", "seasonal_decompose"
+            self.ts_data, "multiplicative", "seasonal_decompose"
         )
         output = m_seas.decomposer()
 
         out = pd.merge(
             pd.DataFrame.from_dict(
-                {"time": pd.DatetimeIndex(ts_data.time), "y": ts_data.value}
+                {"time": pd.DatetimeIndex(self.ts_data.time), "y": self.ts_data.value}
             ),
             pd.DataFrame.from_dict(
                 {
@@ -255,12 +242,15 @@ class DecompositionTest(TestCase):
         self.assertAlmostEqual(
             np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2), 0, 5
         )
-        m2 = TimeSeriesDecomposition(ts_data_daily, "multiplicative")
+        m2 = TimeSeriesDecomposition(self.ts_data_daily, "multiplicative")
         output = m2.decomposer()
 
         out2 = pd.merge(
             pd.DataFrame.from_dict(
-                {"time": pd.DatetimeIndex(ts_data_daily.time), "y": ts_data_daily.value}
+                {
+                    "time": pd.DatetimeIndex(self.ts_data_daily.time),
+                    "y": self.ts_data_daily.value,
+                }
             ),
             pd.DataFrame.from_dict(
                 {
@@ -279,13 +269,16 @@ class DecompositionTest(TestCase):
         )
 
         m2_seas = TimeSeriesDecomposition(
-            ts_data_daily, "multiplicative", "seasonal_decompose"
+            self.ts_data_daily, "multiplicative", "seasonal_decompose"
         )
         output = m2_seas.decomposer()
 
         out2 = pd.merge(
             pd.DataFrame.from_dict(
-                {"time": pd.DatetimeIndex(ts_data_daily.time), "y": ts_data_daily.value}
+                {
+                    "time": pd.DatetimeIndex(self.ts_data_daily.time),
+                    "y": self.ts_data_daily.value,
+                }
             ),
             pd.DataFrame.from_dict(
                 {
@@ -304,13 +297,13 @@ class DecompositionTest(TestCase):
         )
 
     def test_plot(self) -> None:
-        m = TimeSeriesDecomposition(ts_data, "multiplicative")
+        m = TimeSeriesDecomposition(self.ts_data, "multiplicative")
         m.decomposer()
 
         m.plot()
 
     def test_multiplicative_assert(self) -> None:
-        data_new = data.copy()
+        data_new = self.ts_data.to_dataframe().copy()
         data_new["y"] = -1.0 * data_new["y"]
         ts_data_new = TimeSeriesData(data_new)
         print(ts_data_new)
@@ -319,9 +312,12 @@ class DecompositionTest(TestCase):
             m.decomposer()
 
     def test_new_freq(self) -> None:
+        DATA_multi = self.TSData_multi.to_dataframe()
         df_15_min = DATA_multi[["time", "1"]]
-        df_15_min["time"] = list(pd.date_range(end='2020-02-01', periods=df_15_min.shape[0], freq='25T'))
-        df_15_min["time"] = df_15_min["time"].astype('str')
+        df_15_min["time"] = list(
+            pd.date_range(end="2020-02-01", periods=df_15_min.shape[0], freq="25T")
+        )
+        df_15_min["time"] = df_15_min["time"].astype("str")
         df_15_min.columns = ["time", "y"]
 
         df_ts = TimeSeriesData(df_15_min)
@@ -460,8 +456,8 @@ class SimulatorTest(TestCase):
             noise=3,
             seasonal_period=7,
             seasonal_magnitude=3,
-            anomaly_arr = [50, 150, 250],
-            z_score_arr = [10, -10, 20],
+            anomaly_arr=[50, 150, 250],
+            z_score_arr=[10, -10, 20],
         )
 
         self.assertEqual(len(ts2), 450)
@@ -473,8 +469,8 @@ class SimulatorTest(TestCase):
             noise=3,
             seasonal_period=7,
             seasonal_magnitude=3,
-            anomaly_arr = [50, 150, 250],
-            z_score_arr = [10, -10, 20],
+            anomaly_arr=[50, 150, 250],
+            z_score_arr=[10, -10, 20],
         )
 
         self.assertEqual(len(ts3), 450)
@@ -515,8 +511,8 @@ class SimulatorTest(TestCase):
             noise=30,
             seasonal_period=7,
             seasonal_magnitude=3,
-            anomaly_arr = [50, 150, 250],
-            z_score_arr = [10, -10, 20],
+            anomaly_arr=[50, 150, 250],
+            z_score_arr=[10, -10, 20],
         )
 
         self.assertEqual(len(ts2), 450)
@@ -529,11 +525,12 @@ class SimulatorTest(TestCase):
             noise=30,
             seasonal_period=7,
             seasonal_magnitude=3,
-            anomaly_arr = [50, 150, 250],
-            z_score_arr = [10, -10, 20],
+            anomaly_arr=[50, 150, 250],
+            z_score_arr=[10, -10, 20],
         )
 
         self.assertEqual(len(ts3), 450)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+import pkgutil
+import io
+
 from unittest import TestCase
 from typing import cast, Any, Dict
 
@@ -13,20 +16,7 @@ import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import _FEATURE_GROUP_MAPPING, TsFeatures
 
-if "kats/tests" in os.getcwd():
-    DATA_FILE = os.path.abspath(
-        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
-    )
-elif "/home/runner/work/" in os.getcwd():  # for github Action
-    DATA_FILE = "kats/data/air_passengers.csv"
-else:
-    DATA_FILE = "kats/kats/data/air_passengers.csv"
 
-DATA = pd.read_csv(DATA_FILE)
-DATA.columns = ["time", "y"]
-TSData = TimeSeriesData(DATA)
-TSData_short = TimeSeriesData(DATA.iloc[:8, :])
-TSData_mini = TimeSeriesData(DATA.iloc[:2, :])
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
@@ -63,8 +53,24 @@ SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
     }
 )
 
+def load_data(file_name):
+    ROOT="kats"
+    if "kats" in os.getcwd().lower():
+        path = 'data/'
+    else:
+        path = 'kats/data/'
+    data_object =  pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
 
 class TSfeaturesTest(TestCase):
+    def setUp(self):
+        DATA = load_data('air_passengers.csv')
+        DATA.columns = ["time", "y"]
+        self.TSData = TimeSeriesData(DATA)
+
+        self.TSData_short = TimeSeriesData(DATA.iloc[:8, :])
+        self.TSData_mini = TimeSeriesData(DATA.iloc[:2, :])
+
     def assertDictAlmostEqual(
         self, expected: Dict[str, Any], features: Dict[str, Any], places: int = 4
     ) -> None:
@@ -159,7 +165,7 @@ class TSfeaturesTest(TestCase):
         self.assertDictAlmostEqual(expected, features)
 
     def test_tsfeatures(self) -> None:
-        feature_vector = TsFeatures().transform(TSData)
+        feature_vector = TsFeatures().transform(self.TSData)
 
         feature_vector_round = {
             # pyre-fixme[6]: Expected `str` for 1st param but got `Union[Dict[str,
@@ -249,7 +255,7 @@ class TSfeaturesTest(TestCase):
                 histogram_mode=False,
                 diff2y_pacf5=False,
                 firstmin_ac=False,
-            ).transform(TSData),
+            ).transform(self.TSData),
         )
         rounded_truth = {
             "length": 144,
@@ -313,7 +319,7 @@ class TSfeaturesTest(TestCase):
             "level_shift_idx",
         ]
         feature_vector = cast(
-            Dict[str, Any], TsFeatures(selected_features=features).transform(TSData)
+            Dict[str, Any], TsFeatures(selected_features=features).transform(self.TSData)
         )
 
         # test feature vector value
@@ -367,7 +373,7 @@ class TSfeaturesTest(TestCase):
         ]
         feature_vector = cast(
             Dict[str, Any],
-            TsFeatures(selected_features=extension_features).transform(TSData),
+            TsFeatures(selected_features=extension_features).transform(self.TSData),
         )
 
         # test feature vector value
@@ -409,7 +415,7 @@ class TSfeaturesTest(TestCase):
 
     def test_others(self) -> None:
         # test there is nan in feature vector because the length of TS is too short
-        feature_vector = TsFeatures().transform(TSData_short)
+        feature_vector = TsFeatures().transform(self.TSData_short)
 
         self.assertEqual(
             # pyre-fixme[16]: `List` has no attribute `values`.
@@ -422,7 +428,7 @@ class TSfeaturesTest(TestCase):
         self.assertRaises(
             ValueError,
             TsFeatures().transform,
-            TSData_mini,
+            self.TSData_mini,
         )
         with self.assertRaises(ValueError):
             TsFeatures(selected_features=["mango"])
