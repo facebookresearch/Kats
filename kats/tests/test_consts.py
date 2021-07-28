@@ -2,9 +2,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import io
 import os
-import unittest
+import pkgutil
 from datetime import datetime
+from unittest import TestCase
 
 import numpy as np
 import pandas as pd
@@ -26,6 +28,17 @@ from pandas.testing import (
 # tentative, for test purpose
 print(os.getcwd())
 
+
+def load_data(file_name):
+    ROOT = "kats"
+    if "kats" in os.getcwd().lower():
+        path = "data/"
+    else:
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
+
+
 # Constant values to reuse across test cases
 if "kats/tests" in os.getcwd():
     DATA_FILE = os.path.abspath(
@@ -35,32 +48,12 @@ elif "/home/runner/work/" in os.getcwd():  # for Github Action
     DATA_FILE = "kats/data/air_passengers.csv"
 else:
     DATA_FILE = "kats/kats/data/air_passengers.csv"
+
+
 TIME_COL_NAME = "ds"
 VALUE_COL_NAME = "y"
-AIR_DF = pd.read_csv(DATA_FILE)
-AIR_DF_DATETIME = AIR_DF.copy(deep=True)
-AIR_DF_DATETIME.ds = AIR_DF_DATETIME.ds.apply(lambda x: parser.parse(x))
-AIR_DF_UNIXTIME = AIR_DF.copy(deep=True)
-AIR_DF_UNIXTIME.ds = AIR_DF_DATETIME.ds.apply(
-    lambda x: (x - datetime(1970, 1, 1)).total_seconds()
-)
-AIR_DF_WITH_DEFAULT_NAMES = AIR_DF.copy(deep=True)
-AIR_DF_WITH_DEFAULT_NAMES.columns = [DEFAULT_TIME_NAME, DEFAULT_VALUE_NAME]
-MULTIVAR_AIR_DF = AIR_DF.copy(deep=True)
-MULTIVAR_AIR_DF[VALUE_COL_NAME + "_1"] = MULTIVAR_AIR_DF.y * 2
-MULTIVAR_AIR_DF_DATETIME = MULTIVAR_AIR_DF.copy(deep=True)
-MULTIVAR_AIR_DF_DATETIME.ds = MULTIVAR_AIR_DF_DATETIME.ds.apply(
-    lambda x: parser.parse(x)
-)
 MULTIVAR_VALUE_DF_COLS = [VALUE_COL_NAME, VALUE_COL_NAME + "_1"]
-MULTIVAR_VALUE_DF = MULTIVAR_AIR_DF[MULTIVAR_VALUE_DF_COLS]
-AIR_TIME_SERIES = AIR_DF.ds
-AIR_TIME_SERIES_PD_DATETIME = pd.to_datetime(AIR_TIME_SERIES)
-AIR_TIME_SERIES_UNIXTIME = AIR_TIME_SERIES_PD_DATETIME.apply(
-    lambda x: (x - datetime(1970, 1, 1)).total_seconds()
-)
-AIR_VALUE_SERIES = AIR_DF.y
-AIR_TIME_DATETIME_INDEX = pd.DatetimeIndex(AIR_TIME_SERIES)
+
 EMPTY_DF = pd.DataFrame()
 EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME)
 EMPTY_VALUE_SERIES = pd.Series([], name=DEFAULT_VALUE_NAME)
@@ -70,96 +63,126 @@ EMPTY_DF_WITH_COLS = pd.concat([EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1)
 NUM_YEARS_OFFSET = 12
 
 
-class TimeSeriesDataInitTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
+class TimeSeriesBaseTest(TestCase):
+    def setUp(self):
+        # load Dataframes for testing
+        self.AIR_DF = load_data("air_passengers.csv")
+        self.AIR_DF_DATETIME = self.AIR_DF.copy(deep=True)
+        self.AIR_DF_DATETIME.ds = self.AIR_DF_DATETIME.ds.apply(
+            lambda x: parser.parse(x)
+        )
+        self.AIR_DF_UNIXTIME = self.AIR_DF.copy(deep=True)
+        self.AIR_DF_UNIXTIME.ds = self.AIR_DF_DATETIME.ds.apply(
+            lambda x: (x - datetime(1970, 1, 1)).total_seconds()
+        )
+        self.AIR_DF_WITH_DEFAULT_NAMES = self.AIR_DF.copy(deep=True)
+        self.AIR_DF_WITH_DEFAULT_NAMES.columns = [DEFAULT_TIME_NAME, DEFAULT_VALUE_NAME]
+        self.MULTIVAR_AIR_DF = self.AIR_DF.copy(deep=True)
+        self.MULTIVAR_AIR_DF[VALUE_COL_NAME + "_1"] = self.MULTIVAR_AIR_DF.y * 2
+        self.MULTIVAR_AIR_DF_DATETIME = self.MULTIVAR_AIR_DF.copy(deep=True)
+        self.MULTIVAR_AIR_DF_DATETIME.ds = self.MULTIVAR_AIR_DF_DATETIME.ds.apply(
+            lambda x: parser.parse(x)
+        )
+        self.MULTIVAR_VALUE_DF = self.MULTIVAR_AIR_DF[MULTIVAR_VALUE_DF_COLS]
+        self.AIR_TIME_SERIES = self.AIR_DF.ds
+        self.AIR_TIME_SERIES_PD_DATETIME = pd.to_datetime(self.AIR_TIME_SERIES)
+        self.AIR_TIME_SERIES_UNIXTIME = self.AIR_TIME_SERIES_PD_DATETIME.apply(
+            lambda x: (x - datetime(1970, 1, 1)).total_seconds()
+        )
+        self.AIR_VALUE_SERIES = self.AIR_DF[VALUE_COL_NAME]
+        self.AIR_TIME_DATETIME_INDEX = pd.DatetimeIndex(self.AIR_TIME_SERIES)
+
+
+class TimeSeriesDataInitTest(TimeSeriesBaseTest):
+    def setUp(self):
+        super(TimeSeriesDataInitTest, self).setUp()
         # Univariate TimeSeriesData initialized from a pd.DataFrame
-        cls.ts_from_df = TimeSeriesData(df=AIR_DF, time_col_name=TIME_COL_NAME)
+        self.ts_from_df = TimeSeriesData(df=self.AIR_DF, time_col_name=TIME_COL_NAME)
         # Univariate TimeSeriesData initialized from a pd.DataFrame with time
         # as a datetime.datetime object
-        cls.ts_from_df_datetime = TimeSeriesData(
-            df=AIR_DF_DATETIME, time_col_name=TIME_COL_NAME
+        self.ts_from_df_datetime = TimeSeriesData(
+            df=self.AIR_DF_DATETIME, time_col_name=TIME_COL_NAME
         )
         # Univariate TimeSeriesData initialized from a pd.DataFrame with time
         # as unix time
-        cls.ts_from_df_with_unix = TimeSeriesData(
-            df=AIR_DF_UNIXTIME,
+        self.ts_from_df_with_unix = TimeSeriesData(
+            df=self.AIR_DF_UNIXTIME,
             use_unix_time=True,
             unix_time_units="s",
             time_col_name=TIME_COL_NAME,
         )
         # Multivariate TimeSeriesData initialized from a pd.DataFrame
-        cls.ts_from_df_multi = TimeSeriesData(
-            df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        self.ts_from_df_multi = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
         )
         # Multivariate TimeSeriesData initialized from a pd.DataFrame with time
         # as a datetime.datetime object
-        cls.ts_from_df_multi_datetime = TimeSeriesData(
-            df=MULTIVAR_AIR_DF_DATETIME, time_col_name=TIME_COL_NAME
+        self.ts_from_df_multi_datetime = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF_DATETIME, time_col_name=TIME_COL_NAME
         )
         # Univariate TimeSeriesData initialized from two pd.Series with time
         # as a string
-        cls.ts_from_series_univar_no_datetime = TimeSeriesData(
-            time=AIR_TIME_SERIES, value=AIR_VALUE_SERIES
+        self.ts_from_series_univar_no_datetime = TimeSeriesData(
+            time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES
         )
         # Univariate TimeSeriesData initialized from two pd.Series with time
         # as a pd.Timestamp
-        cls.ts_from_series_univar_with_datetime = TimeSeriesData(
-            time=AIR_TIME_SERIES_PD_DATETIME, value=AIR_VALUE_SERIES
+        self.ts_from_series_univar_with_datetime = TimeSeriesData(
+            time=self.AIR_TIME_SERIES_PD_DATETIME, value=self.AIR_VALUE_SERIES
         )
         # Univariate TimeSeriesData initialized from two pd.Series with time
         # as unix time
-        cls.ts_from_series_with_unix = TimeSeriesData(
-            time=AIR_TIME_SERIES_UNIXTIME,
-            value=AIR_VALUE_SERIES,
+        self.ts_from_series_with_unix = TimeSeriesData(
+            time=self.AIR_TIME_SERIES_UNIXTIME,
+            value=self.AIR_VALUE_SERIES,
             use_unix_time=True,
             unix_time_units="s",
             time_col_name=TIME_COL_NAME,
         )
         # Univariate TimeSeriesData initialized with time as a pd.Series and
         # value as a pd.DataFrame
-        cls.ts_from_series_and_df_univar = TimeSeriesData(
-            time=AIR_TIME_SERIES, value=AIR_VALUE_SERIES.to_frame()
+        self.ts_from_series_and_df_univar = TimeSeriesData(
+            time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES.to_frame()
         )
         # Multivariate TimeSeriesData initialized from a pd.Series for time
         # and DataFrame for value
-        cls.ts_from_series_and_df_multivar = TimeSeriesData(
-            time=AIR_TIME_SERIES, value=MULTIVAR_VALUE_DF
+        self.ts_from_series_and_df_multivar = TimeSeriesData(
+            time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF
         )
         # Univariate TimeSeriesData initialized with time as a pd.DateTimeIndex
         # and value as a pd.Series
-        cls.ts_from_index_and_series_univar = TimeSeriesData(
-            time=AIR_TIME_DATETIME_INDEX,
-            value=AIR_VALUE_SERIES,
+        self.ts_from_index_and_series_univar = TimeSeriesData(
+            time=self.AIR_TIME_DATETIME_INDEX,
+            value=self.AIR_VALUE_SERIES,
             time_col_name=TIME_COL_NAME,
         )
         # Multivariate TimeSeriesData initialized with time as a
         # pd.DateTimeIndex and value as a pd.DataFrame
-        cls.ts_from_index_and_series_multivar = TimeSeriesData(
-            time=AIR_TIME_DATETIME_INDEX,
-            value=MULTIVAR_VALUE_DF,
+        self.ts_from_index_and_series_multivar = TimeSeriesData(
+            time=self.AIR_TIME_DATETIME_INDEX,
+            value=self.MULTIVAR_VALUE_DF,
             time_col_name=TIME_COL_NAME,
         )
         # TimeSeriesData initialized from None Objects
-        cls.ts_df_none = TimeSeriesData(df=None)
-        cls.ts_time_none_and_value_none = TimeSeriesData(time=None, value=None)
+        self.ts_df_none = TimeSeriesData(df=None)
+        self.ts_time_none_and_value_none = TimeSeriesData(time=None, value=None)
         # TimeSeriesData initialized from Empty Objects
-        cls.ts_df_empty = TimeSeriesData(df=EMPTY_DF)
-        cls.ts_time_empty_value_empty = TimeSeriesData(
+        self.ts_df_empty = TimeSeriesData(df=EMPTY_DF)
+        self.ts_time_empty_value_empty = TimeSeriesData(
             time=EMPTY_TIME_SERIES, value=EMPTY_VALUE_SERIES
         )
-        cls.ts_time_empty_value_empty_no_name = TimeSeriesData(
+        self.ts_time_empty_value_empty_no_name = TimeSeriesData(
             time=EMPTY_TIME_SERIES, value=EMPTY_VALUE_SERIES_NO_NAME
         )
-        cls.ts_time_empty_value_empty_df = TimeSeriesData(
+        self.ts_time_empty_value_empty_df = TimeSeriesData(
             time=EMPTY_TIME_SERIES, value=EMPTY_DF
         )
-        cls.ts_time_empty_value_empty_df_with_cols = TimeSeriesData(
+        self.ts_time_empty_value_empty_df_with_cols = TimeSeriesData(
             time=EMPTY_TIME_SERIES, value=EMPTY_DF_WITH_COLS
         )
 
         # univariate data with missing time
-        cls.ts_univariate_missing = TimeSeriesData(
+        self.ts_univariate_missing = TimeSeriesData(
             df=pd.DataFrame(
                 {
                     "time": ["2010-01-01", "2010-01-02", "2010-01-03", "2010-01-05"],
@@ -169,7 +192,7 @@ class TimeSeriesDataInitTest(unittest.TestCase):
         )
 
         # multivariate data with missing time
-        cls.ts_multi_missing = TimeSeriesData(
+        self.ts_multi_missing = TimeSeriesData(
             df=pd.DataFrame(
                 {
                     "time": ["2010-01-01", "2010-01-02", "2010-01-03", "2010-01-05"],
@@ -180,7 +203,7 @@ class TimeSeriesDataInitTest(unittest.TestCase):
         )
 
         # univariate data with unixtime in US/Pacific with time zone
-        cls.unix_list = (
+        self.unix_list = (
             (
                 pd.date_range(
                     "2020-03-01", "2020-03-10", tz="US/Pacific", freq="1d"
@@ -190,35 +213,35 @@ class TimeSeriesDataInitTest(unittest.TestCase):
             .astype(int)
             .to_list()
         )
-        cls.ts_univar_PST_tz = TimeSeriesData(
-            df=pd.DataFrame({"time": cls.unix_list, "value": [0] * 10}),
+        self.ts_univar_PST_tz = TimeSeriesData(
+            df=pd.DataFrame({"time": self.unix_list, "value": [0] * 10}),
             use_unix_time=True,
             unix_time_units="s",
             tz="US/Pacific",
         )
         # univariate data with unixtime in US/Pacific without time zone
-        cls.ts_univar_PST = TimeSeriesData(
-            df=pd.DataFrame({"time": cls.unix_list, "value": [0] * 10}),
+        self.ts_univar_PST = TimeSeriesData(
+            df=pd.DataFrame({"time": self.unix_list, "value": [0] * 10}),
             use_unix_time=True,
             unix_time_units="s",
         )
         # univariate data with date str with tz
         date = ["2020-10-31", "2020-11-01", "2020-11-02"]
-        cls.ts_univar_str_date_tz = TimeSeriesData(
+        self.ts_univar_str_date_tz = TimeSeriesData(
             df=pd.DataFrame({"time": date, "value": [0] * 3}),
             date_format="%Y-%m-%d",
             tz="US/Pacific",
         )
         # univariate data with date str without tz
-        cls.ts_univar_str_date = TimeSeriesData(
+        self.ts_univar_str_date = TimeSeriesData(
             df=pd.DataFrame({"time": date, "value": [0] * 3}),
             date_format="%Y-%m-%d",
         )
 
         # univariate data in US/Pacific Time Zone with missing data
-        cls.ts_univar_PST_missing_tz = TimeSeriesData(
+        self.ts_univar_PST_missing_tz = TimeSeriesData(
             df=pd.DataFrame(
-                {"time": (cls.unix_list[0:4] + cls.unix_list[7:10]), "value": [0] * 7}
+                {"time": (self.unix_list[0:4] + self.unix_list[7:10]), "value": [0] * 7}
             ),
             use_unix_time=True,
             unix_time_units="s",
@@ -228,71 +251,84 @@ class TimeSeriesDataInitTest(unittest.TestCase):
     # Testing univariate time series intialized from a DataFrame
     def test_init_from_df_univar(self) -> None:
         # DataFrame with string time
-        assert_series_equal(self.ts_from_df.time, AIR_TIME_SERIES_PD_DATETIME)
-        assert_series_equal(self.ts_from_df.value, AIR_VALUE_SERIES)
+        assert_series_equal(self.ts_from_df.time, self.AIR_TIME_SERIES_PD_DATETIME)
+        assert_series_equal(self.ts_from_df.value, self.AIR_VALUE_SERIES)
         # DataFrame with datetime time
-        assert_series_equal(self.ts_from_df_datetime.time, AIR_TIME_SERIES_PD_DATETIME)
-        assert_series_equal(self.ts_from_df_datetime.value, AIR_VALUE_SERIES)
+        assert_series_equal(
+            self.ts_from_df_datetime.time, self.AIR_TIME_SERIES_PD_DATETIME
+        )
+        assert_series_equal(self.ts_from_df_datetime.value, self.AIR_VALUE_SERIES)
         # DataFrame with unix time
-        assert_series_equal(self.ts_from_df_with_unix.time, AIR_TIME_SERIES_PD_DATETIME)
-        assert_series_equal(self.ts_from_df_with_unix.value, AIR_VALUE_SERIES)
+        assert_series_equal(
+            self.ts_from_df_with_unix.time, self.AIR_TIME_SERIES_PD_DATETIME
+        )
+        assert_series_equal(self.ts_from_df_with_unix.value, self.AIR_VALUE_SERIES)
 
     # Testing multivariate time series initialized from a DataFrame
     def test_init_from_df_multi(self) -> None:
-        assert_series_equal(self.ts_from_df_multi.time, AIR_TIME_SERIES_PD_DATETIME)
-        assert_frame_equal(self.ts_from_df_multi.value, MULTIVAR_VALUE_DF)
+        assert_series_equal(
+            self.ts_from_df_multi.time, self.AIR_TIME_SERIES_PD_DATETIME
+        )
+        assert_frame_equal(self.ts_from_df_multi.value, self.MULTIVAR_VALUE_DF)
 
     # Testing univiarite time series initialized from a Series and Series/DataFrame
     def test_init_from_series_univar(self) -> None:
         # time and value from Series, with time as string
         assert_series_equal(
-            self.ts_from_series_univar_no_datetime.time, AIR_TIME_SERIES_PD_DATETIME
+            self.ts_from_series_univar_no_datetime.time,
+            self.AIR_TIME_SERIES_PD_DATETIME,
         )
         # time and value from Series, with time as pd.Timestamp
         assert_series_equal(
-            self.ts_from_series_univar_with_datetime.time, AIR_TIME_SERIES_PD_DATETIME
+            self.ts_from_series_univar_with_datetime.time,
+            self.AIR_TIME_SERIES_PD_DATETIME,
         )
         assert_series_equal(
-            self.ts_from_series_univar_no_datetime.value, AIR_VALUE_SERIES
+            self.ts_from_series_univar_no_datetime.value, self.AIR_VALUE_SERIES
         )
         # time and value from Series, with time as unix time
         assert_series_equal(
-            self.ts_from_series_with_unix.time, AIR_TIME_SERIES_PD_DATETIME
+            self.ts_from_series_with_unix.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
-        assert_series_equal(self.ts_from_series_with_unix.value, AIR_VALUE_SERIES)
+        assert_series_equal(self.ts_from_series_with_unix.value, self.AIR_VALUE_SERIES)
         # time from Series and value from DataFrame
         assert_series_equal(
-            self.ts_from_series_and_df_univar.time, AIR_TIME_SERIES_PD_DATETIME
+            self.ts_from_series_and_df_univar.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
         print(type(self.ts_from_series_and_df_univar.value))
-        assert_series_equal(self.ts_from_series_and_df_univar.value, AIR_VALUE_SERIES)
+        assert_series_equal(
+            self.ts_from_series_and_df_univar.value, self.AIR_VALUE_SERIES
+        )
 
     # Testing multivariate time series initialized from a Series/DataFrame
     def test_init_from_series_multivar(self) -> None:
         # Testing multivariate time series initialized from a
         assert_series_equal(
-            self.ts_from_series_and_df_multivar.time, AIR_TIME_SERIES_PD_DATETIME
+            self.ts_from_series_and_df_multivar.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
-        assert_frame_equal(self.ts_from_series_and_df_multivar.value, MULTIVAR_VALUE_DF)
+        assert_frame_equal(
+            self.ts_from_series_and_df_multivar.value, self.MULTIVAR_VALUE_DF
+        )
 
     # Testing univariate time series with time initialized as a
     # pd.DateTimeIndex
     def test_init_from_index_univar(self) -> None:
         assert_series_equal(
-            self.ts_from_index_and_series_univar.time, AIR_TIME_SERIES_PD_DATETIME
+            self.ts_from_index_and_series_univar.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
         assert_series_equal(
-            self.ts_from_index_and_series_univar.value, AIR_VALUE_SERIES
+            self.ts_from_index_and_series_univar.value, self.AIR_VALUE_SERIES
         )
 
     # Testing multivariate time series with time initialized as a
     # pd.DateTimeIndex
     def test_init_from_index_multivar(self) -> None:
         assert_series_equal(
-            self.ts_from_index_and_series_multivar.time, AIR_TIME_SERIES_PD_DATETIME
+            self.ts_from_index_and_series_multivar.time,
+            self.AIR_TIME_SERIES_PD_DATETIME,
         )
         assert_frame_equal(
-            self.ts_from_index_and_series_multivar.value, MULTIVAR_VALUE_DF
+            self.ts_from_index_and_series_multivar.value, self.MULTIVAR_VALUE_DF
         )
 
     # Testing initialization from None Objects
@@ -340,16 +376,14 @@ class TimeSeriesDataInitTest(unittest.TestCase):
             #  param but got `List[Variable[_T]]`.
             TimeSeriesData(df=[])
             # Incorrect initialization with value
-            TimeSeriesData(time=AIR_TIME_SERIES, value=None)
-            # pyre-fixme[6]: Expected `Union[None, pd.core.frame.DataFrame,
-            #  pd.core.series.Series]` for 2nd param but got `List[Variable[_T]]`.
-            TimeSeriesData(time=AIR_TIME_SERIES, value=[])
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=None)
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=[])
             # Incorrect initialization with time
-            TimeSeriesData(time=None, value=AIR_VALUE_SERIES)
+            TimeSeriesData(time=None, value=self.AIR_VALUE_SERIES)
             # pyre-fixme[6]: Expected `Union[None,
             #  pd.core.indexes.datetimes.DatetimeIndex, pd.core.series.Series]` for 1st
             #  param but got `List[Variable[_T]]`.
-            TimeSeriesData(time=[], value=AIR_VALUE_SERIES)
+            TimeSeriesData(time=[], value=self.AIR_VALUE_SERIES)
             # Incorrect initialization with time and value
             # pyre-fixme[6]: Expected `Union[None,
             #  pd.core.indexes.datetimes.DatetimeIndex, pd.core.series.Series]` for 1st
@@ -359,24 +393,26 @@ class TimeSeriesDataInitTest(unittest.TestCase):
     # Testing DataFrame conversion
     def test_to_dataframe(self) -> None:
         # Univariate case
-        assert_frame_equal(self.ts_from_df.to_dataframe(), AIR_DF_DATETIME)
+        assert_frame_equal(self.ts_from_df.to_dataframe(), self.AIR_DF_DATETIME)
         # Multivariate case
         assert_frame_equal(
-            self.ts_from_df_multi_datetime.to_dataframe(), MULTIVAR_AIR_DF_DATETIME
+            self.ts_from_df_multi_datetime.to_dataframe(), self.MULTIVAR_AIR_DF_DATETIME
         )
         # Series Cases
         assert_frame_equal(
-            self.ts_from_series_univar_no_datetime.to_dataframe(), AIR_DF_DATETIME
+            self.ts_from_series_univar_no_datetime.to_dataframe(), self.AIR_DF_DATETIME
         )
         assert_frame_equal(
-            self.ts_from_series_univar_with_datetime.to_dataframe(), AIR_DF_DATETIME
+            self.ts_from_series_univar_with_datetime.to_dataframe(),
+            self.AIR_DF_DATETIME,
         )
         # Series/DataFrame Cases
         assert_frame_equal(
-            self.ts_from_series_and_df_univar.to_dataframe(), AIR_DF_DATETIME
+            self.ts_from_series_and_df_univar.to_dataframe(), self.AIR_DF_DATETIME
         )
         assert_frame_equal(
-            self.ts_from_series_and_df_multivar.to_dataframe(), MULTIVAR_AIR_DF_DATETIME
+            self.ts_from_series_and_df_multivar.to_dataframe(),
+            self.MULTIVAR_AIR_DF_DATETIME,
         )
         # Empty/None Cases
         assert_frame_equal(self.ts_df_none.to_dataframe(), EMPTY_DF_WITH_COLS)
@@ -548,29 +584,30 @@ class TimeSeriesDataInitTest(unittest.TestCase):
     def test_to_array(self) -> None:
         # Univariate case
         np.testing.assert_array_equal(
-            self.ts_from_df.to_array(), AIR_DF_DATETIME.to_numpy()
+            self.ts_from_df.to_array(), self.AIR_DF_DATETIME.to_numpy()
         )
         # Multivariate case
         np.testing.assert_array_equal(
             self.ts_from_df_multi_datetime.to_array(),
-            MULTIVAR_AIR_DF_DATETIME.to_numpy(),
+            self.MULTIVAR_AIR_DF_DATETIME.to_numpy(),
         )
         # Series Cases
         np.testing.assert_array_equal(
             self.ts_from_series_univar_no_datetime.to_array(),
-            AIR_DF_DATETIME.to_numpy(),
+            self.AIR_DF_DATETIME.to_numpy(),
         )
         np.testing.assert_array_equal(
             self.ts_from_series_univar_with_datetime.to_array(),
-            AIR_DF_DATETIME.to_numpy(),
+            self.AIR_DF_DATETIME.to_numpy(),
         )
         # Series/DataFrame Cases
         np.testing.assert_array_equal(
-            self.ts_from_series_and_df_univar.to_array(), AIR_DF_DATETIME.to_numpy()
+            self.ts_from_series_and_df_univar.to_array(),
+            self.AIR_DF_DATETIME.to_numpy(),
         )
         np.testing.assert_array_equal(
             self.ts_from_series_and_df_multivar.to_array(),
-            MULTIVAR_AIR_DF_DATETIME.to_numpy(),
+            self.MULTIVAR_AIR_DF_DATETIME.to_numpy(),
         )
         # Empty/None Cases
         np.testing.assert_array_equal(self.ts_df_none.to_array(), np.empty)
@@ -703,8 +740,8 @@ class TimeSeriesDataInitTest(unittest.TestCase):
         self.assertEqual(np.isnan(empty_ts.max), True)
 
         # test if min/max changes if values are re-assigned for univariate
-        ts_from_df_new = TimeSeriesData(df=AIR_DF, time_col_name=TIME_COL_NAME)
-        new_val = np.random.randn(len(AIR_DF))
+        ts_from_df_new = TimeSeriesData(df=self.AIR_DF, time_col_name=TIME_COL_NAME)
+        new_val = np.random.randn(len(self.AIR_DF))
         ts_from_df_new.value = pd.Series(new_val)
         self.assertEqual(ts_from_df_new.min, np.min(new_val))
         self.assertEqual(ts_from_df_new.max, np.max(new_val))
@@ -717,10 +754,10 @@ class TimeSeriesDataInitTest(unittest.TestCase):
 
         # test min/max changes if values are re-assigned for multivariate
         ts_from_df_multi_new = TimeSeriesData(
-            MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+            self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
         )
         new_val_multi = np.random.randn(
-            MULTIVAR_VALUE_DF.shape[0], MULTIVAR_VALUE_DF.shape[1] - 1
+            self.MULTIVAR_VALUE_DF.shape[0], self.MULTIVAR_VALUE_DF.shape[1] - 1
         )
         ts_from_df_multi_new.value = pd.DataFrame(new_val_multi)
         self.assertEqual(
@@ -747,29 +784,29 @@ class TimeSeriesDataInitTest(unittest.TestCase):
         )
 
 
-class TimeSeriesDataOpsTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
+class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
+    def setUp(self):
+        super(TimeSeriesDataOpsTest, self).setUp()
         # Creating DataFrames
         # DataFrame with date offset
-        transformed_df_date = AIR_DF_DATETIME.copy(deep=True)
+        transformed_df_date = self.AIR_DF_DATETIME.copy(deep=True)
         transformed_df_date.ds = transformed_df_date.ds.apply(
             lambda x: x + relativedelta(years=NUM_YEARS_OFFSET)
         )
-        transformed_df_date_concat = AIR_DF.append(
+        transformed_df_date_concat = self.AIR_DF.append(
             transformed_df_date, ignore_index=True
         )
-        transformed_df_date_double = AIR_DF_DATETIME.copy(deep=True)
+        transformed_df_date_double = self.AIR_DF_DATETIME.copy(deep=True)
         transformed_df_date_double.ds = transformed_df_date.ds.apply(
             lambda x: x + relativedelta(years=NUM_YEARS_OFFSET * 2)
         )
-        transformed_df_date_concat_double = AIR_DF.append(
+        transformed_df_date_concat_double = self.AIR_DF.append(
             transformed_df_date_double, ignore_index=True
         )
         # DataFrames with value offset
-        transformed_df_value = AIR_DF.copy(deep=True)
+        transformed_df_value = self.AIR_DF.copy(deep=True)
         transformed_df_value.y = transformed_df_value.y.apply(lambda x: x * 2)
-        transformed_df_value_inv = AIR_DF.copy(deep=True)
+        transformed_df_value_inv = self.AIR_DF.copy(deep=True)
         transformed_df_value_inv.y = transformed_df_value_inv.y.apply(lambda x: x * -1)
         # DataFrame with date and value offset
         transformed_df_date_and_value = transformed_df_date.copy(deep=True)
@@ -781,24 +818,24 @@ class TimeSeriesDataOpsTest(unittest.TestCase):
         transformed_df_date_multi[VALUE_COL_NAME + "_1"] = (
             transformed_df_date_multi.y * 2
         )
-        transformed_df_date_concat_multi = MULTIVAR_AIR_DF.append(
+        transformed_df_date_concat_multi = self.MULTIVAR_AIR_DF.append(
             transformed_df_date_multi, ignore_index=True
         )
-        transformed_df_date_concat_mixed = MULTIVAR_AIR_DF_DATETIME.append(
+        transformed_df_date_concat_mixed = self.MULTIVAR_AIR_DF_DATETIME.append(
             transformed_df_date
         )
         transformed_df_date_double_multi = transformed_df_date_double.copy(deep=True)
         transformed_df_date_double_multi[VALUE_COL_NAME + "_1"] = (
             transformed_df_date_double_multi.y * 2
         )
-        transformed_df_date_concat_double_multi = MULTIVAR_AIR_DF.append(
+        transformed_df_date_concat_double_multi = self.MULTIVAR_AIR_DF.append(
             transformed_df_date_double_multi, ignore_index=True
         )
-        transformed_df_date_concat_double_mixed = MULTIVAR_AIR_DF_DATETIME.append(
+        transformed_df_date_concat_double_mixed = self.MULTIVAR_AIR_DF_DATETIME.append(
             transformed_df_date_double
         )
         # DataFrame with value offset (multivariate)
-        transformed_df_value_none_multi = MULTIVAR_AIR_DF.copy(deep=True)
+        transformed_df_value_none_multi = self.MULTIVAR_AIR_DF.copy(deep=True)
         transformed_df_value_none_multi.y = transformed_df_value_none_multi.y_1
         transformed_df_value_none_multi.y_1 = np.nan
         # DataFrame with date and value offset (multivariate)
@@ -809,119 +846,129 @@ class TimeSeriesDataOpsTest(unittest.TestCase):
             transformed_df_date_and_value_multi.y * 2
         )
         # DataFrame with all constant values
-        df_zeros = AIR_DF.copy(deep=True)
+        df_zeros = self.AIR_DF.copy(deep=True)
         df_zeros.y.values[:] = 0
-        df_ones = AIR_DF.copy(deep=True)
+        df_ones = self.AIR_DF.copy(deep=True)
         df_ones.y.values[:] = 1
         df_twos = df_ones.copy(deep=True)
         df_twos.y.values[:] = 2
-        df_neg_ones = AIR_DF.copy(deep=True)
+        df_neg_ones = self.AIR_DF.copy(deep=True)
         df_neg_ones.y.values[:] = -1
         df_ones_multi = df_ones.copy(deep=True)
         df_ones_multi[VALUE_COL_NAME + "_1"] = df_ones_multi.y * 2
 
         # Creating TimeSeriesData objects
         # Univariate TimeSeriesData initialized from a pd.DataFrame
-        cls.ts_univ_1 = TimeSeriesData(df=AIR_DF, time_col_name=TIME_COL_NAME)
-        cls.ts_univ_2 = TimeSeriesData(df=AIR_DF, time_col_name=TIME_COL_NAME)
-        cls.ts_univ_default_names = TimeSeriesData(df=AIR_DF_WITH_DEFAULT_NAMES)
-        cls.ts_univ_default_names_2 = TimeSeriesData(df=AIR_DF_WITH_DEFAULT_NAMES)
+        self.ts_univ_1 = TimeSeriesData(df=self.AIR_DF, time_col_name=TIME_COL_NAME)
+        self.ts_univ_2 = TimeSeriesData(df=self.AIR_DF, time_col_name=TIME_COL_NAME)
+        self.ts_univ_default_names = TimeSeriesData(df=self.AIR_DF_WITH_DEFAULT_NAMES)
+        self.ts_univ_default_names_2 = TimeSeriesData(df=self.AIR_DF_WITH_DEFAULT_NAMES)
 
         # Multivariate TimeSeriesData initialized from a pd.DataFrame
-        cls.ts_multi_1 = TimeSeriesData(df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME)
-        cls.ts_multi_2 = TimeSeriesData(df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME)
+        self.ts_multi_1 = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        )
+        self.ts_multi_2 = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        )
 
         # TimeSeriesData with date offset
-        cls.ts_date_transform_univ = TimeSeriesData(
+        self.ts_date_transform_univ = TimeSeriesData(
             df=transformed_df_date, time_col_name=TIME_COL_NAME
         )
-        cls.ts_date_transform_concat_univ = TimeSeriesData(
+        self.ts_date_transform_concat_univ = TimeSeriesData(
             df=transformed_df_date_concat, time_col_name=TIME_COL_NAME
         )
-        cls.ts_date_transform_double_univ = TimeSeriesData(
+        self.ts_date_transform_double_univ = TimeSeriesData(
             df=transformed_df_date_double, time_col_name=TIME_COL_NAME
         )
-        cls.ts_date_transform_concat_double_univ = TimeSeriesData(
+        self.ts_date_transform_concat_double_univ = TimeSeriesData(
             df=transformed_df_date_concat_double, time_col_name=TIME_COL_NAME
         )
         # TimeSeriesData with date offset (multivariate)
-        cls.ts_date_transform_multi = TimeSeriesData(
+        self.ts_date_transform_multi = TimeSeriesData(
             df=transformed_df_date_multi, time_col_name=TIME_COL_NAME
         )
-        cls.ts_date_transform_concat_multi = TimeSeriesData(
+        self.ts_date_transform_concat_multi = TimeSeriesData(
             df=transformed_df_date_concat_multi, time_col_name=TIME_COL_NAME
         )
-        cls.ts_date_transform_concat_mixed = TimeSeriesData(
+        self.ts_date_transform_concat_mixed = TimeSeriesData(
             df=transformed_df_date_concat_mixed, time_col_name=TIME_COL_NAME
         )
-        cls.ts_date_transform_double_multi = TimeSeriesData(
+        self.ts_date_transform_double_multi = TimeSeriesData(
             df=transformed_df_date_double_multi, time_col_name=TIME_COL_NAME
         )
-        cls.ts_date_transform_concat_double_multi = TimeSeriesData(
+        self.ts_date_transform_concat_double_multi = TimeSeriesData(
             df=transformed_df_date_concat_double_multi, time_col_name=TIME_COL_NAME
         )
-        cls.ts_date_transform_concat_double_mixed = TimeSeriesData(
+        self.ts_date_transform_concat_double_mixed = TimeSeriesData(
             df=transformed_df_date_concat_double_mixed, time_col_name=TIME_COL_NAME
         )
         # TimeSeriesData with value offset
-        cls.ts_value_transform_univ = TimeSeriesData(
+        self.ts_value_transform_univ = TimeSeriesData(
             df=transformed_df_value, time_col_name=TIME_COL_NAME
         )
-        cls.ts_value_transform_inv_univ = TimeSeriesData(
+        self.ts_value_transform_inv_univ = TimeSeriesData(
             df=transformed_df_value_inv, time_col_name=TIME_COL_NAME
         )
         # TimeSeriesData with value offset (multivariate)
-        cls.ts_value_transform_none_multi = TimeSeriesData(
+        self.ts_value_transform_none_multi = TimeSeriesData(
             df=transformed_df_value_none_multi, time_col_name=TIME_COL_NAME
         )
         # TimeSeriesData with date and value offset
-        cls.ts_date_and_value_transform_univ = TimeSeriesData(
+        self.ts_date_and_value_transform_univ = TimeSeriesData(
             df=transformed_df_date_and_value, time_col_name=TIME_COL_NAME
         )
         # TimeSeriesData with date and value offset (multivariate)
-        cls.ts_date_and_value_transform_multi = TimeSeriesData(
+        self.ts_date_and_value_transform_multi = TimeSeriesData(
             df=transformed_df_date_and_value_multi, time_col_name=TIME_COL_NAME
         )
         # TimeSeriesData object with all constant values
-        cls.ts_zero = TimeSeriesData(df=df_zeros, time_col_name=TIME_COL_NAME)
-        cls.ts_ones = TimeSeriesData(df=df_ones, time_col_name=TIME_COL_NAME)
-        cls.ts_twos = TimeSeriesData(df=df_twos, time_col_name=TIME_COL_NAME)
-        cls.ts_neg_ones = TimeSeriesData(df=df_neg_ones, time_col_name=TIME_COL_NAME)
-        cls.ts_ones_multi = TimeSeriesData(
+        self.ts_zero = TimeSeriesData(df=df_zeros, time_col_name=TIME_COL_NAME)
+        self.ts_ones = TimeSeriesData(df=df_ones, time_col_name=TIME_COL_NAME)
+        self.ts_twos = TimeSeriesData(df=df_twos, time_col_name=TIME_COL_NAME)
+        self.ts_neg_ones = TimeSeriesData(df=df_neg_ones, time_col_name=TIME_COL_NAME)
+        self.ts_ones_multi = TimeSeriesData(
             df=df_ones_multi, time_col_name=TIME_COL_NAME
         )
         # Empty TimeSeriesData Object
-        cls.ts_empty = TimeSeriesData(df=EMPTY_DF)
-        cls.ts_empty_with_cols = TimeSeriesData(
+        self.ts_empty = TimeSeriesData(df=EMPTY_DF)
+        self.ts_empty_with_cols = TimeSeriesData(
             df=EMPTY_DF_WITH_COLS, time_col_name=TIME_COL_NAME
         )
         # Copies for Extended objects
-        cls.ts_univ_extend = TimeSeriesData(df=AIR_DF, time_col_name=TIME_COL_NAME)
-        cls.ts_univ_extend_2 = TimeSeriesData(df=AIR_DF, time_col_name=TIME_COL_NAME)
-        cls.ts_univ_extend_err = TimeSeriesData(df=AIR_DF, time_col_name=TIME_COL_NAME)
-        cls.ts_multi_extend = TimeSeriesData(
-            df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        self.ts_univ_extend = TimeSeriesData(
+            df=self.AIR_DF, time_col_name=TIME_COL_NAME
         )
-        cls.ts_multi_extend_2 = TimeSeriesData(
-            df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        self.ts_univ_extend_2 = TimeSeriesData(
+            df=self.AIR_DF, time_col_name=TIME_COL_NAME
         )
-        cls.ts_multi_extend_3 = TimeSeriesData(
-            df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        self.ts_univ_extend_err = TimeSeriesData(
+            df=self.AIR_DF, time_col_name=TIME_COL_NAME
         )
-        cls.ts_multi_extend_4 = TimeSeriesData(
-            df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        self.ts_multi_extend = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
         )
-        cls.ts_multi_extend_err = TimeSeriesData(
-            df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        self.ts_multi_extend_2 = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
         )
-        cls.ts_multi_extend_err_2 = TimeSeriesData(
-            df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        self.ts_multi_extend_3 = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
         )
-        cls.ts_empty_extend = TimeSeriesData(df=EMPTY_DF)
-        cls.ts_empty_extend_err = TimeSeriesData(df=EMPTY_DF)
+        self.ts_multi_extend_4 = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        )
+        self.ts_multi_extend_err = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        )
+        self.ts_multi_extend_err_2 = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        )
+        self.ts_empty_extend = TimeSeriesData(df=EMPTY_DF)
+        self.ts_empty_extend_err = TimeSeriesData(df=EMPTY_DF)
 
         # Other values
-        cls.length = len(AIR_DF)
+        self.length = len(self.AIR_DF)
 
     def test_eq(self) -> None:
         # Univariate equality
@@ -1130,14 +1177,13 @@ class TimeSeriesDataOpsTest(unittest.TestCase):
         self.assertIsNotNone(ax)
 
         # Test more parameter overrides.
-        ax = self.ts_multi_1.plot(figsize=(8, 3),
-                                  plot_kwargs={"cmap": "Purples"},
-                                  grid=False)
+        ax = self.ts_multi_1.plot(
+            figsize=(8, 3), plot_kwargs={"cmap": "Purples"}, grid=False
+        )
         self.assertIsNotNone(ax)
 
         # Test grid and ax parameter overrides.
-        ax = self.ts_univ_1.plot(ax=ax,
-                                 grid_kwargs={"lw": 2, "ls": ":"})
+        ax = self.ts_univ_1.plot(ax=ax, grid_kwargs={"lw": 2, "ls": ":"})
         self.assertIsNotNone(ax)
 
         # Columns not in data.
@@ -1149,14 +1195,16 @@ class TimeSeriesDataOpsTest(unittest.TestCase):
             self.ts_empty.plot()
 
 
-class TimeSeriesDataMiscTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
+class TimeSeriesDataMiscTest(TimeSeriesBaseTest):
+    def setUp(self):
+        super(TimeSeriesDataMiscTest, self).setUp()
         # Creating TimeSeriesData objects
         # Univariate TimeSeriesData initialized from a pd.DataFrame
-        cls.ts_univ = TimeSeriesData(df=AIR_DF, time_col_name=TIME_COL_NAME)
+        self.ts_univ = TimeSeriesData(df=self.AIR_DF, time_col_name=TIME_COL_NAME)
         # Multivariate TimeSeriesData initialized from a pd.DataFrame
-        cls.ts_multi = TimeSeriesData(df=MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME)
+        self.ts_multi = TimeSeriesData(
+            df=self.MULTIVAR_AIR_DF, time_col_name=TIME_COL_NAME
+        )
 
     def test_is_univariate(self) -> None:
         # Univariate case
@@ -1166,26 +1214,29 @@ class TimeSeriesDataMiscTest(unittest.TestCase):
 
     def test_time_to_index(self) -> None:
         # Univariate case
-        assert_index_equal(self.ts_univ.time_to_index(), AIR_TIME_DATETIME_INDEX)
+        assert_index_equal(self.ts_univ.time_to_index(), self.AIR_TIME_DATETIME_INDEX)
         # Multivariate case
-        assert_index_equal(self.ts_multi.time_to_index(), AIR_TIME_DATETIME_INDEX)
+        assert_index_equal(self.ts_multi.time_to_index(), self.AIR_TIME_DATETIME_INDEX)
 
     def test_repr(self) -> None:
         # Univariate case
-        self.assertEqual(self.ts_univ.__repr__(), AIR_DF_DATETIME.__repr__())
+        self.assertEqual(self.ts_univ.__repr__(), self.AIR_DF_DATETIME.__repr__())
         # Multivariate case
-        self.assertEqual(self.ts_multi.__repr__(), MULTIVAR_AIR_DF_DATETIME.__repr__())
+        self.assertEqual(
+            self.ts_multi.__repr__(), self.MULTIVAR_AIR_DF_DATETIME.__repr__()
+        )
 
     def test_repr_html(self) -> None:
         # Univariate case
-        self.assertEqual(self.ts_univ._repr_html_(), AIR_DF_DATETIME._repr_html_())
+        self.assertEqual(self.ts_univ._repr_html_(), self.AIR_DF_DATETIME._repr_html_())
         # Multivariate case
         self.assertEqual(
-            self.ts_multi._repr_html_(), MULTIVAR_AIR_DF_DATETIME._repr_html_()
+            self.ts_multi._repr_html_(), self.MULTIVAR_AIR_DF_DATETIME._repr_html_()
         )
 
 
-class TSIteratorTest(unittest.TestCase):
+class TSIteratorTest(TestCase):
+
     def test_ts_iterator_univariate_next(self) -> None:
         df = pd.DataFrame(
             [["2020-03-01", 100], ["2020-03-02", 120], ["2020-03-03", 130]],
