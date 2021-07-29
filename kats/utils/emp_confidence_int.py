@@ -11,7 +11,7 @@ the time horizon, under the assumption that longer horizon has larger S.E.
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -53,6 +53,7 @@ class EmpConfidenceInt:
     predicted: Optional[np.ndarray] = None
     coefs: Optional[np.ndarray] = None
     df: Optional[pd.DataFrame] = None
+    SE: Optional[pd.DataFrame] = None
 
     def __init__(
         self,
@@ -62,8 +63,8 @@ class EmpConfidenceInt:
         train_percentage: float,
         test_percentage: float,
         sliding_steps: int,
-        model_class,
-        multi=True,
+        model_class: Type,
+        multi: bool = True,
         confidence_level: float = 0.8,
         **kwargs
     ):
@@ -115,7 +116,7 @@ class EmpConfidenceInt:
             )
         )
 
-    def run_cv(self):
+    def run_cv(self) -> None:
         """Running the cross validation process
 
         run cv with given model and data
@@ -126,12 +127,6 @@ class EmpConfidenceInt:
         then calculate the std for each horizon
             | horizon |  std  |
             |    1    |  1.2  |
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         logging.info("Creating backtester object.")
@@ -150,32 +145,26 @@ class EmpConfidenceInt:
         backtester.run_backtest()
         self.SE = pd.DataFrame(backtester.raw_errors).transpose().std(axis=1)
 
-    def get_lr(
-        self,
-    ):
+    def get_lr(self) -> None:
         """Fit linear regression model
 
         Fit linear regression model for
         std ~ horizon
         return the fitted model
-
-        Args:
-            None
-
-        Returns:
-            None
         """
+        y = self.SE
+        if y is None:
+            raise ValueError('Must call run_cv() before get_lr().')
         X = pd.DataFrame(
             {
-                "horizon": [x + 1 for x in range(len(self.SE))],
-                "const": [1] * len(self.SE),
+                "horizon": np.arange(1, len(y) + 1),
+                "const": np.ones(len(y), dtype=int),
             }
         )
-        y = self.SE
         logging.info("Fit the OLS model and get the coefs.")
         self.coefs = np.linalg.lstsq(X, y)[0]
 
-    def get_eci(self, steps: int, **kwargs):
+    def get_eci(self, steps: int, **kwargs) -> pd.DataFrame:
         """Get empirical prediction interval
 
         Args:
@@ -200,12 +189,12 @@ class EmpConfidenceInt:
         self.predicted = predicted = m.predict(steps, freq=self.freq)
 
         # get margin of error
-        horizons = np.array([x + 1 for x in range(steps)])
+        horizons = np.arange(1, steps + 1)
         coefs = self.coefs
-        assert coefs is not None
+        assert coefs is not None  # set by get_lr above
         me = stats.norm.ppf(self.confidence_level) * (horizons * coefs[0] + coefs[1])
 
-        self.df = pd.DataFrame(
+        self.df = df = pd.DataFrame(
             {
                 "time": predicted.time,
                 "fcst": predicted.fcst,
@@ -213,18 +202,12 @@ class EmpConfidenceInt:
                 "fcst_upper": predicted.fcst + me,
             }
         )
-        return self.df
+        return df
 
     def diagnose(self):
         """Diagnose the linear model fit for SE
 
         Plot the OLS fit: SE ~ Horizon
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -240,12 +223,6 @@ class EmpConfidenceInt:
 
     def plot(self):
         """Make plot for model fitting with new uncertainty intervals
-
-        Args:
-            None
-
-        Returns:
-            None
         """
 
         logging.info("Generating chart for forecast result with emp. conf. intervals.")
