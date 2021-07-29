@@ -2,11 +2,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import io
 import os
+import pkgutil
 import unittest
 from unittest import TestCase
-import pkgutil
-import io
 
 import numpy as np
 import pandas as pd
@@ -30,7 +30,7 @@ from kats.models.nowcasting.feature_extraction import (
     TRIX,
     EMA,
     TSI,
-    RSI
+    RSI,
 )
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.models.quadratic_model import (
@@ -46,24 +46,25 @@ from kats.utils.time_series_parameter_tuning import (
     TimeSeriesParameterTuning,
 )
 
+
 def load_data(file_name):
-    ROOT="kats"
+    ROOT = "kats"
     if "kats" in os.getcwd().lower():
-        path = 'data/'
+        path = "data/"
     else:
-        path = 'kats/data/'
-    data_object =  pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
+
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
 class DataValidationTest(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
-
 
     def test_data_validation(self) -> None:
         # add the extra data point to break the frequency.
@@ -93,15 +94,15 @@ class DataValidationTest(TestCase):
 
 class ARIMAModelTest(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
     def test_fit_forecast(self) -> None:
@@ -175,15 +176,15 @@ class ARIMAModelTest(TestCase):
 
 class ThetaModelTest(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
     def test_fit_forecast(self) -> None:
@@ -230,15 +231,15 @@ class ThetaModelTest(TestCase):
 
 class HoltWintersModelTest(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
     def test_fit_forecast(self) -> None:
@@ -332,17 +333,16 @@ class HoltWintersModelTest(TestCase):
 
 class LinearModelTest(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-
 
     def test_fit_forecast(self) -> None:
         params = LinearModelParams(alpha=0.05)
@@ -395,17 +395,16 @@ class LinearModelTest(TestCase):
 
 class QuadraticModelTest(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-
 
     def test_fit_forecast(self) -> None:
         params = QuadraticModelParams()
@@ -457,11 +456,11 @@ class QuadraticModelTest(TestCase):
 
 class LSTMModelTest(TestCase):
     def setUp(self):
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
@@ -481,21 +480,20 @@ class LSTMModelTest(TestCase):
 
 class SARIMAModelTest(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-
 
     def test_fit_forecast(self) -> None:
         def setUp(self):
-            DATA = load_data('air_passengers.csv')
+            DATA = load_data("air_passengers.csv")
             DATA.columns = ["time", "y"]
             self.TSData = TimeSeriesData(DATA)
 
@@ -535,6 +533,57 @@ class SARIMAModelTest(TestCase):
         m_daily.fit()
         m_daily.predict(steps=30, freq="D")
         m.plot()
+
+    def test_exog_forecast(self) -> None:
+        # Prepping data
+        steps = 10
+
+        DATA_multi = self.TSData_multi.to_dataframe()
+        endog = DATA_multi["0"][:-steps]
+        time = self.TSData_multi.time_to_index()[:-steps]
+
+        exog = DATA_multi["1"][:-steps].values
+        fcst_exog = DATA_multi["1"][-steps:].values  # exog to be used for predictions
+
+        ts_data = TimeSeriesData(value=endog, time=time)
+
+        params = SARIMAParams(
+            p=2,
+            d=1,
+            q=1,
+            trend="ct",
+            seasonal_order=(1, 0, 1, 12),
+            enforce_invertibility=False,
+            enforce_stationarity=False,
+            exog=exog,
+        )
+
+        params.validate_params()
+        m = SARIMAModel(ts_data, params)
+        m.fit(
+            start_params=None,
+            # pyre-fixme[6]: Expected `bool` for 2nd param but got `None`.
+            transformed=None,
+            includes_fixed=None,
+            cov_type=None,
+            cov_kwds=None,
+            method="lbfgs",
+            maxiter=50,
+            full_output=1,
+            disp=False,
+            callback=None,
+            return_params=False,
+            optim_score=None,
+            optim_complex_step=None,
+            optim_hessian=None,
+            low_memory=False,
+        )
+        m.predict(steps=steps, exog=fcst_exog, freq="D")
+        m.plot()
+
+        # should raise a value error if exogenous variables aren't used to predict
+        with self.assertRaises(ValueError):
+            m.predict(steps=steps, freq="D")
 
     def test_others(self) -> None:
         params = SARIMAParams(
@@ -613,11 +662,11 @@ class SARIMAModelTest(TestCase):
 
 class ProphetModelTest(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
@@ -699,7 +748,7 @@ class ProphetModelTest(TestCase):
 
 class testVARModel(TestCase):
     def setUp(self):
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
     def test_fit_forecast(self) -> None:
@@ -711,7 +760,7 @@ class testVARModel(TestCase):
 
 class testBayesianVARModel(TestCase):
     def setUp(self):
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
     def test_fit_forecast(self) -> None:
@@ -724,7 +773,7 @@ class testBayesianVARModel(TestCase):
 
 class testEmpConfidenceInt(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
@@ -745,17 +794,16 @@ class testEmpConfidenceInt(TestCase):
 
 class testSTLFModel(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-
 
     def test_fit_forecast(self) -> None:
         for method in ["theta", "prophet", "linear", "quadratic"]:
@@ -883,25 +931,53 @@ class testNowcasting(TestCase):
 
         # Bollinger Band 1
         target_1 = np.array(
-            [5.656854249492381, 1.885618083164127, 1.131370849898476, 0.8081220356417687]
+            [
+                5.656854249492381,
+                1.885618083164127,
+                1.131370849898476,
+                0.8081220356417687,
+            ]
         )
         error_1 = np.sum(
             np.abs(
-                np.array(list(BBANDS(pd.DataFrame(list(range(5)), columns=["y"]), 2)['BollingerBand1_2'][1:])) - target_1
+                np.array(
+                    list(
+                        BBANDS(pd.DataFrame(list(range(5)), columns=["y"]), 2)[
+                            "BollingerBand1_2"
+                        ][1:]
+                    )
+                )
+                - target_1
             )
         )
-        self.assertLessEqual(error_1, error_threshold, "BollingerBand1_2 produces errors!")
+        self.assertLessEqual(
+            error_1, error_threshold, "BollingerBand1_2 produces errors!"
+        )
 
         # Bolinger Band 2
         target_2 = np.array(
-            [0.6767766952966369, 0.6767766952966369,0.6767766952966369,0.6767766952966369]
+            [
+                0.6767766952966369,
+                0.6767766952966369,
+                0.6767766952966369,
+                0.6767766952966369,
+            ]
         )
         error_2 = np.sum(
             np.abs(
-                np.array(list(BBANDS(pd.DataFrame(list(range(5)), columns=["y"]), 2)['BollingerBand2_2'][1:])) - target_2
+                np.array(
+                    list(
+                        BBANDS(pd.DataFrame(list(range(5)), columns=["y"]), 2)[
+                            "BollingerBand2_2"
+                        ][1:]
+                    )
+                )
+                - target_2
             )
         )
-        self.assertLessEqual(error_2, error_threshold, "BollingerBand2_2 produces errors!")
+        self.assertLessEqual(
+            error_2, error_threshold, "BollingerBand2_2 produces errors!"
+        )
 
     def test_EMA(self) -> None:
         error_threshold = 0.0001
@@ -910,7 +986,10 @@ class testNowcasting(TestCase):
         )
         error = np.sum(
             np.abs(
-                np.array(list(EMA(pd.DataFrame(list(range(5)), columns=["y"]), 2)["EMA_2"])) - target
+                np.array(
+                    list(EMA(pd.DataFrame(list(range(5)), columns=["y"]), 2)["EMA_2"])
+                )
+                - target
             )
         )
         self.assertLessEqual(error, error_threshold, "EMA_2 produces errors!")
@@ -922,7 +1001,14 @@ class testNowcasting(TestCase):
         )
         error = np.sum(
             np.abs(
-                np.array(list(TRIX(pd.DataFrame(list(range(1, 6)), columns=["y"]), 2)['TRIX_2'])) - target
+                np.array(
+                    list(
+                        TRIX(pd.DataFrame(list(range(1, 6)), columns=["y"]), 2)[
+                            "TRIX_2"
+                        ]
+                    )
+                )
+                - target
             )
         )
         self.assertLessEqual(error, error_threshold, "TRIX_2 produces errors!")
@@ -932,19 +1018,29 @@ class testNowcasting(TestCase):
         target = np.array([1.0, 1.0, 1.0])
         error = np.sum(
             np.abs(
-                np.array(list(TSI(pd.DataFrame(list(range(5, 10)), columns=["y"]), 2, 3)['TSI_2_3'])[2:]) - target
+                np.array(
+                    list(
+                        TSI(pd.DataFrame(list(range(5, 10)), columns=["y"]), 2, 3)[
+                            "TSI_2_3"
+                        ]
+                    )[2:]
+                )
+                - target
             )
         )
         self.assertLessEqual(error, error_threshold, "TSI_2_3 produces errors!")
 
     def test_RSI(self) -> None:
         error_threshold = 0.0001
-        target = np.array(
-            [100.0, 100.0, 100.0, 100.0]
-        )
+        target = np.array([100.0, 100.0, 100.0, 100.0])
         error = np.sum(
             np.abs(
-                np.array(list(RSI(pd.DataFrame(list(range(5, 10)), columns=["y"]), 2)['RSI_2'])[1:]) - target
+                np.array(
+                    list(
+                        RSI(pd.DataFrame(list(range(5, 10)), columns=["y"]), 2)["RSI_2"]
+                    )[1:]
+                )
+                - target
             )
         )
         self.assertLessEqual(error, error_threshold, "RSI_2 produces errors!")
