@@ -6,7 +6,7 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
-from kats.consts import TimeSeriesData, TimeSeriesChangePoint
+from kats.consts import TimeSeriesData, TimeSeriesChangePoint, DEFAULT_VALUE_NAME, DEFAULT_TIME_NAME
 from kats.detectors.detector import Detector
 # pyre-fixme[21]: Could not find name `zscore` in `scipy.stats`.
 from scipy.stats import norm, zscore  # @manual
@@ -38,6 +38,12 @@ class RobustStatDetector(Detector):
             )
             logging.error(msg)
             raise ValueError(msg)
+
+        if self.data.value.name is None:
+            self.data.value.name = DEFAULT_VALUE_NAME
+
+        if self.data.time.name is None:
+            self.data.time.name = DEFAULT_TIME_NAME
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self,

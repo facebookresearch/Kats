@@ -46,6 +46,8 @@ import pandas as pd
 from kats.consts import (
     TimeSeriesChangePoint,
     TimeSeriesData,
+    DEFAULT_TIME_NAME,
+    DEFAULT_VALUE_NAME
 )
 from kats.detectors.detector import Detector
 
@@ -205,6 +207,13 @@ class CUSUMDetector(Detector):
             )
             logging.error(msg)
             raise ValueError(msg)
+
+        if self.data.value.name is None:
+            self.data.value.name = DEFAULT_VALUE_NAME
+
+        if self.data.time.name is None:
+            self.data.time.name = DEFAULT_TIME_NAME
+
 
     def _get_change_point(
         self, ts: np.ndarray, max_iter: int, start_point: int, change_direction: str
