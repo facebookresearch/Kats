@@ -445,6 +445,16 @@ class CUSUMDetectorTest(TestCase):
         with self.assertLogs(level="DEBUG"):
             detector.detector(magnitude_quantile=None, interest_window=[40, 60])
 
+    def test_ts_without_name(self) -> None:
+        n = 10
+        time = pd.Series(pd.date_range(start='2018-01-01', periods=n, freq='D'))
+        value = pd.Series(np.arange(n))
+        ts = TimeSeriesData(time=time, value=value)
+
+        detector = CUSUMDetector(ts)
+        change_points = detector.detector()
+        detector.plot(change_points)
+
 
 class RobustStatTest(TestCase):
     def test_no_change(self) -> None:
@@ -553,6 +563,16 @@ class RobustStatTest(TestCase):
         timeseries_multi = TimeSeriesData(df_increase)
         with self.assertRaises(ValueError):
             RobustStatDetector(timeseries_multi)
+
+    def test_ts_without_name(self) -> None:
+        n = 10
+        time = pd.Series(pd.date_range(start='2018-01-01', periods=n, freq='D'))
+        value = pd.Series(np.arange(n))
+        ts = TimeSeriesData(time=time, value=value)
+        
+        detector = RobustStatDetector(ts)
+        change_points = detector.detector()
+        detector.plot(change_points)
 
 
 class MultiCUSUMDetectorTest(TestCase):
