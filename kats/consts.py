@@ -263,6 +263,11 @@ class TimeSeriesData:
             # Set time col name
             if time.name:
                 self.time_col_name = time.name
+            else:
+                self._time.rename(DEFAULT_TIME_NAME, inplace=True)
+            # Make sure the value series has a name
+            if isinstance(self._value, pd.core.series.Series) and self._value.name is None:
+                self._value.rename(DEFAULT_VALUE_NAME, inplace=True)
             # Checking for emptiness
             if self.time.empty and self.value.empty:
                 logging.warning("Initializing empty TimeSeriesData object")
@@ -882,13 +887,15 @@ class TimeSeriesData:
         df = df.reset_index().rename(columns={"index": self.time_col_name})
         return TimeSeriesData(df, time_col_name=self.time_col_name)
 
-    def plot(self,
-             cols: Optional[List[str]] = None,
-             ax: Optional[plt.Axes] = None,
-             grid: bool = True,
-             figsize: Optional[FigSize] = None,
-             plot_kwargs: Optional[Dict[str, Any]] = None,
-             grid_kwargs: Optional[Dict[str, Any]] = None) -> plt.Axes:
+    def plot(
+        self,
+        cols: Optional[List[str]] = None,
+        ax: Optional[plt.Axes] = None,
+        grid: bool = True,
+        figsize: Optional[FigSize] = None,
+        plot_kwargs: Optional[Dict[str, Any]] = None,
+        grid_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> plt.Axes:
         """Plots the time series.
 
         Args:
@@ -919,13 +926,7 @@ class TimeSeriesData:
             figsize = (10, 6)
         if plot_kwargs is None:
             plot_kwargs = {}
-        grid_kwargs_ = {
-            "which": "major",
-            "c":"gray",
-            "ls": "-",
-            "lw": 1,
-            "alpha": 0.2
-        }
+        grid_kwargs_ = {"which": "major", "c": "gray", "ls": "-", "lw": 1, "alpha": 0.2}
         if grid_kwargs is not None:
             grid_kwargs_.update(**grid_kwargs)
 
@@ -991,12 +992,12 @@ class TSIterator:
             if self.ts.is_univariate():
                 ret = TimeSeriesData(
                     time=pd.Series(self.ts.time[self.curr]),
-                    value=pd.Series(self.ts.value.iloc[self.curr]),
+                    value=pd.Series(self.ts.value.iloc[self.curr], name=self.curr),
                 )
             else:
                 ret = TimeSeriesData(
                     time=pd.Series(self.ts.time[self.curr]),
-                    value=pd.DataFrame(self.ts.value.iloc[self.curr]),
+                    value=pd.DataFrame(self.ts.value.iloc[self.curr], columns=[self.curr]),
                 )
             self.curr += 1
             return ret
@@ -1054,12 +1055,12 @@ class OperationsEnum(Enum):
 
 
 __all__ = [
-    'ModelEnum',
-    'OperationsEnum',
-    'Params',
-    'SearchMethodEnum',
-    'TimeSeriesChangePoint',
-    'TimeSeriesData',
-    'TimeSeriesIterator',
-    'TSIterator',
+    "ModelEnum",
+    "OperationsEnum",
+    "Params",
+    "SearchMethodEnum",
+    "TimeSeriesChangePoint",
+    "TimeSeriesData",
+    "TimeSeriesIterator",
+    "TSIterator",
 ]

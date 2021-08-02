@@ -355,6 +355,15 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         assert_series_equal(
             self.ts_time_empty_value_empty_no_name.value, EMPTY_VALUE_SERIES
         )
+
+        # Make sure the time and value objects here have the default names
+        self.assertEqual(
+            self.ts_time_empty_value_empty_no_name.time.name, DEFAULT_TIME_NAME
+        )
+        self.assertEqual(
+            self.ts_time_empty_value_empty_no_name.value.name, DEFAULT_VALUE_NAME
+        )
+
         # Testing initialization from time as empty Series and value as empty
         # DataFrame
         assert_series_equal(self.ts_time_empty_value_empty_df.time, EMPTY_TIME_SERIES)
@@ -1236,7 +1245,6 @@ class TimeSeriesDataMiscTest(TimeSeriesBaseTest):
 
 
 class TSIteratorTest(TestCase):
-
     def test_ts_iterator_univariate_next(self) -> None:
         df = pd.DataFrame(
             [["2020-03-01", 100], ["2020-03-02", 120], ["2020-03-03", 130]],
@@ -1245,14 +1253,20 @@ class TSIteratorTest(TestCase):
         kats_data = TimeSeriesData(df=df)
         kats_iterator = TSIterator(kats_data)
         val = next(kats_iterator)
-        assert_series_equal(val.time, pd.Series([pd.Timestamp("2020-03-01")]))
-        assert_series_equal(val.value, pd.Series([100]))
+        assert_series_equal(
+            val.time, pd.Series([pd.Timestamp("2020-03-01")]), check_names=False
+        )
+        assert_series_equal(val.value, pd.Series([100]), check_names=False)
         val = next(kats_iterator)
-        assert_series_equal(val.time, pd.Series([pd.Timestamp("2020-03-02")]))
-        assert_series_equal(val.value, pd.Series([120]))
+        assert_series_equal(
+            val.time, pd.Series([pd.Timestamp("2020-03-02")]), check_names=False
+        )
+        assert_series_equal(val.value, pd.Series([120]), check_names=False)
         val = next(kats_iterator)
-        assert_series_equal(val.time, pd.Series([pd.Timestamp("2020-03-03")]))
-        assert_series_equal(val.value, pd.Series([130]))
+        assert_series_equal(
+            val.time, pd.Series([pd.Timestamp("2020-03-03")]), check_names=False
+        )
+        assert_series_equal(val.value, pd.Series([130]), check_names=False)
 
     def test_ts_iterator_multivariate_next(self) -> None:
         df = pd.DataFrame(
@@ -1266,13 +1280,19 @@ class TSIteratorTest(TestCase):
         kats_data = TimeSeriesData(df=df)
         kats_iterator = TSIterator(kats_data)
         val = next(kats_iterator)
-        assert_series_equal(val.time, pd.Series([pd.Timestamp("2020-03-01")]))
+        assert_series_equal(
+            val.time, pd.Series([pd.Timestamp("2020-03-01")]), check_names=False
+        )
         assert_series_equal(val.value, pd.Series([100, 200], name=0))
         val = next(kats_iterator)
-        assert_series_equal(val.time, pd.Series([pd.Timestamp("2020-03-02")]))
+        assert_series_equal(
+            val.time, pd.Series([pd.Timestamp("2020-03-02")]), check_names=False
+        )
         assert_series_equal(val.value, pd.Series([120, 220], name=1))
         val = next(kats_iterator)
-        assert_series_equal(val.time, pd.Series([pd.Timestamp("2020-03-03")]))
+        assert_series_equal(
+            val.time, pd.Series([pd.Timestamp("2020-03-03")]), check_names=False
+        )
         assert_series_equal(val.value, pd.Series([130, 230], name=2))
 
     def test_ts_iterator_comprehension(self) -> None:
@@ -1286,16 +1306,22 @@ class TSIteratorTest(TestCase):
         kats_list = list(kats_iterator)
         val = kats_list[0]
         assert_series_equal(
-            val.time, pd.Series([pd.Timestamp("2020-07-31 19:55:47+0000", tz="UTC")])
+            val.time,
+            pd.Series([pd.Timestamp("2020-07-31 19:55:47+0000", tz="UTC")]),
+            check_names=False,
         )
-        assert_series_equal(val.value, pd.Series([1]))
+        assert_series_equal(val.value, pd.Series([1]), check_names=False)
         val = kats_list[1]
         assert_series_equal(
-            val.time, pd.Series([pd.Timestamp("2020-07-31 19:55:48+0000", tz="UTC")])
+            val.time,
+            pd.Series([pd.Timestamp("2020-07-31 19:55:48+0000", tz="UTC")]),
+            check_names=False,
         )
-        assert_series_equal(val.value, pd.Series([2]))
+        assert_series_equal(val.value, pd.Series([2]), check_names=False)
         val = kats_list[2]
         assert_series_equal(
-            val.time, pd.Series([pd.Timestamp("2020-07-31 19:55:49+0000", tz="UTC")])
+            val.time,
+            pd.Series([pd.Timestamp("2020-07-31 19:55:49+0000", tz="UTC")]),
+            check_names=False,
         )
-        assert_series_equal(val.value, pd.Series([4]))
+        assert_series_equal(val.value, pd.Series([4]), check_names=False)
