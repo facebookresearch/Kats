@@ -386,6 +386,8 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             TimeSeriesData(df=[])
             # Incorrect initialization with value
             TimeSeriesData(time=self.AIR_TIME_SERIES, value=None)
+            # pyre-fixme[6]: Expected `Union[None, pd.core.frame.DataFrame,
+            #  pd.core.series.Series]` for 2nd param but got `List[Variable[_T]]`.
             TimeSeriesData(time=self.AIR_TIME_SERIES, value=[])
             # Incorrect initialization with time
             TimeSeriesData(time=None, value=self.AIR_VALUE_SERIES)

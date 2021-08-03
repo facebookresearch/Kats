@@ -501,8 +501,10 @@ class CUSUMDetectorModel(DetectorModel):
                 scores=self._predict(smooth_historical_data[-len(data) :], score_func),
                 # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
                 confidence_band=None,
+                # pyre-fixme[6]: Expected `TimeSeriesData` for 3rd param but got `None`.
                 predicted_ts=None,
                 anomaly_magnitude_ts=self._zeros_ts(data),
+                # pyre-fixme[6]: Expected `TimeSeriesData` for 5th param but got `None`.
                 stat_sig_ts=None,
             )
         anomaly_start_idx = self._time2idx(data, anomaly_start_time, "right")
@@ -518,8 +520,10 @@ class CUSUMDetectorModel(DetectorModel):
                 scores=self._predict(smooth_historical_data[-len(data) :], score_func),
                 # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
                 confidence_band=None,
+                # pyre-fixme[6]: Expected `TimeSeriesData` for 3rd param but got `None`.
                 predicted_ts=None,
                 anomaly_magnitude_ts=self._zeros_ts(data),
+                # pyre-fixme[6]: Expected `TimeSeriesData` for 5th param but got `None`.
                 stat_sig_ts=None,
             )
 
@@ -613,8 +617,10 @@ class CUSUMDetectorModel(DetectorModel):
             scores=score_tsd,
             # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
             confidence_band=None,
+            # pyre-fixme[6]: Expected `TimeSeriesData` for 3rd param but got `None`.
             predicted_ts=None,
             anomaly_magnitude_ts=self._zeros_ts(data),
+            # pyre-fixme[6]: Expected `TimeSeriesData` for 5th param but got `None`.
             stat_sig_ts=None,
         )
 

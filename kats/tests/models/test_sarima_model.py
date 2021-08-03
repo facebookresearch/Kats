@@ -57,16 +57,19 @@ class SARIMAModelTest(TestCase):
             start_params=None,
             # pyre-fixme[6]: Expected `bool` for 2nd param but got `None`.
             transformed=None,
+            # pyre-fixme[6]: Expected `bool` for 3rd param but got `None`.
             includes_fixed=None,
             cov_type=None,
             cov_kwds=None,
             method="lbfgs",
             maxiter=50,
+            # pyre-fixme[6]: Expected `bool` for 8th param but got `int`.
             full_output=1,
             disp=False,
             callback=None,
             return_params=False,
             optim_score=None,
+            # pyre-fixme[6]: Expected `bool` for 13th param but got `None`.
             optim_complex_step=None,
             optim_hessian=None,
             low_memory=False,
@@ -109,16 +112,19 @@ class SARIMAModelTest(TestCase):
             start_params=None,
             # pyre-fixme[6]: Expected `bool` for 2nd param but got `None`.
             transformed=None,
+            # pyre-fixme[6]: Expected `bool` for 3rd param but got `None`.
             includes_fixed=None,
             cov_type=None,
             cov_kwds=None,
             method="lbfgs",
             maxiter=50,
+            # pyre-fixme[6]: Expected `bool` for 8th param but got `int`.
             full_output=1,
             disp=False,
             callback=None,
             return_params=False,
             optim_score=None,
+            # pyre-fixme[6]: Expected `bool` for 13th param but got `None`.
             optim_complex_step=None,
             optim_hessian=None,
             low_memory=False,

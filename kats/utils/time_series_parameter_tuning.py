@@ -345,6 +345,8 @@ class TimeSeriesParameterTuning(ABC):
             objective=Objective(
                 metric=TimeSeriesEvaluationMetric(
                     name=self.objective_name,
+                    # pyre-fixme[6]: Expected `(...) -> Any` for 2nd param but got
+                    #  `Optional[typing.Callable[..., typing.Any]]`.
                     evaluation_function=self.evaluation_function,
                     logger=self.logger,
                     multiprocessing=self.multiprocessing,
@@ -480,6 +482,8 @@ class TimeSeriesParameterTuning(ABC):
                     # pyre-fixme[6]: Expected `Data` for 2nd param but got
                     #  `AbstractDataFrameData`.
                     self._exp.fetch_data(),
+                    # pyre-fixme[6]: Expected `OptimizationConfig` for 3rd param but
+                    #  got `Optional[ax.core.optimization_config.OptimizationConfig]`.
                     self._exp.optimization_config,
                 )
                 armscore_df = armscore_df[

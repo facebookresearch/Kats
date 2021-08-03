@@ -840,6 +840,7 @@ class BOCPDTest(TestCase):
             model=BOCPDModelType.NORMAL_KNOWN_MODEL,
             # pyre-fixme[6]: Expected `float` for 2nd param but got `ndarray`.
             changepoint_prior=np.array([0.01, 0.01, 1.0]),
+            # pyre-fixme[6]: Expected `float` for 3rd param but got `ndarray`.
             threshold=np.array([1.0, 0.5, 0.5]),
             choose_priors=False,
             agg_cp=False,
@@ -911,6 +912,7 @@ class BOCPDTest(TestCase):
             model=BOCPDModelType.NORMAL_KNOWN_MODEL,
             # pyre-fixme[6]: Expected `float` for 2nd param but got `ndarray`.
             changepoint_prior=np.array([0.01, 0.01, 0.01]),
+            # pyre-fixme[6]: Expected `float` for 3rd param but got `ndarray`.
             threshold=np.array([0.85, 0.85, 0.85]),
             choose_priors=False,
         )
