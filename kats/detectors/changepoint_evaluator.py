@@ -198,7 +198,8 @@ def generate_from_simulator(
     )
     ts2_df = ts2.to_dataframe()
     ts2_dict = {str(row["time"]): row["value"] for _, row in ts2_df.iterrows()}
-    ts2_anno = {"1": [100, 200, 350]}
+    # We are generating annotations that match the ground truth.
+    ts2_anno = {"1": cp_arr}
     return ts2_dict, ts2_anno
 
 
@@ -304,6 +305,7 @@ class TuringEvaluator(BenchmarkEvaluator):
         self.detector = detector
         self.eval_agg = None
         self.is_detector_model = is_detector_model
+        self.cp_list = []
 
     def evaluate(
         self,
@@ -361,11 +363,11 @@ class TuringEvaluator(BenchmarkEvaluator):
             # pyre-fixme[16]: `Detector` has no attribute `fit_predict`.
             anom_obj = detector.fit_predict(tsd)
 
-            cp_list = get_cp_index_from_detector_model(
+            self.cp_list = get_cp_index_from_detector_model(
                 anom_obj, alert_style_cp, threshold_low, threshold_high
             )
 
-            eval_dict = measure(annotations=anno, predictions=cp_list)
+            eval_dict = measure(annotations=anno, predictions=self.cp_list)
             eval_list.append(
                 Evaluation(
                     dataset_name=data_name,
@@ -405,8 +407,8 @@ class TuringEvaluator(BenchmarkEvaluator):
             # pyre-fixme[45]: Cannot instantiate abstract class `Detector`.
             detector = self.detector(tsd)
             change_points = detector.detector(**model_params)
-            cp_list = get_cp_index(change_points, tsd)
-            eval_dict = measure(annotations=anno, predictions=cp_list)
+            self.cp_list = get_cp_index(change_points, tsd)
+            eval_dict = measure(annotations=anno, predictions=self.cp_list)
             eval_list.append(
                 Evaluation(
                     dataset_name=data_name,
