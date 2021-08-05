@@ -21,14 +21,15 @@ We use the implementation in statsmodels and re-write the API to adapt Kats deve
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
-import kats.models.model as m
 import pandas as pd
-from kats.consts import Params, TimeSeriesData
-from kats.utils.parameter_tuning_utils import get_default_var_parameter_search_space
 from matplotlib import pyplot as plt
 from statsmodels.tsa.api import VAR
+
+import kats.models.model as m
+from kats.consts import Params, TimeSeriesData
+from kats.utils.parameter_tuning_utils import get_default_var_parameter_search_space
 
 
 class VARParams(Params):
@@ -140,7 +141,7 @@ class VARModel(m.Model):
         )
         self.include_history = include_history
         # pyre-fixme[16]: `VARModel` has no attribute `freq`.
-        self.freq = kwargs.get("freq", "D")
+        self.freq = pd.infer_freq(self.data.time)
         # pyre-fixme[16]: `VARModel` has no attribute `alpha`.
         self.alpha = kwargs.get("alpha", 0.05)
 
