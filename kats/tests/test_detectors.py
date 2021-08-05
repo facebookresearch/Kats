@@ -569,7 +569,7 @@ class RobustStatTest(TestCase):
         time = pd.Series(pd.date_range(start='2018-01-01', periods=n, freq='D'))
         value = pd.Series(np.arange(n))
         ts = TimeSeriesData(time=time, value=value)
-        
+
         detector = RobustStatDetector(ts)
         change_points = detector.detector()
         detector.plot(change_points)
