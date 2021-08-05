@@ -2,16 +2,15 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
-import re
-import pkgutil
 import io
+import os
+import pkgutil
+import re
 from datetime import datetime, timedelta
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 import statsmodels
 from kats.detectors.bocpd import BOCPDetector
 from kats.detectors.bocpd_model import BocpdDetectorModel
@@ -20,6 +19,7 @@ from kats.detectors.changepoint_evaluator import (
     Evaluation,
     EvalAggregate,
     measure,
+    true_positives,
 )
 from kats.detectors.cusum_detection import (
     CUSUMDetector,
@@ -28,7 +28,6 @@ from kats.detectors.cusum_model import (
     CUSUMDetectorModel,
     CusumScoreFunction,
 )
-
 from kats.detectors.robust_stat_detection import RobustStatDetector
 from kats.detectors.stat_sig_detector import (
     StatSigDetectorModel,
@@ -40,23 +39,24 @@ statsmodels_ver = float(
 
 
 def load_data(file_name):
-    ROOT="kats"
+    ROOT = "kats"
     if "kats" in os.getcwd().lower():
-        path = 'data/'
+        path = "data/"
     else:
-        path = 'kats/data/'
-    data_object =  pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
+
 
 class TestChangepointEvaluator(TestCase):
     def test_eval_agg(self) -> None:
-        eval_1 = Evaluation(dataset_name="eg_1", precision=0.3, recall=0.5, f_score=0.6)
+        eval_1 = Evaluation(
+            dataset_name="eg_1", precision=0.3, recall=0.5, f_score=0.6, delay=-2
+        )
 
-        eval_2 = Evaluation(dataset_name="eg_2", precision=0.3, recall=0.5, f_score=0.7)
-
-        eval_agg = EvalAggregate(eval_list=[eval_1, eval_2])
-        avg_f_score = eval_agg.get_avg_f_score()
-        self.assertAlmostEqual(avg_f_score, 0.65, places=4)
+        eval_2 = Evaluation(
+            dataset_name="eg_2", precision=0.3, recall=0.5, f_score=0.7, delay=1
+        )
 
         eval_agg_1 = EvalAggregate(eval_list=[eval_1, eval_2])
         avg_precision = eval_agg_1.get_avg_precision()
@@ -66,9 +66,17 @@ class TestChangepointEvaluator(TestCase):
         avg_recall = eval_agg_2.get_avg_recall()
         self.assertAlmostEqual(avg_recall, 0.5, places=4)
 
+        eval_agg_3 = EvalAggregate(eval_list=[eval_1, eval_2])
+        avg_f_score = eval_agg_3.get_avg_f_score()
+        self.assertAlmostEqual(avg_f_score, 0.65, places=4)
+
+        eval_agg_4 = EvalAggregate(eval_list=[eval_1, eval_2])
+        avg_delay = eval_agg_4.get_avg_delay()
+        self.assertAlmostEqual(avg_delay, -0.5, places=4)
+
     def test_measure(self) -> None:
         """
-        tests the correctness of f-measure, by comparing results with
+        tests the correctness of measure, by comparing results with
         https://arxiv.org/pdf/2003.06222.pdf and TCPDBench github
         project
         """
@@ -91,6 +99,17 @@ class TestChangepointEvaluator(TestCase):
         self.assertAlmostEqual(f_brent_spot["f_score"], 0.2485875706214689, places=3)
         self.assertAlmostEqual(f_brent_spot["precision"], 0.2857142857142857, places=3)
         self.assertAlmostEqual(f_brent_spot["recall"], 0.21999999999999997, places=3)
+
+    def test_true_positives(self) -> None:
+        """
+        tests the correctness of true_positives.
+        """
+        tp1 = true_positives({1, 10, 20, 23}, {3, 8, 20})
+        self.assertDictEqual(tp1, {1: 2, 10: -2, 20: 0})
+        tp2 = true_positives({1, 10, 20, 23}, {1, 3, 5, 8, 20})
+        self.assertDictEqual(tp2, {1: 0, 10: -5, 20: 0})
+        tp3 = true_positives({1, 10, 20, 23}, {1, 3, 5, 8, 20}, choose_earliest=False)
+        self.assertDictEqual(tp3, {1: 0, 10: -2, 20: 0})
 
     def test_evaluator(self) -> None:
         date_range = pd.date_range(start="2010-02-01", end="2020-03-31", freq="M")

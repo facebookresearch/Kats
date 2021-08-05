@@ -2,15 +2,15 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import copy
 import json
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 import re
+from abc import ABC, abstractmethod
+from collections import namedtuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+
 import numpy as np
 import pandas as pd
-from collections import namedtuple
-import copy
-
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector, DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
@@ -90,20 +90,26 @@ def get_cp_index_from_detector_model(
     return cp_list
 
 
-# copied from https://github.com/alan-turing-institute/TCPDBench/blob/master/analysis/scripts/metrics.py
-def true_positives(T: Set[int], X: Set[int], margin: int = 5) -> Set[int]:
+# modified from https://github.com/alan-turing-institute/TCPDBench/blob/master/analysis/scripts/metrics.py
+def true_positives(
+    T: Set[int], X: Set[int], margin: int = 5, choose_earliest: bool = True
+) -> Dict[int, int]:
     """Compute true positives without double counting.
+    If there is multiple detected positives in the margin of a trupe positive and choose_earliest = True, we keep only the first one.
+    If choose_earliest = False, we keep only the one closest to the true_positive.
 
     >>> true_positives({1, 10, 20, 23}, {3, 8, 20})
-    {1, 10, 20}
+    {1: 2, 10: -2, 20: 0}
     >>> true_positives({1, 10, 20, 23}, {1, 3, 8, 20})
-    {1, 10, 20}
+    {1: 0, 10: -2, 20: 0}
     >>> true_positives({1, 10, 20, 23}, {1, 3, 5, 8, 20})
-    {1, 10, 20}
+    {1: 0, 10: -5, 20: 0}
+    >>> true_positives({1, 10, 20, 23}, {1, 3, 5, 8, 20}, choose_earliest=False)
+    {1: 0, 10: -2, 20: 0}
     >>> true_positives(set(), {1, 2, 3})
-    set()
+    dict()
     >>> true_positives({1, 2, 3}, set())
-    set()
+    dict()
 
     Args:
         T: true positives.
@@ -111,19 +117,23 @@ def true_positives(T: Set[int], X: Set[int], margin: int = 5) -> Set[int]:
         margin: threshold for absolute difference to be counted as different.
 
     Returns:
-        The set of true positives.
+        TP: A dict with true positives as keys and
+        the distance between the detected positives and the true positives as values.
     """
     # make a copy so we don't affect the caller
     X = copy.deepcopy(X)
     X = set(X)
-    TP = set()
+    TP = {}
     for tau in T:
-        close = [(abs(tau - x), x) for x in X if abs(tau - x) <= margin]
-        close.sort()
+        close = [(x - tau, x) for x in X if abs(tau - x) <= margin]
+        if choose_earliest:
+            close.sort(key=lambda x: x[1])
+        else:
+            close.sort(key=lambda x: abs(x[0]))
         if not close:
             continue
         dist, xstar = close[0]
-        TP.add(tau)
+        TP[tau] = dist
         X.remove(xstar)
     return TP
 
@@ -169,11 +179,12 @@ def measure(
     P = len(true_positives(Tstar, X, margin=margin)) / len(X)
 
     TPk = {k: true_positives(Tks[k], X, margin=margin) for k in Tks}
-    R = 1 / K * sum(len(TPk[k]) / len(Tks[k]) for k in Tks)
+    R = 1 / K * sum(len(TPk[k].keys()) / len(Tks[k]) for k in Tks)
+    D = 1 / K * sum(np.mean(list(TPk[k].values())) for k in Tks)
 
     F = P * R / (alpha * R + (1 - alpha) * P)
 
-    score_dict = {"f_score": F, "precision": P, "recall": R}
+    score_dict = {"f_score": F, "precision": P, "recall": R, "delay": D}
 
     return score_dict
 
@@ -217,7 +228,7 @@ class BenchmarkEvaluator(ABC):
 
 
 Evaluation = namedtuple(
-    "Evaluation", ["dataset_name", "precision", "recall", "f_score"]
+    "Evaluation", ["dataset_name", "precision", "recall", "f_score", "delay"]
 )
 
 
@@ -236,6 +247,7 @@ class EvalAggregate:
                     "precision": this_eval.precision,
                     "recall": this_eval.recall,
                     "f_score": this_eval.f_score,
+                    "delay": this_eval.delay,
                 }
             )
 
@@ -260,8 +272,13 @@ class EvalAggregate:
         if self.eval_df is None:
             _ = self.get_eval_dataframe()
         avg_f_score = np.mean(self.eval_df.f_score)
-
         return avg_f_score
+
+    def get_avg_delay(self) -> float:
+        if self.eval_df is None:
+            _ = self.get_eval_dataframe()
+        avg_delay = np.mean(self.eval_df.delay)
+        return avg_delay
 
 
 class TuringEvaluator(BenchmarkEvaluator):
@@ -374,6 +391,7 @@ class TuringEvaluator(BenchmarkEvaluator):
                     precision=eval_dict["precision"],
                     recall=eval_dict["recall"],
                     f_score=eval_dict["f_score"],
+                    delay=eval_dict["delay"],
                 )
             )
             # break
@@ -415,6 +433,7 @@ class TuringEvaluator(BenchmarkEvaluator):
                     precision=eval_dict["precision"],
                     recall=eval_dict["recall"],
                     f_score=eval_dict["f_score"],
+                    delay=eval_dict["delay"],
                 )
             )
             # break
@@ -464,11 +483,11 @@ class TuringEvaluator(BenchmarkEvaluator):
         this_ts = df_row["time_series"]
         this_anno = df_row["annotation"]
 
-        this_anno_json_acc = this_anno.replace("'", "\"")
+        this_anno_json_acc = this_anno.replace("'", '"')
 
         this_anno_dict = json.loads(this_anno_json_acc)
 
-        this_ts_json_acc = this_ts.replace("'", "\"")
+        this_ts_json_acc = this_ts.replace("'", '"')
         try:
             this_ts_dict = json.loads(this_ts_json_acc)
         except Exception:
