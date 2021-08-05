@@ -141,7 +141,7 @@ class VARModel(m.Model):
         )
         self.include_history = include_history
         # pyre-fixme[16]: `VARModel` has no attribute `freq`.
-        self.freq = pd.infer_freq(self.data.time)
+        self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
         # pyre-fixme[16]: `VARModel` has no attribute `alpha`.
         self.alpha = kwargs.get("alpha", 0.05)
 
