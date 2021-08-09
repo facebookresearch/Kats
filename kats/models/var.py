@@ -154,8 +154,9 @@ class VARModel(m.Model):
 
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
+        dates = dates[1:]  # Return correct number of periods
         # pyre-fixme[16]: `VARModel` has no attribute `dates`.
-        self.dates = dates[dates != last_date]  # Return correct number of periods
+        self.dates = dates
 
         # pyre-fixme[16]: `VARModel` has no attribute `fcst_dict`.
         self.fcst_dict = {}
