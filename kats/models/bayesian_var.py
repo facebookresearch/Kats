@@ -77,7 +77,6 @@ class BayesianVAR(m.Model):
         self.start_date = copy_data.time[0]
         if isinstance(self.start_date, str):
             self.start_date = datetime.strptime(self.start_date, "%Y-%m-%d")
-        # pyre-fixme[16]: `DataFrame` has no attribute `time`.
         copy_data.time = pd.RangeIndex(0, len(copy_data))
         copy_data = TimeSeriesData(copy_data)
 

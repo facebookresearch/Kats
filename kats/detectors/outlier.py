@@ -62,7 +62,6 @@ class OutlierDetector(Detector):
         Returns: List of detected outlier timepoints in each metric
         """
 
-        # pyre-fixme[16]: `DataFrame` has no attribute `index`.
         original.index = pd.to_datetime(original.index)
 
         if pd.infer_freq(original.index) is None:

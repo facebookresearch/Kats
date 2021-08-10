@@ -362,7 +362,6 @@ class MKDetector(Detector):
 
         ts = self.data.to_dataframe().set_index("time")
         ts = ts.dropna(axis=1)
-        # pyre-ignore[16]: `DataFrame` has no attribute `index`.
         ts.index = pd.DatetimeIndex(ts.index.values, freq=ts.index.inferred_freq)
         self.ts = ts
 
