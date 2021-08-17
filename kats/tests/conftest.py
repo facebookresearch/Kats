@@ -2,7 +2,6 @@ import os
 from typing import Any
 import matplotlib as mpl
 
-
 def pytest_sessionstart(session: Any) -> None:
     # Set the matplotlib backend to Agg for UI-less testing
     # unless the developer manually overrides by setting

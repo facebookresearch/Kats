@@ -43,14 +43,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+# pyre-ignore[21]: Could not find name `chi2` in `scipy.stats`.
+from scipy.stats import chi2  # @manual
+
 from kats.consts import (
     TimeSeriesChangePoint,
     TimeSeriesData,
 )
 from kats.detectors.detector import Detector
-
-# pyre-ignore[21]: Could not find name `chi2` in `scipy.stats`.
-from scipy.stats import chi2  # @manual
 
 
 pd.options.plotting.matplotlib.register_converters = True

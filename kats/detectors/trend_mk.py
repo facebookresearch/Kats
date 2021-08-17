@@ -10,13 +10,15 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pymannkendall as mk
-from kats.consts import TimeSeriesChangePoint, TimeSeriesData
-from kats.detectors.detector import Detector
+try:
+    import pymannkendall as mk
+    _no_mk = False
+except ImportError:
+    _no_mk = True
 from statsmodels.tsa.api import SimpleExpSmoothing
 
-
-pd.options.plotting.matplotlib.register_converters = True
+from kats.consts import TimeSeriesChangePoint, TimeSeriesData
+from kats.detectors.detector import Detector
 
 """Mann-Kendall (MK) Trend Detector Module
 
@@ -46,6 +48,8 @@ class MKMetadata:
     def __init__(
         self, is_multivariate: bool, trend_direction: str, Tau: Union[float, Dict]
     ):
+        if _no_mk:
+            raise RuntimeError("requires pymannkendall to be installed")
         self._detector_type = MKDetector
         self._is_multivariate = is_multivariate
         self._trend_direction = trend_direction
@@ -130,6 +134,8 @@ class MKDetector(Detector):
         # pyre-fixme[6]: Expected `TimeSeriesData` for 1st param but got
         #  `Optional[TimeSeriesData]`.
         super(MKDetector, self).__init__(data=data)
+        if _no_mk:
+            raise RuntimeError("requires pymannkendall to be installed")
 
         self.threshold = threshold
         self.alpha = alpha
@@ -555,8 +561,10 @@ class MKDetector(Detector):
         Returns:
             a dataframe contains Tau for all metrics at all time points.
         """
-
-        import plotly.graph_objects as go
+        try:
+            import plotly.graph_objects as go
+        except ImportError:
+            raise RuntimeError("requires plotly to be installed")
 
         Tau_df, _ = self._metrics_analysis()
         Tau_df = Tau_df.set_index("ds")
@@ -604,14 +612,15 @@ class MKDetector(Detector):
         """Plots the original time series data, and the detected time points."""
         ts = self.ts
         if ts is None:
-            raise ValueError("")
+            raise ValueError("detector() must be called before plot()")
 
-        plt.figure(figsize=(14, 5))
+        with pd.option_context('plotting.matplotlib.register_converters', True):
+            plt.figure(figsize=(14, 5))
 
-        plt.plot(ts.index, ts.values)
+            plt.plot(ts.index, ts.values)
 
-        if len(detected_time_points) == 0:
-            logging.warning("No trend detected!")
+            if len(detected_time_points) == 0:
+                logging.warning("No trend detected!")
 
-        for t in detected_time_points:
-            plt.axvline(x=t[0].start_time, color="red")
+            for t in detected_time_points:
+                plt.axvline(x=t[0].start_time, color="red")

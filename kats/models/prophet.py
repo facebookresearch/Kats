@@ -5,13 +5,21 @@
 import logging
 from typing import Dict, List, Optional
 
-import kats.models.model as m
 import pandas as pd
-from fbprophet import Prophet
+try:
+    from fbprophet import Prophet
+    _no_prophet = False
+except ImportError:
+    _no_prophet = True
+    Prophet = dict  # for Pyre
+
 from kats.consts import Params, TimeSeriesData
+import kats.models.model as m
 from kats.utils.parameter_tuning_utils import (
     get_default_prophet_parameter_search_space,
 )
+
+
 class ProphetParams(Params):
     """Parameter class for Prophet model
 
@@ -90,6 +98,8 @@ class ProphetParams(Params):
         floor=None,
         custom_seasonalities: Optional[List[Dict]] = None,
     ) -> None:
+        if _no_prophet:
+            raise RuntimeError("requires fbprophet to be installed")
         super().__init__()
         self.growth = growth
         self.changepoints = changepoints
@@ -191,12 +201,15 @@ class ProphetModel(m.Model):
     """
     def __init__(self, data: TimeSeriesData, params: ProphetParams) -> None:
         super().__init__(data, params)
+        if _no_prophet:
+            raise RuntimeError("requires fbprophet to be installed")
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
             )
             logging.error(msg)
             raise ValueError(msg)
+
     def fit(self, **kwargs) -> None:
         """fit Prophet model
 

@@ -7,27 +7,31 @@ This module contains classes and functions used for implementing
 the Bayesian Online Changepoint Detection algorithm.
 """
 
-import logging
-import math
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
+import logging
+import math
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
-from abc import ABC, abstractmethod
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
+# pyre-ignore[21]: Could not find name `invgamma` in `scipy.stats`.
+# pyre-ignore[21]: Could not find name `nbinom` in `scipy.stats`.
+from scipy.stats import invgamma, linregress, norm, nbinom  # @manual
+from scipy.special import logsumexp  # @manual
+
 from kats.consts import (
     TimeSeriesChangePoint,
     TimeSeriesData,
     SearchMethodEnum
 )
-import kats.utils.time_series_parameter_tuning as tpt
 from kats.detectors.detector import Detector
-# pyre-fixme[21]: Could not find name `invgamma` in `scipy.stats`.
-# pyre-fixme[21]: Could not find name `nbinom` in `scipy.stats`.
-from scipy.stats import invgamma, linregress, norm, nbinom  # @manual
-from scipy.special import logsumexp  # @manual
+try:
+    import kats.utils.time_series_parameter_tuning as tpt
+    _no_ax = False
+except ImportError:
+    _no_ax = True
 
 _MIN_POINTS = 10
 _LOG_SQRT2PI = 0.5 * np.log(2 * np.pi)
@@ -413,7 +417,6 @@ class BOCPDetector(Detector):
         Returns:
             None.
         """
-
         # TODO note: Once  D23226664 lands, replace this with self.data.time_col_name
         time_col_name = 'time'
 
@@ -456,6 +459,8 @@ class BOCPDetector(Detector):
             best_cp_prior: best value of the prior on the changepoint probabilities.
             params: parameter dictionary, where the selected values are set.
         """
+        if _no_ax:
+            raise RuntimeWarning("choose_priors requires ax-platform be installed")
         # test these changepoint_priors
         param_dict = params.prior_choice
 
@@ -864,7 +869,6 @@ class _BayesOnlineChangePoint(Detector):
         Returns:
             None.
         """
-
         if threshold is None:
             threshold = self.threshold
 
@@ -882,8 +886,6 @@ class _BayesOnlineChangePoint(Detector):
             ts_values = self.data.value[ts_name].values
             y_min_cpplot = np.min(ts_values)
             y_max_cpplot = np.max(ts_values)
-
-            sns.set()
 
             # Plot the time series
             plt.figure(figsize=(10, 8))
@@ -1352,7 +1354,6 @@ class _BayesianLinReg(_PredictiveModel):
         Returns:
             None.
         """
-
         data = self.data
         mu_prior = self.parameters.mu_prior
         num_points_prior = self.parameters.num_points_prior

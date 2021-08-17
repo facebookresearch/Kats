@@ -16,9 +16,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import joblib
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import pandas as pd
-import seaborn as sns
+
 from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
 from sklearn import metrics
@@ -221,7 +222,6 @@ class MetaLearnModelSelect:
         Returns:
             None
         """
-
         fig, _ = plt.subplots(figsize=(8, 6))
         _ = sns.heatmap(
             self.get_corr_mtx(),

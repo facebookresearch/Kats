@@ -23,19 +23,24 @@ Typical usage example:
 
 import logging
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
-import plotly.graph_objs as go
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+try:
+    import plotly.graph_objs as go
+    Figure = go.Figure
+except ImportError:
+    Figure = Any
 import scipy.fftpack as fp
+from scipy.signal import find_peaks  # @manual
 import statsmodels.api as sm
+from statsmodels.tsa.stattools import acf
+
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import Detector
 from kats.graphics.plots import make_fourier_plot
 from kats.utils.decomposition import TimeSeriesDecomposition
-from scipy.signal import find_peaks  # @manual
-from statsmodels.tsa.stattools import acf
 
 # from numpy.typing import ArrayLike
 ArrayLike = Union[np.ndarray, Sequence[float]]
@@ -225,7 +230,7 @@ class FFTDetector(Detector):
         sample_spacing: float = 1.0,
         title: str = "FFT",
         mad_threshold: float = 6.0,
-    ) -> go.Figure:
+    ) -> Figure:
         """Plots an FFT plot as a plotly figure
 
         Args:
@@ -319,7 +324,7 @@ class FFTDetector(Detector):
         sample_spacing: float = 1.0,
         title: str = "FFT",
         mad_threshold: float = 6.0,
-    ) -> go.Figure:
+    ) -> Figure:
         """Plots an FFT plot as a plotly figure
 
         Args:

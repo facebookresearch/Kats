@@ -23,12 +23,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 from typing import Any, Dict, List
 
-import pandas as pd
 from matplotlib import pyplot as plt
+import pandas as pd
 from statsmodels.tsa.api import VAR
 
-import kats.models.model as m
 from kats.consts import Params, TimeSeriesData
+import kats.models.model as m
 from kats.utils.parameter_tuning_utils import get_default_var_parameter_search_space
 
 
@@ -203,7 +203,6 @@ class VARModel(m.Model):
     #  defined in `m.Model`.
     def plot(self) -> None:
         """Plot forecasted results from VAR model"""
-
         logging.info("Generating chart for forecast result from VAR model.")
 
         fig, axes = plt.subplots(ncols=2, dpi=120, figsize=(10, 6))

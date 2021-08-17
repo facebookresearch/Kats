@@ -266,7 +266,10 @@ class TimeSeriesData:
             else:
                 self._time.rename(DEFAULT_TIME_NAME, inplace=True)
             # Make sure the value series has a name
-            if isinstance(self._value, pd.core.series.Series) and self._value.name is None:
+            if (
+                isinstance(self._value, pd.core.series.Series)
+                and self._value.name is None
+            ):
                 self._value.rename(DEFAULT_VALUE_NAME, inplace=True)
             # Checking for emptiness
             if self.time.empty and self.value.empty:
@@ -910,7 +913,6 @@ class TimeSeriesData:
         Returns:
             The matplotlib Axes.
         """
-
         if self.is_empty():
             raise ValueError("No data to plot")
         # Make sure columns are valid
@@ -997,7 +999,9 @@ class TSIterator:
             else:
                 ret = TimeSeriesData(
                     time=pd.Series(self.ts.time[self.curr]),
-                    value=pd.DataFrame(self.ts.value.iloc[self.curr], columns=[self.curr]),
+                    value=pd.DataFrame(
+                        self.ts.value.iloc[self.curr], columns=[self.curr]
+                    ),
                 )
             self.curr += 1
             return ret

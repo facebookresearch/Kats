@@ -9,22 +9,23 @@ algorithm that determines outliers based on joint distribution of metrics
 """
 
 import datetime as dt
+from datetime import datetime
+from enum import Enum
 from importlib import import_module
 import logging
 import sys
 import traceback
-from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-from datetime import datetime
 import pandas as pd
-from kats.consts import Params, TimeSeriesData, TimeSeriesIterator
-from kats.detectors.detector import Detector
 from scipy import stats
 from scipy.spatial import distance
 from statsmodels.tsa.seasonal import seasonal_decompose
+
+from kats.consts import Params, TimeSeriesData, TimeSeriesIterator
+from kats.detectors.detector import Detector
 
 
 class OutlierDetector(Detector):
@@ -355,7 +356,6 @@ class MultivariateAnomalyDetector(Detector):
         Plot overall anomaly score of system of metrics at each instant.
         Useful for threshold selection
         """
-
         f, ax = plt.subplots(2, 1, sharex=True, figsize=(15, 8 * 2))
         a = pd.merge(
             self.df,

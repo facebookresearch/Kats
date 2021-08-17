@@ -38,6 +38,14 @@ pip install --upgrade pip
 pip install kats
 ```
 
+If you need only a small subset of Kats, you can install a minimal version of Kats with
+```bash
+MINIMAL=1 pip install kats
+```
+which omits many dependencies (everything in `test_requirements.txt`).
+However, this will disable many functionalities and cause `import kats` to log
+warnings. See `setup.py` for full details and options.
+
 ## Examples
 
 Here are a few sample snippets from a subset of Kats offerings:

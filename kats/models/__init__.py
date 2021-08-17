@@ -8,7 +8,11 @@ from . import ensemble   # noqa
 from . import harmonic_regression   # noqa
 from . import holtwinters   # noqa
 from . import linear_model   # noqa
-from . import lstm   # noqa
+try:
+    from . import lstm   # noqa
+except ImportError:
+    import logging
+    logging.warning("kats.models.lstm requires torch be installed")
 from . import metalearner   # noqa
 from . import model   # noqa
 from . import nowcasting   # noqa

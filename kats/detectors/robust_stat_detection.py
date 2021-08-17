@@ -3,15 +3,15 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from kats.consts import TimeSeriesData, TimeSeriesChangePoint
-from kats.detectors.detector import Detector
 # pyre-fixme[21]: Could not find name `zscore` in `scipy.stats`.
 from scipy.stats import norm, zscore  # @manual
 
-from typing import List, Tuple
+from kats.consts import TimeSeriesData, TimeSeriesChangePoint
+from kats.detectors.detector import Detector
 
 
 class RobustStatMetadata:

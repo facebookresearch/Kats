@@ -16,9 +16,10 @@ from typing import List, Optional, Type
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import stats
+
 from kats.consts import Params, TimeSeriesData
 from kats.utils.backtesters import BackTesterRollingWindow
-from scipy import stats
 
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
@@ -209,7 +210,6 @@ class EmpConfidenceInt:
 
         Plot the OLS fit: SE ~ Horizon
         """
-
         fig, ax = plt.subplots(figsize=(10, 6))
         x = [x + 1 for x in range(len(self.SE))]
         ax.scatter(x, self.SE, label="Empirical S.E.", color="r")
@@ -224,7 +224,6 @@ class EmpConfidenceInt:
     def plot(self):
         """Make plot for model fitting with new uncertainty intervals
         """
-
         logging.info("Generating chart for forecast result with emp. conf. intervals.")
         fig = plt.figure(facecolor="w", figsize=(10, 6))
         ax = fig.add_subplot(111)

@@ -4,16 +4,23 @@
 
 # Utility functions for plotting
 
-from typing import List
+from typing import Any, List
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objs as go
+
+try:
+    import plotly.graph_objs as go
+    _no_plotly = False
+    Figure = go.Figure
+except ImportError:
+    _no_plotly = True
+    Figure = Any
 
 
 def plot_scatter_with_confints(
     val: List[float], confint: np.ndarray, title
-) -> go.Figure:
+) -> Figure:
     """Plots a scatter plot with confidence intervals used to plot ACF and PACF
             Parameters
             ----------
@@ -25,6 +32,8 @@ def plot_scatter_with_confints(
             -------
             Plot with confidence intervals
     """
+    if _no_plotly:
+        raise RuntimeError("requires plotly to be installed")
     prediction_color = "#0072B2"
     error_color = "rgba(0, 114, 178, 0.2)"  # '#0072B2' with 0.2 opacity
     fig = go.Figure(
@@ -74,7 +83,7 @@ def make_fourier_plot(
     xlabel: str = "",
     ylabel: str = "PSD(dB)",
     title: str = "DFT Plot",
-) -> go.Figure:
+) -> Figure:
     """Plots a scatter plot with fft highlighting the thresholds, peaks,
         and selected peaks
             Parameters
@@ -89,6 +98,8 @@ def make_fourier_plot(
             -------
             FFT plot
     """
+    if _no_plotly:
+        raise RuntimeError("requires plotly to be installed")
     return go.Figure(
         {
             "data": [
@@ -130,7 +141,7 @@ def plot_fitted_harmonics(
     times: pd.Series,
     original_values: pd.Series,
     fitted_values: np.ndarray
-) -> go.Figure:
+) -> Figure:
     """Plots a scatter plot of the fitted harmonics
         Parameters
         ----------
@@ -141,6 +152,8 @@ def plot_fitted_harmonics(
         -------
         Plot with fitted harmonics
     """
+    if _no_plotly:
+        raise RuntimeError("requires plotly to be installed")
     return go.Figure(
         {
             "data": [

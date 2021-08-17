@@ -18,13 +18,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Tuple
 
-import kats.models.model as m
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from kats.consts import Params, TimeSeriesData
 from numpy.linalg import inv  # @manual
 from scipy.linalg import block_diag  # @manual
+
+from kats.consts import Params, TimeSeriesData
+import kats.models.model as m
 
 
 @dataclass
@@ -439,7 +440,6 @@ class BayesianVAR(m.Model):
     #  defined in `m.Model`.
     def plot(self) -> None:
         """Plot forecasted results from Bayesian VAR model"""
-
         assert hasattr(self, "forecast"), "Please run .predict() before plotting"
 
         plt.figure(figsize=(20, 6))

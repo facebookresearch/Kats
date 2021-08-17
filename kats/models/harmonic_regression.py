@@ -5,15 +5,22 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Callable, Tuple
+from typing import Any, Callable, Tuple
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objs as go
+try:
+    import plotly.graph_objs as go
+    _no_plotly = False
+    Figure = go.Figure
+except ImportError:
+    _no_plotly = True
+    Figure = Any
+from scipy import optimize
+
 from kats.consts import Params, TimeSeriesData
 from kats.graphics.plots import plot_fitted_harmonics
 from kats.models.model import Model
-from scipy import optimize
 
 
 @dataclass
@@ -89,7 +96,7 @@ class HarmonicRegressionModel(Model):
     # pyre-fixme[15]: `plot` overrides method defined in `Model` inconsistently.
     # pyre-fixme[40]: Non-static method `plot` cannot override a static method
     #  defined in `Model`.
-    def plot(self) -> go.Figure:
+    def plot(self) -> Figure:
         """Demeans the time series, fits the harmonics,
             returns the plot and error metrics.
         Parameters
@@ -98,6 +105,8 @@ class HarmonicRegressionModel(Model):
             Plot of the original time series and the fitted harmonics
             Dataframe with mean square error and absolute error
         """
+        if _no_plotly:
+            raise RuntimeError("requires plotly to be installed")
 
         # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.
         # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
