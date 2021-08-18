@@ -1,3 +1,4 @@
+LunarCalendar>=0.0.9
 ax-platform
 fbprophet==0.7
 gpytorch
