@@ -650,17 +650,19 @@ class TestUnivariateAnomalyResponse(TestCase):
     # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
-            ["scores", 1.23], #common_val
-            ["confidence_band.upper", 1.23], #common_val
-            ["confidence_band.lower", 1.13], #common_val-0.1
-            ["predicted_ts", 1.23], #common_val
-            ["anomaly_magnitude_ts", 1.23], #common_val
-            ["stat_sig_ts", 0], #not stat sig
+            ["scores", 1.23],  # common_val
+            ["confidence_band.upper", 1.23],  # common_val
+            ["confidence_band.lower", 1.13],  # common_val-0.1
+            ["predicted_ts", 1.23],  # common_val
+            ["anomaly_magnitude_ts", 1.23],  # common_val
+            ["stat_sig_ts", 0],  # not stat sig
         ]
     )
     def test_last_point(self, attribute, new_value) -> None:
         # assert that a new point has been added to the end
-        self.assertEqual(attrgetter(attribute)(self.response).value.values[-1], new_value)
+        self.assertEqual(
+            attrgetter(attribute)(self.response).value.values[-1], new_value
+        )
 
     def test_get_last_n_values(self) -> None:
         n_val = 10
@@ -671,6 +673,7 @@ class TestUnivariateAnomalyResponse(TestCase):
         self.assertEqual(
             response_last_n.scores.value.values.tolist(), score_list[-n_val:]
         )
+
 
 class TestMultivariateAnomalyResponse(TestCase):
     # test anomaly response for multivariate time series
@@ -684,7 +687,7 @@ class TestMultivariateAnomalyResponse(TestCase):
 
         previous_seq = [date_start + timedelta(days=x) for x in range(30)]
 
-        score_ts = TimeSeriesData(
+        self.score_ts = TimeSeriesData(
             pd.DataFrame(
                 {
                     **{"time": previous_seq},
@@ -713,14 +716,16 @@ class TestMultivariateAnomalyResponse(TestCase):
             pd.DataFrame(
                 {
                     **{"time": previous_seq},
-                    **{f"value_{i}": upper_values[i] - 0.1 for i in range(self.num_seq)},
+                    **{
+                        f"value_{i}": upper_values[i] - 0.1 for i in range(self.num_seq)
+                    },
                 }
             )
         )
 
-        conf_band = ConfidenceBand(upper=upper_ts, lower=lower_ts)
+        self.conf_band = ConfidenceBand(upper=upper_ts, lower=lower_ts)
 
-        pred_ts = TimeSeriesData(
+        self.pred_ts = TimeSeriesData(
             pd.DataFrame(
                 {
                     **{"time": previous_seq},
@@ -732,7 +737,7 @@ class TestMultivariateAnomalyResponse(TestCase):
             )
         )
 
-        mag_ts = TimeSeriesData(
+        self.mag_ts = TimeSeriesData(
             pd.DataFrame(
                 {
                     **{"time": previous_seq},
@@ -744,200 +749,117 @@ class TestMultivariateAnomalyResponse(TestCase):
             )
         )
 
-        stat_sig_ts = TimeSeriesData(
+        self.stat_sig_ts = TimeSeriesData(
             pd.DataFrame(
                 {
                     **{"time": previous_seq},
                     **{
-                        f"value_{i}": np.ones(len(previous_seq)) for i in range(self.num_seq)
+                        f"value_{i}": np.ones(len(previous_seq))
+                        for i in range(self.num_seq)
                     },
                 }
             )
         )
 
         self.response = AnomalyResponse(
-            scores=score_ts,
-            confidence_band=conf_band,
-            predicted_ts=pred_ts,
-            anomaly_magnitude_ts=mag_ts,
-            stat_sig_ts=stat_sig_ts,
+            scores=self.score_ts,
+            confidence_band=self.conf_band,
+            predicted_ts=self.pred_ts,
+            anomaly_magnitude_ts=self.mag_ts,
+            stat_sig_ts=self.stat_sig_ts,
         )
-
-    def test_response_num_series(self):
-        # Ensure that num_series is properly populated
-        self.assertEqual(self.response.num_series, self.num_seq)
-
-    def test_multi_response(self) -> None:
-        np.random.seed(100)
-
-        date_start_str = "2020-03-01"
-        date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
-        num_seq = 5
-
-        previous_seq = [date_start + timedelta(days=x) for x in range(30)]
-
-        score_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": previous_seq},
-                    **{
-                        f"value_{i}": np.random.randn(len(previous_seq))
-                        for i in range(num_seq)
-                    },
-                }
-            )
-        )
-
-        upper_values = [
-            1.0 + np.random.randn(len(previous_seq)) for _ in range(num_seq)
-        ]
-
-        upper_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": previous_seq},
-                    **{f"value_{i}": upper_values[i] for i in range(num_seq)},
-                }
-            )
-        )
-
-        lower_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": previous_seq},
-                    **{f"value_{i}": upper_values[i] - 0.1 for i in range(num_seq)},
-                }
-            )
-        )
-
-        conf_band = ConfidenceBand(upper=upper_ts, lower=lower_ts)
-
-        pred_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": previous_seq},
-                    **{
-                        f"value_{i}": 10.0 + 0.25 * np.random.randn(len(previous_seq))
-                        for i in range(num_seq)
-                    },
-                }
-            )
-        )
-
-        mag_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": previous_seq},
-                    **{
-                        f"value_{i}": 10.0 + 0.25 * np.random.randn(len(previous_seq))
-                        for i in range(num_seq)
-                    },
-                }
-            )
-        )
-
-        stat_sig_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": previous_seq},
-                    **{
-                        f"value_{i}": np.ones(len(previous_seq)) for i in range(num_seq)
-                    },
-                }
-            )
-        )
-
-        response = AnomalyResponse(
-            scores=score_ts,
-            confidence_band=conf_band,
-            predicted_ts=pred_ts,
-            anomaly_magnitude_ts=mag_ts,
-            stat_sig_ts=stat_sig_ts,
-        )
-
-        # Ensure that num_series is properly populated
-        self.assertEqual(response.num_series, num_seq)
 
         # test update
         new_date = previous_seq[-1] + timedelta(days=1)
-        common_val = 1.23 * np.ones(num_seq)
+        common_val = 1.23 * np.ones(self.num_seq)
 
-        response.update(
+        self.response.update(
             time=new_date,
             score=common_val,
             ci_upper=common_val,
             ci_lower=common_val - 0.1,
             pred=common_val,
             anom_mag=common_val,
-            stat_sig=np.zeros(num_seq),
+            stat_sig=np.zeros(self.num_seq),
         )
 
-        N = len(previous_seq)
+        self.N = len(previous_seq)
 
+    def test_response_num_series(self):
+        # Ensure that num_series is properly populated
+        self.assertEqual(self.response.num_series, self.num_seq)
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["scores"],
+            ["confidence_band.upper"],
+            ["confidence_band.lower"],
+            ["predicted_ts"],
+            ["anomaly_magnitude_ts"],
+            ["stat_sig_ts"],
+        ]
+    )
+    def test_update_response_preserves_length(self, attribute) -> None:
         # assert that all the lengths of the time series are preserved
-        self.assertEqual(len(response.scores), N)
-        self.assertEqual(len(response.confidence_band.upper), N)
-        self.assertEqual(len(response.confidence_band.lower), N)
-        self.assertEqual(len(response.predicted_ts), N)
-        self.assertEqual(len(response.anomaly_magnitude_ts), N)
-        self.assertEqual(len(response.stat_sig_ts), N)
+        self.assertEqual(len(attrgetter(attribute)(self.response)), self.N)
 
-        # assert that each time series has moved one point forward
+    @parameterized.expand(
+        [
+            ["scores", "score_ts"],
+            ["confidence_band.upper", "conf_band.upper"],
+            ["confidence_band.lower", "conf_band.lower"],
+            ["predicted_ts", "pred_ts"],
+            ["anomaly_magnitude_ts", "mag_ts"],
+            ["stat_sig_ts", "stat_sig_ts"],
+        ]
+    )
+    def test_update_one_point_forward(self, attribute, initial_object):
         self.assertEqual(
-            response.scores.value.iloc[0].tolist(), score_ts.value.iloc[1].tolist()
-        )
-        self.assertEqual(
-            response.confidence_band.upper.value.iloc[0].tolist(),
-            conf_band.upper.value.iloc[1].tolist(),
-        )
-        self.assertEqual(
-            response.confidence_band.lower.value.iloc[0].tolist(),
-            conf_band.lower.value.iloc[1].tolist(),
-        )
-        self.assertEqual(
-            response.predicted_ts.value.iloc[0].tolist(), pred_ts.value.iloc[1].tolist()
-        )
-        self.assertEqual(
-            response.anomaly_magnitude_ts.value.iloc[0].tolist(),
-            mag_ts.value.iloc[1].tolist(),
-        )
-        self.assertEqual(
-            response.stat_sig_ts.value.iloc[0].tolist(),
-            stat_sig_ts.value.iloc[1].tolist(),
+            attrgetter(attribute)(self.response).value.iloc[0].tolist(),
+            attrgetter(initial_object)(self).value.iloc[1].tolist(),
         )
 
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["scores", 1.23],  # common_val
+            ["confidence_band.upper", 1.23],  # common_val
+            ["confidence_band.lower", 1.13],  # common_val-0.1
+            ["predicted_ts", 1.23],  # common_val
+            ["anomaly_magnitude_ts", 1.23],  # common_val
+            ["stat_sig_ts", 0],  # not stat sig
+        ]
+    )
+    def test_last_point(self, attribute, new_value) -> None:
         # assert that a new point has been added to the end
-        assert isinstance(common_val, np.ndarray)
-        self.assertEqual(response.scores.value.iloc[-1].tolist(), common_val.tolist())
         self.assertEqual(
-            response.confidence_band.upper.value.iloc[-1].tolist(), common_val.tolist()
+            attrgetter(attribute)(self.response).value.iloc[-1].tolist(),
+            (new_value * np.ones(self.num_seq)).tolist(),
         )
-        self.assertEqual(
-            response.confidence_band.lower.value.iloc[-1].tolist(),
-            (common_val - 0.1).tolist(),
-        )
-        self.assertEqual(
-            response.predicted_ts.value.iloc[-1].tolist(), common_val.tolist()
-        )
-        self.assertEqual(
-            response.anomaly_magnitude_ts.value.iloc[-1].tolist(), common_val.tolist()
-        )
-        self.assertEqual(
-            response.stat_sig_ts.value.iloc[-1].tolist(), np.zeros(num_seq).tolist()
-        )
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["scores"],
+            ["confidence_band.upper"],
+            ["confidence_band.lower"],
+            ["predicted_ts"],
+            ["anomaly_magnitude_ts"],
+            ["stat_sig_ts"],
+        ]
+    )
+    def test_get_last_n_length(self, attribute) -> None:
+        n_val = 10
+        response_last_n = self.response.get_last_n(n_val)
+        self.assertEqual(len(attrgetter(attribute)(response_last_n)), n_val)
+
+    def test_get_last_n_values(self) -> None:
+        n_val = 10
+        response_last_n = self.response.get_last_n(n_val)
 
         # assert that we return the last N values
-        n_val = 10
-
-        score_array = response.scores.value.values
-        response_last_n = response.get_last_n(n_val)
-        self.assertEqual(len(response_last_n.scores), n_val)
-        self.assertEqual(len(response_last_n.confidence_band.upper), n_val)
-        self.assertEqual(len(response_last_n.confidence_band.lower), n_val)
-        self.assertEqual(len(response_last_n.predicted_ts), n_val)
-        self.assertEqual(len(response_last_n.anomaly_magnitude_ts), n_val)
-        self.assertEqual(len(response_last_n.stat_sig_ts), n_val)
-
+        score_list = self.response.scores.value.values.tolist()
         self.assertEqual(
-            response_last_n.scores.value.values.tolist(), score_array[-n_val:].tolist()
+            response_last_n.scores.value.values.tolist(), score_list[-n_val:]
         )
