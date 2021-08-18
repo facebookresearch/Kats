@@ -7,11 +7,11 @@ from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-# pyre-fixme[21]: Could not find name `zscore` in `scipy.stats`.
-from scipy.stats import norm, zscore  # @manual
-
 from kats.consts import TimeSeriesData, TimeSeriesChangePoint
 from kats.detectors.detector import Detector
+
+# pyre-fixme[21]: Could not find name `zscore` in `scipy.stats`.
+from scipy.stats import norm, zscore  # @manual
 
 
 class RobustStatMetadata:
@@ -29,7 +29,6 @@ class RobustStatMetadata:
 
 
 class RobustStatDetector(Detector):
-
     def __init__(self, data: TimeSeriesData) -> None:
         super(RobustStatDetector, self).__init__(data=data)
         if not self.data.is_univariate():
@@ -40,11 +39,12 @@ class RobustStatDetector(Detector):
             raise ValueError(msg)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    def detector(self,
-                p_value_cutoff: float = 1e-2,
-                smoothing_window_size: int = 5,
-                comparison_window: int = -2
-                 ) -> List[Tuple[TimeSeriesChangePoint, RobustStatMetadata]]:
+    def detector(
+        self,
+        p_value_cutoff: float = 1e-2,
+        smoothing_window_size: int = 5,
+        comparison_window: int = -2,
+    ) -> List[Tuple[TimeSeriesChangePoint, RobustStatMetadata]]:
         time_col_name = self.data.time.name
         val_col_name = self.data.value.name
 
@@ -80,16 +80,17 @@ class RobustStatDetector(Detector):
             cp = TimeSeriesChangePoint(
                 start_time=data_df.index.values[idx],
                 end_time=data_df.index.values[idx],
-                confidence=1 - p_values[idx])
+                confidence=1 - p_values[idx],
+            )
             metadata = RobustStatMetadata(index=idx, metric=float(df_.iloc[idx]))
 
             change_points.append((cp, metadata))
 
         return change_points
 
-    def plot(self,
-            change_points: List[Tuple[TimeSeriesChangePoint, RobustStatMetadata]]
-             ) -> None:
+    def plot(
+        self, change_points: List[Tuple[TimeSeriesChangePoint, RobustStatMetadata]]
+    ) -> None:
         time_col_name = self.data.time.name
         val_col_name = self.data.value.name
 
@@ -98,9 +99,9 @@ class RobustStatDetector(Detector):
         plt.plot(data_df[time_col_name], data_df[val_col_name])
 
         if len(change_points) == 0:
-            logging.warning('No change points detected!')
+            logging.warning("No change points detected!")
 
         for change in change_points:
-            plt.axvline(x=change[0].start_time, color='red')
+            plt.axvline(x=change[0].start_time, color="red")
 
         plt.show()

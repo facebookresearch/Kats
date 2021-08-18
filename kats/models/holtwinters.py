@@ -109,8 +109,7 @@ class HoltWintersModel(m.Model):
             raise ValueError(msg)
 
     def fit(self, **kwargs) -> None:
-        """Fit the model with the specified input parameters
-        """
+        """Fit the model with the specified input parameters"""
 
         logging.debug("Call fit() with parameters:{kwargs}".format(kwargs=kwargs))
         holtwinters = HoltWinters(
@@ -125,7 +124,9 @@ class HoltWintersModel(m.Model):
         logging.info("Fitted HoltWinters.")
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
-    def predict(self, steps: int, include_history: bool = False, **kwargs) -> pd.DataFrame:
+    def predict(
+        self, steps: int, include_history: bool = False, **kwargs
+    ) -> pd.DataFrame:
         """Predict with fitted HoltWinters model
 
         If the alpha keyword argument is specified, an empirical confidence interval is computed through a K-fold cross validation and a linear regression model, the forecast outcome will include a confidence interval there; otherwise no confidence interval is included in the final forecast. Please refer to the 'emp_confidence_int' module for full detailed implementation of the empirical confidence interval computation
@@ -210,8 +211,7 @@ class HoltWintersModel(m.Model):
         return self.fcst_df
 
     def plot(self):
-        """Plot forecast results from the HoltWinters model
-        """
+        """Plot forecast results from the HoltWinters model"""
 
         logging.info("Generating chart for forecast result from arima model.")
         m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)

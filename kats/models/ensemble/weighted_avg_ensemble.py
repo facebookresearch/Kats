@@ -13,13 +13,14 @@ import logging
 import sys
 from multiprocessing import Pool, cpu_count
 
+import kats.models.model as mm
 import numpy as np
 import pandas as pd
-import kats.models.model as mm
 from kats.consts import Params, TimeSeriesData
 from kats.models.ensemble import ensemble
 from kats.models.ensemble.ensemble import BASE_MODELS, EnsembleParams
 from kats.utils.backtesters import BackTesterSimple
+
 
 class WeightedAvgEnsemble(ensemble.BaseEnsemble):
     """Weighted average ensemble model class
@@ -43,9 +44,9 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
         self,
         params: Params,
         model_class,
-        train_percentage : int = 80,
-        test_percentage : int = 20,
-        err_method : str = "mape",
+        train_percentage: int = 80,
+        test_percentage: int = 20,
+        err_method: str = "mape",
     ) -> float:
         """Private method to run all backtesting process
 
@@ -67,7 +68,7 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
             params,
             train_percentage,
             test_percentage,
-            model_class
+            model_class,
         )
         bt.run_backtest()
         return bt.get_error_value(err_method)
@@ -152,8 +153,7 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
         return self.fcst_df
 
     def plot(self):
-        """Plot method for weighted average ensemble model
-        """
+        """Plot method for weighted average ensemble model"""
         logging.info("Generating chart for forecast result from Ensemble.")
         mm.Model.plot(self.data, self.fcst_df)
 

@@ -8,9 +8,9 @@ from datetime import datetime
 from typing import Optional, Tuple
 
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (

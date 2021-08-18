@@ -16,33 +16,30 @@ all feature group names in feature_group_mapping attribute.
 """
 
 import inspect
-import re
 import logging
-import statsmodels
+import re
 from functools import partial
 from itertools import groupby
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
-from deprecated import deprecated
 import numpy as np
 import pandas as pd
+import statsmodels
+from deprecated import deprecated
+
 try:
     from numba import jit  # @manual
 except ImportError:
     logging.warning("numba is not installed. jit compilation of tsfeatures is disabled")
+
     def jit(**kwargs):
         def jit_decorator(func):
             return func
+
         return jit_decorator
 
-from scipy import stats
-from scipy.signal import periodogram  # @manual
-import statsmodels.api as sm
-from statsmodels.stats.diagnostic import het_arch
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
-from statsmodels.tsa.seasonal import STL
-from statsmodels.tsa.stattools import acf, pacf, kpss
 
+import statsmodels.api as sm
 from kats.consts import TimeSeriesData
 from kats.detectors import (
     cusum_detection,
@@ -52,6 +49,12 @@ from kats.detectors import (
     trend_mk,
     seasonality,
 )
+from scipy import stats
+from scipy.signal import periodogram  # @manual
+from statsmodels.stats.diagnostic import het_arch
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.seasonal import STL
+from statsmodels.tsa.stattools import acf, pacf, kpss
 
 """
 Each entry in _ALL_TS_FEATURES is of the form

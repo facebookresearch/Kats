@@ -16,6 +16,7 @@ import pandas as pd
 try:
     from fbprophet import Prophet
     from fbprophet.serialize import model_from_json, model_to_json
+
     _no_prophet = False
 except ImportError:
     _no_prophet = True

@@ -19,6 +19,7 @@ and class NowcastingModel, which is the model.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from typing import Any, List
 
 import kats.models.model as m
 import numpy as np
@@ -30,7 +31,7 @@ from kats.models.nowcasting.model_io import (
     deserialize_from_zippy,
 )
 from sklearn.ensemble import GradientBoostingRegressor
-from typing import Any, List
+
 
 class NowcastingParams(Params):
     """The class for Nowcasting Parameters.
@@ -41,7 +42,7 @@ class NowcastingParams(Params):
         step: An integer indicating how many steps ahead we are forecasting. Default is 1.
     """
 
-    def __init__(self, step: int =1, **kwargs) -> None:
+    def __init__(self, step: int = 1, **kwargs) -> None:
         super().__init__()
         self.step = step
         logging.debug(f"Initialized QuadraticModel with parameters: step:{step}")
@@ -64,7 +65,13 @@ class NowcastingModel(m.Model):
         NowcastingParams: parameters for Nowcasting.
     """
 
-    def __init__(self, data: TimeSeriesData, params: NowcastingParams, model: Any = None, feature_names: List[str] = []) -> None:
+    def __init__(
+        self,
+        data: TimeSeriesData,
+        params: NowcastingParams,
+        model: Any = None,
+        feature_names: List[str] = [],
+    ) -> None:
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
@@ -110,7 +117,9 @@ class NowcastingModel(m.Model):
         for n in [10, 15, 20, 25, 30]:
             self.df = LAG(self.df, n)
             feature_names.append("LAG_" + str(n))
-        self.df = self.df[~self.df.isin([np.nan, np.inf, -np.inf]).any(1)]  # filterout + - inf, nan
+        self.df = self.df[
+            ~self.df.isin([np.nan, np.inf, -np.inf]).any(1)
+        ]  # filterout + - inf, nan
         self.feature_names = feature_names
 
     def label_extraction(self) -> None:
@@ -138,7 +147,6 @@ class NowcastingModel(m.Model):
         reg.fit(X_train, y_train)
         self.model = reg
 
-
     def save_model(self) -> bytes:
         """Saves sklearn model as bytes."""
 
@@ -161,7 +169,6 @@ class NowcastingModel(m.Model):
         """
 
         logging.debug(
-
             "Call predict() with parameters. "
             "Forecast 1 step only, kwargs:{kwargs}".format(kwargs=kwargs)
         )
@@ -175,7 +182,6 @@ class NowcastingModel(m.Model):
         else:
             prediction = self.model.predict(self.df[-self.step :][self.feature_names])
         return prediction
-
 
     def load_model(self, model_as_bytes: bytes) -> None:
         """Loads model_as_str and decodes into the class NowcastingModel.

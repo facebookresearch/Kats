@@ -12,6 +12,7 @@ asymmetric). This module “learns” the distribution of the residual (using ke
 density estimation), and outputs a false-alarm probability based on it.
 """
 from __future__ import annotations
+
 from typing import Optional
 
 import numpy as np

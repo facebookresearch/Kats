@@ -11,20 +11,22 @@ weighted average and median ensembling.
 """
 
 from __future__ import annotations
-from copy import copy
+
 import logging
-import sys
 import math
-import pandas as pd
-import numpy as np
 import multiprocessing
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+import sys
+from copy import copy
 from multiprocessing import cpu_count
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import kats.models.model as mm
+import numpy as np
+import pandas as pd
 from kats.consts import TimeSeriesData, Params
-from kats.models.ensemble.ensemble import EnsembleParams
-from kats.models.model import Model
+
+# Seasonality detector
+from kats.detectors.seasonality import ACFDetector
 from kats.models import (
     arima,
     holtwinters,
@@ -34,10 +36,9 @@ from kats.models import (
     sarima,
     theta,
 )
+from kats.models.ensemble.ensemble import EnsembleParams
+from kats.models.model import Model
 from kats.utils.backtesters import BackTesterSimple
-
-# Seasonality detector
-from kats.detectors.seasonality import ACFDetector
 
 # STL decomposition
 from kats.utils.decomposition import TimeSeriesDecomposition
@@ -74,6 +75,7 @@ class KatsEnsemble:
     """Decomposition based ensemble model in Kats
     This is the holistic ensembling class based on decomposition when seasonality presents
     """
+
     seasonality: bool = False
     sea_data: Optional[TimeSeriesData] = None
     desea_data: Optional[TimeSeriesData] = None
@@ -115,22 +117,25 @@ class KatsEnsemble:
             self.decomposition_method = "additive"
 
         # validate m
-        if (self.params["seasonality_length"] is not None) and\
-    (self.params["seasonality_length"] > int(len(self.data.time) // 2)):
+        if (self.params["seasonality_length"] is not None) and (
+            self.params["seasonality_length"] > int(len(self.data.time) // 2)
+        ):
             msg = "seasonality_length value cannot be larger than"
             "1/2 of the length of give time series"
             raise _logged_error(msg)
 
         # check customized forecastExecutor
-        if ("forecastExecutor" in self.params.keys()) and\
-    (self.params["forecastExecutor"] is not None):
+        if ("forecastExecutor" in self.params.keys()) and (
+            self.params["forecastExecutor"] is not None
+        ):
             msg = "Using customized forecastExecutor from given parameters"
             logging.info(msg)
             self.forecastExecutor = self.params["forecastExecutor"]
 
         # check customized fitExecutor
-        if ("fitExecutor" in self.params.keys()) and\
-    (self.params["fitExecutor"] is not None):
+        if ("fitExecutor" in self.params.keys()) and (
+            self.params["fitExecutor"] is not None
+        ):
             msg = "Using customized fitExecutor from given parameters"
             logging.info(msg)
             self.fitExecutor = self.params["fitExecutor"]
@@ -152,7 +157,9 @@ class KatsEnsemble:
         return seasonality
 
     @staticmethod
-    def deseasonalize(data: TimeSeriesData, decomposition_method: str) -> Tuple[TimeSeriesData, TimeSeriesData]:
+    def deseasonalize(
+        data: TimeSeriesData, decomposition_method: str
+    ) -> Tuple[TimeSeriesData, TimeSeriesData]:
         """STL decomposition to given TimeSeriesData
 
         Static method to perform decomposition on the input data
@@ -172,11 +179,9 @@ class KatsEnsemble:
         desea_data = copy(data)
 
         if decomposition_method == "additive":
-            desea_data.value = desea_data.value\
-                - decomp["seasonal"].value
+            desea_data.value = desea_data.value - decomp["seasonal"].value
         else:
-            desea_data.value = desea_data.value\
-                / decomp["seasonal"].value
+            desea_data.value = desea_data.value / decomp["seasonal"].value
         return sea_data, desea_data
 
     @staticmethod
@@ -220,20 +225,23 @@ class KatsEnsemble:
                         desea_pred.set_index("time", inplace=True)
 
                     # native C.I calculated from individual model
-                    predicted[model_name] = desea_pred + \
-                        np.tile(
+                    predicted[model_name] = (
+                        desea_pred
+                        + np.tile(
                             np.tile(seasonality_unit, rep)[:steps], [3, 1]
-                    ).transpose()
+                        ).transpose()
+                    )
                 else:
                     # no C.I from individual model
-                    tmp_fcst = desea_pred.fcst\
-                        + np.tile(seasonality_unit, rep)[:steps]
-                    predicted[model_name] = pd.DataFrame({
-                        "time": desea_pred.index,
-                        "fcst": tmp_fcst,
-                        "fcst_lower": np.nan,
-                        "fcst_upper": np.nan,
-                    }).set_index("time")
+                    tmp_fcst = desea_pred.fcst + np.tile(seasonality_unit, rep)[:steps]
+                    predicted[model_name] = pd.DataFrame(
+                        {
+                            "time": desea_pred.index,
+                            "fcst": tmp_fcst,
+                            "fcst_lower": np.nan,
+                            "fcst_upper": np.nan,
+                        }
+                    ).set_index("time")
 
             else:
                 # multiplicative, element-wise multiply
@@ -248,28 +256,31 @@ class KatsEnsemble:
                         desea_pred.set_index("time", inplace=True)
 
                     # native C.I calculated from individual model
-                    predicted[model_name] = desea_pred * \
-                        np.tile(
+                    predicted[model_name] = (
+                        desea_pred
+                        * np.tile(
                             np.tile(seasonality_unit, rep)[:steps], [3, 1]
-                    ).transpose()
+                        ).transpose()
+                    )
                 else:
                     # no C.I from individual model
-                    tmp_fcst = desea_pred.fcst * \
-                        np.tile(seasonality_unit, rep)[:steps]
-                    predicted[model_name] = pd.DataFrame({
-                        "time": desea_pred.index,
-                        "fcst": tmp_fcst,
-                        "fcst_lower": 0,
-                        "fcst_upper": 0,
-                    }).set_index("time")
+                    tmp_fcst = desea_pred.fcst * np.tile(seasonality_unit, rep)[:steps]
+                    predicted[model_name] = pd.DataFrame(
+                        {
+                            "time": desea_pred.index,
+                            "fcst": tmp_fcst,
+                            "fcst_lower": 0,
+                            "fcst_upper": 0,
+                        }
+                    ).set_index("time")
 
         return predicted
 
     def fitExecutor(
-            self,
-            data : TimeSeriesData,
-            models : EnsembleParams,
-            should_auto_backtest: bool = False,
+        self,
+        data: TimeSeriesData,
+        models: EnsembleParams,
+        should_auto_backtest: bool = False,
     ) -> Tuple[Dict[Any, Any], Optional[Dict[str, float]]]:
         """callable forecast executor
 
@@ -294,7 +305,9 @@ class KatsEnsemble:
         if num_process < 1:
             num_process = 1
         # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
-        pool = multiprocessing.Manager().Pool(processes=(num_process), maxtasksperchild=1000)
+        pool = multiprocessing.Manager().Pool(
+            processes=(num_process), maxtasksperchild=1000
+        )
 
         fitted_models = {}
         for model in models.models:
@@ -303,7 +316,8 @@ class KatsEnsemble:
                 args=(
                     data,
                     MODELS[model.model_name.split("_")[0].lower()],
-                    model.model_params),
+                    model.model_params,
+                ),
             )
         pool.close()
         pool.join()
@@ -337,8 +351,7 @@ class KatsEnsemble:
         if self.seasonality:
             # STL decomposition
             sea_data, desea_data = KatsEnsemble.deseasonalize(
-                self.data,
-                self.decomposition_method
+                self.data, self.decomposition_method
             )
             self.sea_data = sea_data
             self.desea_data = desea_data
@@ -360,7 +373,9 @@ class KatsEnsemble:
             )
         else:
             # fit models on the original data
-            self.model_params = model_params = EnsembleParams(self.params["models"].models)
+            self.model_params = model_params = EnsembleParams(
+                self.params["models"].models
+            )
             # pyre-fixme[61]: `fitExecutor` may not be initialized here.
             self.fitted, self.weights = fitExecutor(
                 data=self.data,
@@ -414,8 +429,7 @@ class KatsEnsemble:
             self.predicted = predicted
         else:
             predicted = {
-                k: v.predict(self.steps).set_index("time")
-                for k, v in fitted.items()
+                k: v.predict(self.steps).set_index("time") for k, v in fitted.items()
             }
 
             # add dummy C.I if the model doesn't have native C.I
@@ -432,7 +446,9 @@ class KatsEnsemble:
             self.predicted = predicted
         return self
 
-    def forecast(self, steps: int) -> Tuple[Dict[str, pd.DataFrame], Optional[Dict[str, float]]]:
+    def forecast(
+        self, steps: int
+    ) -> Tuple[Dict[str, pd.DataFrame], Optional[Dict[str, float]]]:
         """Holistic forecast method in Kats ensemble
 
         combine fit and predict methods to produce forecasted results
@@ -460,8 +476,7 @@ class KatsEnsemble:
         if self.seasonality:
             # call forecastExecutor and move to next steps
             sea_data, desea_data = KatsEnsemble.deseasonalize(
-                self.data,
-                self.decomposition_method
+                self.data, self.decomposition_method
             )
             self.sea_data = sea_data
             self.desea_data = desea_data
@@ -552,12 +567,13 @@ class KatsEnsemble:
             self.weights = None
         return predicted, self.weights
 
-    def forecastExecutor(self,
-                         data : TimeSeriesData,
-                         models : EnsembleParams,
-                         steps: int,
-                         should_auto_backtest: bool = False,
-                         ) -> Tuple[Dict[str, pd.DataFrame], Optional[Dict[str, float]]]:
+    def forecastExecutor(
+        self,
+        data: TimeSeriesData,
+        models: EnsembleParams,
+        steps: int,
+        should_auto_backtest: bool = False,
+    ) -> Tuple[Dict[str, pd.DataFrame], Optional[Dict[str, float]]]:
         """Forecast Executor
 
         This is a callable execution function to
@@ -580,7 +596,9 @@ class KatsEnsemble:
         if num_process < 1:
             num_process = 1
         # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
-        pool = multiprocessing.Manager().Pool(processes=(num_process), maxtasksperchild=1000)
+        pool = multiprocessing.Manager().Pool(
+            processes=(num_process), maxtasksperchild=1000
+        )
 
         fitted_models = {}
         for model in models.models:
@@ -589,7 +607,8 @@ class KatsEnsemble:
                 args=(
                     data,
                     MODELS[model.model_name.split("_")[0].lower()],
-                    model.model_params),
+                    model.model_params,
+                ),
             )
         pool.close()
         pool.join()
@@ -639,26 +658,32 @@ class KatsEnsemble:
         if self.params["aggregation"].lower() == "median":
             # clean up dataframes with C.I as np.nan or zero
             fcsts = self.clean_dummy_CI(fcsts, use_zero=False)
-            self.fcst_df = fcst_df = pd.DataFrame({
-                "time": dates,
-                "fcst": fcsts["fcst"].median(axis=1),
-                "fcst_lower": fcsts["fcst_lower"].median(axis=1),
-                "fcst_upper": fcsts["fcst_upper"].median(axis=1),
-            })
+            self.fcst_df = fcst_df = pd.DataFrame(
+                {
+                    "time": dates,
+                    "fcst": fcsts["fcst"].median(axis=1),
+                    "fcst_lower": fcsts["fcst_lower"].median(axis=1),
+                    "fcst_upper": fcsts["fcst_upper"].median(axis=1),
+                }
+            )
         else:
-            if fcsts["fcst_lower"].isnull().values.any() or\
-               fcsts["fcst_upper"].isnull().values.any():
+            if (
+                fcsts["fcst_lower"].isnull().values.any()
+                or fcsts["fcst_upper"].isnull().values.any()
+            ):
                 msg = "Conf. interval contains NaN, please check individual model."
                 raise _logged_error(msg)
             weights = self.weights
             assert weights is not None
             weights = np.array(list(weights.values()))
-            self.fcst_df = fcst_df = pd.DataFrame({
-                "time": dates,
-                "fcst": fcsts["fcst"].dot(weights),
-                "fcst_lower": fcsts["fcst_lower"].dot(weights),
-                "fcst_upper": fcsts["fcst_upper"].dot(weights),
-            })
+            self.fcst_df = fcst_df = pd.DataFrame(
+                {
+                    "time": dates,
+                    "fcst": fcsts["fcst"].dot(weights),
+                    "fcst_lower": fcsts["fcst_lower"].dot(weights),
+                    "fcst_upper": fcsts["fcst_upper"].dot(weights),
+                }
+            )
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=fcst_df))
         return fcst_df
@@ -701,11 +726,9 @@ class KatsEnsemble:
         weights, _ = self._backtester_all()
         return weights
 
-    def _fit_single(self,
-                    data: TimeSeriesData,
-                    model_func: Callable,
-                    model_param: Params
-                    ) -> Model:
+    def _fit_single(
+        self, data: TimeSeriesData, model_func: Callable, model_param: Params
+    ) -> Model:
         """Private method to fit individual model
 
         Args:
@@ -750,7 +773,7 @@ class KatsEnsemble:
             params,
             train_percentage,
             test_percentage,
-            model_class
+            model_class,
         )
         bt.run_backtest()
         return bt.get_error_value(err_method)
@@ -776,14 +799,16 @@ class KatsEnsemble:
         if num_process < 1:
             num_process = 1
         # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
-        pool = multiprocessing.Manager().Pool(processes=(num_process), maxtasksperchild=1000)
+        pool = multiprocessing.Manager().Pool(
+            processes=(num_process), maxtasksperchild=1000
+        )
         backtesters = {}
         for model in model_params.models:
             backtesters[model.model_name] = pool.apply_async(
                 self._backtester_single,
                 args=(
                     model.model_params,
-                    MODELS[model.model_name.split("_")[0].lower()]
+                    MODELS[model.model_name.split("_")[0].lower()],
                 ),
                 kwds={"err_method": err_method},
             )
@@ -791,8 +816,7 @@ class KatsEnsemble:
         pool.join()
         self.errors = errors = {model: res.get() for model, res in backtesters.items()}
         original_weights = {
-            model: 1 / (err + sys.float_info.epsilon)
-            for model, err in errors.items()
+            model: 1 / (err + sys.float_info.epsilon) for model, err in errors.items()
         }
         weights = {
             model: err / sum(original_weights.values())
@@ -801,8 +825,7 @@ class KatsEnsemble:
         return weights, errors
 
     def plot(self) -> None:
-        """plot forecast results
-        """
+        """plot forecast results"""
         fcst_df = self.fcst_df
         if fcst_df is None:
             raise _logged_error("forecast must be called before plot.")

@@ -9,23 +9,22 @@ algorithm that determines outliers based on joint distribution of metrics
 """
 
 import datetime as dt
-from datetime import datetime
-from enum import Enum
-from importlib import import_module
 import logging
 import sys
 import traceback
+from datetime import datetime
+from enum import Enum
+from importlib import import_module
 from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from kats.consts import Params, TimeSeriesData, TimeSeriesIterator
+from kats.detectors.detector import Detector
 from scipy import stats
 from scipy.spatial import distance
 from statsmodels.tsa.seasonal import seasonal_decompose
-
-from kats.consts import Params, TimeSeriesData, TimeSeriesIterator
-from kats.detectors.detector import Detector
 
 
 class OutlierDetector(Detector):
@@ -38,6 +37,7 @@ class OutlierDetector(Detector):
         decomp : 'additive' or 'multiplicative' decomposition
         iqr_mult : iqr_mult * inter quartile range is used to classify outliers
     """
+
     outliers_index: Optional[List] = None
     outliers: Optional[List[List]] = None
 
@@ -121,8 +121,8 @@ class OutlierDetector(Detector):
 
 
 class MultivariateAnomalyDetectorType(Enum):
-    VAR = 'var.VARModel'
-    BAYESIAN_VAR = 'bayesian_var.BayesianVAR'
+    VAR = "var.VARModel"
+    BAYESIAN_VAR = "bayesian_var.BayesianVAR"
 
 
 class MultivariateAnomalyDetector(Detector):
@@ -138,6 +138,7 @@ class MultivariateAnomalyDetector(Detector):
                     If less than a day, specify as fraction of a day
         model_type: The type of multivariate anomaly detector (currently 'BAYESIAN_VAR' and 'VAR' options available)
     """
+
     resid: Optional[pd.DataFrame] = None
     sigma_u: Optional[pd.DataFrame] = None
     anomaly_score_df: Optional[pd.DataFrame] = None
@@ -268,7 +269,9 @@ class MultivariateAnomalyDetector(Detector):
         for col in cov.columns:
             residual_mean = resid[col].mean()
             residual_var = resid[col].var()
-            residual_score[col] = np.abs((rt[col] - residual_mean)) / np.sqrt(residual_var)
+            residual_score[col] = np.abs((rt[col] - residual_mean)) / np.sqrt(
+                residual_var
+            )
 
         # overall anomaly score
         cov_inv = np.linalg.inv(cov.values)
@@ -279,7 +282,7 @@ class MultivariateAnomalyDetector(Detector):
         # calculate p-values
         dof = len(self.df.columns)
         # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
-        residual_score['p_value']= stats.chi2.sf(overall_anomaly_score, df=dof)
+        residual_score["p_value"] = stats.chi2.sf(overall_anomaly_score, df=dof)
 
         return residual_score
 
@@ -321,14 +324,18 @@ class MultivariateAnomalyDetector(Detector):
         """
         anomaly_score_df = self.anomaly_score_df
         if anomaly_score_df is None:
-            raise ValueError("detector() must be called before get_anomaly_timepoints()")
+            raise ValueError(
+                "detector() must be called before get_anomaly_timepoints()"
+            )
 
         flag = anomaly_score_df.p_value < alpha
         anomaly_ts = anomaly_score_df[flag].index
 
         return list(anomaly_ts)
 
-    def get_anomalous_metrics(self, t: datetime, top_k: Optional[int] = None) -> pd.DataFrame:
+    def get_anomalous_metrics(
+        self, t: datetime, top_k: Optional[int] = None
+    ) -> pd.DataFrame:
         """
         Find top k metrics with most anomalous behavior at time t
 

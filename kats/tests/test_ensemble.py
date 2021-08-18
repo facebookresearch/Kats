@@ -2,13 +2,14 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
-import unittest
-import pkgutil
 import io
-import pandas as pd
-import numpy as np
+import os
+import pkgutil
+import unittest
 from unittest import TestCase
+
+import numpy as np
+import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.models import (
     arima,
@@ -37,31 +38,32 @@ DATA_dummy = pd.DataFrame(
 )
 TSData_dummy = TimeSeriesData(DATA_dummy)
 
+
 def load_data(file_name):
-    ROOT="kats"
+    ROOT = "kats"
     if "kats" in os.getcwd().lower():
-        path = 'data/'
+        path = "data/"
     else:
-        path = 'kats/data/'
-    data_object =  pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
+
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
 class testBaseEnsemble(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-
 
     def test_fit_forecast(self) -> None:
         params = EnsembleParams(
@@ -180,17 +182,16 @@ class testBaseEnsemble(TestCase):
 
 class testMedianEnsemble(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-
 
     def test_fit_forecast(self) -> None:
         params = EnsembleParams(
@@ -264,15 +265,15 @@ class testMedianEnsemble(TestCase):
 
 class testWeightedAvgEnsemble(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
-        DATA_daily = load_data('peyton_manning.csv')
+        DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data('multivariate_anomaly_simulated_data.csv')
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
     def test_fit_forecast(self) -> None:
@@ -351,7 +352,7 @@ class testWeightedAvgEnsemble(TestCase):
 
 class testKatsEnsemble(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 

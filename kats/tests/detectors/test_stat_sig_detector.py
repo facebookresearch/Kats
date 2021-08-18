@@ -2,14 +2,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import re
 import random
+import re
 from datetime import datetime, timedelta
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.stat_sig_detector import (
@@ -20,6 +19,7 @@ from kats.detectors.stat_sig_detector import (
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
+
 
 class TestStatSigDetector(TestCase):
     def test_detector(self) -> None:

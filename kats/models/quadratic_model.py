@@ -11,6 +11,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from typing import List, Dict
 
 import kats.models.model as m
 import numpy as np
@@ -18,7 +19,7 @@ import pandas as pd
 import statsmodels.api as sm
 from kats.consts import Params, TimeSeriesData
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
-from typing import List, Dict
+
 
 class QuadraticModelParams(Params):
     """Parameter class for Quadratic model.
@@ -27,6 +28,7 @@ class QuadraticModelParams(Params):
     Attributes:
         alpha: The alpha level for the confidence interval. The default alpha = 0.05 returns a 95% confidence interval
     """
+
     def __init__(self, alpha=0.05, **kwargs) -> None:
         super().__init__()
         self.alpha = alpha
@@ -36,7 +38,7 @@ class QuadraticModelParams(Params):
         )
 
     def validate_params(self):
-        """ Validate Quadratic Model Parameters
+        """Validate Quadratic Model Parameters
 
         Since the quadratic model does not require key parameters to be defined this is not required for this class
         """
@@ -53,6 +55,7 @@ class QuadraticModel(m.Model):
         data: the input time series data as :class:`kats.consts.TimeSeriesData`
         params: the parameter class defined with `QuadraticModelParams`
     """
+
     def __init__(self, data: TimeSeriesData, params: QuadraticModelParams) -> None:
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.Series):
@@ -61,9 +64,9 @@ class QuadraticModel(m.Model):
             )
             logging.error(msg)
             raise ValueError(msg)
+
     def fit(self) -> None:
-        """fit Quadratic Model.
-        """
+        """fit Quadratic Model."""
         logging.debug(
             "Call fit() with parameters: "
             "alpha:{alpha}".format(alpha=self.params.alpha)
@@ -101,7 +104,7 @@ class QuadraticModel(m.Model):
         )
 
         # pyre-fixme[16]: `QuadraticModel` has no attribute `freq`.
-        self.freq = kwargs.get("freq", 'D')
+        self.freq = kwargs.get("freq", "D")
         # pyre-fixme[16]: `QuadraticModel` has no attribute `include_history`.
         self.include_history = include_history
 
@@ -149,8 +152,7 @@ class QuadraticModel(m.Model):
         return self.fcst_df
 
     def plot(self):
-        """Plot Forecasted results from the Quadratic Model.
-        """
+        """Plot Forecasted results from the Quadratic Model."""
         logging.info("Generating chart for forecast result from QuadraticModel.")
         m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
 
@@ -159,14 +161,13 @@ class QuadraticModel(m.Model):
 
     @staticmethod
     def get_parameter_search_space() -> List[Dict[str, object]]:
-        """get default parameter search space for Quadratic model.
-        """
+        """get default parameter search space for Quadratic model."""
         return [
             {
                 "name": "alpha",
                 "type": "choice",
                 "value_type": "float",
-                "values": [.01, .05, .1, .25],
+                "values": [0.01, 0.05, 0.1, 0.25],
                 "is_ordered": True,
             },
         ]

@@ -5,6 +5,7 @@
 import pickle
 from typing import Any
 
+
 class SimplePickleSerializer:
     def _jdefault(self, o):
         if isinstance(o, set):

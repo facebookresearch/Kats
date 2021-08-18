@@ -47,6 +47,7 @@ NORMAL_TOLERENCE = 1  # number of window
 CHANGEPOINT_RETENTION = 7 * 24 * 60 * 60  # in seconds
 MAX_CHANGEPOINT = 10
 
+
 def percentage_change(
     data: TimeSeriesData, pre_mean: float, **kwargs: Any
 ) -> TimeSeriesData:
@@ -91,6 +92,7 @@ class CusumScoreFunction(Enum):
     percentage_change = "percentage_change"
     z_score = "z_score"
 
+
 # Score Function Constants
 SCORE_FUNC_DICT = {
     CusumScoreFunction.change.value: change,
@@ -98,7 +100,7 @@ SCORE_FUNC_DICT = {
     CusumScoreFunction.z_score.value: z_score,
 }
 DEFAULT_SCORE_FUNCTION = CusumScoreFunction.change
-STR_TO_SCORE_FUNC = { # Used for param tuning
+STR_TO_SCORE_FUNC = {  # Used for param tuning
     "change": CusumScoreFunction.change,
     "percentage_change": CusumScoreFunction.percentage_change,
     "z_score": CusumScoreFunction.z_score,
@@ -131,6 +133,7 @@ class CUSUMDetectorModel(DetectorModel):
         score_func: The score function to calculate the anomaly score.
         remove_seasonality: If apply STL to remove seasonality.
     """
+
     def __init__(
         self,
         serialized_model: Optional[bytes] = None,
@@ -238,7 +241,9 @@ class CUSUMDetectorModel(DetectorModel):
         self.alert_fired = False
         self.number_of_normal_scan = 0
 
-    def _set_alert_on(self, baseline_mean: float, baseline_std: float, alert_change_direction: str) -> None:
+    def _set_alert_on(
+        self, baseline_mean: float, baseline_std: float, alert_change_direction: str
+    ) -> None:
         self.alert_fired = True
         self.alert_change_direction = alert_change_direction
         self.pre_mean = baseline_mean

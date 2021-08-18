@@ -2,15 +2,14 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
-import re
-import pkgutil
 import io
+import os
+import pkgutil
+import re
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.hourly_ratio_detection import HourlyRatioDetector
@@ -21,13 +20,13 @@ statsmodels_ver = float(
 
 
 def load_data(file_name):
-    ROOT="kats"
+    ROOT = "kats"
     if "kats" in os.getcwd().lower():
-        path = 'data/'
+        path = "data/"
     else:
-        path = 'kats/data/'
-    data_object =  pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 class HourlyRatioDectorTest(TestCase):
@@ -40,7 +39,6 @@ class HourlyRatioDectorTest(TestCase):
 
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-
 
     def data_generation(self, freq="H", drop: bool = True, frac: float = 0.95):
         time = pd.date_range("2018-01-01", "2020-01-01", freq=freq)

@@ -227,8 +227,7 @@ class ARIMAModel(m.Model):
         return self.fcst_df
 
     def plot(self):
-        """Plot forecast results from the ARIMA model
-        """
+        """Plot forecast results from the ARIMA model"""
 
         m.Model.plot(self.data, self.fcst_df)
 

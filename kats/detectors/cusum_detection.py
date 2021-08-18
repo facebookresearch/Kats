@@ -43,14 +43,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-# pyre-ignore[21]: Could not find name `chi2` in `scipy.stats`.
-from scipy.stats import chi2  # @manual
-
 from kats.consts import (
     TimeSeriesChangePoint,
     TimeSeriesData,
 )
 from kats.detectors.detector import Detector
+
+# pyre-ignore[21]: Could not find name `chi2` in `scipy.stats`.
+from scipy.stats import chi2  # @manual
 
 
 pd.options.plotting.matplotlib.register_converters = True
@@ -262,9 +262,10 @@ class CUSUMDetector(Detector):
             delta_int = None
         else:
             llr_int = self._get_llr(
+                ts_int,
                 # pyre-fixme[61]: `mu0` may not be initialized here.
                 # pyre-fixme[61]: `mu1` may not be initialized here.
-                ts_int, {"mu0": mu0, "mu1": mu1, "changepoint": changepoint}
+                {"mu0": mu0, "mu1": mu1, "changepoint": changepoint},
             )
             # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
             pval_int = 1 - chi2.cdf(llr_int, 2)
@@ -497,9 +498,7 @@ class CUSUMDetector(Detector):
 
         self.changes_meta = changes_meta
 
-        return self._convert_cusum_changepoints(
-            changes_meta, return_all_changepoints
-        )
+        return self._convert_cusum_changepoints(changes_meta, return_all_changepoints)
 
     def _convert_cusum_changepoints(
         self,

@@ -2,15 +2,14 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
-import re
-import pkgutil
 import io
+import os
+import pkgutil
+import re
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.outlier import (
@@ -18,8 +17,8 @@ from kats.detectors.outlier import (
     MultivariateAnomalyDetectorType,
     OutlierDetector,
 )
-from kats.models.var import VARParams
 from kats.models.bayesian_var import BayesianVARParams
+from kats.models.var import VARParams
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
@@ -27,18 +26,19 @@ statsmodels_ver = float(
 
 
 def load_data(file_name):
-    ROOT="kats"
+    ROOT = "kats"
     if "kats" in os.getcwd().lower():
-        path = 'data/'
+        path = "data/"
     else:
-        path = 'kats/data/'
-    data_object =  pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
+
 
 # Anomaly detection tests
 class OutlierDetectionTest(TestCase):
     def setUp(self):
-        data = load_data('air_passengers.csv')
+        data = load_data("air_passengers.csv")
         data.columns = ["time", "y"]
         self.ts_data = TimeSeriesData(data)
         data_2 = data.copy()
@@ -48,8 +48,6 @@ class OutlierDetectionTest(TestCase):
         daily_data = load_data("peyton_manning.csv")
         daily_data.columns = ["time", "y"]
         self.ts_data_daily = TimeSeriesData(daily_data)
-
-
 
     def test_additive_overrides(self) -> None:
         m = OutlierDetector(self.ts_data, "additive")
@@ -114,7 +112,8 @@ class MultivariateVARDetectorTest(TestCase):
         anomaly_score_df = d.detector()
         self.assertCountEqual(
             list(anomaly_score_df.columns),
-            list(self.TSData_multi.value.columns) + ["overall_anomaly_score", "p_value"],
+            list(self.TSData_multi.value.columns)
+            + ["overall_anomaly_score", "p_value"],
         )
         d.plot()
         alpha = 0.05
@@ -134,7 +133,8 @@ class MultivariateVARDetectorTest(TestCase):
         anomaly_score_df = d.detector()
         self.assertCountEqual(
             list(anomaly_score_df.columns),
-            list(self.TSData_multi.value.columns) + ["overall_anomaly_score", "p_value"],
+            list(self.TSData_multi.value.columns)
+            + ["overall_anomaly_score", "p_value"],
         )
         d.plot()
         alpha = 0.05

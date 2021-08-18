@@ -10,11 +10,13 @@ model, we take the median from each time point as the final results
 """
 
 import logging
-import pandas as pd
+
 import kats.models.model as mm
+import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.models.ensemble import ensemble
 from kats.models.ensemble.ensemble import EnsembleParams
+
 
 class MedianEnsembleModel(ensemble.BaseEnsemble):
     """Median ensemble model class
@@ -75,8 +77,7 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
         return self.fcst_df
 
     def plot(self):
-        """Plot method for median ensemble model
-        """
+        """Plot method for median ensemble model"""
 
         logging.info("Generating chart for forecast result from Ensemble.")
         mm.Model.plot(self.data, self.fcst_df)

@@ -31,8 +31,10 @@ BASE_MODELS = {
     "theta": theta.ThetaModel,
 }
 import logging
+
 import numpy as np
 import pandas as pd
+
 
 def calc_mape(predictions: np.ndarray, truth: np.ndarray) -> float:
     """Calculate mape.

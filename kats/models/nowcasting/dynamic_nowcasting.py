@@ -19,31 +19,32 @@ and class NowcastingModel, which is the model.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from typing import Any, List
 
 import kats.models.model as m
 import numpy as np
 import pandas as pd
-from sklearn import preprocessing
 from kats.consts import Params, TimeSeriesData
-from sklearn.linear_model import LinearRegression
 from kats.models.nowcasting.feature_extraction import LAG, ROC, MA, MOM
 from kats.models.nowcasting.model_io import (
     serialize_for_zippy,
     deserialize_from_zippy,
 )
-from sklearn.ensemble import  RandomForestRegressor
+from sklearn import preprocessing
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PowerTransformer
-from typing import Any, List
 
 
 def poly(df, n):
-    '''
+    """
     Takes the column x from the dataframe df and takes
     the value from x to the power n
-    '''
-    poly = pd.Series(df.x**n, name = 'poly_' + str(n))
+    """
+    poly = pd.Series(df.x ** n, name="poly_" + str(n))
     df = df.join(poly)
     return df
+
 
 class NowcastingParams(Params):
     """The class for Nowcasting Parameters.
@@ -54,7 +55,7 @@ class NowcastingParams(Params):
         step: An integer indicating how many steps ahead we are forecasting. Default is 1.
     """
 
-    def __init__(self, step: int =1, **kwargs) -> None:
+    def __init__(self, step: int = 1, **kwargs) -> None:
         super().__init__()
         self.step = step
         logging.debug(f"Initialized QuadraticModel with parameters: step:{step}")
@@ -64,6 +65,7 @@ class NowcastingParams(Params):
 
         logging.warning("Method validate_params() is not implemented.")
         raise NotImplementedError("Subclasses should implement this!")
+
 
 class NowcastingModel(m.Model):
     """The class for Nowcasting Model.
@@ -76,7 +78,18 @@ class NowcastingModel(m.Model):
         NowcastingParams: parameters for Nowcasting.
     """
 
-    def __init__(self, data: TimeSeriesData, params: NowcastingParams, model: Any = None, poly_model: Any = None, feature_names: List[str] = [], poly_feature_names: List[str] = [], scaler: Any = None, label_scaler: Any = None, y_train_season_obj: Any = None) -> None:
+    def __init__(
+        self,
+        data: TimeSeriesData,
+        params: NowcastingParams,
+        model: Any = None,
+        poly_model: Any = None,
+        feature_names: List[str] = [],
+        poly_feature_names: List[str] = [],
+        scaler: Any = None,
+        label_scaler: Any = None,
+        y_train_season_obj: Any = None,
+    ) -> None:
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
@@ -97,12 +110,12 @@ class NowcastingModel(m.Model):
         self.y_train_season_obj = y_train_season_obj
 
     def feature_extraction(self) -> None:
-        '''
+        """
         Extarct features for training
-        '''
+        """
         # Add the hour, minute, and x column to the data
-        self.df_poly['hour'] = self.df_poly["time"].apply(lambda y: y.hour)
-        self.df_poly['minute'] = self.df_poly["time"].apply(lambda y: y.minute)
+        self.df_poly["hour"] = self.df_poly["time"].apply(lambda y: y.hour)
+        self.df_poly["minute"] = self.df_poly["time"].apply(lambda y: y.minute)
         self.df_poly["x"] = self.df_poly["hour"] * 60 + self.df_poly["minute"]
 
         # Empty list to hold the feature names
@@ -114,15 +127,19 @@ class NowcastingModel(m.Model):
             poly_feature_names.append("poly_" + str(degree))
 
         # filterout + - inf, nan
-        self.df_poly = self.df_poly[~self.df_poly.isin([np.nan, np.inf, -np.inf]).any(1)]
+        self.df_poly = self.df_poly[
+            ~self.df_poly.isin([np.nan, np.inf, -np.inf]).any(1)
+        ]
 
         # Save the poly feature name
         self.poly_feature_names = poly_feature_names
         feature_names = []
 
         #########################################################################################
-        train_index_poly = self.df_poly[~self.df_poly.isin([np.nan, np.inf, -np.inf]).any(1)].index
-        X_train_poly, y_train_poly= (
+        train_index_poly = self.df_poly[
+            ~self.df_poly.isin([np.nan, np.inf, -np.inf]).any(1)
+        ].index
+        X_train_poly, y_train_poly = (
             self.df_poly[self.poly_feature_names].loc[train_index_poly],
             self.df_poly["y"].loc[train_index_poly],
         )
@@ -133,20 +150,22 @@ class NowcastingModel(m.Model):
         self.poly_model = lin_reg
         y_train_season = lin_reg.predict(X_train_poly)
         self.y_train_season_obj = y_train_season
-        #print(self.df_poly)
-        #print(X_train_poly)
-        #print(self.y_train_season_obj)
+        # print(self.df_poly)
+        # print(X_train_poly)
+        # print(self.y_train_season_obj)
         #########################################################################################
 
         # If we have a 0, switch to basic nowcasting!
-        if np.sum(self.df['y'].isin([0.0])) > 0:
+        if np.sum(self.df["y"].isin([0.0])) > 0:
             for n in [10, 15, 20, 25, 30]:
                 self.df = MOM(self.df, n)
                 feature_names.append("MOM_" + str(n))
             for n in [10, 15, 20, 25, 30]:
                 self.df = LAG(self.df, n)
                 feature_names.append("LAG_" + str(n))
-            self.df = self.df[~self.df.isin([np.nan, np.inf, -np.inf]).any(1)]  # filterout + - inf, nan
+            self.df = self.df[
+                ~self.df.isin([np.nan, np.inf, -np.inf]).any(1)
+            ]  # filterout + - inf, nan
             self.feature_names = feature_names
 
         else:
@@ -162,17 +181,18 @@ class NowcastingModel(m.Model):
             for n in [10, 20, 30, 40]:
                 self.df = MA(self.df, n)
                 feature_names.append("MA_" + str(n))
-            self.df = self.df[~self.df.isin([np.nan, np.inf, -np.inf]).any(1)]  # filterout + - inf, nan
+            self.df = self.df[
+                ~self.df.isin([np.nan, np.inf, -np.inf]).any(1)
+            ]  # filterout + - inf, nan
             self.feature_names = feature_names
 
     def label_extraction(self) -> None:
         """Extracts labels from time seires data."""
 
-        #self.df["label"] = LAG(self.data.to_dataframe(), -self.step)[
+        # self.df["label"] = LAG(self.data.to_dataframe(), -self.step)[
         #    "LAG_-" + str(self.step)
-        #]
-        self.df["label"] =  self.df['y']
-
+        # ]
+        self.df["label"] = self.df["y"]
 
     ###################### module 1: for offline training ######################
 
@@ -183,7 +203,7 @@ class NowcastingModel(m.Model):
             "Call fit() with parameters: " "step:{step}".format(step=self.step)
         )
 
-        if np.sum(self.df['y'].isin([0.0])) == 0:
+        if np.sum(self.df["y"].isin([0.0])) == 0:
             n = 1
             train_index = self.df[~self.df.isin([np.nan, np.inf, -np.inf]).any(1)].index
 
@@ -193,16 +213,18 @@ class NowcastingModel(m.Model):
             self.scaler = min_max_scaler
 
             n = 1
-            y_train = (self.df["label"].loc[train_index] - self.y_train_season_obj[train_index]).diff(-n)[:-n]
+            y_train = (
+                self.df["label"].loc[train_index] - self.y_train_season_obj[train_index]
+            ).diff(-n)[:-n]
             pt = PowerTransformer()
-            y_train = pt.fit_transform(np.array(y_train).reshape(-1,1))
+            y_train = pt.fit_transform(np.array(y_train).reshape(-1, 1))
             self.label_scaler = pt
 
             X_train = X_train[:-n]
 
-            #reg = GradientBoostingRegressor()
+            # reg = GradientBoostingRegressor()
             reg = RandomForestRegressor()
-            #reg =linear_model.Lasso(alpha=10)
+            # reg =linear_model.Lasso(alpha=10)
             reg.fit(X_train, y_train)
             self.model = reg
 
@@ -211,19 +233,19 @@ class NowcastingModel(m.Model):
             train_index = self.df[~self.df.isin([np.nan, np.inf, -np.inf]).any(1)].index
 
             X_train = self.df[self.feature_names].loc[train_index]
-            #min_max_scaler = preprocessing.MinMaxScaler()
-            #X_train = min_max_scaler.fit_transform(X_train)
-            #self.scaler = min_max_scaler
+            # min_max_scaler = preprocessing.MinMaxScaler()
+            # X_train = min_max_scaler.fit_transform(X_train)
+            # self.scaler = min_max_scaler
 
             n = 1
-            y_train = (self.df["label"].loc[train_index] - self.y_train_season_obj[train_index]).diff(-n)[:-n]
+            y_train = (
+                self.df["label"].loc[train_index] - self.y_train_season_obj[train_index]
+            ).diff(-n)[:-n]
             X_train = X_train[:-n]
 
             reg = LinearRegression()
             reg.fit(X_train, y_train)
             self.model = reg
-
-
 
     def save_model(self) -> bytes:
         """Saves sklearn model as bytes."""
@@ -247,11 +269,10 @@ class NowcastingModel(m.Model):
         """
 
         logging.debug(
-
             "Call predict() with parameters. "
             "Forecast 1 step only, kwargs:{kwargs}".format(kwargs=kwargs)
         )
-        if np.sum(self.df['y'].isin([0.0])) == 0:
+        if np.sum(self.df["y"].isin([0.0])) == 0:
             X_test = self.df[-self.step :][self.feature_names]
             X_test = self.scaler.transform(X_test)
             y_predict = self.model.predict(X_test)
@@ -259,7 +280,7 @@ class NowcastingModel(m.Model):
             poly_now = self.y_train_season_obj[-1]
             first_occ = np.where(self.y_train_season_obj == poly_now)
             polynext = self.y_train_season_obj[first_occ[0][0] + self.step]
-            now = self.df['y'][-self.step:]
+            now = self.df["y"][-self.step :]
             return (now - poly_now) - y.ravel() + polynext
         else:
             X_test = self.df[-self.step :][self.feature_names]
@@ -267,8 +288,8 @@ class NowcastingModel(m.Model):
             poly_now = self.y_train_season_obj[-1]
             first_occ = np.where(self.y_train_season_obj == poly_now)
             polynext = self.y_train_season_obj[first_occ[0][0] + self.step]
-            now = self.df['y'][-self.step:]
-            #print(y_predict)
+            now = self.df["y"][-self.step :]
+            # print(y_predict)
             return (now - poly_now) - y_predict + polynext
 
     def predict_polyfit(self, model=None, df=None, **kwargs):

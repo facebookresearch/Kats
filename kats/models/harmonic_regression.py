@@ -9,18 +9,19 @@ from typing import Any, Callable, Tuple
 
 import numpy as np
 import pandas as pd
+
 try:
     import plotly.graph_objs as go
+
     _no_plotly = False
     Figure = go.Figure
 except ImportError:
     _no_plotly = True
     Figure = Any
-from scipy import optimize
-
 from kats.consts import Params, TimeSeriesData
 from kats.graphics.plots import plot_fitted_harmonics
 from kats.models.model import Model
+from scipy import optimize
 
 
 @dataclass
@@ -59,8 +60,8 @@ class HarmonicRegressionModel(Model):
         pass
 
     def fit(self) -> None:
-        """ Fits harmonic regression to the time series.
-            See fit_harmonics for details.
+        """Fits harmonic regression to the time series.
+        See fit_harmonics for details.
         """
         # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.
         # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
@@ -133,16 +134,16 @@ class HarmonicRegressionModel(Model):
         dates: pd.Series, period: float, series_order: int
     ) -> np.ndarray:
         """Provides Fourier series components with the specified frequency
-            and order. The starting time is always the epoch.
-            Parameters
-            ----------
-            dates: pd.Series containing timestamps.
-            period: Number of hours of the period.
-            series_order: Number of components.
-            Returns
-            -------
-            Matrix with seasonality features.
-            """
+        and order. The starting time is always the epoch.
+        Parameters
+        ----------
+        dates: pd.Series containing timestamps.
+        period: Number of hours of the period.
+        series_order: Number of components.
+        Returns
+        -------
+        Matrix with seasonality features.
+        """
         # convert to days since epoch
         t = (
             np.array((dates - datetime(1970, 1, 1)).dt.total_seconds().astype(np.float))
@@ -178,31 +179,31 @@ class HarmonicRegressionModel(Model):
         self, period: float, fourier_order: int
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Performs harmonic regression.
-            Harmonic regression fits cosines
-            amplitude*cos(freq*t + phase). Using double angle identity formulas,
-            we have:
-            beta1*cos(freq*t) + beta2*sin(freq*t). Thus, we can fit two coefficients,
-            which will take care of the amplitude and the phase. If we generate the
-            raw cos(freq*t) and sin(freq*t) for each freq we want to have,
-            it becomes a linear regression. Since we ignore
-            intercept, we demean the time series before fitting.
+        Harmonic regression fits cosines
+        amplitude*cos(freq*t + phase). Using double angle identity formulas,
+        we have:
+        beta1*cos(freq*t) + beta2*sin(freq*t). Thus, we can fit two coefficients,
+        which will take care of the amplitude and the phase. If we generate the
+        raw cos(freq*t) and sin(freq*t) for each freq we want to have,
+        it becomes a linear regression. Since we ignore
+        intercept, we demean the time series before fitting.
 
-            Since the regression takes care of the phase, we can pick time 0 wherever
-            we want, we just have to use the same for training, test, validation,
-            and prediction. We pick that as the epoch; so when we generate
-            the raw cos and sin values for the test set,
-            and apply the parameters from the training, it will have the right phase.
+        Since the regression takes care of the phase, we can pick time 0 wherever
+        we want, we just have to use the same for training, test, validation,
+        and prediction. We pick that as the epoch; so when we generate
+        the raw cos and sin values for the test set,
+        and apply the parameters from the training, it will have the right phase.
 
-            Parameters
-            ----------
-            period: float; seasonality in hours; e.g. 24 for daily
-            fourier_order: int; number of harmonics for the given frequency
-            harms: externally computed harmonics
-            Returns:
-                params: coefficients
-                harms: feature matrix the generated raw cos and sin;
-                for each fourier_order, there is one cos-sin pair.
-                Number of colums: fourier_order*2
+        Parameters
+        ----------
+        period: float; seasonality in hours; e.g. 24 for daily
+        fourier_order: int; number of harmonics for the given frequency
+        harms: externally computed harmonics
+        Returns:
+            params: coefficients
+            harms: feature matrix the generated raw cos and sin;
+            for each fourier_order, there is one cos-sin pair.
+            Number of colums: fourier_order*2
         """
         time_series = self.data.value
 

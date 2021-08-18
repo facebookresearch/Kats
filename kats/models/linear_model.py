@@ -11,14 +11,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from typing import List, Dict
 
 import kats.models.model as m
-import pandas as pd
 import numpy as np
+import pandas as pd
 import statsmodels.api as sm
 from kats.consts import Params, TimeSeriesData
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
-from typing import List, Dict
 
 
 class LinearModelParams(Params):
@@ -29,6 +29,7 @@ class LinearModelParams(Params):
     Attributes:
         alpha: The alpha level for the confidence interval. The default alpha = 0.05 returns a 95% confidence interval
     """
+
     def __init__(self, alpha=0.05, **kwargs) -> None:
         super().__init__()
         self.alpha = alpha
@@ -37,7 +38,7 @@ class LinearModelParams(Params):
         )
 
     def validate_params(self):
-        """ Validate Linear Model Parameters
+        """Validate Linear Model Parameters
 
         Since the linear model does not require key parameters to be defined this is not required for this class
         """
@@ -54,6 +55,7 @@ class LinearModel(m.Model):
         data: :class:`kats.consts.TimeSeriesData`, the input time series data as `TimeSeriesData`
         params: the parameter class defined with `LinearModelParams`
     """
+
     def __init__(self, data: TimeSeriesData, params: LinearModelParams) -> None:
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.Series):
@@ -64,8 +66,7 @@ class LinearModel(m.Model):
             raise ValueError(msg)
 
     def fit(self) -> None:
-        """fit Linear Model.
-        """
+        """fit Linear Model."""
         logging.debug(
             "Call fit() with parameters: "
             "alpha:{alpha}".format(alpha=self.params.alpha)
@@ -134,10 +135,8 @@ class LinearModel(m.Model):
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return self.fcst_df
 
-
     def plot(self):
-        """Plot Forecasted results from the Linar Model.
-        """
+        """Plot Forecasted results from the Linar Model."""
         logging.info("Generating chart for forecast result from LinearModel.")
         m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
 
@@ -146,14 +145,13 @@ class LinearModel(m.Model):
 
     @staticmethod
     def get_parameter_search_space() -> List[Dict[str, object]]:
-        """get default parameter search space for Linear model.
-        """
+        """get default parameter search space for Linear model."""
         return [
             {
                 "name": "alpha",
                 "type": "choice",
                 "value_type": "float",
-                "values": [.01, .05, .1, .25],
+                "values": [0.01, 0.05, 0.1, 0.25],
                 "is_ordered": True,
             },
         ]

@@ -4,9 +4,9 @@
 
 # This file defines tests for the Backtester classes
 
+import io
 import os
 import pkgutil
-import io
 import statistics
 import unittest
 import unittest.mock as mock
@@ -89,21 +89,22 @@ error_funcs = {  # Maps error name to function that calculates error
     "rmse": rmse,
 }
 
+
 def load_data(file_name):
-    ROOT="kats"
+    ROOT = "kats"
     if "kats" in os.getcwd().lower():
-        path = 'data/'
+        path = "data/"
     else:
-        path = 'kats/data/'
-    data_object =  pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 class SimpleBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
         cls.train_data = cls.TSData[: len(cls.TSData) - TIMESTEPS]
@@ -177,7 +178,7 @@ class ExpandingWindowBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
 
@@ -366,7 +367,7 @@ class RollingWindowBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
 
@@ -549,7 +550,7 @@ class FixedWindowBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
 
@@ -626,7 +627,7 @@ class CrossValidationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         cls.TSData = TimeSeriesData(DATA)
 
@@ -678,7 +679,8 @@ class CrossValidationTest(unittest.TestCase):
             temp_model = self.model_class(
                 # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for
                 #  1st param but got `Tuple[int, int]`.
-                data=TimeSeriesData(train_fold), params=self.model_params
+                data=TimeSeriesData(train_fold),
+                params=self.model_params,
             )
             temp_model.fit()
             # Getting model predictions
@@ -814,7 +816,8 @@ class CrossValidationTest(unittest.TestCase):
             temp_model = self.model_class(
                 # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for
                 #  1st param but got `Tuple[int, int]`.
-                data=TimeSeriesData(train_fold), params=self.model_params
+                data=TimeSeriesData(train_fold),
+                params=self.model_params,
             )
             temp_model.fit()
             # Getting model predictions

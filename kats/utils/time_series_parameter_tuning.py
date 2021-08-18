@@ -450,8 +450,12 @@ class TimeSeriesParameterTuning(ABC):
         )
         if self.outcome_constraints:
             # Deduplicate entries for which there are outcome constraints
-            # pyre-ignore[16]: `None` has no attribute `index`.
-            armscore_df = armscore_df.loc[armscore_df.astype(str).drop_duplicates().index]
+            armscore_df = armscore_df.loc[
+                # pyre-ignore[16]: `None` has no attribute `index`.
+                armscore_df.astype(str)
+                .drop_duplicates()
+                .index
+            ]
             if legit_arms_only:
 
                 def filter_violating_arms(

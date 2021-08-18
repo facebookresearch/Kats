@@ -2,20 +2,18 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import io
 import math
 import os
-import re
 import pkgutil
-import io
+import re
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.robust_stat_detection import RobustStatDetector
-
 from sklearn.datasets import make_spd_matrix
 
 statsmodels_ver = float(
@@ -24,13 +22,13 @@ statsmodels_ver = float(
 
 
 def load_data(file_name):
-    ROOT="kats"
+    ROOT = "kats"
     if "kats" in os.getcwd().lower():
-        path = 'data/'
+        path = "data/"
     else:
-        path = 'kats/data/'
-    data_object =  pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 class RobustStatTest(TestCase):
@@ -143,7 +141,7 @@ class RobustStatTest(TestCase):
 
     def test_ts_without_name(self) -> None:
         n = 10
-        time = pd.Series(pd.date_range(start='2018-01-01', periods=n, freq='D'))
+        time = pd.Series(pd.date_range(start="2018-01-01", periods=n, freq="D"))
         value = pd.Series(np.arange(n))
         ts = TimeSeriesData(time=time, value=value)
 

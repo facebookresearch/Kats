@@ -7,7 +7,6 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.bocpd_model import BocpdDetectorModel
@@ -16,6 +15,7 @@ from kats.utils.simulator import Simulator
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
+
 
 class BocpdDetectorModelTest(TestCase):
     first_cp_begin = 100

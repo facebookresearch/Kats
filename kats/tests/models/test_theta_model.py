@@ -2,11 +2,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import io
 import os
+import pkgutil
 import unittest
 from unittest import TestCase
-import pkgutil
-import io
 
 import pandas as pd
 from kats.consts import TimeSeriesData

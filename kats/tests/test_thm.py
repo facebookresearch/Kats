@@ -85,8 +85,11 @@ class testGetAggregateTS(TestCase):
 class testTemporalHierarchicalModel(TestCase):
     def test_initialization(self) -> None:
         self.assertRaises(
+            ValueError,
+            TemporalHierarchicalModel,
+            ts,
             # pyre-fixme[16]: Module `prophet` has no attribute `Prophet`.
-            ValueError, TemporalHierarchicalModel, ts, [prophet.Prophet()]
+            [prophet.Prophet()],
         )
         self.assertRaises(ValueError, TemporalHierarchicalModel, ts, [bm2])
         self.assertRaises(

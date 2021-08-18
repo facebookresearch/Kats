@@ -2,23 +2,24 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
 try:
     import pymannkendall as mk
+
     _no_mk = False
 except ImportError:
     _no_mk = True
-from statsmodels.tsa.api import SimpleExpSmoothing
-
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
+from statsmodels.tsa.api import SimpleExpSmoothing
 
 """Mann-Kendall (MK) Trend Detector Module
 
@@ -412,7 +413,8 @@ class MKDetector(Detector):
             # append MK statistics to MK_statistics dataframe
             MK_statistics = MK_statistics.append(
                 # pyre-ignore[6]: Expected `Union[Dict[Union[int, str], typing.Any], L...
-                self.runDetector(ts=ts_smoothed), ignore_index=True
+                self.runDetector(ts=ts_smoothed),
+                ignore_index=True,
             )
 
         else:
@@ -428,7 +430,8 @@ class MKDetector(Detector):
                 # append MK statistics to MK_statistics dataframe
                 MK_statistics = MK_statistics.append(
                     # pyre-ignore[6]: Expected `Union[Dict[Union[int, str], typing.Any...
-                    self.runDetector(ts=ts_tmp), ignore_index=True
+                    self.runDetector(ts=ts_tmp),
+                    ignore_index=True,
                 )
 
         self.MK_statistics = MK_statistics
@@ -614,7 +617,7 @@ class MKDetector(Detector):
         if ts is None:
             raise ValueError("detector() must be called before plot()")
 
-        with pd.option_context('plotting.matplotlib.register_converters', True):
+        with pd.option_context("plotting.matplotlib.register_converters", True):
             plt.figure(figsize=(14, 5))
 
             plt.plot(ts.index, ts.values)

@@ -8,12 +8,12 @@ from typing import List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from kats.consts import TimeSeriesChangePoint, TimeSeriesData
+from kats.detectors.detector import Detector
+
 # pyre-ignore[21]: Could not find a name `chi2` defined in module `scipy.stats`.
 from scipy.stats import chi2
 from sklearn.covariance import MinCovDet
-
-from kats.consts import TimeSeriesChangePoint, TimeSeriesData
-from kats.detectors.detector import Detector
 
 """A module for detecting abnormal in hourly ratio.
 

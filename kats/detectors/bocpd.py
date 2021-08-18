@@ -7,28 +7,26 @@ This module contains classes and functions used for implementing
 the Bayesian Online Changepoint Detection algorithm.
 """
 
+import logging
+import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-import logging
-import math
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+from kats.consts import TimeSeriesChangePoint, TimeSeriesData, SearchMethodEnum
+from kats.detectors.detector import Detector
+from scipy.special import logsumexp  # @manual
+
 # pyre-ignore[21]: Could not find name `invgamma` in `scipy.stats`.
 # pyre-ignore[21]: Could not find name `nbinom` in `scipy.stats`.
 from scipy.stats import invgamma, linregress, norm, nbinom  # @manual
-from scipy.special import logsumexp  # @manual
 
-from kats.consts import (
-    TimeSeriesChangePoint,
-    TimeSeriesData,
-    SearchMethodEnum
-)
-from kats.detectors.detector import Detector
 try:
     import kats.utils.time_series_parameter_tuning as tpt
+
     _no_ax = False
 except ImportError:
     _no_ax = True
@@ -94,14 +92,15 @@ class BOCPDModelParameters(ABC):
             for the hyperparameter tuning library. Allowed values
             are 'random' and 'gridsearch'.
     """
+
     data: Optional[TimeSeriesData] = None
 
     prior_choice: Dict[str, List[float]] = field(
-        default_factory=lambda: {'cp_prior': [0.001, 0.002, 0.005, 0.01, 0.02]}
+        default_factory=lambda: {"cp_prior": [0.001, 0.002, 0.005, 0.01, 0.02]}
     )
 
     cp_prior: float = 0.1
-    search_method: str = 'random'
+    search_method: str = "random"
 
     def set_prior(self, param_dict: Dict[str, float]):
         """Setter method, which sets the value of the parameters.
@@ -115,8 +114,8 @@ class BOCPDModelParameters(ABC):
             None.
         """
 
-        if 'cp_prior' in param_dict:
-            self.cp_prior = param_dict['cp_prior']
+        if "cp_prior" in param_dict:
+            self.cp_prior = param_dict["cp_prior"]
 
 
 @dataclass
@@ -143,12 +142,12 @@ class NormalKnownParameters(BOCPDModelParameters):
     mean_prior: Optional[float] = None
     mean_prec_prior: Optional[float] = None
     known_prec: Optional[float] = None
-    known_prec_multiplier: float = 1.
+    known_prec_multiplier: float = 1.0
 
     prior_choice: Dict[str, List[float]] = field(
-        default_factory=lambda : {
-            'known_prec_multiplier': [1., 2., 3., 4., 5.],
-            'cp_prior': [0.001, 0.002, 0.005, 0.01, 0.02]
+        default_factory=lambda: {
+            "known_prec_multiplier": [1.0, 2.0, 3.0, 4.0, 5.0],
+            "cp_prior": [0.001, 0.002, 0.005, 0.01, 0.02],
         }
     )
 
@@ -166,10 +165,10 @@ class NormalKnownParameters(BOCPDModelParameters):
             None.
         """
 
-        if 'known_prec_multiplier' in param_dict:
-            self.known_prec_multiplier = param_dict['known_prec_multiplier']
-        if 'cp_prior' in param_dict:
-            self.cp_prior = param_dict['cp_prior']
+        if "known_prec_multiplier" in param_dict:
+            self.known_prec_multiplier = param_dict["known_prec_multiplier"]
+        if "cp_prior" in param_dict:
+            self.cp_prior = param_dict["cp_prior"]
 
 
 @dataclass
@@ -260,9 +259,7 @@ class BOCPDetector(Detector):
     def detector(
         self,
         model: BOCPDModelType = BOCPDModelType.NORMAL_KNOWN_MODEL,
-        model_parameters: Union[
-            None, BOCPDModelParameters
-        ] = None,
+        model_parameters: Union[None, BOCPDModelParameters] = None,
         lag: int = 10,
         choose_priors: bool = True,
         changepoint_prior: float = 0.01,
@@ -342,7 +339,9 @@ class BOCPDetector(Detector):
         ), f"Expected parameter type {self.parameter_type[model]}, but got {model_parameters}"
 
         if choose_priors:
-            changepoint_prior, model_parameters = self._choose_priors(model, model_parameters)
+            changepoint_prior, model_parameters = self._choose_priors(
+                model, model_parameters
+            )
 
         if getattr(model_parameters, "data", 0) is None:
             model_parameters.data = self.data
@@ -351,19 +350,22 @@ class BOCPDetector(Detector):
 
         if not self.data.is_univariate() and not self.models[model].is_multivariate():
             msg = "Model {model.name} support univariate time series, but get {type}.".format(
-                model=model,
-                type=type(self.data.value)
+                model=model, type=type(self.data.value)
             )
             logging.error(msg)
             raise ValueError(msg)
 
         # parameters_dict = dataclasses.asdict(model_parameters)
         # pyre-fixme[45]: Cannot instantiate abstract class `_PredictiveModel` with `__init__`, `is_multivariate`, `pred_mean` and 4 additional abstract methods.Pyre
-        underlying_model = self.models[model](data=self.data, parameters=model_parameters)
+        underlying_model = self.models[model](
+            data=self.data, parameters=model_parameters
+        )
         underlying_model.setup()
 
         logging.debug(f"Creating detector with lag {lag} and debug option {debug}.")
-        bocpd = _BayesOnlineChangePoint(data=self.data, lag=lag, debug=debug, agg_cp=agg_cp)
+        bocpd = _BayesOnlineChangePoint(
+            data=self.data, lag=lag, debug=debug, agg_cp=agg_cp
+        )
 
         logging.debug(
             f"Running .detector() with model {underlying_model}, threshold {threshold}, changepoint prior {changepoint_prior}."
@@ -397,14 +399,16 @@ class BOCPDetector(Detector):
                 bocpd_metadata = BOCPDMetadata(model=model, ts_name=ts_name)
                 change_points.append((cp, bocpd_metadata))
 
-            logging.debug(f"Returning {len(change_points)} change points to client in ts={ts_name}.")
+            logging.debug(
+                f"Returning {len(change_points)} change points to client in ts={ts_name}."
+            )
 
         return change_points
 
     def plot(
         self,
         change_points: List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]],
-        ts_names: Optional[List[str]] = None
+        ts_names: Optional[List[str]] = None,
     ) -> None:
         """Plots the change points, along with the time series.
 
@@ -418,7 +422,7 @@ class BOCPDetector(Detector):
             None.
         """
         # TODO note: Once  D23226664 lands, replace this with self.data.time_col_name
-        time_col_name = 'time'
+        time_col_name = "time"
 
         # Group changepoints together
         change_points_per_ts = self.group_changepoints_by_timeseries(change_points)
@@ -431,7 +435,9 @@ class BOCPDetector(Detector):
 
             plt.plot(data_df[time_col_name].values, data_df[ts_name].values)
 
-            logging.info(f"Plotting {len(ts_changepoints)} change points for {ts_name}.")
+            logging.info(
+                f"Plotting {len(ts_changepoints)} change points for {ts_name}."
+            )
             if len(ts_changepoints) == 0:
                 logging.warning("No change points detected!")
 
@@ -440,8 +446,9 @@ class BOCPDetector(Detector):
 
             plt.show()
 
-    def _choose_priors(self, model: BOCPDModelType,
-                       params: BOCPDModelParameters) -> Tuple[Any, BOCPDModelParameters]:
+    def _choose_priors(
+        self, model: BOCPDModelType, params: BOCPDModelParameters
+    ) -> Tuple[Any, BOCPDModelParameters]:
         """Chooses priors which are defined by the model parameters.
 
         Chooses priors which are defined by the model parameters.
@@ -468,21 +475,25 @@ class BOCPDetector(Detector):
         search_method = params.search_method
 
         # pick search iterations and method based on definition
-        if search_method == 'random':
+        if search_method == "random":
             search_N, SearchMethod = 3, SearchMethodEnum.RANDOM_SEARCH_UNIFORM
-        elif search_method == 'gridsearch':
+        elif search_method == "gridsearch":
             search_N, SearchMethod = 1, SearchMethodEnum.GRID_SEARCH
         else:
-            raise Exception(f'Search method has to be in random or gridsearch but it is {search_method}!')
+            raise Exception(
+                f"Search method has to be in random or gridsearch but it is {search_method}!"
+            )
 
         # construct the custom parameters for the HPT library
         custom_parameters = [
-            {"name": k,
-             "type": "choice",
-             "values": v,
-             "value_type": "float",
-             "is_ordered": False
-             } for k, v in param_dict.items()
+            {
+                "name": k,
+                "type": "choice",
+                "values": v,
+                "value_type": "float",
+                "is_ordered": False,
+            }
+            for k, v in param_dict.items()
         ]
 
         eval_fn = self._get_eval_function(model, params)
@@ -493,7 +504,7 @@ class BOCPDetector(Detector):
         ts_tuner = tpt.SearchMethodFactory.create_search_method(
             parameters=custom_parameters,
             selected_search_method=SearchMethod,
-            seed=seed_value
+            seed=seed_value,
         )
 
         for _ in range(search_N):
@@ -501,38 +512,41 @@ class BOCPDetector(Detector):
                 evaluation_function=eval_fn, arm_count=4
             )
 
-        scores_df = (
-            ts_tuner.list_parameter_value_scores()
-        )
+        scores_df = ts_tuner.list_parameter_value_scores()
 
-        scores_df = scores_df.sort_values(by='mean', ascending=False)
+        scores_df = scores_df.sort_values(by="mean", ascending=False)
 
         best_params = scores_df.parameters.values[0]
 
         params.set_prior(best_params)
 
-        best_cp_prior = best_params['cp_prior']
+        best_cp_prior = best_params["cp_prior"]
 
         return best_cp_prior, params
 
-    def _get_eval_function(self, model: BOCPDModelType,
-                           model_parameters: BOCPDModelParameters):
+    def _get_eval_function(
+        self, model: BOCPDModelType, model_parameters: BOCPDModelParameters
+    ):
         """
         generates the objective function evaluated by hyperparameter
         tuning library for choosing the priors
         """
 
         def eval_fn(params_to_eval: Dict[str, float]) -> float:
-            changepoint_prior = params_to_eval['cp_prior']
+            changepoint_prior = params_to_eval["cp_prior"]
             model_parameters.set_prior(params_to_eval)
             logging.debug(model_parameters)
             logging.debug(params_to_eval)
             # pyre-fixme[45]: Cannot instantiate abstract class `_PredictiveModel` with `__init__`, `is_multivariate`, `pred_mean` and 4 additional abstract methods.Pyre
-            underlying_model = self.models[model](data=self.data, parameters=model_parameters)
+            underlying_model = self.models[model](
+                data=self.data, parameters=model_parameters
+            )
             change_point = _BayesOnlineChangePoint(data=self.data, lag=3, debug=False)
-            change_point.detector(model=underlying_model,
-                                  changepoint_prior=changepoint_prior,
-                                  threshold=0.4)
+            change_point.detector(
+                model=underlying_model,
+                changepoint_prior=changepoint_prior,
+                threshold=0.4,
+            )
             post_pred = np.mean(change_point.get_posterior_predictive())
 
             return post_pred
@@ -540,8 +554,7 @@ class BOCPDetector(Detector):
         return eval_fn
 
     def group_changepoints_by_timeseries(
-        self,
-        change_points: List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]
+        self, change_points: List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]
     ) -> Dict[str, List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]]:
         """Helper function to group changepoints by time series.
 
@@ -560,7 +573,7 @@ class BOCPDetector(Detector):
 
         if self.data.is_univariate():
             data_df = self.data.to_dataframe()
-            ts_names = [x for x in data_df.columns if x != 'time']
+            ts_names = [x for x in data_df.columns if x != "time"]
         else:
             # Multivariate
             ts_names = self.data.value.columns
@@ -587,7 +600,7 @@ class BOCPDetector(Detector):
         """
 
         if not self.detected_flag:
-            raise ValueError('detector needs to be run before getting prob')
+            raise ValueError("detector needs to be run before getting prob")
         return self.change_prob
 
     def get_run_length_matrix(self) -> Dict[str, np.ndarray]:
@@ -602,7 +615,7 @@ class BOCPDetector(Detector):
         """
 
         if not self.detected_flag:
-            raise ValueError('detector needs to be run before getting prob')
+            raise ValueError("detector needs to be run before getting prob")
 
         return self._run_length_prob
 
@@ -655,12 +668,19 @@ class _BayesOnlineChangePoint(Detector):
         will be the aggregation of run-length posterior by fetching
         maximum values diagonally.
     """
+
     rt_posterior: Optional[np.ndarray] = None
     pred_mean_arr: Optional[np.ndarray] = None
     pred_std_arr: Optional[np.ndarray] = None
     next_pred_prob: Optional[np.ndarray] = None
 
-    def __init__(self, data: TimeSeriesData, lag: int = 10, debug: bool = False, agg_cp: bool = False):
+    def __init__(
+        self,
+        data: TimeSeriesData,
+        lag: int = 10,
+        debug: bool = False,
+        agg_cp: bool = False,
+    ):
         self.data = data
         self.T = data.value.shape[0]
         self.lag = lag
@@ -680,11 +700,11 @@ class _BayesOnlineChangePoint(Detector):
             self.P = 1
             self._ts_slice = 0
             data_df = self.data.to_dataframe()
-            self._ts_names = [x for x in data_df.columns if x != 'time']
+            self._ts_names = [x for x in data_df.columns if x != "time"]
 
             self.data_values = np.expand_dims(data.value.values, axis=1)
 
-        self.posterior_predictive = 0.
+        self.posterior_predictive = 0.0
         self._posterior_shape = (self.T, self.T, self.P)
         self._message_shape = (self.T, self.P)
 
@@ -693,7 +713,7 @@ class _BayesOnlineChangePoint(Detector):
         self,
         model: Any,
         threshold: Union[float, np.ndarray] = 0.5,
-        changepoint_prior: Union[float, np.ndarray] = 0.01
+        changepoint_prior: Union[float, np.ndarray] = 0.01,
     ) -> Dict[str, Any]:
         """Runs the actual BOCPD detection algorithm.
 
@@ -760,10 +780,10 @@ class _BayesOnlineChangePoint(Detector):
 
         # Calculate the log priors once outside the for-loop.
         log_cp_prior = np.log(changepoint_prior)
-        log_om_cp_prior = np.log(1. - changepoint_prior)
+        log_om_cp_prior = np.log(1.0 - changepoint_prior)
 
-        self.posterior_predictive = 0.
-        log_posterior = 0.
+        self.posterior_predictive = 0.0
+        log_posterior = 0.0
 
         # from the second step onwards
         for i in range(1, self.T):
@@ -792,14 +812,18 @@ class _BayesOnlineChangePoint(Detector):
             # step 5 of paper
             # this is elementwise multiplication of pred and message
             log_change_point_prob = np.logaddexp.reduce(
-                pred_arr + message[self.T + m_ptr: self.T, self._ts_slice] + log_cp_prior,
-                axis=0
+                pred_arr
+                + message[self.T + m_ptr : self.T, self._ts_slice]
+                + log_cp_prior,
+                axis=0,
             )
 
             # step 4
             # log_growth_prob = pred_arr + message + np.log(1.0 - changepoint_prior)
-            message[self.T + m_ptr: self.T, self._ts_slice] = (
-                pred_arr + message[self.T + m_ptr: self.T, self._ts_slice] + log_om_cp_prior
+            message[self.T + m_ptr : self.T, self._ts_slice] = (
+                pred_arr
+                + message[self.T + m_ptr : self.T, self._ts_slice]
+                + log_om_cp_prior
             )
 
             # P(r_t, x_1:t)
@@ -839,12 +863,14 @@ class _BayesOnlineChangePoint(Detector):
             # call in return and some fast addition and multiplications.
             log_evidence = np.logaddexp(
                 log_change_point_prob,
-                log_change_point_prob - log_cp_prior + log_om_cp_prior
+                log_change_point_prob - log_cp_prior + log_om_cp_prior,
             )
 
             # step 7
             # log_posterior = log_joint_prob - log_evidence
-            log_posterior = message[self.T + m_ptr: self.T, self._ts_slice] - log_evidence
+            log_posterior = (
+                message[self.T + m_ptr : self.T, self._ts_slice] - log_evidence
+            )
             rt_posterior[i, 0 : (i + 1), self._ts_slice] = np.exp(log_posterior)
 
             # step 8
@@ -856,7 +882,12 @@ class _BayesOnlineChangePoint(Detector):
 
         return rt_posterior
 
-    def plot(self, threshold: Optional[Union[float, np.ndarray]] = None, lag: Optional[int] = None, ts_names: Optional[List[str]] = None):
+    def plot(
+        self,
+        threshold: Optional[Union[float, np.ndarray]] = None,
+        lag: Optional[int] = None,
+        ts_names: Optional[List[str]] = None,
+    ):
         """Plots the changepoints along with the timeseries.
 
         Args:
@@ -949,11 +980,11 @@ class _BayesOnlineChangePoint(Detector):
     def _calc_agg_cppprob(self, t: int) -> np.ndarray:
         rt_posterior = self.rt_posterior
         assert rt_posterior is not None
-        run_length_pos = rt_posterior[:,:,t]
+        run_length_pos = rt_posterior[:, :, t]
         np.fill_diagonal(run_length_pos, 0.0)
         change_prob = np.zeros(self.T)
         for i in range(self.T):
-            change_prob[i] = np.max(run_length_pos[i:,:(self.T-i)].diagonal())
+            change_prob[i] = np.max(run_length_pos[i:, : (self.T - i)].diagonal())
         return change_prob
 
     def _construct_output(self, threshold: np.ndarray, lag: int) -> Dict[str, Any]:
@@ -964,9 +995,11 @@ class _BayesOnlineChangePoint(Detector):
         for t, t_name in enumerate(self._ts_names):
             if not self.agg_cp:
                 # till lag, prob = 0, so prepend array with zeros
-                change_prob = np.hstack((rt_posterior[lag : self.T, lag, t], np.zeros(lag)))
+                change_prob = np.hstack(
+                    (rt_posterior[lag : self.T, lag, t], np.zeros(lag))
+                )
                 # handle the fact that the first point is not a changepoint
-                change_prob[0] = 0.
+                change_prob[0] = 0.0
             elif self.agg_cp:
                 change_prob = self._calc_agg_cppprob(t)
 
@@ -975,7 +1008,7 @@ class _BayesOnlineChangePoint(Detector):
                 # pyre-fixme[61]: `change_prob` may not be initialized here.
                 "change_prob": change_prob,
                 "change_points": change_points,
-                "run_length_prob": rt_posterior[:,:,t]
+                "run_length_prob": rt_posterior[:, :, t],
             }
 
         return output
@@ -1080,11 +1113,7 @@ class _NormalKnownPrec(_PredictiveModel):
         parameters: Parameters specifying the prior.
     """
 
-    def __init__(
-        self,
-        data: TimeSeriesData,
-        parameters: NormalKnownParameters
-    ):
+    def __init__(self, data: TimeSeriesData, parameters: NormalKnownParameters):
 
         # \mu \sim N(\mu0, \frac{1}{\lambda0})
         # x \sim N(\mu,\frac{1}{\lambda})
@@ -1115,8 +1144,6 @@ class _NormalKnownPrec(_PredictiveModel):
                 self.lambda_val = np.repeat(self.lambda_val, self.P)
             self._data_shape = (self._maxT, self.P)
 
-
-
         # For efficiency, we simulate a dynamically growing list with
         # insertions at the start, by a fixed size array with a pointer
         # where we grow the array from the end of the array. This
@@ -1133,18 +1160,18 @@ class _NormalKnownPrec(_PredictiveModel):
             check_data(data)
             self._find_empirical_prior(data)
 
-        if self.lambda_0 is not None and self.lambda_val is not None and self.mu_0 is not None:
+        if (
+            self.lambda_0 is not None
+            and self.lambda_val is not None
+            and self.mu_0 is not None
+        ):
             # We set these here to avoid recomputing the linear expression
             # throughout + avoid unnecessarily zeroing the memory etc.
             self._mean_arr = np.repeat(
-                np.expand_dims(self.mu_0 * self.lambda_0, axis=0),
-                self._maxT,
-                axis=0
+                np.expand_dims(self.mu_0 * self.lambda_0, axis=0), self._maxT, axis=0
             )
             self._prec_arr = np.repeat(
-                np.expand_dims(self.lambda_0, axis=0),
-                self._maxT,
-                axis=0
+                np.expand_dims(self.lambda_0, axis=0), self._maxT, axis=0
             )
         else:
             raise ValueError("Priors for NormalKnownPrec should not be None.")
@@ -1181,7 +1208,9 @@ class _NormalKnownPrec(_PredictiveModel):
         if data.is_univariate():
             self.lambda_val = self.parameters.known_prec_multiplier / var_arr.mean()
         else:
-            self.lambda_val = self.parameters.known_prec_multiplier / var_arr.mean().values
+            self.lambda_val = (
+                self.parameters.known_prec_multiplier / var_arr.mean().values
+            )
 
         logging.debug("Empirical Prior: mu_0:", self.mu_0)
         logging.debug("Empirical Prior: lambda_0:", self.lambda_0)
@@ -1195,7 +1224,7 @@ class _NormalKnownPrec(_PredictiveModel):
         uses log(pdf(...)) - which wastefully computes exp(..) and log(...).
         """
 
-        return -np.log(std) - _LOG_SQRT2PI - 0.5 * ((x - mean) / std)**2
+        return -np.log(std) - _LOG_SQRT2PI - 0.5 * ((x - mean) / std) ** 2
 
     def pred_prob(self, t: int, x: float) -> np.ndarray:
         """Returns log predictive probabilities.
@@ -1218,7 +1247,7 @@ class _NormalKnownPrec(_PredictiveModel):
         pred_arr = self._norm_logpdf(
             x,
             self._mean_arr[self._maxT + self._ptr : self._maxT + self._ptr + t],
-            self._std_arr[self._maxT + self._ptr : self._maxT + self._ptr + t]
+            self._std_arr[self._maxT + self._ptr : self._maxT + self._ptr + t],
         )
         return pred_arr
 
@@ -1268,7 +1297,8 @@ class _NormalKnownPrec(_PredictiveModel):
         # self._prec_arr[self._ptr] = self.lambda_0 + 1. * self.lambda_val
 
         self._std_arr[self._maxT + self._ptr : self._maxT] = np.sqrt(
-            1. / self._prec_arr[self._maxT + self._ptr : self._maxT] + 1. / self.lambda_val
+            1.0 / self._prec_arr[self._maxT + self._ptr : self._maxT]
+            + 1.0 / self.lambda_val
         )
 
         # This is now handled by initializing the array with self.mu_0 * self.lambda_0
@@ -1301,6 +1331,7 @@ class _BayesianLinReg(_PredictiveModel):
         data: TimeSeriesData object, on which algorithm is run
         parameters: Specifying all the priors.
     """
+
     mu_prior: Optional[np.ndarray] = None
     prior_regression_numpoints: Optional[int] = None
 
@@ -1372,13 +1403,15 @@ class _BayesianLinReg(_PredictiveModel):
 
                 # Compute basic linear regression
                 slope, intercept, r_value, p_value, std_err = linregress(time, vals)
-                self.mu_prior = mu_prior = np.array([intercept, slope])  # Set up mu_prior
+                self.mu_prior = mu_prior = np.array(
+                    [intercept, slope]
+                )  # Set up mu_prior
 
                 if readjust_sigma_prior:
                     logging.info("Readjusting the prior for Inv-Gamma for sigma^2.")
                     # these values are the mean/variance of sigma^2: Inv-Gamma(*,*)
-                    sigma_squared_distribution_mean = _BayesianLinReg._residual_variance(
-                        time, vals, intercept, slope
+                    sigma_squared_distribution_mean = (
+                        _BayesianLinReg._residual_variance(time, vals, intercept, slope)
                     )
                     sigma_squared_distribution_variance = 1000  # TODO: we don't really know what the variance of sigma^2: Inv-Gamma(a, b) should be
 
@@ -1401,7 +1434,9 @@ class _BayesianLinReg(_PredictiveModel):
 
         if plot_regression_prior:
             intercept, slope = tuple(mu_prior)
-            _BayesianLinReg._plot_regression(self.all_time, self.all_vals, intercept, slope)
+            _BayesianLinReg._plot_regression(
+                self.all_time, self.all_vals, intercept, slope
+            )
 
     @staticmethod
     def _plot_regression(x, y, intercept, slope):
@@ -1424,7 +1459,7 @@ class _BayesianLinReg(_PredictiveModel):
     @staticmethod
     def _sample_bayesian_linreg(mu_n, lambda_n, a_n, b_n, num_samples):
 
-        #this is to make sure the results are consistent
+        # this is to make sure the results are consistent
         # and tests don't break randomly
         seed_value = 100
         np.random.seed(seed_value)
@@ -1453,7 +1488,10 @@ class _BayesianLinReg(_PredictiveModel):
 
     @staticmethod
     def _sample_likelihood(mu_n, lambda_n, a_n, b_n, x, val, num_samples):
-        all_sample_betas, sample_sigma_squared = _BayesianLinReg._sample_bayesian_linreg(
+        (
+            all_sample_betas,
+            sample_sigma_squared,
+        ) = _BayesianLinReg._sample_bayesian_linreg(
             mu_n, lambda_n, a_n, b_n, num_samples
         )
 
@@ -1500,9 +1538,9 @@ class _BayesianLinReg(_PredictiveModel):
             mu_prec_n = np.matmul(np.matmul(mu_n.transpose(), lambda_n), mu_n)
             b_n = self.b_0 + 1 / 2 * (yty + mu_prec_prior - mu_prec_n)
 
-
-            if (a_n < 0 or b_n < 0):
-                logging.info(f"""
+            if a_n < 0 or b_n < 0:
+                logging.info(
+                    f"""
                     Got nonpositive parameters for Inv-Gamma: {a_n}, {b_n}.
                     Likely, integer overflow -- maybe scale down the data?
                     """
@@ -1517,7 +1555,11 @@ class _BayesianLinReg(_PredictiveModel):
 
             x_new = np.array([1.0, t]).reshape(2, -1)
 
-            indiv_likelihoods, prediction, var_pred = _BayesianLinReg._sample_likelihood(
+            (
+                indiv_likelihoods,
+                prediction,
+                var_pred,
+            ) = _BayesianLinReg._sample_likelihood(
                 mu_n, lambda_n, a_n, b_n, x_new, y, self.num_likelihood_samples
             )
 
@@ -1621,14 +1663,12 @@ class _PoissonProcessModel(_PredictiveModel):
         parameters: Specifying all the priors.
     """
 
-    def __init__(
-        self,
-        data: TimeSeriesData,
-        parameters: PoissonModelParameters
-    ):
+    def __init__(self, data: TimeSeriesData, parameters: PoissonModelParameters):
         self.data = data
 
-        self.gamma_alpha = parameters.alpha_prior  # prior for rate lambda ~ Gamma(alpha, beta)
+        self.gamma_alpha = (
+            parameters.alpha_prior
+        )  # prior for rate lambda ~ Gamma(alpha, beta)
         self.gamma_beta = parameters.beta_prior
 
         self.parameters = parameters
@@ -1707,7 +1747,9 @@ class _PoissonProcessModel(_PredictiveModel):
         self._events.insert(0, x)
 
         num_events_before = 0
-        for t in range(1, self._t + 1):  # t is the number of previous events we consider to adjust poisson rate
+        for t in range(
+            1, self._t + 1
+        ):  # t is the number of previous events we consider to adjust poisson rate
             num_events_before += self._events[t - 1]
 
             # adjust our posterior distribution
@@ -1720,7 +1762,9 @@ class _PoissonProcessModel(_PredictiveModel):
             new_p.append(p)
 
             new_mean_arr.append(nbinom.mean(n, p))  # the mean is n * (1-p) / p
-            new_std_arr.append(nbinom.std(n, p))  # the std deviation is np.sqrt(n * (1-p)) / p
+            new_std_arr.append(
+                nbinom.std(n, p)
+            )  # the std deviation is np.sqrt(n * (1-p)) / p
 
         self._n[self._t] = new_n
         self._p[self._t] = new_p

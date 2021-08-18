@@ -12,11 +12,13 @@ The features are rolling, i.e. they are the times series as well.
   >>> df = ROC(df, 5)
 """
 
-import pandas as pd
-import numpy as np
 from typing import Dict, Optional
 
-def ROC(df: pd.DataFrame, n: int, column: str = 'y') -> pd.DataFrame:
+import numpy as np
+import pandas as pd
+
+
+def ROC(df: pd.DataFrame, n: int, column: str = "y") -> pd.DataFrame:
     """Adds another column indicating return comparing to step n back.
 
     Args:
@@ -31,14 +33,15 @@ def ROC(df: pd.DataFrame, n: int, column: str = 'y') -> pd.DataFrame:
 
     M = df[column].diff(n - 1)
     N = df[column].shift(n - 1)
-    if column == 'y':
-        ROC = pd.Series(M / N, name = 'ROC_' + str(n))
+    if column == "y":
+        ROC = pd.Series(M / N, name="ROC_" + str(n))
     else:
-        ROC = pd.Series(M / N, name = column +'_ROC_' + str(n))
+        ROC = pd.Series(M / N, name=column + "_ROC_" + str(n))
     df = df.join(ROC)
     return df
 
-def MOM(df: pd.DataFrame, n: int, column: str = 'y') -> pd.DataFrame:
+
+def MOM(df: pd.DataFrame, n: int, column: str = "y") -> pd.DataFrame:
     """Adds another column indicating momentum: difference of current value and n steps back.
 
     Args:
@@ -51,14 +54,15 @@ def MOM(df: pd.DataFrame, n: int, column: str = 'y') -> pd.DataFrame:
         A dataframe with all the columns from input df, and the added column.
     """
 
-    if column == 'y':
-        M = pd.Series(df[column].diff(n), name = 'MOM_' + str(n))
+    if column == "y":
+        M = pd.Series(df[column].diff(n), name="MOM_" + str(n))
     else:
-        M = pd.Series(df[column].diff(n), name = column +'_MOM_' + str(n))
+        M = pd.Series(df[column].diff(n), name=column + "_MOM_" + str(n))
     df = df.join(M)
     return df
 
-def MA(df: pd.DataFrame, n: int, column: str = 'y') -> pd.DataFrame:
+
+def MA(df: pd.DataFrame, n: int, column: str = "y") -> pd.DataFrame:
     """Adds another column indicating moving average in the past n steps.
 
     Args:
@@ -71,14 +75,15 @@ def MA(df: pd.DataFrame, n: int, column: str = 'y') -> pd.DataFrame:
         A dataframe with all the columns from input df, and the added column.
     """
 
-    if column == 'y':
-        MA = pd.Series(df[column].rolling(n).mean(), name = 'MA_' + str(n))
+    if column == "y":
+        MA = pd.Series(df[column].rolling(n).mean(), name="MA_" + str(n))
     else:
-        MA = pd.Series(df[column].rolling(n).mean(), name = column +'_MA_' + str(n))
+        MA = pd.Series(df[column].rolling(n).mean(), name=column + "_MA_" + str(n))
     df = df.join(MA)
     return df
 
-def LAG(df: pd.DataFrame, n: int, column: str = 'y') -> pd.DataFrame:
+
+def LAG(df: pd.DataFrame, n: int, column: str = "y") -> pd.DataFrame:
     """Adds another column indicating lagged value at the past n steps.
 
     Args:
@@ -92,14 +97,17 @@ def LAG(df: pd.DataFrame, n: int, column: str = 'y') -> pd.DataFrame:
     """
 
     N = df[column].shift(n)
-    if column == 'y':
-        LAG = pd.Series(N, name = 'LAG_' + str(n))
+    if column == "y":
+        LAG = pd.Series(N, name="LAG_" + str(n))
     else:
-        LAG = pd.Series(N, name = column + '_LAG_' + str(n))
+        LAG = pd.Series(N, name=column + "_LAG_" + str(n))
     df = df.join(LAG)
     return df
 
-def MACD(df: pd.DataFrame, n_fast: int =12, n_slow: int =21, column: str = 'y') -> pd.DataFrame:
+
+def MACD(
+    df: pd.DataFrame, n_fast: int = 12, n_slow: int = 21, column: str = "y"
+) -> pd.DataFrame:
     """Adds three columns indicating MACD: https://www.investopedia.com/terms/m/macd.asp.
 
     Args:
@@ -113,28 +121,37 @@ def MACD(df: pd.DataFrame, n_fast: int =12, n_slow: int =21, column: str = 'y') 
         A dataframe with all the columns from input df, and the added 3 columns.
     """
 
-    EMAfast = pd.Series(df[column].ewm( span = n_fast, min_periods = n_slow - 1).mean())
-    EMAslow = pd.Series(df[column].ewm( span = n_slow, min_periods = n_slow - 1).mean())
-    if column == 'y':
-        MACD = pd.Series(EMAfast - EMAslow, name = 'MACD_' + str(n_fast) + '_' + str(n_slow))
-        MACDsign = pd.Series(MACD.ewm( span = 9, min_periods = 8).mean(), name = 'MACDsign_' + str(n_fast) + '_' + str(n_slow))
-        MACDdiff = pd.Series(MACD - MACDsign, name = 'MACDdiff_' + str(n_fast) + '_' + str(n_slow))
+    EMAfast = pd.Series(df[column].ewm(span=n_fast, min_periods=n_slow - 1).mean())
+    EMAslow = pd.Series(df[column].ewm(span=n_slow, min_periods=n_slow - 1).mean())
+    if column == "y":
+        MACD = pd.Series(
+            EMAfast - EMAslow, name="MACD_" + str(n_fast) + "_" + str(n_slow)
+        )
+        MACDsign = pd.Series(
+            MACD.ewm(span=9, min_periods=8).mean(),
+            name="MACDsign_" + str(n_fast) + "_" + str(n_slow),
+        )
+        MACDdiff = pd.Series(
+            MACD - MACDsign, name="MACDdiff_" + str(n_fast) + "_" + str(n_slow)
+        )
     else:
-        MACD = pd.Series(EMAfast - EMAslow, name = column + '_MACD_' + str(n_fast) + '_' + str(n_slow))
-        MACDsign = pd.Series(MACD.ewm( span = 9, min_periods = 8).mean(), name = column + '_MACDsign_' + str(n_fast) + '_' + str(n_slow))
-        MACDdiff = pd.Series(MACD - MACDsign, name = column + '_MACDdiff_' + str(n_fast) + '_' + str(n_slow))
+        MACD = pd.Series(
+            EMAfast - EMAslow, name=column + "_MACD_" + str(n_fast) + "_" + str(n_slow)
+        )
+        MACDsign = pd.Series(
+            MACD.ewm(span=9, min_periods=8).mean(),
+            name=column + "_MACDsign_" + str(n_fast) + "_" + str(n_slow),
+        )
+        MACDdiff = pd.Series(
+            MACD - MACDsign,
+            name=column + "_MACDdiff_" + str(n_fast) + "_" + str(n_slow),
+        )
     df = df.join(MACD)
     df = df.join(MACDsign)
     df = df.join(MACDdiff)
     return df
 
-
-
-    def _ewma(
-        arr: np.ndarray,
-        span: int,
-        min_periods: int
-    ):
+    def _ewma(arr: np.ndarray, span: int, min_periods: int):
         """
         Exponentialy weighted moving average specified by a decay ``window``
         to provide better adjustments for small windows via:
@@ -160,12 +177,12 @@ def MACD(df: pd.DataFrame, n_fast: int =12, n_slow: int =21, column: str = 'y') 
         ewma_old = arr[0]
         ewma[0] = ewma_old
         for i in range(1, n):
-            w += (1-alpha)**i
-            ewma_old = ewma_old*(1-alpha) + arr[i]
+            w += (1 - alpha) ** i
+            ewma_old = ewma_old * (1 - alpha) + arr[i]
             ewma[i] = ewma_old / w
 
-        output_subset = ewma[(min_periods-1):]
-        output_array[-len(output_subset):] = output_subset
+        output_subset = ewma[(min_periods - 1) :]
+        output_array[-len(output_subset) :] = output_subset
         return output_array
 
     def _get_nowcasting_np(
@@ -201,47 +218,66 @@ def MACD(df: pd.DataFrame, n_fast: int =12, n_slow: int =21, column: str = 'y') 
 
         # ROC: indicating return comparing to step n back.
         if extra_args is not None and extra_args.get("nowcast_roc", default_status):
-            M = x[(window-1):] - x[:-(window-1)]
-            N = x[:-(window-1)]
+            M = x[(window - 1) :] - x[: -(window - 1)]
+            N = x[: -(window - 1)]
             arr = M / N
-            nowcasting_features[0] = np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0).mean()
+            nowcasting_features[0] = np.nan_to_num(
+                arr, nan=0.0, posinf=0.0, neginf=0.0
+            ).mean()
 
         # MOM: indicating momentum: difference of current value and n steps back.
         if extra_args is not None and extra_args.get("nowcast_mom", default_status):
             M = x[window:] - x[:-window]
-            nowcasting_features[1] = np.nan_to_num(M, nan=0.0, posinf = 0.0, neginf=0.0).mean()
+            nowcasting_features[1] = np.nan_to_num(
+                M, nan=0.0, posinf=0.0, neginf=0.0
+            ).mean()
 
         # MA: indicating moving average in the past n steps.
         if extra_args is not None and extra_args.get("nowcast_ma", default_status):
             ret = np.cumsum(x, dtype=float)
             ret[window:] = ret[window:] - ret[:-window]
-            ma = ret[window - 1:] / window
-            nowcasting_features[2] = np.nan_to_num(ma, nan=0.0, posinf=0.0, neginf=0.0).mean()
+            ma = ret[window - 1 :] / window
+            nowcasting_features[2] = np.nan_to_num(
+                ma, nan=0.0, posinf=0.0, neginf=0.0
+            ).mean()
 
         # LAG: indicating lagged value at the past n steps.
         if extra_args is not None and extra_args.get("nowcast_lag", default_status):
             N = x[:-window]
-            nowcasting_features[3] = np.nan_to_num(N, nan=0.0, posinf=0.0, neginf=0.0).mean()
+            nowcasting_features[3] = np.nan_to_num(
+                N, nan=0.0, posinf=0.0, neginf=0.0
+            ).mean()
 
         # MACD: https://www.investopedia.com/terms/m/macd.asp.
-        ema_fast = _ewma(x, n_fast, n_slow-1)
-        ema_slow = _ewma(x, n_slow, n_slow-1)
+        ema_fast = _ewma(x, n_fast, n_slow - 1)
+        ema_slow = _ewma(x, n_slow, n_slow - 1)
         MACD = ema_fast - ema_slow
         if extra_args is not None and extra_args.get("nowcast_macd", default_status):
-            nowcasting_features[4] = np.nan_to_num(np.nanmean(MACD), nan=0.0, posinf=0.0, neginf=0.0)
+            nowcasting_features[4] = np.nan_to_num(
+                np.nanmean(MACD), nan=0.0, posinf=0.0, neginf=0.0
+            )
 
         MACDsign = _ewma(MACD, 9, 8)
-        if extra_args is not None and extra_args.get("nowcast_macdsign", default_status):
-            nowcasting_features[5] = np.nan_to_num(np.nanmean(MACDsign), nan=0.0, posinf=0.0, neginf=0.0)
+        if extra_args is not None and extra_args.get(
+            "nowcast_macdsign", default_status
+        ):
+            nowcasting_features[5] = np.nan_to_num(
+                np.nanmean(MACDsign), nan=0.0, posinf=0.0, neginf=0.0
+            )
 
         MACDdiff = MACD - MACDsign
-        if extra_args is not None and extra_args.get("nowcast_macddiff", default_status):
-            nowcasting_features[6] = np.nan_to_num(np.nanmean(MACDdiff), nan=0.0, posinf=0.0, neginf=0.0)
+        if extra_args is not None and extra_args.get(
+            "nowcast_macddiff", default_status
+        ):
+            nowcasting_features[6] = np.nan_to_num(
+                np.nanmean(MACDdiff), nan=0.0, posinf=0.0, neginf=0.0
+            )
 
         return nowcasting_features
 
-def BBANDS(df, n: int, column: str = 'y') -> pd.DataFrame:
-    '''Adds two Bolllinger Band columns
+
+def BBANDS(df, n: int, column: str = "y") -> pd.DataFrame:
+    """Adds two Bolllinger Band columns
 
     A Bollinger Band is a technical analysis tool defined by a
     set of trendlines plotted two standard deviations (positively and negatively)
@@ -257,20 +293,21 @@ def BBANDS(df, n: int, column: str = 'y') -> pd.DataFrame:
 
     Returns:
         A dataframe with all the columns from input df, and the added 2 BollingerBand columns.
-    '''
+    """
     close = df[column]
     MA = pd.Series(close.rolling(n).mean())
     MSD = pd.Series(close.rolling(n).std())
     b1 = 4 * MSD / MA
-    B1 = pd.Series(b1, name = 'BollingerBand1_' + str(n))
+    B1 = pd.Series(b1, name="BollingerBand1_" + str(n))
     df = df.join(B1)
     b2 = (close - MA + 2 * MSD) / (4 * MSD)
-    B2 = pd.Series(b2, name = 'BollingerBand2_' + str(n))
+    B2 = pd.Series(b2, name="BollingerBand2_" + str(n))
     df = df.join(B2)
     return df
 
-def TRIX(df, n: int, column: str = 'y') -> pd.DataFrame:
-    '''Adds the TRIX indicator column
+
+def TRIX(df, n: int, column: str = "y") -> pd.DataFrame:
+    """Adds the TRIX indicator column
 
     The triple exponential average (TRIX) indicator is an oscillator
     used to identify oversold and overbought markets, and it can
@@ -285,11 +322,11 @@ def TRIX(df, n: int, column: str = 'y') -> pd.DataFrame:
 
     Returns:
         A dataframe with all the columns from input df, and the added TRIX column.
-    '''
+    """
     close = df[column]
-    EX1 = close.ewm( span = n, min_periods = n - 1).mean()
-    EX2 = EX1.ewm( span = n, min_periods = n - 1).mean()
-    EX3 = EX2.ewm( span = n, min_periods = n - 1).mean()
+    EX1 = close.ewm(span=n, min_periods=n - 1).mean()
+    EX2 = EX1.ewm(span=n, min_periods=n - 1).mean()
+    EX3 = EX2.ewm(span=n, min_periods=n - 1).mean()
 
     i = 0
     ROC_l = [0]
@@ -297,12 +334,13 @@ def TRIX(df, n: int, column: str = 'y') -> pd.DataFrame:
         ROC = (EX3[i + 1] - EX3[i]) / EX3[i]
         ROC_l.append(ROC)
         i = i + 1
-    Trix = pd.Series(ROC_l, name = 'TRIX_' + str(n))
+    Trix = pd.Series(ROC_l, name="TRIX_" + str(n))
     df = df.join(Trix)
     return df
 
-def EMA(df, n: int, column: str = 'y') -> pd.DataFrame:
-    '''Adds the Exponetial Moving Average column
+
+def EMA(df, n: int, column: str = "y") -> pd.DataFrame:
+    """Adds the Exponetial Moving Average column
 
     The exponential moving average (EMA) is a technical chart indicator that
     tracks the price of an investment (like a stock or commodity) over time.
@@ -318,14 +356,15 @@ def EMA(df, n: int, column: str = 'y') -> pd.DataFrame:
 
     Returns:
         A dataframe with all the columns from input df, and the added EMA column.
-    '''
+    """
     close = df[column]
-    EMA = pd.Series(close.ewm( span = n, min_periods = n - 1).mean(), name = 'EMA_' + str(n))
+    EMA = pd.Series(close.ewm(span=n, min_periods=n - 1).mean(), name="EMA_" + str(n))
     df = df.join(EMA)
     return df
 
-def TSI(df, r: int, s: int, column: str = 'y') -> pd.DataFrame:
-    '''Adds the TSI column
+
+def TSI(df, r: int, s: int, column: str = "y") -> pd.DataFrame:
+    """Adds the TSI column
 
     The true strength index (TSI) is a technical momentum oscillator
     used to identify trends and reversals
@@ -340,20 +379,21 @@ def TSI(df, r: int, s: int, column: str = 'y') -> pd.DataFrame:
 
     Returns:
         A dataframe with all the columns from input df, and the added TSI column.
-    '''
+    """
     close = df[column]
     M = pd.Series(close.diff(1))
     aM = abs(M)
-    EMA1 = pd.Series(M.ewm( span = r, min_periods = r - 1).mean())
-    aEMA1 = pd.Series(aM.ewm(span = r, min_periods = r - 1).mean())
-    EMA2 = pd.Series(EMA1.ewm( span = s, min_periods = s - 1).mean())
-    aEMA2 = pd.Series(aEMA1.ewm( span = s, min_periods = s - 1).mean())
-    TSI = pd.Series(EMA2 / aEMA2, name = 'TSI_' + str(r) + '_' + str(s))
+    EMA1 = pd.Series(M.ewm(span=r, min_periods=r - 1).mean())
+    aEMA1 = pd.Series(aM.ewm(span=r, min_periods=r - 1).mean())
+    EMA2 = pd.Series(EMA1.ewm(span=s, min_periods=s - 1).mean())
+    aEMA2 = pd.Series(aEMA1.ewm(span=s, min_periods=s - 1).mean())
+    TSI = pd.Series(EMA2 / aEMA2, name="TSI_" + str(r) + "_" + str(s))
     df = df.join(TSI)
     return df
 
-def RSI(df, n: int, column: str = 'y') -> pd.DataFrame:
-    '''
+
+def RSI(df, n: int, column: str = "y") -> pd.DataFrame:
+    """
     Relative Strength Index (RSI)
     Compares the magnitude of recent gains and losses over a specified time
     period to measure speed and change of price movements of a security. It is
@@ -370,15 +410,20 @@ def RSI(df, n: int, column: str = 'y') -> pd.DataFrame:
     Returns:
         A dataframe with all the columns from input df, and the added RSI column.
 
-    '''
+    """
     close = df[column]
     diff = close.diff(1)
     up_direction = diff.where(diff > 0, 0.0)
     down_direction = -diff.where(diff < 0, 0.0)
     min_periods = n
     emaup = up_direction.ewm(alpha=1 / n, min_periods=min_periods, adjust=False).mean()
-    emadn = down_direction.ewm(alpha=1 / n, min_periods=min_periods, adjust=False).mean()
+    emadn = down_direction.ewm(
+        alpha=1 / n, min_periods=min_periods, adjust=False
+    ).mean()
     relative_strength = emaup / emadn
-    rsi_col = pd.Series(np.where(emadn == 0, 100, 100 - (100 / (1 + relative_strength))), name = 'RSI_' + str(n))
+    rsi_col = pd.Series(
+        np.where(emadn == 0, 100, 100 - (100 / (1 + relative_strength))),
+        name="RSI_" + str(n),
+    )
     df = df.join(rsi_col)
     return df

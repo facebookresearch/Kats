@@ -5,10 +5,9 @@
 import logging
 from typing import Generic, Optional, TypeVar
 
-from matplotlib import pyplot as plt
 import pandas as pd
-
 from kats.consts import TimeSeriesData
+from matplotlib import pyplot as plt
 
 ParamsType = TypeVar("ParamsType")
 

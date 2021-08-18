@@ -11,6 +11,7 @@ import pandas as pd
 
 try:
     import plotly.graph_objs as go
+
     _no_plotly = False
     Figure = go.Figure
 except ImportError:
@@ -18,19 +19,17 @@ except ImportError:
     Figure = Any
 
 
-def plot_scatter_with_confints(
-    val: List[float], confint: np.ndarray, title
-) -> Figure:
+def plot_scatter_with_confints(val: List[float], confint: np.ndarray, title) -> Figure:
     """Plots a scatter plot with confidence intervals used to plot ACF and PACF
-            Parameters
-            ----------
-            val: list containing the values
-            confint: two dimensional ndarray; confint[:, 0] is the lower confidence
-                     interval; confint[:, 1] is the upper
-            title: Title of the plot
-            Returns
-            -------
-            Plot with confidence intervals
+    Parameters
+    ----------
+    val: list containing the values
+    confint: two dimensional ndarray; confint[:, 0] is the lower confidence
+             interval; confint[:, 1] is the upper
+    title: Title of the plot
+    Returns
+    -------
+    Plot with confidence intervals
     """
     if _no_plotly:
         raise RuntimeError("requires plotly to be installed")
@@ -85,18 +84,18 @@ def make_fourier_plot(
     title: str = "DFT Plot",
 ) -> Figure:
     """Plots a scatter plot with fft highlighting the thresholds, peaks,
-        and selected peaks
-            Parameters
-            ----------
-            fft: fft information
-            threshold: outlier threshold
-            orig_peaks: all the peaks
-            peaks: selected peaks
-            xlabel: label for the X axis
-            ylabel: label for the Y axis
-            Returns
-            -------
-            FFT plot
+    and selected peaks
+        Parameters
+        ----------
+        fft: fft information
+        threshold: outlier threshold
+        orig_peaks: all the peaks
+        peaks: selected peaks
+        xlabel: label for the X axis
+        ylabel: label for the Y axis
+        Returns
+        -------
+        FFT plot
     """
     if _no_plotly:
         raise RuntimeError("requires plotly to be installed")
@@ -138,19 +137,17 @@ def make_fourier_plot(
 
 
 def plot_fitted_harmonics(
-    times: pd.Series,
-    original_values: pd.Series,
-    fitted_values: np.ndarray
+    times: pd.Series, original_values: pd.Series, fitted_values: np.ndarray
 ) -> Figure:
     """Plots a scatter plot of the fitted harmonics
-        Parameters
-        ----------
-        times: date list of the time series
-        original_values: values of the original function
-        fitted_values: fitted values
-        Returns
-        -------
-        Plot with fitted harmonics
+    Parameters
+    ----------
+    times: date list of the time series
+    original_values: values of the original function
+    fitted_values: fitted values
+    Returns
+    -------
+    Plot with fitted harmonics
     """
     if _no_plotly:
         raise RuntimeError("requires plotly to be installed")

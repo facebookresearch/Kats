@@ -6,15 +6,17 @@ import logging
 from typing import Dict, List, Optional
 
 import pandas as pd
+
 try:
     from fbprophet import Prophet
+
     _no_prophet = False
 except ImportError:
     _no_prophet = True
     Prophet = dict  # for Pyre
 
-from kats.consts import Params, TimeSeriesData
 import kats.models.model as m
+from kats.consts import Params, TimeSeriesData
 from kats.utils.parameter_tuning_utils import (
     get_default_prophet_parameter_search_space,
 )
@@ -77,6 +79,7 @@ class ProphetParams(Params):
         custom_seasonlities: customized seasonalities, dict with keys
             "name", "period", "fourier_order"
     """
+
     def __init__(
         self,
         growth="linear",
@@ -119,8 +122,7 @@ class ProphetParams(Params):
         self.cap = cap
         self.floor = floor
         self.custom_seasonalities = (
-            [] if custom_seasonalities is None
-            else custom_seasonalities
+            [] if custom_seasonalities is None else custom_seasonalities
         )
         logging.debug(
             "Initialized Prophet with parameters. "
@@ -199,6 +201,7 @@ class ProphetModel(m.Model):
         data: the input time series data as in :class:`kats.consts.TimeSeriesData`
         params: the parameter class definied with `ProphetParams`
     """
+
     def __init__(self, data: TimeSeriesData, params: ProphetParams) -> None:
         super().__init__(data, params)
         if _no_prophet:
@@ -324,9 +327,8 @@ class ProphetModel(m.Model):
             # pyre-fixme[16]: `ProphetModel` has no attribute `model`.
             # pyre-fixme[16]: `Params` has no attribute `cap`.
             future = self.model.make_future_dataframe(
-                periods=steps,
-                freq=self.freq,
-                include_history=self.include_history)
+                periods=steps, freq=self.freq, include_history=self.include_history
+            )
             if self.params.growth == "logistic":
                 # assign cap to a new col as Prophet required
                 future["cap"] = self.params.cap
@@ -354,8 +356,7 @@ class ProphetModel(m.Model):
         return self.fcst_df
 
     def plot(self):
-        """plot forecasted results from Prophet model
-        """
+        """plot forecasted results from Prophet model"""
         logging.info("Generating chart for forecast result from Prophet model.")
         m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
 
@@ -364,8 +365,7 @@ class ProphetModel(m.Model):
 
     @staticmethod
     def get_parameter_search_space() -> List[Dict[str, object]]:
-        """get default parameter search space for Prophet model
-        """
+        """get default parameter search space for Prophet model"""
         # pyre-fixme[7]: Expected `List[Dict[str, object]]` but got `List[Dict[str,
         #  typing.Union[List[typing.Any], bool, str]]]`.
         return get_default_prophet_parameter_search_space()

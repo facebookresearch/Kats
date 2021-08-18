@@ -18,14 +18,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Tuple
 
+import kats.models.model as m
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from kats.consts import Params, TimeSeriesData
 from numpy.linalg import inv  # @manual
 from scipy.linalg import block_diag  # @manual
-
-from kats.consts import Params, TimeSeriesData
-import kats.models.model as m
 
 
 @dataclass
@@ -148,10 +147,11 @@ class BayesianVAR(m.Model):
             point_pred = self._evaluate_point_t(self.X, self.Y, t)
             time = self.X[:, t].item()
             times.append(time)
-            residuals.append(self.Y[:, t]-point_pred)
+            residuals.append(self.Y[:, t] - point_pred)
         times_new = [self.start_date + timedelta(days=x) for x in times]
-        df_resid = pd.DataFrame(residuals, index=times_new,
-                                columns=self.data.value.columns)
+        df_resid = pd.DataFrame(
+            residuals, index=times_new, columns=self.data.value.columns
+        )
 
         return df_resid
 

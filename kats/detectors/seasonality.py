@@ -27,27 +27,28 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
 try:
     import plotly.graph_objs as go
+
     Figure = go.Figure
 except ImportError:
     Figure = Any
 import scipy.fftpack as fp
-from scipy.signal import find_peaks  # @manual
 import statsmodels.api as sm
-from statsmodels.tsa.stattools import acf
-
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import Detector
 from kats.graphics.plots import make_fourier_plot
 from kats.utils.decomposition import TimeSeriesDecomposition
+from scipy.signal import find_peaks  # @manual
+from statsmodels.tsa.stattools import acf
 
 # from numpy.typing import ArrayLike
 ArrayLike = Union[np.ndarray, Sequence[float]]
 
 
 class ACFDetector(Detector):
-    """ Autocorrelation function seasonality detector.
+    """Autocorrelation function seasonality detector.
 
     Use acf to detect seasonality, and find out the potential cycle lengths
 
@@ -83,10 +84,9 @@ class ACFDetector(Detector):
 
     # pyre-fixme[14]: Inconsistent override [14]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Could not find parameter `method` in overriding signature.
     # pyre-fixme[14]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Returned type `Dict[str, typing.Any]` is not a subtype of the overridden return `None`.
-    def detector(self,
-                 lags: Optional[int]=None,
-                 diff: int=1,
-                 alpha: Optional[float]=0.01) -> Dict[str, Any]:
+    def detector(
+        self, lags: Optional[int] = None, diff: int = 1, alpha: Optional[float] = 0.01
+    ) -> Dict[str, Any]:
         """Detect seasonality
 
         This method runs acf and returns if seasonality detected in the given time series
@@ -148,10 +148,12 @@ class ACFDetector(Detector):
 
     # pyre-fixme[14]: `kats.detectors.seasonality.ACFDetector.remover` overrides method defined in `Detector` inconsistently. Could not find parameter `interpolate` in overriding signature.
     # pyre-fixme[15]: `kats.detectors.seasonality.ACFDetector.remover` overrides method defined in `Detector` inconsistently. Returned type `Optional[Dict[str, typing.Any]]` is not a subtype of the overridden return `TimeSeriesData`.
-    def remover(self,
-                decom: Type=TimeSeriesDecomposition,
-                model: str="additive",
-                decompose_any_way: bool=False) -> Optional[Dict[str, Any]]:
+    def remover(
+        self,
+        decom: Type = TimeSeriesDecomposition,
+        model: str = "additive",
+        decompose_any_way: bool = False,
+    ) -> Optional[Dict[str, Any]]:
         """Remove the seasonality in the time series
 
         Args:

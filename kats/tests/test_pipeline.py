@@ -2,38 +2,39 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import io
 import os
 import pkgutil
-import io
+import re
 from unittest import TestCase
 
-import re
-import statsmodels
 import numpy as np
 import pandas as pd
+import statsmodels
 from kats.consts import TimeSeriesData
-from kats.utils.cupik import Pipeline
 from kats.detectors.trend_mk import MKDetector
 from kats.models.theta import ThetaParams, ThetaModel
+from kats.utils.cupik import Pipeline
 
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
 
+
 def load_data(file_name):
-    ROOT="kats"
+    ROOT = "kats"
     if "kats" in os.getcwd().lower():
-        path = 'data/'
+        path = "data/"
     else:
-        path = 'kats/data/'
-    data_object =  pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding='utf8')
+        path = "kats/data/"
+    data_object = pkgutil.get_data(ROOT, path + file_name)
+    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 class cupikTest(TestCase):
     def setUp(self):
-        DATA = load_data('air_passengers.csv')
+        DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
 
@@ -50,7 +51,8 @@ class cupikTest(TestCase):
             ]
         )
         pipe.fit(
-            self.TSData, params={"trend_detector": {"window_size": 7, "direction": "up"}}
+            self.TSData,
+            params={"trend_detector": {"window_size": 7, "direction": "up"}},
         )
 
         self.assertEqual(len(pipe.metadata["trend_detector"][0]), 50)

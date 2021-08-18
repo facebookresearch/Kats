@@ -96,7 +96,9 @@ class BaseEnsemble:
             logging.error(msg)
             raise ValueError(msg)
 
-    def fit(self,):
+    def fit(
+        self,
+    ):
         """Fit method for ensemble model
 
         This method fits each individual model for ensembling
@@ -153,8 +155,7 @@ class BaseEnsemble:
         return predicted
 
     def plot(self):
-        """Plot method for ensemble model (not implemented yet)
-        """
+        """Plot method for ensemble model (not implemented yet)"""
 
         pass
 

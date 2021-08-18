@@ -13,25 +13,24 @@ forecasting results.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-
-import numpy as np
-import pandas as pd
 import math
 from copy import copy
-import kats.models.model as m
-from kats.consts import Params, TimeSeriesData
 from typing import List, Dict
-from kats.utils.decomposition import TimeSeriesDecomposition
+
+import kats.models.model as m
+import numpy as np
+import pandas as pd
+from kats.consts import Params, TimeSeriesData
 from kats.models import (
     linear_model,
     prophet,
     quadratic_model,
     theta,
 )
-from kats.utils.parameter_tuning_utils import (
-    get_default_stlf_parameter_search_space
-)
-MODELS = ['prophet', "linear", "quadratic", "theta"]
+from kats.utils.decomposition import TimeSeriesDecomposition
+from kats.utils.parameter_tuning_utils import get_default_stlf_parameter_search_space
+
+MODELS = ["prophet", "linear", "quadratic", "theta"]
 
 
 class STLFParams(Params):
@@ -59,8 +58,7 @@ class STLFParams(Params):
         logging.debug("Initialized STFLParams instance.")
 
     def validate_params(self):
-        """Validate the parameters for STLF model
-        """
+        """Validate the parameters for STLF model"""
 
         logging.info("Method validate_params() is not implemented.")
         pass
@@ -124,38 +122,32 @@ class STLFModel(m.Model):
             The fitted STLF model object
         """
 
-        logging.debug("Call fit() with parameters. "
-        "kwargs:{kwargs}".format(
-            kwargs=kwargs
-        ))
+        logging.debug(
+            "Call fit() with parameters. " "kwargs:{kwargs}".format(kwargs=kwargs)
+        )
         self.deseasonalize()
         if self.params.method == "prophet":
             params = prophet.ProphetParams()
             model = prophet.ProphetModel(
                 # pyre-fixme[16]: `STLFModel` has no attribute `desea_data`.
                 data=self.desea_data,
-                params=params)
+                params=params,
+            )
             model.fit()
 
         if self.params.method == "theta":
             params = theta.ThetaParams(m=1)
-            model = theta.ThetaModel(
-                data=self.desea_data,
-                params=params)
+            model = theta.ThetaModel(data=self.desea_data, params=params)
             model.fit()
 
         if self.params.method == "linear":
             params = linear_model.LinearModelParams()
-            model = linear_model.LinearModel(
-                data=self.desea_data,
-                params=params)
+            model = linear_model.LinearModel(data=self.desea_data, params=params)
             model.fit()
 
         if self.params.method == "quadratic":
             params = quadratic_model.QuadraticModelParams()
-            model = quadratic_model.QuadraticModel(
-                data=self.desea_data,
-                params=params)
+            model = quadratic_model.QuadraticModel(data=self.desea_data, params=params)
             model.fit()
         # pyre-fixme[16]: `STLFModel` has no attribute `model`.
         # pyre-fixme[61]: `model` may not be initialized here.
@@ -178,10 +170,10 @@ class STLFModel(m.Model):
             `time`, `fcst`, `fcst_lower`, and `fcst_upper`
         """
 
-        logging.debug("Call predict() with parameters. "
-        "steps:{steps}, kwargs:{kwargs}".format(
-            steps=steps, kwargs=kwargs
-        ))
+        logging.debug(
+            "Call predict() with parameters. "
+            "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
+        )
         # pyre-fixme[16]: `STLFModel` has no attribute `include_history`.
         self.include_history = include_history
         # pyre-fixme[16]: `STLFModel` has no attribute `freq`.
@@ -202,12 +194,16 @@ class STLFModel(m.Model):
         seasonality = self.decomp["seasonal"].value[-m:]
 
         # pyre-fixme[16]: `STLFModel` has no attribute `y_fcst`.
-        self.y_fcst = fcst.fcst * np.tile(seasonality, rep)[:fcst.shape[0]]
+        self.y_fcst = fcst.fcst * np.tile(seasonality, rep)[: fcst.shape[0]]
         if ("fcst_lower" in fcst.columns) and ("fcst_upper" in fcst.columns):
             # pyre-fixme[16]: `STLFModel` has no attribute `fcst_lower`.
-            self.fcst_lower = fcst.fcst_lower * np.tile(seasonality, rep)[:fcst.shape[0]]
+            self.fcst_lower = (
+                fcst.fcst_lower * np.tile(seasonality, rep)[: fcst.shape[0]]
+            )
             # pyre-fixme[16]: `STLFModel` has no attribute `fcst_upper`.
-            self.fcst_upper = fcst.fcst_upper * np.tile(seasonality, rep)[:fcst.shape[0]]
+            self.fcst_upper = (
+                fcst.fcst_upper * np.tile(seasonality, rep)[: fcst.shape[0]]
+            )
         logging.info("Generated forecast data from STLF model.")
         logging.debug("Forecast data: {fcst}".format(fcst=self.y_fcst))
 
@@ -226,7 +222,7 @@ class STLFModel(m.Model):
                 "time": self.dates,
                 "fcst": self.y_fcst,
                 "fcst_lower": self.fcst_lower,
-                "fcst_upper": self.fcst_upper
+                "fcst_upper": self.fcst_upper,
             }
         )
 
@@ -234,12 +230,10 @@ class STLFModel(m.Model):
         return self.fcst_df
 
     def plot(self):
-        """plot forecasted results from Prophet model
-        """
+        """plot forecasted results from Prophet model"""
 
         logging.info("Generating chart for forecast result from STLF model.")
         m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
-
 
     def __str__(self):
         """AR net moddel as a string

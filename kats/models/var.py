@@ -23,13 +23,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 from typing import Any, Dict, List
 
-from matplotlib import pyplot as plt
-import pandas as pd
-from statsmodels.tsa.api import VAR
-
-from kats.consts import Params, TimeSeriesData
 import kats.models.model as m
+import pandas as pd
+from kats.consts import Params, TimeSeriesData
 from kats.utils.parameter_tuning_utils import get_default_var_parameter_search_space
+from matplotlib import pyplot as plt
+from statsmodels.tsa.api import VAR
 
 
 class VARParams(Params):

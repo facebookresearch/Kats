@@ -192,7 +192,8 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(
             # pyre-fixme[16]: `TimeSeriesParameterTuning` has no attribute
             #  `_random_strategy_model`.
-            time_series_parameter_tuner._random_strategy_model.model, UniformGenerator
+            time_series_parameter_tuner._random_strategy_model.model,
+            UniformGenerator,
         )
         for _ in range(3):
             time_series_parameter_tuner.generate_evaluate_new_parameter_values(
@@ -220,7 +221,8 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(
             # pyre-fixme[16]: `TimeSeriesParameterTuning` has no attribute
             #  `_random_strategy_model`.
-            time_series_parameter_tuner._random_strategy_model.model, SobolGenerator
+            time_series_parameter_tuner._random_strategy_model.model,
+            SobolGenerator,
         )
         for _ in range(4):
             time_series_parameter_tuner.generate_evaluate_new_parameter_values(
@@ -459,12 +461,16 @@ class TestSearchForMultipleSpaces(TestCase):
             search_for_multiple_spaces.list_parameter_value_scores()
         )
         self.assertIsInstance(parameter_values_with_scores, dict)
-        parameter_values_with_scores = search_for_multiple_spaces.list_parameter_value_scores(
-            selected_model="space1"
+        parameter_values_with_scores = (
+            search_for_multiple_spaces.list_parameter_value_scores(
+                selected_model="space1"
+            )
         )
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
-        parameter_values_with_scores = search_for_multiple_spaces.list_parameter_value_scores(
-            selected_model="space2"
+        parameter_values_with_scores = (
+            search_for_multiple_spaces.list_parameter_value_scores(
+                selected_model="space2"
+            )
         )
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
 

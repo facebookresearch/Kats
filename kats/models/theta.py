@@ -12,19 +12,19 @@ For more details refer to: https://robjhyndman.com/papers/Theta.pdf
 from __future__ import annotations
 
 import logging
+import math
+from copy import copy
+from typing import Any, Dict, List, Optional
 
 import kats.models.model as m
 import numpy as np
 import pandas as pd
-import math
-from copy import copy
-from scipy.stats import norm  # @manual
 from kats.consts import Params, TimeSeriesData
-from statsmodels.tsa.stattools import acf
-from statsmodels.tsa.holtwinters import HoltWintersResults, SimpleExpSmoothing
 from kats.utils.decomposition import TimeSeriesDecomposition
-from typing import Any, Dict, List, Optional
 from kats.utils.parameter_tuning_utils import get_default_theta_parameter_search_space
+from scipy.stats import norm  # @manual
+from statsmodels.tsa.holtwinters import HoltWintersResults, SimpleExpSmoothing
+from statsmodels.tsa.stattools import acf
 
 
 class ThetaParams(Params):

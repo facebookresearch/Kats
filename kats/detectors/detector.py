@@ -47,7 +47,7 @@ class Detector(ABC):
         """
         outliers = self.outliers
         if outliers is None:
-          return self.data
+            return self.data
 
         df = []
         self.detector()

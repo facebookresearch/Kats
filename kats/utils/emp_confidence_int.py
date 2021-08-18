@@ -16,10 +16,9 @@ from typing import List, Optional, Type
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy import stats
-
 from kats.consts import Params, TimeSeriesData
 from kats.utils.backtesters import BackTesterRollingWindow
+from scipy import stats
 
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
@@ -155,7 +154,7 @@ class EmpConfidenceInt:
         """
         y = self.SE
         if y is None:
-            raise ValueError('Must call run_cv() before get_lr().')
+            raise ValueError("Must call run_cv() before get_lr().")
         X = pd.DataFrame(
             {
                 "horizon": np.arange(1, len(y) + 1),
@@ -222,8 +221,7 @@ class EmpConfidenceInt:
         fig.tight_layout()
 
     def plot(self):
-        """Make plot for model fitting with new uncertainty intervals
-        """
+        """Make plot for model fitting with new uncertainty intervals"""
         logging.info("Generating chart for forecast result with emp. conf. intervals.")
         fig = plt.figure(facecolor="w", figsize=(10, 6))
         ax = fig.add_subplot(111)

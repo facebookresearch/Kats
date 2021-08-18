@@ -54,7 +54,7 @@ default_model_params = {
     "statsig": {
         "categorical_idx": [],
         "numerical_idx": ["n_control", "n_test"],
-    }
+    },
 }
 
 default_model_networks = {
@@ -274,7 +274,9 @@ class MetaLearnHPT:
         return res
 
     @staticmethod
-    def _get_hidden_and_output_num(n_hidden_num: List[int], out_dim_num: int) -> List[int]:
+    def _get_hidden_and_output_num(
+        n_hidden_num: List[int], out_dim_num: int
+    ) -> List[int]:
         # If there is no numerical variable, out_dim_num = []
         if not out_dim_num:
             return []
@@ -390,7 +392,7 @@ class MetaLearnHPT:
             else None
         )
         y_num = (
-            torch.from_numpy(self._target_num[train_idx, :].astype('float')).float()
+            torch.from_numpy(self._target_num[train_idx, :].astype("float")).float()
             if self.numerical_idx
             else None
         )
@@ -403,7 +405,7 @@ class MetaLearnHPT:
             else None
         )
         y_num_val = (
-            torch.from_numpy(self._target_num[val_idx, :].astype('float')).float()
+            torch.from_numpy(self._target_num[val_idx, :].astype("float")).float()
             if self.numerical_idx
             else None
         )
@@ -475,7 +477,9 @@ class MetaLearnHPT:
         elif method == "Adam":
             optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         else:
-            raise _log_error("Only support SGD and Adam optimaizer. Please use 'SGD' or 'Adam'.")
+            raise _log_error(
+                "Only support SGD and Adam optimaizer. Please use 'SGD' or 'Adam'."
+            )
 
         if val_size <= 0 or val_size >= 1:
             raise _log_error("Illegal validation size.")
@@ -487,7 +491,9 @@ class MetaLearnHPT:
 
         # validate batch size
         if batch_size >= x_fs.size()[0]:
-            raise _log_error(f"batch_size {batch_size} is larger than training data size {x_fs.size()[0]}!")
+            raise _log_error(
+                f"batch_size {batch_size} is larger than training data size {x_fs.size()[0]}!"
+            )
 
         # variables for early stopping
         min_val_loss = np.inf
@@ -553,7 +559,9 @@ class MetaLearnHPT:
         ts = TimeSeriesData(pd.DataFrame(source_ts.to_dataframe().copy()))
 
         if self.model is None:
-            raise _log_error("Haven't trained a model. Please train a model or load a model before predicting.")
+            raise _log_error(
+                "Haven't trained a model. Please train a model or load a model before predicting."
+            )
 
         if ts_scale:
             # scale time series to make ts features more stable
@@ -601,7 +609,9 @@ class MetaLearnHPT:
         """
 
         if self.model is None:
-            raise _log_error("Haven't trained a model. Please train a model or load a model before predicting.")
+            raise _log_error(
+                "Haven't trained a model. Please train a model or load a model before predicting."
+            )
         if isinstance(source_x, List):
             x = np.row_stack(source_x)
         elif isinstance(source_x, pd.DataFrame):
@@ -666,7 +676,9 @@ class MetaLearnHPT:
         try:
             self.__dict__ = joblib.load(file_path)
         except Exception as e:
-            raise _log_error(f"Fail to load model from {file_path}, and error message is: {e}")
+            raise _log_error(
+                f"Fail to load model from {file_path}, and error message is: {e}"
+            )
 
     def plot(self):
         """Plot loss paths of classification/regression on both training and validation set."""
