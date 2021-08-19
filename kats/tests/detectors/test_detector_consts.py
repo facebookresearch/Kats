@@ -257,8 +257,9 @@ class ChangePointIntervalTest(TestCase):
             )
 
 
-class PercentageChangeTest(TestCase):
-    def test_perc_change(self) -> None:
+class UnivariatePercentageChangeTest(TestCase):
+    # test for univariate time series
+    def setUp(self):
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -273,55 +274,34 @@ class PercentageChangeTest(TestCase):
         previous_values = 1.0 + 0.25 * np.random.randn(len(previous_seq))
         current_values = 10.0 + 0.25 * np.random.randn(len(current_seq))
 
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `previous`.
-        self.previous = TimeSeriesData(
+        previous = TimeSeriesData(
             pd.DataFrame({"time": previous_seq, "value": previous_values})
         )
 
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current`.
-        self.current = TimeSeriesData(
+        current = TimeSeriesData(
             pd.DataFrame({"time": current_seq, "value": current_values})
         )
-
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_start`.
-        self.prev_start = previous_seq[0]
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_end`.
-        self.prev_end = previous_seq[9]
-
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_start`.
-        self.current_start = current_seq[0]
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_end`.
-        self.current_end = current_seq[-1]
 
         previous_int = ChangePointInterval(
             previous_seq[0], (previous_seq[-1] + timedelta(days=1))
         )
-        previous_int.data = self.previous
+        previous_int.data = previous
 
         current_int = ChangePointInterval(
             current_seq[0], (current_seq[-1] + timedelta(days=1))
         )
-        current_int.data = self.current
+        current_int.data = current
         current_int.previous_interval = previous_int
 
-        perc_change_1 = PercentageChange(current=current_int, previous=previous_int)
+        self.perc_change_1 = PercentageChange(
+            current=current_int, previous=previous_int
+        )
 
         previous_mean = np.mean(previous_values)
         current_mean = np.mean(current_values)
 
         # test the ratios
-        ratio_val = current_mean / previous_mean
-        self.assertEqual(perc_change_1.ratio_estimate, ratio_val)
-
-        ratio_estimate = perc_change_1.ratio_estimate
-        assert isinstance(ratio_estimate, float)
-        self.assertAlmostEqual(ratio_estimate, 10.0, 0)
-
-        self.assertEqual(perc_change_1.perc_change, (ratio_val - 1) * 100)
-        self.assertEqual(perc_change_1.direction, "up")
-        self.assertEqual(perc_change_1.stat_sig, True)
-        self.assertTrue(perc_change_1.p_value < 0.05)
-        self.assertTrue(perc_change_1.score > 1.96)
+        self.ratio_val_1 = current_mean / previous_mean
 
         # test a detector with false stat sig
         second_values = 10.005 + 0.25 * np.random.randn(len(previous_seq))
@@ -332,24 +312,54 @@ class PercentageChangeTest(TestCase):
         second_int = ChangePointInterval(previous_seq[0], previous_seq[-1])
         second_int.data = second
 
-        perc_change_2 = PercentageChange(current=current_int, previous=second_int)
-        self.assertEqual(perc_change_2.stat_sig, False)
-        self.assertFalse(perc_change_2.p_value < 0.05)
-        self.assertFalse(perc_change_2.score > 1.96)
+        self.perc_change_2 = PercentageChange(current=current_int, previous=second_int)
 
         # test the edge case when one of the intervals
         # contains a single data point
         current_int_2 = ChangePointInterval(current_seq[0], current_seq[1])
 
-        current_int_2.data = self.current
+        current_int_2.data = current
 
-        perc_change_3 = PercentageChange(current=current_int_2, previous=previous_int)
-        self.assertTrue(perc_change_3.score > 1.96)
+        self.perc_change_3 = PercentageChange(
+            current=current_int_2, previous=previous_int
+        )
 
-        # TODO delta method tests
+    @parameterized.expand([["perc_change_1", True], ["perc_change_2", False]])
+    def test_stat_sig(self, obj, ans):
+        self.assertEqual(attrgetter(obj)(self).stat_sig, ans)
 
-    def test_multi_perc_change(self) -> None:
-        # test for multivariate time series
+    @parameterized.expand([["perc_change_1", True], ["perc_change_2", False]])
+    def test_p_value(self, obj, ans):
+        self.assertEqual(attrgetter(obj)(self).p_value < 0.05, ans)
+
+    @parameterized.expand(
+        [
+            ["perc_change_1", True],
+            ["perc_change_2", False],
+            ["perc_change_3", True],
+        ]
+    )
+    def test_score(self, obj, ans):
+        self.assertEqual(attrgetter(obj)(self).score > 1.96, ans)
+
+    def test_ratio_estimate(self):
+        self.assertEqual(self.perc_change_1.ratio_estimate, self.ratio_val_1)
+
+    def test_approx_ratio_estimate(self):
+        self.assertAlmostEqual(self.perc_change_1.ratio_estimate, 10.0, 0)
+
+    def test_direction(self):
+        self.assertEqual(self.perc_change_1.direction, "up")
+
+    def test_perc_change(self):
+        self.assertEqual(self.perc_change_1.perc_change, (self.ratio_val_1 - 1) * 100)
+
+    # TODO delta method tests
+
+
+class MultivariatePercentageChangeTest(TestCase):
+    # test for multivariate time series
+    def setUp(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -362,98 +372,76 @@ class PercentageChangeTest(TestCase):
             previous_seq[-1] + timedelta(days=(x + 1)) for x in range(current_length)
         ]
 
-        num_seq = 5
+        self.num_seq = 5
 
         previous_values = np.array(
-            [1.0 + 0.0001 * np.random.randn(len(previous_seq)) for _ in range(num_seq)]
+            [
+                1.0 + 0.0001 * np.random.randn(len(previous_seq))
+                for _ in range(self.num_seq)
+            ]
         )
         current_values = np.array(
-            [10.0 + 0.0001 * np.random.randn(len(current_seq)) for _ in range(num_seq)]
+            [
+                10.0 + 0.0001 * np.random.randn(len(current_seq))
+                for _ in range(self.num_seq)
+            ]
         )
 
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `previous`.
-        self.previous = TimeSeriesData(
+        previous = TimeSeriesData(
             pd.DataFrame(
                 {
                     **{"time": previous_seq},
-                    **{f"value_{i}": previous_values[i] for i in range(num_seq)},
+                    **{f"value_{i}": previous_values[i] for i in range(self.num_seq)},
                 }
             )
         )
 
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current`.
-        self.current = TimeSeriesData(
+        current = TimeSeriesData(
             pd.DataFrame(
                 {
                     **{"time": current_seq},
-                    **{f"value_{i}": current_values[i] for i in range(num_seq)},
+                    **{f"value_{i}": current_values[i] for i in range(self.num_seq)},
                 }
             )
         )
-
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_start`.
-        self.prev_start = previous_seq[0]
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `prev_end`.
-        self.prev_end = previous_seq[9]
-
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_start`.
-        self.current_start = current_seq[0]
-        # pyre-fixme[16]: `PercentageChangeTest` has no attribute `current_end`.
-        self.current_end = current_seq[-1]
 
         previous_int = ChangePointInterval(
             previous_seq[0], previous_seq[-1] + timedelta(days=1)
         )
-        previous_int.data = self.previous
+        previous_int.data = previous
         current_int = ChangePointInterval(
             current_seq[0], current_seq[-1] + timedelta(days=1)
         )
-        current_int.data = self.current
+        current_int.data = current
         current_int.previous_interval = previous_int
 
-        perc_change_1 = PercentageChange(current=current_int, previous=previous_int)
+        self.perc_change_1 = PercentageChange(
+            current=current_int, previous=previous_int
+        )
 
-        previous_mean = np.array([np.mean(previous_values[i]) for i in range(num_seq)])
-        current_mean = np.array([np.mean(current_values[i]) for i in range(num_seq)])
+        previous_mean = np.array(
+            [np.mean(previous_values[i]) for i in range(self.num_seq)]
+        )
+        current_mean = np.array(
+            [np.mean(current_values[i]) for i in range(self.num_seq)]
+        )
 
         # test the ratios
-        ratio_val = current_mean / previous_mean
-        ratio_estimate = perc_change_1.ratio_estimate
-        assert isinstance(ratio_estimate, np.ndarray)
-        self.assertEqual(ratio_estimate.tolist(), ratio_val.tolist())
-
-        for r in ratio_estimate:
-            self.assertAlmostEqual(r, 10.0, 0)
-
-        perc_change = perc_change_1.perc_change
-        assert isinstance(perc_change, np.ndarray)
-        self.assertEqual(perc_change.tolist(), ((ratio_val - 1) * 100).tolist())
-
-        direction = perc_change_1.direction
-        assert isinstance(direction, np.ndarray)
-        self.assertEqual(direction.tolist(), ["up"] * num_seq)
-
-        stat_sig = perc_change_1.stat_sig
-        assert isinstance(stat_sig, np.ndarray)
-        self.assertEqual(stat_sig.tolist(), [True] * num_seq)
-
-        p_value_list, score_list = perc_change_1.p_value, perc_change_1.score
-        assert isinstance(p_value_list, Iterable)
-        assert isinstance(score_list, Iterable)
-        for p_value, score in zip(p_value_list, score_list):
-            self.assertLess(p_value, 0.05)
-            self.assertLess(1.96, score)
+        self.ratio_val_1 = current_mean / previous_mean
 
         # test a detector with false stat sig
         second_values = np.array(
-            [10.005 + 0.25 * np.random.randn(len(previous_seq)) for _ in range(num_seq)]
+            [
+                10.005 + 0.25 * np.random.randn(len(previous_seq))
+                for _ in range(self.num_seq)
+            ]
         )
 
         second = TimeSeriesData(
             pd.DataFrame(
                 {
                     **{"time": previous_seq},
-                    **{f"value_{i}": second_values[i] for i in range(num_seq)},
+                    **{f"value_{i}": second_values[i] for i in range(self.num_seq)},
                 }
             )
         )
@@ -461,27 +449,13 @@ class PercentageChangeTest(TestCase):
         second_int = ChangePointInterval(previous_seq[0], previous_seq[-1])
         second_int.data = second
 
-        perc_change_2 = PercentageChange(current=current_int, previous=second_int)
-
-        stat_sig_list, p_value_list, score_list = (
-            perc_change_2.stat_sig,
-            perc_change_2.p_value,
-            perc_change_2.score,
-        )
-        assert isinstance(stat_sig_list, Iterable)
-        assert isinstance(p_value_list, Iterable)
-        assert isinstance(score_list, Iterable)
-
-        for stat_sig, p_value, score in zip(stat_sig_list, p_value_list, score_list):
-            self.assertFalse(stat_sig)
-            self.assertLess(0.05, p_value)
-            self.assertLess(score, 1.96)
+        self.perc_change_2 = PercentageChange(current=current_int, previous=second_int)
 
         # test a detector with a negative spike
         third_values = np.array(
             [
                 1000.0 + 0.0001 * np.random.randn(len(previous_seq))
-                for _ in range(num_seq)
+                for _ in range(self.num_seq)
             ]
         )
 
@@ -489,7 +463,7 @@ class PercentageChangeTest(TestCase):
             pd.DataFrame(
                 {
                     **{"time": previous_seq},
-                    **{f"value_{i}": third_values[i] for i in range(num_seq)},
+                    **{f"value_{i}": third_values[i] for i in range(self.num_seq)},
                 }
             )
         )
@@ -497,35 +471,71 @@ class PercentageChangeTest(TestCase):
         third_int = ChangePointInterval(previous_seq[0], previous_seq[-1])
         third_int.data = third
 
-        perc_change_3 = PercentageChange(current=current_int, previous=third_int)
-
-        p_value_list, score_list = perc_change_3.p_value, perc_change_3.score
-        assert isinstance(p_value_list, Iterable)
-        assert isinstance(score_list, Iterable)
-        for p_value, score in zip(p_value_list, score_list):
-            self.assertLess(p_value, 0.05)
-            self.assertLess(score, -1.96)
+        self.perc_change_3 = PercentageChange(current=current_int, previous=third_int)
 
         # test the edge case when one of the intervals
         # contains a single data point
         current_int_single_point = ChangePointInterval(current_seq[0], current_seq[1])
 
-        current_int_single_point.data = self.current
+        current_int_single_point.data = current
 
-        perc_change_single_point = PercentageChange(
+        self.perc_change_single_point = PercentageChange(
             current=current_int_single_point, previous=previous_int
         )
 
-        p_value_list, score_list = (
-            perc_change_single_point.p_value,
-            perc_change_single_point.score,
+    @parameterized.expand(
+        [
+            ["perc_change_1", True],
+            ["perc_change_2", False],
+            ["perc_change_3", True],
+            ["perc_change_single_point", True],
+        ]
+    )
+    def test_p_value(self, obj, ans):
+        self.assertListEqual(
+            (attrgetter(obj)(self).p_value < 0.05).tolist(), [ans] * self.num_seq
         )
-        assert isinstance(p_value_list, Iterable)
-        assert isinstance(score_list, Iterable)
 
-        for p_value, score in zip(p_value_list, score_list):
-            self.assertLess(p_value, 0.05)
-            self.assertLess(1.96, score)
+    @parameterized.expand(
+        [
+            ["perc_change_1", True],
+            ["perc_change_2", False],
+        ]
+    )
+    def test_stat_sig(self, obj, ans):
+        self.assertListEqual(
+            (attrgetter(obj)(self).stat_sig).tolist(), [ans] * self.num_seq
+        )
+
+    @parameterized.expand(
+        [
+            ["perc_change_1", True],
+            ["perc_change_2", False],
+            ["perc_change_single_point", True],
+        ]
+    )
+    def test_score(self, obj, ans):
+        self.assertListEqual(
+            (attrgetter(obj)(self).score > 1.96).tolist(), [ans] * self.num_seq
+        )
+
+    def test_score_negative(self):
+        self.assertListEqual(
+            (self.perc_change_3.score < -1.96).tolist(), [True] * self.num_seq
+        )
+
+    def test_approx_ratio_estimate(self):
+        for r in self.perc_change_1.ratio_estimate:
+            self.assertAlmostEqual(r, 10.0, 0)
+
+    def test_direction(self):
+        self.assertEqual(self.perc_change_1.direction.tolist(), ["up"] * self.num_seq)
+
+    def test_perc_change(self):
+        self.assertListEqual(
+            self.perc_change_1.perc_change.tolist(),
+            ((self.ratio_val_1 - 1) * 100).tolist(),
+        )
 
 
 class TestUnivariateAnomalyResponse(TestCase):
