@@ -34,131 +34,162 @@ class SingleSpikeTest(TestCase):
         self.assertEqual(spike.time_str, spike_time_str)
 
 
-class ChangePointIntervalTest(TestCase):
-    def test_changepoint(self) -> None:
+class UnivariateChangePointIntervalTest(TestCase):
+    # test for univariate time series
+    def setUp(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
         date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
-        previous_seq = [date_start + timedelta(days=x) for x in range(15)]
+        self.previous_seq = [date_start + timedelta(days=x) for x in range(15)]
 
-        current_length = 10
+        self.current_length = 10
 
         current_seq = [
-            previous_seq[10] + timedelta(days=x) for x in range(current_length)
+            self.previous_seq[10] + timedelta(days=x)
+            for x in range(self.current_length)
         ]
-        previous_values = np.random.randn(len(previous_seq))
+        self.previous_values = np.random.randn(len(self.previous_seq))
         current_values = np.random.randn(len(current_seq))
 
         # add a very large value to detect spikes
         current_values[0] = 100.0
 
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `previous`.
-        self.previous = TimeSeriesData(
-            pd.DataFrame({"time": previous_seq, "value": previous_values})
+        previous = TimeSeriesData(
+            pd.DataFrame({"time": self.previous_seq, "value": self.previous_values})
         )
 
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current`.
-        self.current = TimeSeriesData(
+        current = TimeSeriesData(
             pd.DataFrame({"time": current_seq, "value": current_values})
         )
+        self.current_mean = np.mean(current_values)
+        self.current_variance = np.var(current_values)
 
         previous_extend = TimeSeriesData(
-            pd.DataFrame({"time": previous_seq[9:], "value": previous_values[9:]})
+            pd.DataFrame(
+                {"time": self.previous_seq[9:], "value": self.previous_values[9:]}
+            )
         )
 
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `prev_start`.
-        self.prev_start = previous_seq[0]
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `prev_end`.
-        self.prev_end = previous_seq[9]
+        prev_start = self.previous_seq[0]
+        prev_end = self.previous_seq[9]
 
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current_start`.
         self.current_start = current_seq[0]
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current_end`.
+        self.current_start_time_str = datetime.strftime(self.current_start, "%Y-%m-%d")
         self.current_end = current_seq[-1] + timedelta(days=1)
+        self.current_end_time_str = datetime.strftime(self.current_end, "%Y-%m-%d")
 
-        previous_int = ChangePointInterval(self.prev_start, self.prev_end)
-        previous_int.data = self.previous
+        self.previous_int = ChangePointInterval(prev_start, prev_end)
+        self.previous_int.data = previous
 
-        # tests whether data is clipped property to start and end dates
-        np.testing.assert_array_equal(previous_values[0:9], previous_int.data)
+        # construct interval to test whether data is clipped property to start and end dates
+        self.previous_int_test = ChangePointInterval(prev_start, prev_end)
+        self.previous_int_test.data = previous
 
         # test extending the data
         # now the data is extended to include the whole sequence
-        previous_int.end_time = previous_seq[-1] + timedelta(days=1)
-        previous_int.extend_data(previous_extend)
+        self.previous_int.end_time = self.previous_seq[-1] + timedelta(days=1)
+        self.previous_int.extend_data(previous_extend)
 
-        self.assertEqual(len(previous_int), len(previous_seq))
+        self.current_int = ChangePointInterval(self.current_start, self.current_end)
+        self.current_int.data = current
+        self.current_int.previous_interval = self.previous_int
 
-        current_int = ChangePointInterval(self.current_start, self.current_end)
-        current_int.data = self.current
-        current_int.previous_interval = previous_int
+        self.spike_list = self.current_int.spikes
 
-        # check all the properties
-        self.assertEqual(current_int.start_time, self.current_start)
-        self.assertEqual(current_int.end_time, self.current_end)
-        self.assertEqual(
-            current_int.start_time_str,
-            datetime.strftime(self.current_start, "%Y-%m-%d"),
-        )
-        self.assertEqual(
-            current_int.end_time_str, datetime.strftime(self.current_end, "%Y-%m-%d")
+    def test_start_end_date(self) -> None:
+        # tests whether data is clipped property to start and end dates
+        np.testing.assert_array_equal(
+            self.previous_values[0:9], self.previous_int_test.data
         )
 
-        self.assertEqual(current_int.mean_val, np.mean(current_values))
-        self.assertEqual(current_int.variance_val, np.var(current_values))
-        self.assertEqual(len(current_int), current_length)
-        self.assertEqual(current_int.previous_interval, previous_int)
+    def test_interval_seq_length(self) -> None:
+        self.assertEqual(len(self.previous_int), len(self.previous_seq))
 
-        # check spike detection
-        spike_list = current_int.spikes
-        # pyre-fixme[16]: `List` has no attribute `value`.
-        self.assertEqual(spike_list[0].value, 100.0)
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["start_time", "current_start"],
+            ["end_time", "current_end"],
+            ["start_time_str", "current_start_time_str"],
+            ["end_time_str", "current_end_time_str"],
+            ["mean_val", "current_mean"],
+            ["variance_val", "current_variance"],
+            ["previous_interval", "previous_int"],
+        ]
+    )
+    # check all the properties
+    def test_properties(self, attribute, initial_object) -> None:
         self.assertEqual(
-            # pyre-fixme[16]: `List` has no attribute `time_str`.
-            spike_list[0].time_str,
-            datetime.strftime(self.current_start, "%Y-%m-%d"),
+            attrgetter(attribute)(self.current_int), attrgetter(initial_object)(self)
         )
 
-    def test_multichangepoint(self) -> None:
-        # test for multivariate time series
+    def test_length(self) -> None:
+        self.assertEqual(len(self.current_int), self.current_length)
+
+    # check spike detection
+    def test_spike_start_value(self) -> None:
+        self.assertEqual(self.spike_list[0].value, 100.0)
+
+    def test_spike_start_time_str(self) -> None:
+        self.assertEqual(
+            self.spike_list[0].time_str,
+            self.current_start_time_str,
+        )
+
+
+class MultivariateChangePointIntervalTest(TestCase):
+    # test for multivariate time series
+    def setUp(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
         date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
 
-        previous_seq = [date_start + timedelta(days=x) for x in range(15)]
+        self.previous_seq = [date_start + timedelta(days=x) for x in range(15)]
 
-        current_length = 10
+        self.current_length = 10
 
         current_seq = [
-            previous_seq[10] + timedelta(days=x) for x in range(current_length)
+            self.previous_seq[10] + timedelta(days=x)
+            for x in range(self.current_length)
         ]
 
-        num_seq = 5
-        previous_values = [np.random.randn(len(previous_seq)) for _ in range(num_seq)]
-        current_values = [np.random.randn(len(current_seq)) for _ in range(num_seq)]
+        self.num_seq = 5
+        self.previous_values = [
+            np.random.randn(len(self.previous_seq)) for _ in range(self.num_seq)
+        ]
+        current_values = [
+            np.random.randn(len(current_seq)) for _ in range(self.num_seq)
+        ]
+        self.current_values_mean = [
+            np.mean(current_values[i]) for i in range(self.num_seq)
+        ]
+        self.current_values_variance = [
+            np.var(current_values[i]) for i in range(self.num_seq)
+        ]
 
         # add a very large value to detect spikes
-        for i in range(num_seq):
+        for i in range(self.num_seq):
             current_values[i][0] = 100 * (i + 1)
 
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `previous`.
-        self.previous = TimeSeriesData(
+        previous = TimeSeriesData(
             pd.DataFrame(
                 {
-                    **{"time": previous_seq},
-                    **{f"value_{i}": previous_values[i] for i in range(num_seq)},
+                    **{"time": self.previous_seq},
+                    **{
+                        f"value_{i}": self.previous_values[i]
+                        for i in range(self.num_seq)
+                    },
                 }
             )
         )
 
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current`.
-        self.current = TimeSeriesData(
+        current = TimeSeriesData(
             pd.DataFrame(
                 {
                     **{"time": current_seq},
-                    **{f"value_{i}": current_values[i] for i in range(num_seq)},
+                    **{f"value_{i}": current_values[i] for i in range(self.num_seq)},
                 }
             )
         )
@@ -166,94 +197,129 @@ class ChangePointIntervalTest(TestCase):
         previous_extend = TimeSeriesData(
             pd.DataFrame(
                 {
-                    **{"time": previous_seq[9:]},
-                    **{f"value_{i}": previous_values[i][9:] for i in range(num_seq)},
+                    **{"time": self.previous_seq[9:]},
+                    **{
+                        f"value_{i}": self.previous_values[i][9:]
+                        for i in range(self.num_seq)
+                    },
                 }
             )
         )
 
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `prev_start`.
-        self.prev_start = previous_seq[0]
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `prev_end`.
-        self.prev_end = previous_seq[9]
+        prev_start = self.previous_seq[0]
+        prev_end = self.previous_seq[9]
 
         #  `current_start`.
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current_start`.
         self.current_start = current_seq[0]
-        # pyre-fixme[16]: `ChangePointIntervalTest` has no attribute `current_end`.
+        self.current_start_date_str = datetime.strftime(self.current_start, "%Y-%m-%d")
+
         self.current_end = current_seq[-1] + timedelta(days=1)
+        self.current_end_date_str = datetime.strftime(self.current_end, "%Y-%m-%d")
 
-        previous_int = ChangePointInterval(self.prev_start, self.prev_end)
-        previous_int.data = self.previous
+        self.previous_int = ChangePointInterval(prev_start, prev_end)
+        self.previous_int.data = previous
 
-        # tests whether data is clipped property to start and end dates
-        for i in range(num_seq):
-            self.assertEqual(
-                # pyre-fixme[16]: Optional type has no attribute `__getitem__`.
-                previous_int.data[:, i].tolist(),
-                previous_values[i][0:9].tolist(),
-            )
-
-        # test extending the data
         # now the data is extended to include the whole sequence except the last point
-        previous_int.end_time = previous_seq[-1]  # + timedelta(days=1)
-        previous_int.extend_data(previous_extend)
-        self.assertEqual(len(previous_int) + 1, len(previous_seq))
+        self.previous_int.end_time = self.previous_seq[-1]  # + timedelta(days=1)
+        self.previous_int.extend_data(previous_extend)
+
+        # construct data to test if clipped properly to start and end dates
+        self.previous_int1 = ChangePointInterval(prev_start, prev_end)
+        self.previous_int1.data = previous
 
         # let's repeat this except without truncating the final point
-        previous_int2 = ChangePointInterval(self.prev_start, self.prev_end)
-        previous_int2.data = self.previous
-        previous_int2.end_time = previous_seq[-1] + timedelta(days=1)
-        previous_int2.extend_data(previous_extend)
-        self.assertEqual(len(previous_int2), len(previous_seq))
+        self.previous_int2 = ChangePointInterval(prev_start, prev_end)
+        self.previous_int2.data = previous
+        self.previous_int2.end_time = self.previous_seq[-1] + timedelta(days=1)
+        self.previous_int2.extend_data(previous_extend)
 
         # let's extend the date range so it's longer than the data
         # this should not change the results
-        previous_int3 = ChangePointInterval(self.prev_start, self.prev_end)
-        previous_int3.data = self.previous
-        previous_int3.end_time = previous_seq[-1] + timedelta(days=2)
-        previous_int3.extend_data(previous_extend)
-        self.assertEqual(len(previous_int3), len(previous_seq))
+        self.previous_int3 = ChangePointInterval(prev_start, prev_end)
+        self.previous_int3.data = previous
+        self.previous_int3.end_time = self.previous_seq[-1] + timedelta(days=2)
+        self.previous_int3.extend_data(previous_extend)
 
         # let's construct the current ChangePointInterval
-        current_int = ChangePointInterval(self.current_start, self.current_end)
-        current_int.data = self.current
-        current_int.previous_interval = previous_int
+        self.current_int = ChangePointInterval(self.current_start, self.current_end)
+        self.current_int.data = current
+        self.current_int.previous_interval = self.previous_int
+        self.current_int_length = len(self.current_int)
 
-        # check all the properties
-        self.assertEqual(current_int.start_time, self.current_start)
-        self.assertEqual(current_int.end_time, self.current_end)
-        self.assertEqual(current_int.num_series, num_seq)
-        self.assertEqual(
-            current_int.start_time_str,
-            datetime.strftime(self.current_start, "%Y-%m-%d"),
-        )
-        self.assertEqual(
-            current_int.end_time_str, datetime.strftime(self.current_end, "%Y-%m-%d")
-        )
+        # spike detection
+        self.spike_array = self.current_int.spikes
 
-        self.assertEqual(
-            # pyre-fixme[16]: `float` has no attribute `tolist`.
-            current_int.mean_val.tolist(),
-            [np.mean(current_values[i]) for i in range(num_seq)],
-        )
-        self.assertEqual(
-            current_int.variance_val.tolist(),
-            [np.var(current_values[i]) for i in range(num_seq)],
-        )
-        self.assertEqual(len(current_int), current_length)
-        self.assertEqual(current_int.previous_interval, previous_int)
-
-        # check spike detection
-        spike_array = current_int.spikes
-        self.assertEqual(len(spike_array), num_seq)
-
-        for i in range(num_seq):
-            # pyre-fixme[16]: `SingleSpike` has no attribute `__getitem__`.
-            self.assertEqual(spike_array[i][0].value, 100 * (i + 1))
+    def test_start_end_date(self) -> None:
+        # tests whether data is clipped properly to start and end dates
+        for i in range(self.num_seq):
             self.assertEqual(
-                spike_array[i][0].time_str,
-                datetime.strftime(self.current_start, "%Y-%m-%d"),
+                # pyre-fixme[16]: Optional type has no attribute `__getitem__`.
+                self.previous_int1.data[:, i].tolist(),
+                self.previous_values[i][0:9].tolist(),
+            )
+
+    def test_extend_length_except_last_point(self) -> None:
+        # test extending the data to include the whole sequence except the last point
+        self.assertEqual(len(self.previous_int) + 1, len(self.previous_seq))
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["previous_int2"],
+            ["previous_int3"],
+        ]
+    )
+    def test_extend_length(self, attribute) -> None:
+        self.assertEqual(len(attrgetter(attribute)(self)), len(self.previous_seq))
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["start_time", "current_start"],
+            ["end_time", "current_end"],
+            ["num_series", "num_seq"],
+            ["start_time_str", "current_start_date_str"],
+            ["end_time_str", "current_end_date_str"],
+            ["previous_interval", "previous_int"],
+        ]
+    )
+    def check_current_int_properties(self, attribute, initial_object) -> None:
+        # check all the properties
+        self.assertEqual(
+            attrgetter(attribute)(self.current_int), attrgetter(initial_object)(self)
+        )
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["mean_val", "current_values_mean"],
+            ["variance_val", "current_values_variance"],
+        ]
+    )
+    def check_current_int_mean_var(self, attribute, initial_object) -> None:
+        self.assertEqual(
+            attrgetter(attribute)(self.current_int).tolist(),
+            attrgetter(initial_object)(self),
+        )
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [["current_int", "current_length"], ["spike_array", "num_seq"]]
+    )
+    def check_length(self, attribute, initial_object) -> None:
+        self.assertEqual(
+            len(attrgetter(attribute)(self)), attrgetter(initial_object)(self)
+        )
+
+    def check_spike_array_value(self) -> None:
+        for i in range(self.num_seq):
+            self.assertEqual(self.spike_array[i][0].value, 100 * (i + 1))
+
+    def check_spike_array_time_str(self) -> None:
+        for i in range(self.num_seq):
+            self.assertEqual(
+                self.spike_array[i][0].time_str,
+                self.current_start_date_str,
             )
 
 
