@@ -736,6 +736,8 @@ class _BayesOnlineChangePoint(Detector):
         if isinstance(changepoint_prior, float):
             changepoint_prior = np.repeat(changepoint_prior, self.P)
         self.rt_posterior = self._find_posterior(model, changepoint_prior)
+        # pyre-fixme[6]: Expected `ndarray` for 1st param but got `Union[float,
+        #  np.ndarray]`.
         return self._construct_output(self.threshold, lag=self.lag)
 
     def get_posterior_predictive(self):

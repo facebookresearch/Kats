@@ -270,6 +270,7 @@ class TimeSeriesData:
                 isinstance(self._value, pd.core.series.Series)
                 and self._value.name is None
             ):
+                # pyre-fixme[6]: Expected `Union[typing.Callable[[Optional[typing.Has...
                 self._value.rename(DEFAULT_VALUE_NAME, inplace=True)
             # Checking for emptiness
             if self.time.empty and self.value.empty:

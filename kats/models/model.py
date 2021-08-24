@@ -37,6 +37,7 @@ class Model(Generic[ParamsType]):
         self.params = params
         self.__type__ = "model"
         if data is not None:
+            # pyre-fixme[16]: `Optional` has no attribute `validate_data`.
             self.data.validate_data(validate_frequency, validate_dimension)
 
     def setup_data(self):

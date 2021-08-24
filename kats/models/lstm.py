@@ -179,6 +179,7 @@ class LSTMModel(mm.Model):
         for i in range(self.params.num_epochs):
             for seq, labels in train_inout_seq:
                 optimizer.zero_grad()
+                # pyre-fixme[16]: `LSTMForecast` has no attribute `hidden_cell`.
                 self.model.hidden_cell = (
                     torch.zeros(1, 1, self.params.hidden_size),
                     torch.zeros(1, 1, self.params.hidden_size),

@@ -345,8 +345,6 @@ class TimeSeriesParameterTuning(ABC):
             objective=Objective(
                 metric=TimeSeriesEvaluationMetric(
                     name=self.objective_name,
-                    # pyre-fixme[6]: Expected `(...) -> Any` for 2nd param but got
-                    #  `Optional[typing.Callable[..., typing.Any]]`.
                     evaluation_function=self.evaluation_function,
                     logger=self.logger,
                     multiprocessing=self.multiprocessing,
@@ -858,7 +856,10 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         )
         model_run = self._bayes_opt_model.gen(n=arm_count)
         self.generator_run_for_search_method(
-            evaluation_function=evaluation_function, generator_run=model_run
+            evaluation_function=evaluation_function,
+            # pyre-fixme[6]: Expected `DiscreteModelBridge` for 2nd param but got
+            #  `GeneratorRun`.
+            generator_run=model_run,
         )
 
 

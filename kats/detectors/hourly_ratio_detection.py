@@ -77,9 +77,7 @@ class HourlyRatioDetector(Detector):
         if self.freq is None:
             self.freq = self.data.infer_freq_robust()
         if self.freq == "H" or (
-            isinstance(self.freq, pd.Timedelta)
-            # pyre-fixme[16]: `None` has no attribute `value`.
-            and self.freq.value == 3600000000000
+            isinstance(self.freq, pd.Timedelta) and self.freq.value == 3600000000000
         ):
             msg = "Input data is hourly data."
             logging.info(msg)
