@@ -7,6 +7,7 @@ import os
 import pkgutil
 import unittest
 from unittest import TestCase
+from unittest.mock import patch
 
 import pandas as pd
 from kats.consts import TimeSeriesData
@@ -33,6 +34,33 @@ class testVARModel(TestCase):
         m = VARModel(self.TSData_multi, params)
         m.fit()
         m.predict(steps=30, include_history=True)
+
+    def test_model_wrong_param(self) -> None:
+        params = VARParams()
+        input_data = TimeSeriesData(pd.DataFrame())
+        with self.assertRaises(ValueError):
+            m = VARModel(input_data, params)
+            m.fit()
+            m.predict(steps=30, include_history=True)
+
+    @patch("pandas.concat")
+    def test_predict_exception(self, mock_obj) -> None:
+        mock_obj.side_effect = Exception
+        with self.assertRaisesRegex(
+            Exception, "^Fail to generate in-sample forecasts for historical data"
+        ):
+            params = VARParams()
+            m = VARModel(self.TSData_multi, params)
+            m.fit()
+            m.predict(steps=30, include_history=True)
+
+    def test_trivial_path(self) -> None:
+        params = VARParams()
+        params.validate_params()
+        m = VARModel(self.TSData_multi, params)
+        print(m)
+        with self.assertRaises(NotImplementedError):
+            VARModel.get_parameter_search_space()
 
 
 if __name__ == "__main__":
