@@ -6,6 +6,7 @@ import io
 import os
 import pkgutil
 import re
+from operator import attrgetter
 from unittest import TestCase
 
 import numpy as np
@@ -13,6 +14,7 @@ import pandas as pd
 import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.trend_mk import MKDetector
+from parameterized import parameterized
 from scipy.special import expit  # @manual
 
 statsmodels_ver = float(
@@ -30,246 +32,287 @@ def load_data(file_name):
     return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
-class MKDetectorTest(TestCase):
-    def gen_no_trend_data_ndim(self, time: pd.Series, ndim: int = 1):
-        n_days = len(time)
-        data = np.ones((n_days, ndim)) * np.random.randint(1000, size=(1, ndim))
-        no_trend_data = pd.DataFrame(data)
-        no_trend_data["time"] = time
+def gen_no_trend_data_ndim(time: pd.Series, ndim: int = 1):
+    n_days = len(time)
+    data = np.ones((n_days, ndim)) * np.random.randint(1000, size=(1, ndim))
+    no_trend_data = pd.DataFrame(data)
+    no_trend_data["time"] = time
 
-        return TimeSeriesData(no_trend_data)
+    return TimeSeriesData(no_trend_data)
 
-    def gen_trend_data_ndim(
-        self,
-        time: pd.Series,
-        seasonality: float = 0.00,
-        change_smoothness: float = 5.0,
-        ndim: int = 1,
-    ):
-        np.random.seed(20)
 
-        n_days = len(time)
-        ix = np.array([np.arange(n_days) for i in range(ndim)])
-        initial = np.random.randint(9000.0, 10000.0, size=(ndim, 1))
-        trend_change = -np.random.randint(60, size=(ndim, 1))
-        trend = np.random.randint(2.0, 6.0, size=(ndim, 1))
-        noise = np.array([1e-3] * ndim).reshape((ndim, 1))
-        t_change = np.random.randint(
-            int(0.4 * n_days), int(0.7 * n_days), size=(ndim, 1)
+def gen_trend_data_ndim(
+    time: pd.Series,
+    seasonality: float = 0.00,
+    change_smoothness: float = 5.0,
+    ndim: int = 1,
+):
+    np.random.seed(20)
+
+    n_days = len(time)
+    ix = np.array([np.arange(n_days) for i in range(ndim)])
+    initial = np.random.randint(9000.0, 10000.0, size=(ndim, 1))
+    trend_change = -np.random.randint(60, size=(ndim, 1))
+    trend = np.random.randint(2.0, 6.0, size=(ndim, 1))
+    noise = np.array([1e-3] * ndim).reshape((ndim, 1))
+    t_change = np.random.randint(int(0.4 * n_days), int(0.7 * n_days), size=(ndim, 1))
+
+    data = (
+        (initial + trend * ix + trend_change * (ix - t_change) * expit((ix - t_change)))
+        * (1 - seasonality * (ix % 7 >= 5))
+        * np.array(
+            [np.cumprod(1 + noise[i] * np.random.randn(n_days)) for i in range(ndim)]
+        )
+    )
+
+    trend_data = pd.DataFrame(data.T)
+    trend_data["time"] = time
+
+    t_change = [t_change[i][0] for i in range(len(t_change))]
+
+    return TimeSeriesData(trend_data), t_change
+
+
+class UnivariateMKDetectorTest(TestCase):
+    def setUp(self):
+        self.window_size = 20
+        self.time = pd.Series(
+            pd.date_range(start="2020-01-01", end="2020-06-20", freq="1D")
+        )
+        no_trend_data = gen_no_trend_data_ndim(time=self.time)
+        trend_data, self.t_change = gen_trend_data_ndim(time=self.time)
+        trend_seas_data, self.t_change_seas = gen_trend_data_ndim(
+            time=self.time, seasonality=0.07
         )
 
-        data = (
-            (
-                initial
-                + trend * ix
-                + trend_change * (ix - t_change) * expit((ix - t_change))
-            )
-            * (1 - seasonality * (ix % 7 >= 5))
-            * np.array(
-                [
-                    np.cumprod(1 + noise[i] * np.random.randn(n_days))
-                    for i in range(ndim)
-                ]
-            )
+        # no trend data
+        self.d_no_trend = MKDetector(data=no_trend_data)
+        self.detected_time_points_no_trend = self.d_no_trend.detector(
+            window_size=self.window_size
         )
 
-        trend_data = pd.DataFrame(data.T)
-        trend_data["time"] = time
+        # trend data
+        self.d_trend = MKDetector(data=trend_data)
+        self.detected_time_points_trend = self.d_trend.detector(
+            window_size=self.window_size
+        )
+        self.metadata_trend = self.detected_time_points_trend[0][1]
+        results_trend = self.d_trend.get_MK_statistics()
+        self.up_trend_detected_trend = self.d_trend.get_MK_results(
+            results_trend, direction="up"
+        )["ds"]
+        self.down_trend_detected_trend = self.d_trend.get_MK_results(
+            results_trend, direction="down"
+        )["ds"]
 
-        t_change = [t_change[i][0] for i in range(len(t_change))]
+        # trend data anchor point
+        self.detected_time_points_trend2 = self.d_trend.detector(training_days=30)
+        results_trend2 = self.d_trend.get_MK_statistics()
+        self.up_trend_detected_trend2 = self.d_trend.get_MK_results(
+            results_trend2, direction="up"
+        )["ds"]
+        self.down_trend_detected_trend2 = self.d_trend.get_MK_results(
+            results_trend2, direction="down"
+        )["ds"]
 
-        return TimeSeriesData(trend_data), t_change
+        # trend data with seasonality
+        self.d_seas = MKDetector(data=trend_seas_data)
+        self.detected_time_points_seas = self.d_seas.detector(freq="weekly")
+        results_seas = self.d_seas.get_MK_statistics()
+        self.up_trend_detected_seas = self.d_seas.get_MK_results(
+            results_seas, direction="up"
+        )["ds"]
+        self.down_trend_detected_seas = self.d_seas.get_MK_results(
+            results_seas, direction="down"
+        )["ds"]
 
-    def test_MKtest(self) -> None:
-        window_size = 20
-        time = pd.Series(pd.date_range(start="2020-01-01", end="2020-06-20", freq="1D"))
+        # trend data with seasonality anchor point
+        self.detected_time_points_seas2 = self.d_seas.detector(
+            training_days=30, freq="weekly"
+        )
+        results_seas2 = self.d_seas.get_MK_statistics()
+        self.up_trend_detected_seas2 = self.d_seas.get_MK_results(
+            results_seas2, direction="up"
+        )["ds"]
+        self.down_trend_detected_seas2 = self.d_seas.get_MK_results(
+            results_seas2, direction="down"
+        )["ds"]
 
-        # Check with no trend data
-        no_trend_data = self.gen_no_trend_data_ndim(time=time)
-        d = MKDetector(data=no_trend_data)
-        detected_time_points = d.detector(window_size=window_size)
-        d.plot(detected_time_points)
-        self.assertEqual(len(detected_time_points), 0)
+    # test for no trend data
+    def test_no_trend_data(self) -> None:
+        self.assertEqual(len(self.detected_time_points_no_trend), 0)
 
-        # Check with univariate trend data
-        # test whole time series
-        trend_data, t_change = self.gen_trend_data_ndim(time=time)
+    # test for trend data
+    def test_detector_type(self):
+        self.assertIsInstance(self.d_trend, self.metadata_trend.detector_type)
 
-        d = MKDetector(data=trend_data)
-        detected_time_points = d.detector()
-        d.plot(detected_time_points)
-        metadata = detected_time_points[0][1]
-        self.assertIsInstance(d, metadata.detector_type)
-        self.assertFalse(metadata.is_multivariate)
-        self.assertEqual(metadata.trend_direction, "increasing")
-        self.assertIsInstance(metadata.Tau, float)
-        print(metadata)
+    def test_tau(self):
+        self.assertIsInstance(self.metadata_trend.Tau, float)
 
-        results = d.get_MK_statistics()
-        up_trend_detected = d.get_MK_results(results, direction="up")["ds"]
-        down_trend_detected = d.get_MK_results(results, direction="down")["ds"]
+    def test_is_univariate(self):
+        self.assertFalse(self.metadata_trend.is_multivariate)
 
+    def test_incr_trend(self):
+        self.assertEqual(self.metadata_trend.trend_direction, "increasing")
+
+    @parameterized.expand([["up_trend_detected_trend"], ["up_trend_detected_seas"]])
+    def test_upward_after_start(self, up_trend_detected):
         self.assertGreaterEqual(
-            up_trend_detected.iloc[0],
-            time[0],
-            msg=f"The first {window_size}-days upward trend was not detected after it starts.",
+            attrgetter(up_trend_detected)(self).iloc[0],
+            self.time[0],
+            msg=f"The first {self.window_size}-days upward trend was not detected after it starts.",
         )
+
+    @parameterized.expand(
+        [
+            ["up_trend_detected_trend", "t_change"],
+            ["up_trend_detected_seas", "t_change_seas"],
+        ]
+    )
+    def test_upward_before_end(self, up_trend_detected, t_change):
         self.assertLessEqual(
-            up_trend_detected.iloc[-1],
-            time[t_change[0] + window_size],
-            msg=f"The last {window_size}-days upward trend was not detected before it ends.",
+            attrgetter(up_trend_detected)(self).iloc[-1],
+            self.time[attrgetter(t_change)(self)[0] + self.window_size],
+            msg=f"The last {self.window_size}-days upward trend was not detected before it ends.",
         )
+
+    @parameterized.expand(
+        [
+            ["down_trend_detected_trend", "t_change"],
+            ["down_trend_detected_seas", "t_change_seas"],
+        ]
+    )
+    def test_downward_after_start(self, down_trend_detected, t_change):
         self.assertGreaterEqual(
-            down_trend_detected.iloc[0],
-            time[t_change[0]],
-            msg=f"The first {window_size}-days downward trend was not detected after it starts.",
+            attrgetter(down_trend_detected)(self).iloc[0],
+            self.time[attrgetter(t_change)(self)[0]],
+            msg=f"The first {self.window_size}-days downward trend was not detected after it starts.",
         )
+
+    @parameterized.expand(
+        [
+            ["down_trend_detected_trend"],
+            ["down_trend_detected_trend2"],
+            ["down_trend_detected_seas"],
+            ["down_trend_detected_seas2"],
+        ]
+    )
+    def test_downward_before_end(self, down_trend_detected):
         self.assertEqual(
-            down_trend_detected.iloc[-1],
-            time[len(time) - 1],
-            msg=f"The last {window_size}-days downward trend was not detected before it ends.",
+            attrgetter(down_trend_detected)(self).iloc[-1],
+            self.time[len(self.time) - 1],
+            msg=f"The last {self.window_size}-days downward trend was not detected before it ends.",
         )
 
-        # test anchor point
-        trend_data, t_change = self.gen_trend_data_ndim(time=time)
+    @parameterized.expand(
+        [
+            ["d_no_trend", "detected_time_points_no_trend"],
+            ["d_trend", "detected_time_points_trend"],
+            ["d_trend", "detected_time_points_trend2"],
+            ["d_seas", "detected_time_points_seas"],
+            ["d_seas", "detected_time_points_seas2"],
+        ]
+    )
+    def test_plot(self, detector, detected_time_points):
+        attrgetter(detector)(self).plot(attrgetter(detected_time_points)(self))
 
-        d = MKDetector(data=trend_data)
-        detected_time_points = d.detector(training_days=30)
-        d.plot(detected_time_points)
 
-        results = d.get_MK_statistics()
-        up_trend_detected = d.get_MK_results(results, direction="up")["ds"]
-        down_trend_detected = d.get_MK_results(results, direction="down")["ds"]
-
-        self.assertEqual(
-            down_trend_detected.iloc[-1],
-            time[len(time) - 1],
-            msg=f"The {window_size}-days downward trend at the anchor point was not detected.",
+class MultivariateMKDetectorTest(TestCase):
+    def setUp(self):
+        self.window_size = 20
+        self.time = pd.Series(
+            pd.date_range(start="2020-01-01", end="2020-06-20", freq="1D")
+        )
+        self.ndim = 5
+        no_trend_data = gen_no_trend_data_ndim(time=self.time, ndim=self.ndim)
+        trend_data, self.t_change = gen_trend_data_ndim(time=self.time, ndim=self.ndim)
+        trend_seas_data, self.t_change_seas = gen_trend_data_ndim(
+            time=self.time, seasonality=0.07, ndim=self.ndim
         )
 
-        # Check with univariate trend data with seasonality
-        # test whole time series
-        trend_seas_data, t_change = self.gen_trend_data_ndim(
-            time=time, seasonality=0.07
+        # no trend data
+        self.d_no_trend = MKDetector(data=no_trend_data)
+        self.detected_time_points_no_trend = self.d_no_trend.detector(
+            window_size=self.window_size
         )
-        d = MKDetector(data=trend_seas_data)
-        detected_time_points = d.detector(freq="weekly")
-        d.plot(detected_time_points)
 
-        results = d.get_MK_statistics()
-        up_trend_detected = d.get_MK_results(results, direction="up")["ds"]
-        down_trend_detected = d.get_MK_results(results, direction="down")["ds"]
+        # trend data
+        self.d_trend = MKDetector(data=trend_data, multivariate=True)
+        self.detected_time_points_trend = self.d_trend.detector()
+        results_trend = self.d_trend.get_MK_statistics()
+        self.up_trend_detected_trend = self.d_trend.get_MK_results(
+            results_trend, direction="up"
+        )["ds"]
+        self.down_trend_detected_trend = self.d_trend.get_MK_results(
+            results_trend, direction="down"
+        )["ds"]
 
+        # trend data with seasonality
+        self.d_seas = MKDetector(data=trend_seas_data, multivariate=True)
+        self.detected_time_points_seas = self.d_seas.detector(freq="weekly")
+        results_seas = self.d_seas.get_MK_statistics()
+        self.up_trend_detected_seas = self.d_seas.get_MK_results(
+            results_seas, direction="up"
+        )["ds"]
+        self.down_trend_detected_seas = self.d_seas.get_MK_results(
+            results_seas, direction="down"
+        )["ds"]
+
+    # test for no trend data
+    def test_no_trend_data(self) -> None:
+        self.assertEqual(len(self.detected_time_points_no_trend), 0)
+
+    def test_heatmap(self) -> None:
+        self.d_no_trend.plot_heat_map()
+
+    @parameterized.expand([["up_trend_detected_trend"], ["up_trend_detected_seas"]])
+    def test_upward_after_start(self, up_trend_detected):
         self.assertGreaterEqual(
-            up_trend_detected.iloc[0],
-            time[0],
-            msg=f"The first {window_size}-days upward trend was not detected after it starts.",
+            attrgetter(up_trend_detected)(self).iloc[0],
+            self.time[0],
+            msg=f"The first {self.window_size}-days upward trend was not detected after it starts.",
         )
+
+    @parameterized.expand(
+        [
+            ["up_trend_detected_trend", "t_change"],
+            ["up_trend_detected_seas", "t_change_seas"],
+        ]
+    )
+    def test_upward_before_end(self, up_trend_detected, t_change):
         self.assertLessEqual(
-            up_trend_detected.iloc[-1],
-            time[t_change[0] + window_size],
-            msg=f"The last {window_size}-days upward trend was not detected before it ends.",
+            attrgetter(up_trend_detected)(self).iloc[-1],
+            self.time[attrgetter(t_change)(self)[0] + self.window_size],
+            msg=f"The last {self.window_size}-days upward trend was not detected before it ends.",
         )
+
+    @parameterized.expand(
+        [
+            ["down_trend_detected_trend", "t_change"],
+            ["down_trend_detected_seas", "t_change_seas"],
+        ]
+    )
+    def test_downward_after_start(self, down_trend_detected, t_change):
         self.assertGreaterEqual(
-            down_trend_detected.iloc[0],
-            time[t_change[0]],
-            msg=f"The first {window_size}-days downward trend was not detected after it starts.",
+            attrgetter(down_trend_detected)(self).iloc[0],
+            self.time[attrgetter(t_change)(self)[0]],
+            msg=f"The first {self.window_size}-days downward trend was not detected after it starts.",
         )
+
+    @parameterized.expand([["down_trend_detected_trend"], ["down_trend_detected_seas"]])
+    def test_downward_before_end(self, down_trend_detected):
         self.assertEqual(
-            down_trend_detected.iloc[-1],
-            time[len(time) - 1],
-            msg=f"The last {window_size}-days downward trend was not detected before it ends.",
+            attrgetter(down_trend_detected)(self).iloc[-1],
+            self.time[len(self.time) - 1],
+            msg=f"The last {self.window_size}-days downward trend was not detected before it ends.",
         )
 
-        # test anchor point
-        trend_data, t_change = self.gen_trend_data_ndim(time=time, seasonality=0.07)
-
-        d = MKDetector(data=trend_data)
-        detected_time_points = d.detector(training_days=30, freq="weekly")
-        d.plot(detected_time_points)
-
-        results = d.get_MK_statistics()
-        up_trend_detected = d.get_MK_results(results, direction="up")["ds"]
-        down_trend_detected = d.get_MK_results(results, direction="down")["ds"]
-
-        self.assertEqual(
-            down_trend_detected.iloc[-1],
-            time[len(time) - 1],
-            msg=f"The {window_size}-days downward trend at the anchor point not was detected.",
-        )
-
-    def test_multivariate_MKtest(self, ndim=5) -> None:
-        window_size = 20
-        time = pd.Series(pd.date_range(start="2020-01-01", end="2020-06-20", freq="1D"))
-
-        # Check with no trend data
-        no_trend_data = self.gen_no_trend_data_ndim(time=time, ndim=ndim)
-        d = MKDetector(data=no_trend_data)
-        detected_time_points = d.detector(window_size=window_size)
-        d.plot(detected_time_points)
-        d.plot_heat_map()
-        self.assertEqual(len(detected_time_points), 0)
-
-        # Check with multivariate trend data
-        trend_data, t_change = self.gen_trend_data_ndim(time=time, ndim=ndim)
-        d = MKDetector(data=trend_data, multivariate=True)
-        detected_time_points = d.detector()
-        d.plot(detected_time_points)
-
-        results = d.get_MK_statistics()
-        up_trend_detected = d.get_MK_results(results, direction="up")["ds"]
-        down_trend_detected = d.get_MK_results(results, direction="down")["ds"]
-
-        self.assertGreaterEqual(
-            up_trend_detected.iloc[0],
-            time[0],
-            msg=f"The first {window_size}-days upward trend was not detected after it starts.",
-        )
-        self.assertLessEqual(
-            up_trend_detected.iloc[-1],
-            time[max(t_change) + window_size],
-            msg=f"The last {window_size}-days upward trend was not detected before the it ends.",
-        )
-        self.assertGreaterEqual(
-            down_trend_detected.iloc[0],
-            time[max(t_change)],
-            msg=f"The first {window_size}-days downward trend was not detected after it starts.",
-        )
-        self.assertEqual(
-            down_trend_detected.iloc[-1],
-            time[len(time) - 1],
-            msg=f"The last {window_size}-days downward trend was not detected before it ends.",
-        )
-
-        # Check with multivariate trend data with seasonality
-        trend_seas_data, t_change = self.gen_trend_data_ndim(
-            time=time, seasonality=0.07, ndim=ndim
-        )
-        d = MKDetector(data=trend_seas_data, multivariate=True)
-        detected_time_points = d.detector(freq="weekly")
-        d.plot(detected_time_points)
-
-        results = d.get_MK_statistics()
-        up_trend_detected = d.get_MK_results(results, direction="up")["ds"]
-        down_trend_detected = d.get_MK_results(results, direction="down")["ds"]
-
-        self.assertGreaterEqual(
-            up_trend_detected.iloc[0],
-            time[0],
-            msg=f"The first {window_size}-days upward trend was not detected after it starts.",
-        )
-        self.assertLessEqual(
-            up_trend_detected.iloc[-1],
-            time[max(t_change) + window_size],
-            msg=f"The last {window_size}-days upward trend was not detected before the it ends.",
-        )
-        self.assertGreaterEqual(
-            down_trend_detected.iloc[0],
-            time[max(t_change)],
-            msg=f"The first {window_size}-days downward trend was not detected after it starts.",
-        )
-        self.assertEqual(
-            down_trend_detected.iloc[-1],
-            time[len(time) - 1],
-            msg=f"The last {window_size}-days downward trend was not detected before it ends.",
-        )
+    @parameterized.expand(
+        [
+            ["d_no_trend", "detected_time_points_no_trend"],
+            ["d_trend", "detected_time_points_trend"],
+            ["d_seas", "detected_time_points_seas"],
+        ]
+    )
+    def test_plot(self, detector, detected_time_points):
+        attrgetter(detector)(self).plot(attrgetter(detected_time_points)(self))
