@@ -32,16 +32,18 @@ class LSTMModelTest(TestCase):
         DATA = load_data("air_passengers.csv")
         DATA.columns = ["time", "y"]
         self.TSData = TimeSeriesData(DATA)
+        self.params = LSTMParams(hidden_size=10, time_window=3, num_epochs=4)
 
     def test_fit_forecast(self) -> None:
         # use smaller time window and epochs for testing to reduce testing time
-        params = LSTMParams(hidden_size=10, time_window=4, num_epochs=5)
-        m = LSTMModel(data=self.TSData, params=params)
+        m = LSTMModel(data=self.TSData, params=self.params)
         m.fit()
         m.predict(steps=15)
         m.plot()
 
-        m_daily = LSTMModel(data=self.TSData_daily, params=params)
+    def test_fit_forecast_daily(self) -> None:
+        # use smaller time window and epochs for testing to reduce testing time
+        m_daily = LSTMModel(data=self.TSData_daily, params=self.params)
         m_daily.fit()
         m_daily.predict(steps=30)
         m_daily.plot()
