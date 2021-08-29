@@ -334,12 +334,12 @@ class MetaLearnHPTTest(TestCase):
             mlhpt.train()
             # Test case for time series with nan features
             _ = (mlhpt.pred(t1).parameters[0],)
-            mlhpt.pred(t2)
+            t2_preds = mlhpt.pred(t2)
             mlhpt.pred_by_feature(feature1)
             mlhpt.pred_by_feature(feature2)
             mlhpt.pred_by_feature(feature3)
             # Check prediction consistency:
-            dict1 = mlhpt.pred(t2).parameters[0]
+            dict1 = t2_preds.parameters[0]
             t2.value /= t2.value.max()
             dict2 = mlhpt.pred_by_feature(pd.DataFrame([TsFeatures().transform(t2)]))[0]
             for elm in dict1:
