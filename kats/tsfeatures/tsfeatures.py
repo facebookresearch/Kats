@@ -1747,21 +1747,22 @@ class TsFeatures:
                 np.nanmean(MACD), nan=0.0, posinf=0.0, neginf=0.0
             )
 
-        MACDsign = TsFeatures._ewma(MACD, 9, 8)
-        if extra_args is not None and extra_args.get(
-            "nowcast_macdsign", default_status
-        ):
-            nowcasting_features[5] = np.nan_to_num(
-                np.nanmean(MACDsign), nan=0.0, posinf=0.0, neginf=0.0
-            )
+        if len(x) >= 27:
+            MACDsign = TsFeatures._ewma(MACD, 9, 8)
+            if extra_args is not None and extra_args.get(
+                "nowcast_macdsign", default_status
+            ):
+                nowcasting_features[5] = np.nan_to_num(
+                    np.nanmean(MACDsign), nan=0.0, posinf=0.0, neginf=0.0
+                )
 
-        MACDdiff = MACD - MACDsign
-        if extra_args is not None and extra_args.get(
-            "nowcast_macddiff", default_status
-        ):
-            nowcasting_features[6] = np.nan_to_num(
-                np.nanmean(MACDdiff), nan=0.0, posinf=0.0, neginf=0.0
-            )
+            MACDdiff = MACD - MACDsign
+            if extra_args is not None and extra_args.get(
+                "nowcast_macddiff", default_status
+            ):
+                nowcasting_features[6] = np.nan_to_num(
+                    np.nanmean(MACDdiff), nan=0.0, posinf=0.0, neginf=0.0
+                )
 
         return nowcasting_features
 
@@ -1822,6 +1823,10 @@ class TsFeatures:
                     nowcasting_features[feature] = _features[idx]
         except Exception as e:
             logging.warning(f"Nowcasting failed {e}")
+        if len(x) < 27:
+            logging.warning(
+                f"MACDsign couldn't get computed successfully due to insufficient time series length: {len(x)}"
+            )
         return nowcasting_features
 
     # seasonality features (4)

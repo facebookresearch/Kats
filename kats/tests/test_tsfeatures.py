@@ -562,11 +562,11 @@ class TSfeaturesTest(TestCase):
             "heterogeneity": 3.145863,
             "histogram_mode": -0.454311,
             "linearity": 2.607152e-06,
-            "nowcast_roc": np.nan,
-            "nowcast_mom": np.nan,
-            "nowcast_ma": np.nan,
-            "nowcast_lag": np.nan,
-            "nowcast_macd": np.nan,
+            "nowcast_roc": -2.750322,
+            "nowcast_mom": -0.00566,
+            "nowcast_ma": 0.069129,
+            "nowcast_lag": 0.095243,
+            "nowcast_macd": -0.076092,
             "nowcast_macdsign": np.nan,
             "nowcast_macddiff": np.nan,
         }
@@ -575,4 +575,56 @@ class TSfeaturesTest(TestCase):
             expected["seasonality_strength"] = 0.410921
             expected["spikiness"] = 0.000661
             expected["holt_alpha"] = 0.289034
+        self.assertDictAlmostEqual(expected, features)
+
+        _df_ = pd.DataFrame(
+            {
+                "time": range(30),
+                "value": [
+                    1,
+                    4,
+                    9,
+                    4,
+                    5,
+                    5,
+                    7,
+                    2,
+                    5,
+                    1,
+                    6,
+                    3,
+                    6,
+                    5,
+                    5,
+                    6,
+                    9,
+                    10,
+                    5,
+                    6,
+                    1,
+                    4,
+                    9,
+                    4,
+                    5,
+                    5,
+                    7,
+                    2,
+                    5,
+                    1,
+                ],
+            }
+        )
+        ts = TimeSeriesData(df=_df_)
+        features = cast(
+            Dict[str, float], TsFeatures(selected_features=["nowcasting"]).transform(ts)
+        )
+        expected = {
+            "nowcast_roc": 0.435531,
+            "nowcast_mom": -0.12,
+            "nowcast_ma": 5.130769,
+            "nowcast_lag": 5.08,
+            "nowcast_macd": 0.020018,
+            "nowcast_macdsign": 0.013782,
+            "nowcast_macddiff": -0.114959,
+        }
         self.assertDictAlmostEqual(expected, features)
