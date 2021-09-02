@@ -11,7 +11,7 @@ the time horizon, under the assumption that longer horizon has larger S.E.
 """
 
 import logging
-from typing import List, Optional, Type
+from typing import List, Optional, Tuple, Type
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,6 +22,8 @@ from scipy import stats
 
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
+
+FigSize = Tuple[int, int]
 
 
 class EmpConfidenceInt:
@@ -204,51 +206,123 @@ class EmpConfidenceInt:
         )
         return df
 
-    def diagnose(self):
-        """Diagnose the linear model fit for SE
+    def diagnose(
+        self,
+        ax: Optional[plt.Axes] = None,
+        figsize: Optional[FigSize] = None,
+        linecolor: str = "b",
+        linelabel: str = "Fitted",
+        secolor: str = "r",
+        selabel: str = "Empirical S.E.",
+        legend: bool = True,
+    ) -> plt.Axes:
+        """Diagnose the linear model fit for SE.
 
         Plot the OLS fit: SE ~ Horizon
+
+        Args:
+            ax: the axes to use. If None, create one.
+            figsize: if creating Axes, the figsize to use. If None, use (10, 6).
+            linecolor: the line color to use.
+            linelabel: the legend label to use for the line plot.
+            secolor: the SE color to use.
+            selabel: the legend label to use for the SE plot.
+            legend: if True, add the legend.
+
+        Returns:
+            The matplotlib Axes.
         """
-        fig, ax = plt.subplots(figsize=(10, 6))
-        x = [x + 1 for x in range(len(self.SE))]
-        ax.scatter(x, self.SE, label="Empirical S.E.", color="r")
-        predictions = self.coefs[0] * np.array(x) + self.coefs[1]
-        ax.plot(x, predictions, "b", label="Fitted")
-        ax.legend(loc=2)
+        se = self.SE
+        coefs = self.coefs
+        if coefs is None:
+            raise ValueError("Must call get_lr() before diagnose().")
+        assert se is not None
+
+        if ax is None:
+            if figsize is None:
+                figsize = (10, 6)
+            fig, ax = plt.subplots(figsize=figsize)
+        else:
+            fig = plt.gcf()
+        x = np.arange(1, len(se) + 1)
+        ax.scatter(x, se, label=selabel, color=secolor)
+        predictions = coefs[0] * np.array(x) + coefs[1]
+        ax.plot(x, predictions, linecolor, label=linelabel)
+        if legend:
+            ax.legend(loc=2)
         ax.set_xlabel("Horizon")
         ax.set_ylabel("SE")
         ax.set_title("Diagnosis plot for SE ~ Horizon")
         fig.tight_layout()
+        return ax
 
-    def plot(self):
-        """Make plot for model fitting with new uncertainty intervals"""
-        logging.info("Generating chart for forecast result with emp. conf. intervals.")
-        fig = plt.figure(facecolor="w", figsize=(10, 6))
-        ax = fig.add_subplot(111)
+    def plot(
+        self,
+        ax: Optional[plt.Axes] = None,
+        figsize: Optional[FigSize] = None,
+        linecolor: str = "k",
+        fcstcolor: str = "#4267B2",
+        intervalcolor: str = "#4267B2",
+        intervalalpha: float = 0.2,
+        modelcolor: str = "r",
+        modelalpha: float = 0.2,
+        grid: bool = True,
+    ) -> plt.Axes:
+        """Make plot for model fitting with new uncertainty intervals.
 
-        ax.plot(pd.to_datetime(self.data.time), self.data.value, "k")
-        fcst_dates = self.dates.to_pydatetime()
-        ax.plot(fcst_dates, self.df.fcst, ls="-", c="#4267B2")
+        Args:
+            ax: the axes to use. If None, create one.
+            figsize: if creating Axes, the figsize to use. If None, use (10, 6).
+            linecolor: the line color to use.
+            fcstcolor: the line color to use for the forecast.
+            intervalcolor: the fill color to use for the forecast interval.
+            intervalalpha: the alpha to use for the forecast interval.
+            modelcolor: the fill color to use for the model prediction interval.
+            modelalpha: the alpha to use for the model prediction interval.
+            grid: if True, plot gridlnes.
+
+        Returns:
+            The matplotlib Axes.
+        """
+        predicted = self.predicted
+        if predicted is None:
+            raise ValueError("Must call get_eci() before plot().")
+        dates = self.dates
+        df = self.df
+        assert dates is not None and df is not None
+
+        if ax is None:
+            if figsize is None:
+                figsize = (10, 6)
+            fig, ax = plt.subplots(figsize=figsize)
+        else:
+            fig = plt.gcf()
+
+        ax.plot(pd.to_datetime(self.data.time), self.data.value, linecolor)
+        fcst_dates = dates.to_pydatetime()
+        ax.plot(fcst_dates, df.fcst, ls="-", c=fcstcolor)
 
         ax.fill_between(
             fcst_dates,
-            self.df.fcst_lower,
-            self.df.fcst_upper,
-            color="#4267B2",
-            alpha=0.2,
+            df.fcst_lower,
+            df.fcst_upper,
+            color=intervalcolor,
+            alpha=intervalalpha,
         )
 
         # if there are default CI from the model, plot as well
-        if self.predicted.shape[1] == 4:
+        if predicted.shape[1] == 4:
             ax.fill_between(
                 fcst_dates,
-                self.predicted.fcst_lower,
-                self.predicted.fcst_upper,
-                color="r",
-                alpha=0.2,
+                predicted.fcst_lower,
+                predicted.fcst_upper,
+                color=modelcolor,
+                alpha=modelalpha,
             )
 
-        ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)
+        if grid:
+            ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)
         ax.set_xlabel(xlabel="time")
         ax.set_ylabel(ylabel="y")
         fig.tight_layout()
+        return ax
