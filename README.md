@@ -90,6 +90,7 @@ Using `CUSUM` detection algorithm on simulated data set.
 ```python
 # import packages
 import numpy as np
+import pandas as pd
 
 from kats.consts import TimeSeriesData
 from kats.detectors.cusum_detection import CUSUMDetector
@@ -116,6 +117,8 @@ We can extract meaningful features from the given time series data
 
 ```python
 # Initiate feature extraction class
+import pandas as pd
+from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
 
 # take `air_passengers` data as an example
