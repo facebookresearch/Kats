@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import statsmodels
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 from kats.tsfeatures.tsfeatures import _FEATURE_GROUP_MAPPING, TsFeatures
 
 
@@ -65,8 +66,7 @@ def load_data(file_name):
 
 class TSfeaturesTest(TestCase):
     def setUp(self):
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
+        DATA = load_air_passengers(return_ts=False)
         self.TSData = TimeSeriesData(DATA)
 
         self.TSData_short = TimeSeriesData(DATA.iloc[:8, :])

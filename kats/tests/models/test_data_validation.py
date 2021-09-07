@@ -10,6 +10,7 @@ from unittest import TestCase
 
 import pandas as pd
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 
 
 def load_data(file_name):
@@ -24,9 +25,7 @@ def load_data(file_name):
 
 class DataValidationTest(TestCase):
     def setUp(self):
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        self.TSData = TimeSeriesData(DATA)
+        self.TSData = load_air_passengers()
 
     def test_data_validation(self) -> None:
         # add the extra data point to break the frequency.

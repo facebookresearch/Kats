@@ -12,6 +12,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
 
@@ -28,8 +29,7 @@ def load_data(file_name):
 
 class DecompositionTest(TestCase):
     def setUp(self):
-        data = load_data("air_passengers.csv")
-        data.columns = ["time", "y"]
+        data = load_air_passengers(return_ts=False)
         self.ts_data = TimeSeriesData(data)
 
         data_nonstandard_name = data.copy()

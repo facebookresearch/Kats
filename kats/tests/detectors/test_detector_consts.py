@@ -3,7 +3,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import re
-from collections.abc import Iterable
 from datetime import datetime, timedelta
 from operator import attrgetter
 from unittest import TestCase

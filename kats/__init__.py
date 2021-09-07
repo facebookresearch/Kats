@@ -3,6 +3,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from . import consts  # noqa # usort: skip
+from . import data  # noqa # usort: skip
 from . import detectors  # noqa # usort: skip
 from . import graphics  # noqa # usort: skip
 from . import models  # noqa # usort: skip

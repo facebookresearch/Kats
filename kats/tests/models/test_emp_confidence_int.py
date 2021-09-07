@@ -9,7 +9,7 @@ import unittest
 from unittest import TestCase
 
 import pandas as pd
-from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.utils.emp_confidence_int import EmpConfidenceInt
 
@@ -29,9 +29,8 @@ def load_data(file_name):
 
 class testEmpConfidenceInt(TestCase):
     def setUp(self):
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        self.TSData = TimeSeriesData(DATA)
+        self.TSData = load_air_passengers()
+
         params = ProphetParams(seasonality_mode="multiplicative")
         self.params = params
         self.unfit_ci = EmpConfidenceInt(

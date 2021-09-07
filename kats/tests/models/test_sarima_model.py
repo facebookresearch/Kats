@@ -10,6 +10,7 @@ from unittest import TestCase
 
 import pandas as pd
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 from kats.models.sarima import SARIMAModel, SARIMAParams
 
 
@@ -25,9 +26,7 @@ def load_data(file_name):
 
 class SARIMAModelTest(TestCase):
     def setUp(self):
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        self.TSData = TimeSeriesData(DATA)
+        self.TSData = load_air_passengers()
 
         DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
@@ -38,9 +37,7 @@ class SARIMAModelTest(TestCase):
 
     def test_fit_forecast(self) -> None:
         def setUp(self):
-            DATA = load_data("air_passengers.csv")
-            DATA.columns = ["time", "y"]
-            self.TSData = TimeSeriesData(DATA)
+            self.TSData = load_air_passengers()
 
         params = SARIMAParams(
             p=2,
