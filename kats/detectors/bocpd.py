@@ -433,7 +433,7 @@ class BOCPDetector(Detector):
         for ts_name in ts_names:
             ts_changepoints = change_points_per_ts[ts_name]
 
-            plt.plot(data_df[time_col_name].values, data_df[ts_name].values)
+            plt.plot(data_df[time_col_name].to_numpy(), data_df[ts_name].to_numpy())
 
             logging.info(
                 f"Plotting {len(ts_changepoints)} change points for {ts_name}."
