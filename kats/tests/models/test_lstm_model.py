@@ -10,6 +10,7 @@ from unittest import TestCase
 
 import pandas as pd
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 from kats.models.lstm import LSTMModel, LSTMParams
 
 
@@ -29,9 +30,7 @@ class LSTMModelTest(TestCase):
         DATA_daily.columns = ["time", "y"]
         self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        self.TSData = TimeSeriesData(DATA)
+        self.TSData = load_air_passengers()
         self.params = LSTMParams(hidden_size=10, time_window=3, num_epochs=4)
 
     def test_fit_forecast(self) -> None:

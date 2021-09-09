@@ -11,7 +11,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 import statsmodels
-from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 from kats.detectors.trend_mk import MKDetector
 from kats.models.theta import ThetaParams, ThetaModel
 from kats.utils.cupik import Pipeline
@@ -34,9 +34,7 @@ def load_data(file_name):
 
 class cupikTest(TestCase):
     def setUp(self):
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        self.TSData = TimeSeriesData(DATA)
+        self.TSData = load_air_passengers()
 
     def test_mkdetector(self) -> None:
 

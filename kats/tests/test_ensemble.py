@@ -11,6 +11,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 from kats.models import (
     arima,
     holtwinters,
@@ -54,9 +55,7 @@ ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 class testBaseEnsemble(TestCase):
     def setUp(self):
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        self.TSData = TimeSeriesData(DATA)
+        self.TSData = load_air_passengers()
 
         DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
@@ -182,9 +181,7 @@ class testBaseEnsemble(TestCase):
 
 class testMedianEnsemble(TestCase):
     def setUp(self):
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        self.TSData = TimeSeriesData(DATA)
+        self.TSData = load_air_passengers()
 
         DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
@@ -265,9 +262,7 @@ class testMedianEnsemble(TestCase):
 
 class testWeightedAvgEnsemble(TestCase):
     def setUp(self):
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        self.TSData = TimeSeriesData(DATA)
+        self.TSData = load_air_passengers()
 
         DATA_daily = load_data("peyton_manning.csv")
         DATA_daily.columns = ["time", "y"]
@@ -352,9 +347,7 @@ class testWeightedAvgEnsemble(TestCase):
 
 class testKatsEnsemble(TestCase):
     def setUp(self):
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        self.TSData = TimeSeriesData(DATA)
+        self.TSData = load_air_passengers()
 
     def test_fit_forecast(self) -> None:
         model_params = EnsembleParams(

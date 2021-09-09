@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import statsmodels
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 from kats.detectors.outlier import (
     MultivariateAnomalyDetector,
     MultivariateAnomalyDetectorType,
@@ -38,8 +39,7 @@ def load_data(file_name):
 # Anomaly detection tests
 class OutlierDetectionTest(TestCase):
     def setUp(self):
-        data = load_data("air_passengers.csv")
-        data.columns = ["time", "y"]
+        data = load_air_passengers(return_ts=False)
         self.ts_data = TimeSeriesData(data)
         data_2 = data.copy()
         data_2["y_2"] = data_2["y"]

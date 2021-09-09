@@ -15,6 +15,7 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_air_passengers
 from kats.tests.test_backtester_dummy_data import (
     PROPHET_EMPTY_DUMMY_DATA,
     PROPHET_0_108_FCST_DUMMY_DATA,
@@ -104,9 +105,8 @@ class SimpleBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        cls.TSData = TimeSeriesData(DATA)
+        DATA = load_air_passengers(return_ts=False)
+        cls.TSData = load_air_passengers()
         cls.train_data = cls.TSData[: len(cls.TSData) - TIMESTEPS]
         cls.test_data = TimeSeriesData(DATA.tail(TIMESTEPS))
 
@@ -178,9 +178,8 @@ class ExpandingWindowBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        cls.TSData = TimeSeriesData(DATA)
+        DATA = load_air_passengers(return_ts=False)
+        cls.TSData = load_air_passengers()
 
         cls.train_folds, cls.test_folds = cls.create_folds(
             cls,
@@ -367,9 +366,8 @@ class RollingWindowBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        cls.TSData = TimeSeriesData(DATA)
+        DATA = load_air_passengers(return_ts=False)
+        cls.TSData = load_air_passengers()
 
         cls.train_folds, cls.test_folds = cls.create_folds(
             cls,
@@ -550,9 +548,8 @@ class FixedWindowBackTesterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        cls.TSData = TimeSeriesData(DATA)
+        DATA = load_air_passengers(return_ts=False)
+        cls.TSData = load_air_passengers()
 
         # Creating folds
         cls.train_data = cls.TSData[: len(cls.TSData) - (TIMESTEPS * 2)]
@@ -627,9 +624,7 @@ class CrossValidationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setting up data
-        DATA = load_data("air_passengers.csv")
-        DATA.columns = ["time", "y"]
-        cls.TSData = TimeSeriesData(DATA)
+        cls.TSData = load_air_passengers()
 
         # Mock model and params
         cls.model_class = mock.MagicMock()

@@ -552,7 +552,7 @@ class CUSUMDetector(Detector):
 
         data_df = self.data.to_dataframe()
 
-        plt.plot(data_df[time_col_name], data_df[val_col_name])
+        plt.plot(data_df[time_col_name].to_numpy(), data_df[val_col_name].to_numpy())
 
         if len(change_points) == 0:
             logging.warning("No change points detected!")
