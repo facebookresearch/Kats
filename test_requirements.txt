@@ -1,13 +1,14 @@
 LunarCalendar>=0.0.9
-ax-platform
+botorch==0.3.2
+ax-platform==0.1.18
 fbprophet==0.7
 neuralprophet>=0.2.7
-gpytorch
+gpytorch==1.2.1
 holidays>=0.10.2
 numba>=0.52.0
 parameterized>=0.8.1
 plotly>=2.2.1
 pymannkendall>=1.4.1
 pystan==2.19.1.1
-torch>=1.4.0
+torch<1.7.0
 tqdm>=4.36.1
