@@ -42,7 +42,7 @@ def get_default_arguments(method):
     }
 
 
-def test_name(funcname: str, num: int, kwargs: Dict[str, Any]):
+def get_name(funcname: str, num: int, kwargs: Dict[str, Any]):
     testname = kwargs.get("testname", "")
     return f"{funcname}_{num}_{testname}"
 
@@ -323,7 +323,7 @@ class testEmpConfidenceInt(TestCase):
                 {"testname": "negative_steps", "steps": -1},
             ]
         ):
-            with self.subTest(msg=test_name("test_errors", i, kwargs)):
+            with self.subTest(msg=get_name("test_errors", i, kwargs)):
                 train_pct = cast(int, kwargs.get("train", 50))
                 test_pct = cast(int, kwargs.get("test", 25))
                 steps = cast(int, kwargs.get("steps", 12))
@@ -363,7 +363,7 @@ class testEmpConfidenceInt(TestCase):
                 },
             ]
         ):
-            with self.subTest(msg=test_name("test_diagnose", i, kwargs)):
+            with self.subTest(msg=get_name("test_diagnose", i, kwargs)):
                 figsize = kwargs.get("figsize", None)
                 if "ax" in kwargs:
                     _, ax = plt.subplots(figsize=(6, 4) if figsize is None else figsize)
@@ -410,7 +410,7 @@ class testEmpConfidenceInt(TestCase):
                 },
             ]
         ):
-            with self.subTest(msg=test_name("test_plot", i, kwargs)):
+            with self.subTest(msg=get_name("test_plot", i, kwargs)):
                 figsize = kwargs.get("figsize", None)
                 if "ax" in kwargs:
                     _, ax = plt.subplots(figsize=(6, 4) if figsize is None else figsize)
