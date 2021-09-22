@@ -78,6 +78,8 @@ class ProphetParams(Params):
         floor: floor, the fcst value must be greater than the specified floor
         custom_seasonlities: customized seasonalities, dict with keys
             "name", "period", "fourier_order"
+        extra_regressors: additional regressors used for fitting, each regressor
+            is a dict with keys "name" and "value"
     """
 
     def __init__(
@@ -100,6 +102,7 @@ class ProphetParams(Params):
         cap=None,
         floor=None,
         custom_seasonalities: Optional[List[Dict]] = None,
+        extra_regressors: Optional[List[Dict]] = None,
     ) -> None:
         if _no_prophet:
             raise RuntimeError("requires fbprophet to be installed")
@@ -124,6 +127,7 @@ class ProphetParams(Params):
         self.custom_seasonalities = (
             [] if custom_seasonalities is None else custom_seasonalities
         )
+        self.extra_regressors = [] if extra_regressors is None else extra_regressors
         logging.debug(
             "Initialized Prophet with parameters. "
             "growth:{growth},"
@@ -143,7 +147,8 @@ class ProphetParams(Params):
             "uncertainty_samples:{uncertainty_samples},"
             "cap:{cap},"
             "floor:{floor},"
-            "custom_seasonalities:{custom_seasonalities}".format(
+            "custom_seasonalities:{custom_seasonalities},"
+            "extra_regressors:{extra_regressors}".format(
                 growth=growth,
                 changepoints=changepoints,
                 n_changepoints=n_changepoints,
@@ -162,6 +167,9 @@ class ProphetParams(Params):
                 cap=cap,
                 floor=floor,
                 custom_seasonalities=custom_seasonalities,
+                extra_regressors=None
+                if extra_regressors is None
+                else [x["name"] for x in extra_regressors],
             )
         )
 
@@ -185,6 +193,17 @@ class ProphetParams(Params):
             for seasonality in self.custom_seasonalities
         ):
             msg = f"Custom seasonality dicts must contain the following keys:\n{reqd_seasonality_keys}"
+            logging.error(msg)
+            raise ValueError(msg)
+
+        # If extra_regressors passed, ensure they contain the required keys.
+        reqd_regressor_keys = ["name", "value"]
+        if not all(
+            req_key in regressor
+            for req_key in reqd_regressor_keys
+            for regressor in self.extra_regressors
+        ):
+            msg = f"Extra regressor dicts must contain the following keys:\n{reqd_regressor_keys}"
             logging.error(msg)
             raise ValueError(msg)
 
@@ -243,7 +262,8 @@ class ProphetModel(m.Model):
             "uncertainty_samples:{uncertainty_samples},"
             "cap:{cap},"
             "floor:{floor},"
-            "custom_seasonalities:{custom_seasonalities}".format(
+            "custom_seasonalities:{custom_seasonalities},"
+            "extra_regressors:{extra_regressors}".format(
                 growth=self.params.growth,
                 changepoints=self.params.changepoints,
                 n_changepoints=self.params.n_changepoints,
@@ -262,7 +282,10 @@ class ProphetModel(m.Model):
                 cap=self.params.cap,
                 floor=self.params.floor,
                 custom_seasonalities=self.params.custom_seasonalities,
-            )
+                extra_regressors=None
+                if self.params.extra_regressors is None
+                else [x["name"] for x in self.params.extra_regressors],
+            ),
         )
 
         prophet = Prophet(
@@ -294,6 +317,14 @@ class ProphetModel(m.Model):
         # Add any specified custom seasonalities.
         for custom_seasonality in self.params.custom_seasonalities:
             prophet.add_seasonality(**custom_seasonality)
+
+        # Add any extra regressors
+        if self.params.extra_regressors is not None:
+            for regressor in self.params.extra_regressors:
+                prophet.add_regressor(
+                    **{k: v for k, v in regressor.items() if k not in ["value"]}
+                )
+                df[regressor["name"]] = pd.Series(regressor["value"], index=df.index)
 
         # pyre-fixme[16]: `ProphetModel` has no attribute `model`.
         self.model = prophet.fit(df=df)
@@ -334,6 +365,30 @@ class ProphetModel(m.Model):
                 future["cap"] = self.params.cap
             if self.params.floor is not None:
                 future["floor"] = self.params.floor
+
+        extra_regressors = kwargs.get("extra_regressors", None)
+        if extra_regressors is not None:
+            for regressor in extra_regressors:
+
+                if not self.include_history:
+                    future[regressor["name"]] = pd.Series(
+                        regressor["value"], index=future.index
+                    )
+                    continue
+
+                # If history is required, it has to be pulled back from the
+                # parameter object and combined with future values
+                regressor_item = filter(
+                    lambda x: x["name"] == regressor["name"],
+                    self.params.extra_regressors,
+                ).__next__()
+
+                regressor_value = pd.concat(
+                    [pd.Series(regressor["value"]), pd.Series(regressor_item["value"])],
+                    ignore_index=True,
+                )
+                regressor_value.index = future.index
+                future[regressor["name"]] = regressor_value
 
         fcst = self.model.predict(future)
         if raw:
