@@ -106,6 +106,7 @@ _ALL_TS_FEATURES: List[Tuple[str, Dict[str, str]]] = [
     ("trend_detector", {"threshold": "threshold"}),
     ("nowcasting", {"window": "window", "n_fast": "n_fast", "n_slow": "n_slow"}),
     ("seasonalities", {}),
+    ("time", {}),
 ]
 
 _FEATURE_GROUP_MAPPING: Dict[str, List[str]] = {
@@ -205,6 +206,24 @@ _FEATURE_GROUP_MAPPING: Dict[str, List[str]] = {
         "seasonality_mag",
         "residual_std",
     ],
+    "time": [
+        "time_years",
+        "time_months",
+        "time_monthsofyear",
+        "time_weeks",
+        "time_weeksofyear",
+        "time_days",
+        "time_daysofyear",
+        "time_avg_timezone_offset",
+        "time_length_days",
+        "time_freq_Monday",
+        "time_freq_Tuesday",
+        "time_freq_Wednesday",
+        "time_freq_Thursday",
+        "time_freq_Friday",
+        "time_freq_Saturday",
+        "time_freq_Sunday",
+    ],
 }
 
 
@@ -265,6 +284,7 @@ class TsFeatures:
             nowcasting detector in Kats.
         seasonalities: Switch for calculating/outputting stl features using
             cusum detector in Kats.
+        time: Switch for calculating/outputting time features.
         default: The default status of the switch for opt-in/out feature calculations.
     """
 
@@ -399,6 +419,7 @@ class TsFeatures:
         self.trend_detector = kwargs.get("trend_detector", False)
         self.nowcasting = kwargs.get("nowcasting", False)
         self.seasonalities = kwargs.get("seasonalities", False)
+        self.time = kwargs.get("time", False)
         # For lower level of the features
         self.__kwargs__ = kwargs
         self.default = default
@@ -1910,3 +1931,126 @@ class TsFeatures:
         except Exception as e:
             logging.warning(f"Seasonality failed {e}")
         return seasonality_features
+
+    # time features (16)
+    @staticmethod
+    def get_time(  # noqa C901
+        ts: TimeSeriesData,
+        extra_args: Optional[Dict[str, bool]] = None,
+        default_status: bool = True,
+    ) -> Dict[str, float]:
+        """
+        Extract features from the time values of the time series.
+
+        Args:
+            ts: The time series.
+            extra_args: A dictionary containing information for disabling
+                calculation of a certain feature. If None, no feature is disabled.
+            default_status: Default status of the switch for calculate the features.
+
+        Returns:
+            The count of years, months, weeks, days, distinct months of year,
+            distinct weeks of year, distinct days of year, frequency of each day
+            of the week, and average timezone UTC offset in the time series.
+        """
+
+        time_features = {
+            "time_years": np.nan,
+            "time_months": np.nan,
+            "time_monthsofyear": np.nan,
+            "time_weeks": np.nan,
+            "time_weeksofyear": np.nan,
+            "time_days": np.nan,
+            "time_daysofyear": np.nan,
+            "time_avg_timezone_offset": np.nan,
+            "time_length_days": np.nan,
+            "time_freq_Monday": np.nan,
+            "time_freq_Tuesday": np.nan,
+            "time_freq_Wednesday": np.nan,
+            "time_freq_Thursday": np.nan,
+            "time_freq_Friday": np.nan,
+            "time_freq_Saturday": np.nan,
+            "time_freq_Sunday": np.nan,
+        }
+
+        try:
+            n = len(ts)
+            index = ts.time_to_index()
+            dow = index.dayofweek
+
+            if extra_args is not None and extra_args.get("time_years", default_status):
+                time_features["time_years"] = index.year.nunique()
+
+            if extra_args is not None and extra_args.get("time_months", default_status):
+                time_features["time_months"] = index.strftime("%Y-%m").nunique()
+
+            if extra_args is not None and extra_args.get(
+                "time_monthsofyear", default_status
+            ):
+                time_features["time_monthsofyear"] = index.month.nunique()
+
+            if extra_args is not None and extra_args.get("time_weeks", default_status):
+                time_features["time_weeks"] = index.strftime("%G-%V").nunique()
+
+            if extra_args is not None and extra_args.get(
+                "time_weeksofyear", default_status
+            ):
+                time_features["time_weeksofyear"] = index.weekofyear.nunique()
+
+            if extra_args is not None and extra_args.get("time_days", default_status):
+                time_features["time_days"] = index.strftime("%Y-%d").nunique()
+
+            if extra_args is not None and extra_args.get(
+                "time_daysofyear", default_status
+            ):
+                time_features["time_daysofyear"] = index.dayofyear.nunique()
+
+            if extra_args is not None and extra_args.get(
+                "time_avg_timezone_offset", default_status
+            ):
+                utcoffsets = [dt.utcoffset().total_seconds() for dt in index]
+                time_features["time_avg_timezone_offset"] = np.array(utcoffsets).mean()
+
+            if extra_args is not None and extra_args.get(
+                "time_length_days", default_status
+            ):
+                time_features["time_length_days"] = (index.max() - index.min()).days
+
+            if extra_args is not None and extra_args.get(
+                "time_freq_Monday", default_status
+            ):
+                time_features["time_freq_Monday"] = (dow == 0).sum() / n
+
+            if extra_args is not None and extra_args.get(
+                "time_freq_Tuesday", default_status
+            ):
+                time_features["time_freq_Tuesday"] = (dow == 1).sum() / n
+
+            if extra_args is not None and extra_args.get(
+                "time_freq_Wednesday", default_status
+            ):
+                time_features["time_freq_Wednesday"] = (dow == 2).sum() / n
+
+            if extra_args is not None and extra_args.get(
+                "time_freq_Thursday", default_status
+            ):
+                time_features["time_freq_Thursday"] = (dow == 3).sum() / n
+
+            if extra_args is not None and extra_args.get(
+                "time_freq_Friday", default_status
+            ):
+                time_features["time_freq_Friday"] = (dow == 4).sum() / n
+
+            if extra_args is not None and extra_args.get(
+                "time_freq_Saturday", default_status
+            ):
+                time_features["time_freq_Saturday"] = (dow == 5).sum() / n
+
+            if extra_args is not None and extra_args.get(
+                "time_freq_Sunday", default_status
+            ):
+                time_features["time_freq_Sunday"] = (dow == 6).sum() / n
+
+        except Exception as e:
+            logging.warning(f"Time failed {e}")
+        return time_features

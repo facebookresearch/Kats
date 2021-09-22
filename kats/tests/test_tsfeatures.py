@@ -157,6 +157,7 @@ class TSfeaturesTest(TestCase):
             # trend_detector
             # nowcasting
             # seasonalities
+            # time
         }
         if statsmodels_ver >= 0.12:
             expected["trend_strength"] = 0.426899
@@ -626,5 +627,39 @@ class TSfeaturesTest(TestCase):
             "nowcast_macd": 0.020018,
             "nowcast_macdsign": 0.013782,
             "nowcast_macddiff": -0.114959,
+        }
+        self.assertDictAlmostEqual(expected, features)
+
+    def test_tsfeatures_time(self) -> None:
+        dates = pd.date_range("2021-01-22", "2021-01-31", tz="US/Pacific").tolist()
+        dates += pd.date_range("2022-01-30", "2022-02-04", tz="US/Pacific").tolist()
+        ts = TimeSeriesData(
+            df=pd.DataFrame(
+                {
+                    "time": dates,
+                    "value": [10, 2, 11, 5, 13, 18, 4, 14, 17, 9] + [np.nan] * 6,
+                }
+            )
+        )
+        features = cast(
+            Dict[str, float], TsFeatures(selected_features=["time"]).transform(ts)
+        )
+        expected = {
+            "time_years": 2,
+            "time_months": 3,
+            "time_monthsofyear": 2,
+            "time_weeks": 4,
+            "time_weeksofyear": 3,
+            "time_days": 16,
+            "time_daysofyear": 14,
+            "time_avg_timezone_offset": -28800.0,
+            "time_length_days": 378,
+            "time_freq_Monday": 0.125,
+            "time_freq_Tuesday": 0.125,
+            "time_freq_Wednesday": 0.125,
+            "time_freq_Thursday": 0.125,
+            "time_freq_Friday": 0.1875,
+            "time_freq_Saturday": 0.125,
+            "time_freq_Sunday": 0.1875,
         }
         self.assertDictAlmostEqual(expected, features)
