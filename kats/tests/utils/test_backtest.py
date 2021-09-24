@@ -10,7 +10,7 @@ import pkgutil
 import statistics
 import unittest
 import unittest.mock as mock
-from typing import List, Tuple
+from typing import Callable, Dict, List, Tuple, cast
 
 import numpy as np
 import pandas as pd
@@ -33,6 +33,7 @@ from kats.utils.backtesters import (
     CrossValidation,
     _return_fold_offsets as return_fold_offsets,
 )
+from kats.utils.testing import error_funcs
 
 # Constants
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]  # Errors to test
@@ -49,48 +50,6 @@ FLOAT_ROUNDING_PARAM = 3  # Number of decimal places to round low floats to 0
 CV_NUM_FOLDS = 3  # Number of folds for cross validation
 
 
-"""
-Following are ground truth error functions
-"""
-
-
-def rmse(pred, truth):
-    return np.sqrt(np.mean((pred - truth) ** 2))
-
-
-def mse(pred, truth):
-    return ((np.abs(truth - pred)) ** 2).mean()
-
-
-def mape(pred, truth):
-    return np.mean(np.abs((truth - pred) / truth))
-
-
-def smape(pred, truth):
-    return ((abs(truth - pred) / (truth + pred)).sum()) * (2.0 / truth.size)
-
-
-def mae(pred, truth):
-    return (np.abs(truth - pred)).mean()
-
-
-def mase(training_inputs, pred, truth):
-    naive_error = np.abs(np.diff(training_inputs)).sum() / (
-        training_inputs.shape[0] - 1
-    )
-    return ((np.abs(truth - pred)).mean()) / naive_error
-
-
-error_funcs = {  # Maps error name to function that calculates error
-    "mape": mape,
-    "smape": smape,
-    "mae": mae,
-    "mase": mase,
-    "mse": mse,
-    "rmse": rmse,
-}
-
-
 def load_data(file_name):
     ROOT = "kats"
     if "kats" in os.getcwd().lower():
@@ -99,6 +58,40 @@ def load_data(file_name):
         path = "kats/data/"
     data_object = pkgutil.get_data(ROOT, path + file_name)
     return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
+
+
+def compute_errors(
+    train: np.ndarray, pred: np.ndarray, truth: np.ndarray
+) -> Dict[str, float]:
+    true_errors = {}
+    for error, func in error_funcs.items():
+        if error == "mase":
+            func = cast(Callable[[np.ndarray, np.ndarray, np.ndarray], float], func)
+            err = func(train, pred, truth)
+        else:
+            func = cast(Callable[[np.ndarray, np.ndarray], float], func)
+            err = func(pred, truth)
+        true_errors[error] = err
+    return true_errors
+
+
+def compute_errors_list(
+    train: np.ndarray,
+    pred: np.ndarray,
+    truth: np.ndarray,
+    true_errors: Dict[str, List[float]],
+) -> None:
+    for error, func in error_funcs.items():
+        if error == "mase":
+            func = cast(Callable[[np.ndarray, np.ndarray, np.ndarray], float], func)
+            err = func(train, pred, truth)
+        else:
+            func = cast(Callable[[np.ndarray, np.ndarray], float], func)
+            err = func(pred, truth)
+        if error in true_errors:
+            true_errors[error].append(err)
+        else:
+            true_errors[error] = [err]
 
 
 class SimpleBackTesterTest(unittest.TestCase):
@@ -154,15 +147,10 @@ class SimpleBackTesterTest(unittest.TestCase):
         temp_fcst = temp_model.predict(steps=TIMESTEPS, freq=FREQUENCY)
 
         # Using model predictions from local model to calculate true errors
-        true_errors = {}
         pred = np.array(temp_fcst["fcst"])
         truth = np.array(self.test_data.value)
         train = np.array(self.train_data.value)
-        for error, func in error_funcs.items():
-            if error == "mase":
-                true_errors[error] = func(train, pred, truth)
-            else:
-                true_errors[error] = func(pred, truth)
+        true_errors = compute_errors(train, pred, truth)
         ground_truth_errors = (bt, true_errors)
 
         # Comparing local model errors to backtester errors
@@ -275,15 +263,7 @@ class ExpandingWindowBackTesterTest(unittest.TestCase):
             pred = np.array(temp_fcst["fcst"])
             truth = np.array(test_fold["y"])
             train = np.array(train_fold["y"])
-            for error, func in error_funcs.items():
-                if error == "mase":
-                    err = func(train, pred, truth)
-                else:
-                    err = func(pred, truth)
-                if error in true_errors:
-                    true_errors[error].append(err)
-                else:
-                    true_errors[error] = [err]
+            compute_errors_list(train, pred, truth, true_errors)
 
         # Calculating errors
         for error_name, values in true_errors.items():
@@ -461,15 +441,7 @@ class RollingWindowBackTesterTest(unittest.TestCase):
             pred = np.array(temp_fcst["fcst"])
             truth = np.array(test_fold["y"])
             train = np.array(train_fold["y"])
-            for error, func in error_funcs.items():
-                if error == "mase":
-                    err = func(train, pred, truth)
-                else:
-                    err = func(pred, truth)
-                if error in true_errors:
-                    true_errors[error].append(err)
-                else:
-                    true_errors[error] = [err]
+            compute_errors_list(train, pred, truth, true_errors)
 
         # Calculating errors
         for error_name, values in true_errors.items():
@@ -600,15 +572,10 @@ class FixedWindowBackTesterTest(unittest.TestCase):
         temp_fcst = temp_model.predict(steps=TIMESTEPS * 2, freq=FREQUENCY)[TIMESTEPS:]
 
         # Using model predictions from local model to calculate true errors
-        true_errors = {}
         pred = np.array(temp_fcst["fcst"])
         truth = np.array(self.test_data.value)
         train = np.array(self.train_data.value)
-        for error, func in error_funcs.items():
-            if error == "mase":
-                true_errors[error] = func(train, pred, truth)
-            else:
-                true_errors[error] = func(pred, truth)
+        true_errors = compute_errors(train, pred, truth)
         ground_truth_errors = (bt, true_errors)
 
         # Test that local model errors equal backtester errors
@@ -689,15 +656,7 @@ class CrossValidationTest(unittest.TestCase):
             # pyre-fixme[6]: Expected `typing_extensions.Literal[0]` for 1st param
             #  but got `typing_extensions.Literal['y']`.
             train = np.array(train_fold["y"])
-            for error, func in error_funcs.items():
-                if error == "mase":
-                    err = func(train, pred, truth)
-                else:
-                    err = func(pred, truth)
-                if error in true_errors:
-                    true_errors[error].append(err)
-                else:
-                    true_errors[error] = [err]
+            compute_errors_list(train, pred, truth, true_errors)
 
         # Calculate average error across folds
         for error_name, values in true_errors.items():
@@ -826,15 +785,7 @@ class CrossValidationTest(unittest.TestCase):
             # pyre-fixme[6]: Expected `typing_extensions.Literal[0]` for 1st param
             #  but got `typing_extensions.Literal['y']`.
             train = np.array(train_fold["y"])
-            for error, func in error_funcs.items():
-                if error == "mase":
-                    err = func(train, pred, truth)
-                else:
-                    err = func(pred, truth)
-                if error in true_errors:
-                    true_errors[error].append(err)
-                else:
-                    true_errors[error] = [err]
+            compute_errors_list(train, pred, truth, true_errors)
 
         # Calculate average error across folds
         for error_name, values in true_errors.items():
