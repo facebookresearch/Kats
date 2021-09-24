@@ -8,9 +8,12 @@ import pkgutil
 import unittest
 from unittest import TestCase
 
+import matplotlib.pyplot as plt
 import pandas as pd
+import pytest
 from kats.consts import TimeSeriesData
 from kats.models.bayesian_var import BayesianVAR, BayesianVARParams
+from parameterized import parameterized
 
 
 def load_data(file_name):
@@ -27,13 +30,92 @@ class testBayesianVARModel(TestCase):
     def setUp(self):
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
+        self.params = BayesianVARParams()
 
-    def test_fit_forecast(self) -> None:
+    @pytest.mark.mpl_image_compare
+    def test_plot(self) -> plt.Figure:
         params = BayesianVARParams(p=3)
         m = BayesianVAR(self.TSData_multi, params)
         m.fit()
         m.predict(steps=30, include_history=True)
         m.plot()
+        return plt.gcf()
+
+    def test_predict_error(self) -> None:
+        m = BayesianVAR(self.TSData_multi, self.params)
+        with self.assertRaises(ValueError):
+            # Model needs to be fit before predict
+            m.predict(10)
+
+    def test_plot_error(self) -> None:
+        m = BayesianVAR(self.TSData_multi, self.params)
+        with self.assertRaises(ValueError):
+            # Must fit() and predict() before plot()
+            m.plot()
+
+    def test_sigma_u(self) -> None:
+        # Also test verbose predict for code coverage.
+        params = BayesianVARParams(p=3)
+        m = BayesianVAR(self.TSData_multi, params)
+        m.fit()
+        m.predict(steps=30, include_history=True, verbose=True)
+        self.assertEqual(3, m.k_ar)
+        # fmt: off
+        expected = pd.DataFrame([
+        [ 4.43026366e-05,  2.05347685e-05,  1.81942688e-04,
+          4.50075234e-05,  1.86048651e-05,  2.05304755e-06,
+          3.55016677e-06, -9.27833097e-05,  4.99988031e-07],
+        [ 2.05347685e-05,  2.65322543e-05,  3.16169643e-05,
+          7.34176226e-06,  2.38786201e-05,  8.43863345e-06,
+          6.53970495e-06, -8.30124023e-05, -2.33583196e-08],
+        [ 1.81942688e-04,  3.16169643e-05,  1.33754111e-03,
+          5.49729738e-05,  3.16310173e-05,  1.27374356e-06,
+         -1.59582259e-05, -3.71395599e-04,  1.61197161e-06],
+        [ 4.50075234e-05,  7.34176226e-06,  5.49729738e-05,
+          4.27842799e-04,  5.83418411e-06, -2.62717772e-06,
+          5.35296733e-05, -1.23409176e-05,  1.29914641e-06],
+        [ 1.86048651e-05,  2.38786201e-05,  3.16310173e-05,
+          5.83418411e-06,  5.89025512e-05,  1.50549994e-05,
+          1.92002465e-05, -8.49113392e-05, -5.78487390e-07],
+        [ 2.05304755e-06,  8.43863345e-06,  1.27374356e-06,
+         -2.62717772e-06,  1.50549994e-05,  8.51511069e-05,
+          5.84851727e-05, -5.63406343e-05, -1.88198418e-07],
+        [ 3.55016677e-06,  6.53970495e-06, -1.59582259e-05,
+          5.35296733e-05,  1.92002465e-05,  5.84851727e-05,
+          1.70683186e-04, -5.78501158e-05,  5.46475324e-07],
+        [-9.27833097e-05, -8.30124023e-05, -3.71395599e-04,
+         -1.23409176e-05, -8.49113392e-05, -5.63406343e-05,
+         -5.78501158e-05,  1.20577180e-03,  7.22586139e-07],
+        [ 4.99988031e-07, -2.33583196e-08,  1.61197161e-06,
+          1.29914641e-06, -5.78487390e-07, -1.88198418e-07,
+          5.46475324e-07,  7.22586139e-07,  1.04254200e-07]
+        ],
+            columns=self.TSData_multi.value.columns,
+            index=self.TSData_multi.value.columns,
+        )
+        # fmt: on
+        pd.testing.assert_frame_equal(expected, m.sigma_u)
+
+    # pyre-fixme[16]: Module `parameterized` has no attribute `expand`.
+    @parameterized.expand(
+        [
+            ("zero_p", 0, 1, 1, 1, 1),
+            ("zero_phi_0", 1, 0, 1, 1, 1),
+            ("zero_phi_1", 1, 1, 0, 1, 1),
+            ("large_phi_1", 1, 1, 2, 1, 1),
+            ("zero_phi_2", 1, 1, 1, 0, 1),
+            ("zero_phi_3", 1, 1, 1, 1, 0),
+        ]
+    )
+    def test_bad_params(self, name, p, phi0, phi1, phi2, phi3) -> None:
+        params = BayesianVARParams()
+        params.p = p
+        params.phi_0 = phi0
+        params.phi_1 = phi1
+        params.phi_2 = phi2
+        params.phi_3 = phi3
+        with self.assertRaises(ValueError):
+            params.validate_params()
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import kats.models.model as m
 import matplotlib.pyplot as plt
@@ -33,8 +33,9 @@ class BayesianVARParams(Params):
 
     Attributes:
         p: Historical lag to use
-        Below parameters are hyperparameters in the covariance matrix for coefficient prior.
-        See page 5 in http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf for more details.
+        Below parameters are hyperparameters in the covariance matrix for
+        coefficient prior. See page 5 in
+        http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf for more details.
         phi_0: tightness on the variance of the first lag
         phi_1: relative tightness of other variables
         phi_2: relative tightness of the exogenous variables
@@ -48,16 +49,20 @@ class BayesianVARParams(Params):
     phi_3: float = 3
 
     def validate_params(self) -> None:
-        assert self.p > 0, f"Lag order should be positive, but got {self.p}"
-        assert self.phi_0 > 0
-        assert self.phi_1 > 0
-        assert self.phi_2 > 0
-        assert self.phi_3 > 0
-        assert self.phi_1 <= 1, (
-            "Parameter phi_1 should generally be <= 1. "
-            "See page 5 of http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf"
-            "for more details."
-        )
+        if self.p <= 0:
+            raise ValueError(f"Lag order must be positive, but got {self.p}")
+        if self.phi_0 <= 0:
+            raise ValueError(f"phi_0 must be positive, but got {self.phi_0}")
+        if self.phi_1 <= 0 or self.phi_1 > 1:
+            raise ValueError(
+                f"phi_1 must be positive and at most 1, but got {self.phi_1}. "
+                "See page 5 of http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf"
+                "for more details."
+            )
+        if self.phi_2 <= 0:
+            raise ValueError(f"phi_2 must be positive, but got {self.phi_2}")
+        if self.phi_3 <= 0:
+            raise ValueError(f"phi_3 must be positive, but got {self.phi_3}")
 
 
 class BayesianVAR(m.Model):
@@ -71,12 +76,18 @@ class BayesianVAR(m.Model):
         params: the parameter class defined with `BayesianVARParams`
     """
 
+    sigma_ols: Optional[np.ndarray] = None
+    v_posterior: Optional[np.ndarray] = None
+    mu_posterior: Optional[np.ndarray] = None
+    resid: Optional[np.ndarray] = None
+    forecast: Optional[Dict[str, TimeSeriesData]] = None
+    forecast_max_time: Optional[datetime] = None
+    start_date: datetime
+
     def __init__(self, data: TimeSeriesData, params: BayesianVARParams) -> None:
         # Ignore the input time column and re-index to 0...T
         copy_data = data.to_dataframe()
         self.start_date = copy_data.time[0]
-        if isinstance(self.start_date, str):
-            self.start_date = datetime.strptime(self.start_date, "%Y-%m-%d")
         copy_data.time = pd.RangeIndex(0, len(copy_data))
         copy_data = TimeSeriesData(copy_data)
 
@@ -116,10 +127,11 @@ class BayesianVAR(m.Model):
         time_diff = data.time.diff().dropna()
         diff_unique = time_diff.unique()
 
-        assert len(diff_unique) == 1, (
-            f"Frequency of metrics is not constant: {diff_unique} "
-            "Please check for missing or duplicate values"
-        )
+        if len(diff_unique) != 1:
+            raise ValueError(
+                f"Frequency of metrics is not constant: {diff_unique}. "
+                "Please check for missing or duplicate values."
+            )
 
         return diff_unique.item()
 
@@ -140,7 +152,8 @@ class BayesianVAR(m.Model):
         residuals = []
 
         logging.info(
-            f"Performing one-step ahead forecasting on history on from t={self.p} to t={self.T-1}."
+            "Performing one-step ahead forecasting on history from "
+            f"t={self.p} to t={self.T-1}."
         )
         # create dataframe with each column corresponding to the residual
         for t in range(self.p, self.T):
@@ -158,7 +171,6 @@ class BayesianVAR(m.Model):
     def fit(self) -> None:
         """Fit Bayesian VAR model"""
 
-        # pyre-fixme[16]: `BayesianVAR` has no attribute `sigma_ols`.
         self.sigma_ols = self._compute_sigma_ols()
 
         mu_prior = np.zeros((self.m, self.N))
@@ -171,6 +183,7 @@ class BayesianVAR(m.Model):
         Z_sig_Z_sum = 0
         Z_sig_y_sum = 0
 
+        num_mu = self.num_mu_coefficients
         for t in range(self.p, self.T):
             Z_t = self._construct_Zt(
                 self.X, self.Y, t
@@ -184,37 +197,34 @@ class BayesianVAR(m.Model):
             ]  # shape: [m * (m * p + r + 1)] x 1
 
             assert (
-                self.num_mu_coefficients,
-                self.num_mu_coefficients,
-            ) == z_sum_term.shape, f"Expected {(self.num_mu_coefficients, self.num_mu_coefficients)}, got {z_sum_term.shape}"
-            assert (
-                self.num_mu_coefficients,
-            ) == y_sum_term.shape, (
-                f"Expected {(self.num_mu_coefficients,)}, got {y_sum_term.shape}"
+                num_mu,
+                num_mu,
+            ) == z_sum_term.shape, (
+                f"Expected {(num_mu, num_mu)}, got {z_sum_term.shape}"
             )
+            assert (
+                num_mu,
+            ) == y_sum_term.shape, f"Expected {(num_mu,)}, got {y_sum_term.shape}"
 
             Z_sig_Z_sum += z_sum_term
             Z_sig_y_sum += y_sum_term
 
-        # pyre-fixme[16]: `BayesianVAR` has no attribute `v_posterior`.
-        self.v_posterior = inv(
+        v_posterior = inv(
             inv(v_prior) + Z_sig_Z_sum
         )  # shape: [m * (m * p + r + 1)] x [m * (m * p + r + 1)]
+        self.v_posterior = v_posterior
         assert (
-            self.num_mu_coefficients,
-            self.num_mu_coefficients,
-        ) == self.v_posterior.shape, f"Expected {(self.num_mu_coefficients, self.num_mu_coefficients)}, got {self.v_posterior.shape}"
+            num_mu,
+            num_mu,
+        ) == v_posterior.shape, f"Expected {(num_mu, num_mu)}, got {v_posterior.shape}"
 
-        # pyre-fixme[16]: `BayesianVAR` has no attribute `mu_posterior`.
-        self.mu_posterior = self.v_posterior @ (
+        mu_posterior = v_posterior @ (
             inv(v_prior) @ mu_prior + Z_sig_y_sum
         )  # shape: [m * (m * p + r + 1)] x 1
+        self.mu_posterior = mu_posterior
         assert (
-            self.num_mu_coefficients,
-        ) == self.mu_posterior.shape, (
-            f"Expected {(self.num_mu_coefficients,)}, got {self.mu_posterior.shape}"
-        )
-        # pyre-fixme[16]: `BayesianVAR` has no attribute `resid`.
+            num_mu,
+        ) == mu_posterior.shape, f"Expected {(num_mu,)}, got {mu_posterior.shape}"
         self.resid = self._get_training_residuals()
         self.fitted = True
 
@@ -288,7 +298,8 @@ class BayesianVAR(m.Model):
             return self.phi_0 * (self.phi_1 / h(lag)) * (variance[j] / variance[i])
 
     def _construct_v_prior(self) -> np.ndarray:
-        cov = np.zeros((self.num_mu_coefficients, self.num_mu_coefficients))
+        num_mu = self.num_mu_coefficients
+        cov = np.zeros((num_mu, num_mu))
 
         variance = np.var(self.Y, axis=1)
 
@@ -315,8 +326,8 @@ class BayesianVAR(m.Model):
             element_ind += 1
 
         assert (
-            element_ind == self.num_mu_coefficients
-        ), f"Final element: {element_ind}, expected: {self.num_mu_coefficients}"
+            element_ind == num_mu
+        ), f"Final element: {element_ind}, expected: {num_mu}"
 
         return cov  # shape: [m * (m * p + r + 1)] x [m * (m * p + r + 1)] matrix
 
@@ -324,21 +335,18 @@ class BayesianVAR(m.Model):
         assert t >= self.p, f"Need t={t} > p={self.p}."
 
         Z_t = self._construct_Zt(X_new, Y_new, t)
-        # pyre-fixme[16]: `BayesianVAR` has no attribute `mu_posterior`.
         point_prediction = Z_t @ self.mu_posterior  # shape [m x 1]
 
         assert (self.m,) == point_prediction.shape
 
         return point_prediction
 
-    def _look_ahead_step(
-        self, X_ahead, Y_curr
-    ) -> np.ndarray:  # Y_curr has one less element than X_ahead
+    def _look_ahead_step(self, X_ahead, Y_curr) -> np.ndarray:
+        # Y_curr has one less element than X_ahead
         assert Y_curr.shape[1] + 1 == X_ahead.shape[1]
         t_ahead = X_ahead.shape[1] - 1  # -1 for 0-indexed array
 
         Z_t = self._construct_Zt(X_ahead, Y_curr, t_ahead)
-        # pyre-fixme[16]: `BayesianVAR` has no attribute `mu_posterior`.
         look_ahead_pred = Z_t @ self.mu_posterior  # shape [m x 1]
 
         assert (self.m,) == look_ahead_pred.shape
@@ -349,26 +357,27 @@ class BayesianVAR(m.Model):
     def predict(
         self, steps: int, include_history=False, verbose=False
     ) -> Dict[str, TimeSeriesData]:
-        """Predict with the fitted VAR model
+        """Predict with the fitted VAR model.
 
         Args:
             steps: Number of time steps to forecast
             include_history: return fitted values also
 
         Returns:
-            Disctionary of predicted results for each metric. Each metric result
+            Dictionary of predicted results for each metric. Each metric result
             has following columns: `time`, `fcst`, `fcst_lower`, and `fcst_upper`
             Note confidence intervals of forecast are not yet implemented.
         """
-
-        assert self.fitted, "Please fit the model before forecasting with .fit()"
+        if not self.fitted:
+            raise ValueError("Must call fit() before predict().")
 
         times = []
         forecast_vals = []
 
         if include_history:
             logging.info(
-                f"Performing one-step ahead forecasting on history on from t={self.p} to t={self.T-1}."
+                "Performing one-step ahead forecasting on history from "
+                f"t={self.p} to t={self.T-1}."
             )
 
             for t in range(self.p, self.T):
@@ -377,7 +386,8 @@ class BayesianVAR(m.Model):
 
                 if verbose:
                     logging.info(
-                        f"Performing one-step ahead forecasting with history on t={time}."
+                        "Performing one-step ahead forecasting with history on "
+                        f"t={time}."
                     )
 
                 times.append(time)
@@ -386,12 +396,11 @@ class BayesianVAR(m.Model):
         # future forecasting -- X_ahead is one time step ahead of Y_curr
         X_ahead = self.X
         Y_curr = self.Y
+        T = self.T
 
-        logging.info(
-            f"Performing future forecasting from t={self.T} to t={self.T+steps-1}."
-        )
+        logging.info(f"Performing future forecasting from t={T} to t={T+steps-1}.")
 
-        for _t in range(self.T, self.T + steps):
+        for _t in range(T, T + steps):
             ahead_time = X_ahead[np.newaxis, :, -1] + self.time_freq
             X_ahead = np.concatenate([X_ahead, ahead_time], axis=1)
             look_ahead_pred = self._look_ahead_step(X_ahead, Y_curr)
@@ -405,19 +414,22 @@ class BayesianVAR(m.Model):
 
             Y_curr = np.concatenate([Y_curr, look_ahead_pred[:, np.newaxis]], axis=1)
 
-        assert (
-            len(times) > 0
-        ), "Forecast produced no values. Please set steps > 0 or include_history=True."
+        if not times:
+            raise ValueError(
+                "Forecast produced no values. Please set steps > 0 or "
+                "include_history=True."
+            )
 
-        indiv_forecasts = {}
+        indiv_forecasts: Dict[str, TimeSeriesData] = {}
         forecast_length = len(times)
 
         logging.warning(
-            "Upper and lower confidence intervals of forecast not yet implemented for Bayesian VAR model."
+            "Upper and lower confidence intervals of forecast not yet implemented "
+            "for Bayesian VAR model."
         )
         times_new = [self.start_date + timedelta(days=x) for x in times]
 
-        for i, c in enumerate(self.data.value.columns):
+        for i, c in enumerate(self.data.value.columns.tolist()):
             c_forecast = pd.DataFrame(
                 {
                     "time": times_new,
@@ -428,33 +440,32 @@ class BayesianVAR(m.Model):
             )
             indiv_forecasts[c] = TimeSeriesData(c_forecast)
 
-        # pyre-fixme[16]: `BayesianVAR` has no attribute `forecast`.
         self.forecast = indiv_forecasts
-        # pyre-fixme[16]: `BayesianVAR` has no attribute `forecast_max_time`.
         self.forecast_max_time = max(times_new)
 
-        return self.forecast
+        return indiv_forecasts
 
     # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
     # pyre-fixme[40]: Non-static method `plot` cannot override a static method
     #  defined in `m.Model`.
     def plot(self) -> None:
         """Plot forecasted results from Bayesian VAR model"""
-        assert hasattr(self, "forecast"), "Please run .predict() before plotting"
+        forecast = self.forecast
+        data = self.data
+        if forecast is None:
+            raise ValueError("Must call predict() before plot()")
 
         plt.figure(figsize=(20, 6))
         plt.title("Input Timeseries & Forecast")
 
         for i, c in enumerate(self.data.value.columns):
             color = f"C{i}"
-            plt.plot(self.data.time, self.data.value[c], c=color)
-            # pyre-fixme[16]: `BayesianVAR` has no attribute `forecast`.
-            plt.plot(self.forecast[c].time, self.forecast[c].value, "--", c=color)
+            plt.plot(data.time, data.value[c], c=color)
+            plt.plot(forecast[c].time, forecast[c].value, "--", c=color)
 
     @property
     def sigma_u(self) -> pd.DataFrame:
         return pd.DataFrame(
-            # pyre-fixme[16]: `BayesianVAR` has no attribute `sigma_ols`.
             self.sigma_ols,
             index=self.data.value.columns,
             columns=self.data.value.columns,
