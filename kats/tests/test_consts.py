@@ -8,8 +8,10 @@ import pkgutil
 from datetime import datetime
 from unittest import TestCase
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pytest
 import pytz
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
@@ -25,9 +27,6 @@ from pandas.testing import (
     assert_series_equal,
 )
 
-# tentative, for test purpose
-print(os.getcwd())
-
 
 def load_data(file_name):
     ROOT = "kats"
@@ -39,26 +38,15 @@ def load_data(file_name):
     return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
-# Constant values to reuse across test cases
-if "kats/tests" in os.getcwd():
-    DATA_FILE = os.path.abspath(
-        os.path.join(os.path.dirname("__file__"), "../", "data/air_passengers.csv")
-    )
-elif "/home/runner/work/" in os.getcwd():  # for Github Action
-    DATA_FILE = "kats/data/air_passengers.csv"
-else:
-    DATA_FILE = "kats/kats/data/air_passengers.csv"
-
-
 TIME_COL_NAME = "ds"
 VALUE_COL_NAME = "y"
 MULTIVAR_VALUE_DF_COLS = [VALUE_COL_NAME, VALUE_COL_NAME + "_1"]
 
 EMPTY_DF = pd.DataFrame()
-EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME)
-EMPTY_VALUE_SERIES = pd.Series([], name=DEFAULT_VALUE_NAME)
-EMPTY_VALUE_SERIES_NO_NAME = pd.Series([])
-EMPTY_TIME_DATETIME_INDEX = pd.DatetimeIndex(pd.Series([]))
+EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME, dtype=float)
+EMPTY_VALUE_SERIES = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
+EMPTY_VALUE_SERIES_NO_NAME = pd.Series([], dtype=float)
+EMPTY_TIME_DATETIME_INDEX = pd.DatetimeIndex(pd.Series([], dtype=object))
 EMPTY_DF_WITH_COLS = pd.concat([EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1)
 NUM_YEARS_OFFSET = 12
 
@@ -1176,31 +1164,43 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
             ),
         )
 
-    def test_plot(self) -> None:
-        # TODO add visual tests
-
+    @pytest.mark.mpl_image_compare
+    def test_plot(self) -> plt.Figure:
         # Univariate test case
         ax = self.ts_univ_1.plot(cols=["y"])
         self.assertIsNotNone(ax)
+        return plt.gcf()
 
+    @pytest.mark.mpl_image_compare
+    def test_plot_multivariate(self) -> plt.Figure:
         # Multivariate test case
         ax = self.ts_multi_1.plot()
         self.assertIsNotNone(ax)
+        return plt.gcf()
 
+    @pytest.mark.mpl_image_compare
+    def test_plot_params(self) -> plt.Figure:
         # Test more parameter overrides.
         ax = self.ts_multi_1.plot(
             figsize=(8, 3), plot_kwargs={"cmap": "Purples"}, grid=False
         )
         self.assertIsNotNone(ax)
+        return plt.gcf()
 
+    @pytest.mark.mpl_image_compare
+    def test_plot_grid_ax(self) -> plt.Figure:
         # Test grid and ax parameter overrides.
+        fig, ax = plt.subplots(figsize=(6, 4))
         ax = self.ts_univ_1.plot(ax=ax, grid_kwargs={"lw": 2, "ls": ":"})
         self.assertIsNotNone(ax)
+        return fig
 
+    def test_plot_missing_column(self):
         # Columns not in data.
         with self.assertRaises(ValueError):
             self.ts_univ_1.plot(cols=["z"])
 
+    def test_plot_empty(self):
         # No data to plot.
         with self.assertRaises(ValueError):
             self.ts_empty.plot()

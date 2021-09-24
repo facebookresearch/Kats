@@ -10,5 +10,6 @@ parameterized>=0.8.1
 plotly>=2.2.1
 pymannkendall>=1.4.1
 pystan==2.19.1.1
+pytest-mpl>=0.12
 torch<1.7.0
 tqdm>=4.36.1
