@@ -22,7 +22,7 @@ import kats.models.model as m
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from kats.consts import Params, TimeSeriesData
+from kats.consts import Params, TimeSeriesData, _log_error
 from numpy.linalg import inv  # @manual
 from scipy.linalg import block_diag  # @manual
 
@@ -85,8 +85,20 @@ class BayesianVAR(m.Model):
     start_date: datetime
 
     def __init__(self, data: TimeSeriesData, params: BayesianVARParams) -> None:
+        # Ensure time series is multivariate
+        if data.is_univariate():
+            msg = "Bayesian VAR Model only accepts multivariate time series."
+            raise _log_error(msg)
+
         # Ignore the input time column and re-index to 0...T
         copy_data = data.to_dataframe()
+
+        # If time_col_name is different than 'time', change it
+        if data.time_col_name != "time":
+            time_data = copy_data.pop(data.time_col_name)  # Drop column
+            # pyre-fixme[6]: Incompatible parameter type...
+            copy_data.insert(0, "time", time_data)  # Move to first column
+
         self.start_date = copy_data.time[0]
         copy_data.time = pd.RangeIndex(0, len(copy_data))
         copy_data = TimeSeriesData(copy_data)

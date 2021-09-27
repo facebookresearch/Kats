@@ -12,18 +12,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_data
 from kats.models.bayesian_var import BayesianVAR, BayesianVARParams
 from parameterized import parameterized
-
-
-def load_data(file_name):
-    ROOT = "kats"
-    if "kats" in os.getcwd().lower():
-        path = "data/"
-    else:
-        path = "kats/data/"
-    data_object = pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 class testBayesianVARModel(TestCase):
@@ -31,6 +22,25 @@ class testBayesianVARModel(TestCase):
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
         self.params = BayesianVARParams()
+
+    def test_univariate_data(self):
+        univ_df = load_data("air_passengers.csv")
+        univ_ts = TimeSeriesData(df=univ_df, time_col_name="ds")
+        with self.assertRaises(ValueError):
+            _ = BayesianVAR(univ_ts, self.params)
+
+    def test_diff_time_name(self):
+        # Create multivariate time series without 'time' as time column name
+        df = load_data("air_passengers.csv")
+        df["y_2"] = df.y * 2
+
+        # Create correct DataFrame columns that model should produce
+        correct_columns = ["time", "y", "y_2"]
+
+        # Initialize model and test
+        ts = TimeSeriesData(df=df, time_col_name="ds")
+        m = BayesianVAR(ts, self.params)
+        self.assertEqual(list(m.data.to_dataframe().columns), correct_columns)
 
     @pytest.mark.mpl_image_compare
     def test_plot(self) -> plt.Figure:
