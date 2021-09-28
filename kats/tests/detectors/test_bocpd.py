@@ -2,15 +2,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import io
-import os
-import pkgutil
 import re
 from collections import Counter
 from unittest import TestCase
 
 import numpy as np
-import pandas as pd
 import statsmodels
 from kats.detectors.bocpd import (
     BOCPDetector,
@@ -24,16 +20,6 @@ from kats.utils.simulator import Simulator
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
-
-
-def load_data(file_name):
-    ROOT = "kats"
-    if "kats" in os.getcwd().lower():
-        path = "data/"
-    else:
-        path = "kats/data/"
-    data_object = pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 class BOCPDTest(TestCase):

@@ -23,16 +23,6 @@ from kats.utils.emp_confidence_int import EmpConfidenceInt
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
-def load_data(file_name):
-    ROOT = "kats"
-    if "kats" in os.getcwd().lower():
-        path = "data/"
-    else:
-        path = "kats/data/"
-    data_object = pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
-
-
 def get_default_arguments(method):
     sig = inspect.signature(method)
     return {

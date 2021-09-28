@@ -2,26 +2,12 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import io
-import os
-import pkgutil
 import unittest
 from unittest import TestCase
 
-import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_air_passengers
+from kats.data.utils import load_air_passengers, load_data
 from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
-
-
-def load_data(file_name):
-    ROOT = "kats"
-    if "kats" in os.getcwd().lower():
-        path = "data/"
-    else:
-        path = "kats/data/"
-    data_object = pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 class HoltWintersModelTest(TestCase):

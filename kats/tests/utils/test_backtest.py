@@ -4,9 +4,6 @@
 
 # This file defines tests for the Backtester classes
 
-import io
-import os
-import pkgutil
 import statistics
 import unittest
 import unittest.mock as mock
@@ -48,16 +45,6 @@ FIXED_WINDOW_TRAIN_PERCENTAGE = 50  # Fixed window ahead training percentage
 FIXED_WINDOW_PERCENTAGE = 25  # Fixed window ahead window percentage
 FLOAT_ROUNDING_PARAM = 3  # Number of decimal places to round low floats to 0
 CV_NUM_FOLDS = 3  # Number of folds for cross validation
-
-
-def load_data(file_name):
-    ROOT = "kats"
-    if "kats" in os.getcwd().lower():
-        path = "data/"
-    else:
-        path = "kats/data/"
-    data_object = pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 def compute_errors(

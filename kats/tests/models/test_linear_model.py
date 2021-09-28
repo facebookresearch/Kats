@@ -24,7 +24,7 @@ from kats.tests.models.test_models_dummy_data import (
 from pandas.util.testing import assert_frame_equal
 from parameterized import parameterized
 
-
+# TODO: add reset_columns to function in kats.data.utils and then import
 def load_data(file_name, reset_columns=False):
     ROOT = "kats"
     if "kats" in os.getcwd().lower():

@@ -12,19 +12,9 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_air_passengers
+from kats.data.utils import load_data, load_air_passengers
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
-
-
-def load_data(file_name):
-    ROOT = "kats"
-    if "kats" in os.getcwd().lower():
-        path = "data/"
-    else:
-        path = "kats/data/"
-    data_object = pkgutil.get_data(ROOT, path + file_name)
-    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 class DecompositionTest(TestCase):
