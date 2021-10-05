@@ -305,7 +305,7 @@ class CUSUMDetector(Detector):
         mu_tilde, sigma_tilde = np.mean(ts), np.std(ts)
 
         if scale == 0:
-            scale = sigma_tilde
+            scale = sigma_tilde * 0.01
 
         llr = -2 * (
             self._log_llr(ts[: (changepoint + 1)], mu_tilde, sigma_tilde, mu0, scale)
