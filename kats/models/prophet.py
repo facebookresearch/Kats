@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 import pandas as pd
 
 try:
-    from fbprophet import Prophet
+    from prophet import Prophet
 
     _no_prophet = False
 except ImportError:
@@ -102,7 +102,7 @@ class ProphetParams(Params):
         custom_seasonalities: Optional[List[Dict]] = None,
     ) -> None:
         if _no_prophet:
-            raise RuntimeError("requires fbprophet to be installed")
+            raise RuntimeError("requires prophet to be installed")
         super().__init__()
         self.growth = growth
         self.changepoints = changepoints
@@ -205,7 +205,7 @@ class ProphetModel(m.Model):
     def __init__(self, data: TimeSeriesData, params: ProphetParams) -> None:
         super().__init__(data, params)
         if _no_prophet:
-            raise RuntimeError("requires fbprophet to be installed")
+            raise RuntimeError("requires prophet to be installed")
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)

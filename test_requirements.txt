@@ -1,7 +1,7 @@
 LunarCalendar>=0.0.9
 botorch==0.3.2
 ax-platform==0.1.18
-fbprophet==0.7
+prophet==1.0
 neuralprophet>=0.2.7
 gpytorch==1.2.1
 holidays>=0.10.2
