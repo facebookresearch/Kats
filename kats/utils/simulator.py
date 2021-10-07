@@ -6,6 +6,7 @@
 This module implements a simulator for generating synthetic time series data.
 """
 
+import copy
 from datetime import timedelta
 from typing import Any, Callable, List, Optional, Union
 
@@ -19,6 +20,21 @@ from scipy.stats import norm  # @manual
 # E.g., length of 1 day can be represented by timedelta(days=1),or by
 # a timestamp offset 86400, or by the offset alias "1D" defined in pandas
 TimedeltaLike = Union[timedelta, float, str]
+
+
+def moving_average(a: np.ndarray, n: int = 3) -> np.ndarray:
+    """Moving average of a numpy array.
+
+    Args:
+        a: numpy array.
+        n: number of points over which we take moving avg.
+
+    Returns:
+        Array of moving average
+    """
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1 :] / n
 
 
 class Simulator:
@@ -634,5 +650,157 @@ class Simulator:
         y_val += noise_arr
 
         ts = TimeSeriesData(time=self.time, value=pd.Series(y_val))
+
+        return ts
+
+    def _check_arr_inputs(
+        self,
+        ts: TimeSeriesData,
+        loc_arr: Optional[List[int]],
+        param_arr: Optional[List[float]],
+        loc_param_diff: int = 1,
+    ):
+        """Private method, to check whether arguments to injected anomaly functions are valid.
+
+        Args:
+            ts: Given time series.
+            loc_arr: Locations of anomaly/change point.
+            param_arr: Parameters for each segment.
+            loc_param_diff: Expected difference in length of loc and param arrays.
+        """
+
+        if loc_arr is None or len(loc_arr) == 0:
+            raise ValueError("Changepoint Array cannot be empty")
+
+        if param_arr is None or len(param_arr) == 0:
+            raise ValueError("Parameter Array cannot be empty")
+
+        len_ts = len(ts)
+
+        # check if cp_arr is sorted
+        if sorted(loc_arr) != loc_arr:
+            raise ValueError("cp_arr must be sorted")
+
+        # check if last cp is less than length of ts
+        if loc_arr[-1] >= len_ts:
+            raise ValueError(
+                f"Last CP is at {loc_arr[-1]}, larger than length of ts, {len_ts}"
+            )
+
+        if (len(loc_arr) - len(param_arr)) != loc_param_diff:
+            raise ValueError(
+                f"""
+                Parameter array should be {loc_param_diff} longer than cp_arr, but
+                cp_arr is {len(loc_arr)} long and parameter array is
+                {len(param_arr)} long
+                """
+            )
+
+    def inject_level_shift(
+        self,
+        ts_input: TimeSeriesData,
+        cp_arr: Optional[List[int]] = None,
+        level_arr: Optional[List[float]] = None,
+    ) -> TimeSeriesData:
+        """Produces Time Series with injected level shifts
+
+        Args:
+            ts_input: Input time series data.
+            cp_arr: Array of changepoint locations.
+            level_arr: Array containing levels for each segment. Since the
+                number of segments is one more than the number of changepoints,
+                hence, the level arr should be longer than the cp_arr by one.
+
+        Returns:
+            Timeseries with injected anomalies
+        """
+
+        if cp_arr is None or level_arr is None:
+            return ts_input
+
+        ts = copy.deepcopy(ts_input)
+        self._check_arr_inputs(ts=ts, loc_arr=cp_arr, param_arr=level_arr)
+
+        # check if two array sizes match, cp_arr is sorted, and less than length
+        for i in range(len(cp_arr) - 1):
+            start = cp_arr[i]
+            end = cp_arr[i + 1]
+            ts.value.values[start:end] += level_arr[i]
+
+        return ts
+
+    def inject_trend_shift(
+        self,
+        ts_input: TimeSeriesData,
+        cp_arr: Optional[List[int]] = None,
+        trend_arr: Optional[List[float]] = None,
+    ):
+        """Produces Time Series with injected level shifts
+
+        Args:
+            ts_input: Input time series data.
+            cp_arr: Array of changepoint locations.
+            trend_arr: Array containing trends for each segment. Since the
+                number of segments is one more than the number of changepoints,
+                hence, the trend arr should be longer than the cp_arr by one.
+
+        Returns:
+            Timeseries with injected anomalies
+        """
+
+        if cp_arr is None or trend_arr is None:
+            return ts_input
+
+        ts = copy.deepcopy(ts_input)
+        self._check_arr_inputs(ts=ts, loc_arr=cp_arr, param_arr=trend_arr)
+
+        for i in range(len(cp_arr) - 1):
+            start = cp_arr[i]
+            end = cp_arr[i + 1]
+            add_arr = trend_arr[i] * np.arange(end - start)
+            ts.value.values[start:end] += add_arr
+
+            # pyre-ignore Undefined attribute [16]: `float` has no attribute `__getitem__
+            ts.value.values[end:] += add_arr[-1]
+
+        return ts
+
+    def inject_spikes(
+        self,
+        ts_input: TimeSeriesData,
+        anomaly_arr: Optional[List[int]] = None,
+        z_score_arr: Optional[List[float]] = None,
+        epsilon_std_dev: float = 0,
+    ):
+        """Produces time series with injected spikes.
+
+        Args:
+            ts_input: Input time series data.
+            anomaly_arr: locations where we introduce an anomalous point.
+            z_score_arr: same length as anomaly arr. This is the z-score of the
+                anomaly introduced at the location indicated by the anomaly_arr.
+            epsilon_std_dev: A small value of standard deviation, to produce anomalies
+                even when the variance of the original time series is close to zero.
+                This is useful for simulating anomalies in time series of nearly constant
+                data.
+
+        Returns:
+            Timeseries with injected anomalies
+        """
+
+        if anomaly_arr is None or z_score_arr is None:
+            return ts_input
+        ts = copy.deepcopy(ts_input)
+        self._check_arr_inputs(
+            ts=ts, loc_arr=anomaly_arr, param_arr=z_score_arr, loc_param_diff=0
+        )
+
+        # get the std. dev of the time series
+        ts_val = ts.value.values
+        mov_avg = moving_average(ts_val, 3)
+        std_dev = np.std(ts_val[2:] - mov_avg)
+
+        for a_index, z_score in zip(anomaly_arr, z_score_arr):
+            ts.value.values[a_index] += z_score * (std_dev + epsilon_std_dev)
 
         return ts

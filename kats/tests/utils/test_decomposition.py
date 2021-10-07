@@ -6,7 +6,7 @@ import io
 import os
 import pkgutil
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import TestCase
 
 import numpy as np
@@ -520,6 +520,32 @@ class SimulatorTest(TestCase):
         )
 
         self.assertEqual(len(ts3), 450)
+
+    def test_injected_anomalies(self) -> None:
+        date_start_str = "2020-03-01"
+        date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
+        previous_seq = [date_start + timedelta(days=x) for x in range(60)]
+        values = np.random.randn(len(previous_seq))
+        ts_init = TimeSeriesData(
+            pd.DataFrame({"time": previous_seq[0:60], "y_str": values[0:60]})
+        )
+
+        sim2 = Simulator(n=450, start="2018-01-01")
+
+        ts_level = sim2.inject_level_shift(
+            ts_input=ts_init, cp_arr=[10, 30, 40], level_arr=[10, -10]
+        )
+        self.assertEqual(len(ts_init), len(ts_level))
+
+        ts_trend = sim2.inject_trend_shift(
+            ts_input=ts_init, cp_arr=[10, 20, 30], trend_arr=[1, -3]
+        )
+        self.assertEqual(len(ts_init), len(ts_trend))
+
+        ts_spike = sim2.inject_spikes(
+            ts_input=ts_init, anomaly_arr=[10, 20, 30], z_score_arr=[10, -10, 2]
+        )
+        self.assertEqual(len(ts_init), len(ts_spike))
 
 
 if __name__ == "__main__":
