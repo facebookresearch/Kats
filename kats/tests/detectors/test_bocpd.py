@@ -4,6 +4,7 @@
 
 import re
 from collections import Counter
+from operator import attrgetter
 from unittest import TestCase
 
 import numpy as np
@@ -16,6 +17,7 @@ from kats.detectors.bocpd import (
     TrendChangeParameters,
 )
 from kats.utils.simulator import Simulator
+from parameterized import parameterized
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
@@ -41,9 +43,8 @@ class BOCPDTest(TestCase):
 
         self.level_arr = [1.35, 1.05, 1.35, 1.2]
 
-    def test_normal(self) -> None:
-
-        ts = self.sim.level_shift_sim(
+        ## Normal ##
+        self.normal_ts = self.sim.level_shift_sim(
             random_seed=100,
             cp_arr=self.cp_array_input,
             level_arr=self.level_arr,
@@ -51,128 +52,43 @@ class BOCPDTest(TestCase):
             seasonal_period=7,
             seasonal_magnitude=0.0,
         )
-        bocpd_model = BOCPDetector(data=ts)
 
-        cps = bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
-            changepoint_prior=0.01,
-            choose_priors=False,
-            agg_cp=False,
-        )
-        bocpd_model.plot(cps)
-
-        change_prob_dict = bocpd_model.get_change_prob()
-        change_prob = list(change_prob_dict.values())[
-            0
-        ]  # dict only has a single element here
-        self.assertEqual(change_prob.shape[0], len(ts))
-
-        # check if the change points were detected
         # build possible changepoints giving a little slack
         # algorithm can detect a few points before/after
-        cp_arr = np.concatenate(
+        self.normal_cp_arr = np.concatenate(
             (
-                ts.time.values[
+                self.normal_ts.time.values[
                     range(BOCPDTest.first_cp_begin - 5, BOCPDTest.first_cp_begin + 5)
                 ],
-                ts.time.values[
+                self.normal_ts.time.values[
                     range(BOCPDTest.first_cp_end - 5, BOCPDTest.first_cp_end + 5)
                 ],
-                ts.time.values[
+                self.normal_ts.time.values[
                     range(BOCPDTest.second_cp_begin - 5, BOCPDTest.second_cp_begin + 5)
                 ],
             )
         )
 
-        # TODO: this check only tests that all changepoints we find should be there
-        #       but not the other way around, that we find all change points.
-        for t in cps:
-            cp = t[0].start_time
-            if cp == ts.time.values[0]:
-                continue
-            self.assertIn(cp, cp_arr)
+        self.normal_bocpd_model = BOCPDetector(data=self.normal_ts)
 
-        # test the case where priors are chosen automatically
-        cps2 = bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
-            changepoint_prior=0.01,
-            choose_priors=True,
-            agg_cp=False,
-        )
-        bocpd_model.plot(cps2)
-
-        for t in cps2:
-            cp = t[0].start_time
-            if cp == ts.time.values[0]:
-                continue
-            self.assertIn(cp, cp_arr)
-
-        # test the case where run-length posterior is aggregated
-        cps3 = bocpd_model.detector(
+        self.normal_cps = self.normal_bocpd_model.detector(
             model=BOCPDModelType.NORMAL_KNOWN_MODEL,
             changepoint_prior=0.01,
             choose_priors=False,
-            agg_cp=True,
+            agg_cp=False,
         )
-        bocpd_model.plot(cps3)
 
-        for t in cps3:
-            cp = t[0].start_time
-            if cp == ts.time.values[0]:
-                continue
-            self.assertIn(cp, cp_arr)
-
-        # test the case where run-length posterior is aggregated and
-        # automatically tuning prior
-        cps4 = bocpd_model.detector(
+        cps_params = NormalKnownParameters()
+        cps_params.search_method = "gridsearch"
+        self.normal_gridsearch_cps = self.normal_bocpd_model.detector(
             model=BOCPDModelType.NORMAL_KNOWN_MODEL,
-            changepoint_prior=0.01,
-            choose_priors=True,
-            agg_cp=True,
-        )
-        bocpd_model.plot(cps4)
-
-        for t in cps4:
-            cp = t[0].start_time
-            if cp == ts.time.values[0]:
-                continue
-            self.assertIn(cp, cp_arr)
-
-        # test the case where search method has been changed to grid
-        # search
-        cps5_params = NormalKnownParameters()
-        cps5_params.search_method = "gridsearch"
-        cps5 = bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
-            model_parameters=cps5_params,
+            model_parameters=cps_params,
             changepoint_prior=0.01,
             choose_priors=True,
         )
-        bocpd_model.plot(cps5)
 
-        for t in cps5:
-            cp = t[0].start_time
-            if cp == ts.time.values[0]:
-                continue
-            self.assertIn(cp, cp_arr)
-
-        # test to see if agg_cp=True works
-        cps6 = bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
-            changepoint_prior=0.01,
-            choose_priors=True,
-            agg_cp=True,
-        )
-
-        for t in cps6:
-            cp = t[0].start_time
-            if cp == ts.time.values[0]:
-                continue
-            self.assertIn(cp, cp_arr)
-
-    def test_normal_multivariate(self) -> None:
-
-        ts = self.sim.level_shift_multivariate_indep_sim(
+        ## Normal Mutilvariate ##
+        self.multnorm_ts = self.sim.level_shift_multivariate_indep_sim(
             cp_arr=self.cp_array_input,
             level_arr=self.level_arr,
             noise=0.04,
@@ -181,130 +97,48 @@ class BOCPDTest(TestCase):
             dim=3,
         )
 
-        bocpd_model = BOCPDetector(data=ts)
-        cps = bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
-            # pyre-fixme[6]: Expected `float` for 2nd param but got `ndarray`.
-            changepoint_prior=np.array([0.01, 0.01, 1.0]),
-            # pyre-fixme[6]: Expected `float` for 3rd param but got `ndarray`.
-            threshold=np.array([1.0, 0.5, 0.5]),
-            choose_priors=False,
-            agg_cp=False,
-        )
-        bocpd_model.plot(cps)
-
-        change_prob_dict = bocpd_model.get_change_prob()
-        change_prob_val = change_prob_dict.values()
-
-        for prob_arr in change_prob_val:
-            self.assertEqual(prob_arr.shape[0], len(ts))
-
-        # check if the change points were detected
         # build possible changepoints giving a little slack
         # algorithm can detect a few points before/after
-        cp_arr = np.concatenate(
+        self.multnorm_cp_arr = np.concatenate(
             (
-                ts.time.values[
+                self.multnorm_ts.time.values[
                     range(BOCPDTest.first_cp_begin - 5, BOCPDTest.first_cp_begin + 5)
                 ],
-                ts.time.values[
+                self.multnorm_ts.time.values[
                     range(BOCPDTest.first_cp_end - 5, BOCPDTest.first_cp_end + 5)
                 ],
-                ts.time.values[
+                self.multnorm_ts.time.values[
                     range(BOCPDTest.second_cp_begin - 5, BOCPDTest.second_cp_begin + 5)
                 ],
             )
         )
+
+        self.multnorm_bocpd_model = BOCPDetector(data=self.multnorm_ts)
 
         # We should have 3 change points per time series (of which there are 3)
         # However, we have set different change point priors, so we lose 3
         # and we set different thresholds, so we lose the other 3.
-        self.assertEqual(len(cps), 3)
-
-        counter = Counter()
-        for t in cps:
-            ts_name = t[1].ts_name
-            cp = t[0].start_time
-            if cp == ts.time.values[0]:
-                continue
-            self.assertIn(cp, cp_arr)
-            counter += Counter({ts_name: 1})
-
-        # Check we have all the time series.
-        self.assertEqual(counter, Counter(value2=3))
-
-        # check if multivariate detection works with choosing priors
-        cps2 = bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL, choose_priors=True, agg_cp=False
-        )
-        bocpd_model.plot(cps2)
-
-        # check if multivariate detection works with aggregating run-length
-        # posterior
-        cps3 = bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL, choose_priors=False
-        )
-        bocpd_model.plot(cps3)
-
-        # check if multivariate detection works with aggregating run-length
-        # posterior and automated tuning prior
-        cps4 = bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL, choose_priors=True
-        )
-        bocpd_model.plot(cps4)
-
-        # check if multivariate detection works in detecting all changepoints
-        cps5 = bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
-            # pyre-fixme[6]: Expected `float` for 2nd param but got `ndarray`.
-            changepoint_prior=np.array([0.01, 0.01, 0.01]),
-            # pyre-fixme[6]: Expected `float` for 3rd param but got `ndarray`.
-            threshold=np.array([0.85, 0.85, 0.85]),
-            choose_priors=False,
-        )
-        bocpd_model.plot(cps5)
-
-        change_prob_dict = bocpd_model.get_change_prob()
-        change_prob_val = change_prob_dict.values()
-
-        for prob_arr in change_prob_val:
-            self.assertEqual(prob_arr.shape[0], len(ts))
-
-        # check if the change points were detected
-        # build possible changepoints giving a little slack
-        # algorithm can detect a few points before/after
-        cp_arr = np.concatenate(
-            (
-                ts.time.values[
-                    range(BOCPDTest.first_cp_begin - 5, BOCPDTest.first_cp_begin + 5)
-                ],
-                ts.time.values[
-                    range(BOCPDTest.first_cp_end - 5, BOCPDTest.first_cp_end + 5)
-                ],
-                ts.time.values[
-                    range(BOCPDTest.second_cp_begin - 5, BOCPDTest.second_cp_begin + 5)
-                ],
+        self.multnorm_cps_changepointpriors_and_thresholds = (
+            self.multnorm_bocpd_model.detector(
+                model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+                changepoint_prior=np.array([0.01, 0.01, 1.0]),
+                threshold=np.array([1.0, 0.5, 0.5]),
+                choose_priors=False,
+                agg_cp=False,
             )
         )
 
-        # With new algorithm, all changepoints should
-        self.assertTrue(len(cps5) >= 9)
+        # check if multivariate detection works in detecting all changepoints
+        self.multnorm_cps = self.multnorm_bocpd_model.detector(
+            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+            changepoint_prior=np.array([0.01, 0.01, 0.01]),
+            threshold=np.array([0.85, 0.85, 0.85]),
+            choose_priors=False,
+        )
 
-        counter = Counter()
-        for t in cps5:
-            ts_name = t[1].ts_name
-            cp = t[0].start_time
-            if cp == ts.time.values[0]:
-                continue
-            self.assertIn(cp, cp_arr)
-            counter += Counter({ts_name: 1})
-
-        # Check we have all the time series.
-        self.assertEqual(counter, Counter(value1=3, value2=3, value3=3))
-
-    def test_trend(self) -> None:
-        sim = Simulator(n=200, start="2018-01-01")
-        ts = sim.trend_shift_sim(
+        # Trend
+        self.trend_sim = Simulator(n=200, start="2018-01-01")
+        self.trend_ts = self.trend_sim.trend_shift_sim(
             random_seed=15,
             cp_arr=[100],
             trend_arr=[3, 28],
@@ -313,36 +147,21 @@ class BOCPDTest(TestCase):
             seasonal_period=7,
             seasonal_magnitude=0,
         )
-        threshold = 0.5
-        detector = BOCPDetector(data=ts)
-        cps = detector.detector(
+
+        self.trend_bocpd_model = BOCPDetector(data=self.trend_ts)
+        self.trend_cps = self.trend_bocpd_model.detector(
             model=BOCPDModelType.TREND_CHANGE_MODEL,
             model_parameters=TrendChangeParameters(
                 readjust_sigma_prior=True, num_points_prior=20
             ),
             debug=True,
-            threshold=threshold,
+            threshold=0.5,
             choose_priors=False,
             agg_cp=True,
         )
-        detector.plot(cps)
 
-        # expect only one cp
-        # test if atleast one cp is in 90:110
-        start_list = [cp[0].start_time for cp in cps]
-        intersect = list(set(start_list) & set(ts.time.values[90:110]))
-        self.assertGreaterEqual(len(intersect), 1)
-
-        # check if confidence is greater than threshold
-        self.assertGreaterEqual(
-            cps[0][0].confidence,
-            threshold,
-            f"confidence should have been at least threshold {threshold}, but got {cps[0][0].confidence}",
-        )
-
-    def test_poisson(self) -> None:
-
-        ts = self.sim.level_shift_sim(
+        # Poisson
+        self.poisson_ts = self.sim.level_shift_sim(
             random_seed=100,
             cp_arr=self.cp_array_input,
             level_arr=self.level_arr,
@@ -351,32 +170,34 @@ class BOCPDTest(TestCase):
             seasonal_magnitude=0.0,
         )
 
-        bocpd_model = BOCPDetector(data=ts)
-        cps = bocpd_model.detector(
-            model=BOCPDModelType.POISSON_PROCESS_MODEL,
-            changepoint_prior=0.01,
-            model_parameters=PoissonModelParameters(beta_prior=0.01),
-            choose_priors=False,
-        )
-        bocpd_model.plot(cps)
-
         # check if the change points were detected
         # build possible changepoints giving a little slack
         # algorithm can detect a few points before/after
-        cp_arr = np.concatenate(
+        self.poisson_cp_arr = np.concatenate(
             (
-                ts.time.values[
+                self.poisson_ts.time.values[
                     range(BOCPDTest.first_cp_begin - 5, BOCPDTest.first_cp_begin + 5)
                 ],
-                ts.time.values[
+                self.poisson_ts.time.values[
                     range(BOCPDTest.first_cp_end - 5, BOCPDTest.first_cp_end + 5)
                 ],
-                ts.time.values[
+                self.poisson_ts.time.values[
                     range(BOCPDTest.second_cp_begin - 5, BOCPDTest.second_cp_begin + 5)
                 ],
             )
         )
 
+        self.poisson_bocpd_model = BOCPDetector(data=self.poisson_ts)
+
+        self.poisson_cps = self.poisson_bocpd_model.detector(
+            model=BOCPDModelType.POISSON_PROCESS_MODEL,
+            changepoint_prior=0.01,
+            model_parameters=PoissonModelParameters(beta_prior=0.01),
+            choose_priors=False,
+        )
+
+    def assert_changepoints_exist(self, ts, cp_arr, cps) -> None:
+        # check if the change points were detected
         # TODO: this check only tests that all changepoints we find should be there
         #       but not the other way around, that we find all change points.
         for t in cps:
@@ -384,3 +205,168 @@ class BOCPDTest(TestCase):
             if cp == ts.time.values[0]:
                 continue
             self.assertIn(cp, cp_arr)
+
+    # Test Plots #
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ("normal", "normal_bocpd_model", "normal_cps"),
+            ("normal", "normal_bocpd_model", "normal_gridsearch_cps"),
+            ("multivariate_normal", "multnorm_bocpd_model", "multnorm_cps"),
+            (
+                "multivariate_normal",
+                "multnorm_bocpd_model",
+                "multnorm_cps_changepointpriors_and_thresholds",
+            ),
+            ("trend", "trend_bocpd_model", "trend_cps"),
+            ("poisson", "poisson_bocpd_model", "poisson_cps"),
+        ]
+    )
+    def test_plots(self, _, detector_name, cp_name) -> None:
+        attrgetter(detector_name)(self).plot(attrgetter(cp_name)(self))
+
+    # Test Normal #
+    def test_normal_change_prob_len(self) -> None:
+
+        change_prob_dict = self.normal_bocpd_model.get_change_prob()
+        change_prob = list(change_prob_dict.values())[
+            0
+        ]  # dict only has a single element here
+        self.assertEqual(change_prob.shape[0], len(self.normal_ts))
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ("default", False, False),
+            ("w_priors", True, False),
+            ("w_agg_post", False, True),
+            ("w_priors_and_agg_post", True, True),
+        ]
+    )
+    def test_normal_changepoints(self, _, choose_priors, agg_cp) -> None:
+
+        self.assert_changepoints_exist(
+            self.normal_ts, self.normal_cp_arr, self.normal_cps
+        )
+
+    def test_normal_changepoints_gridsearch(self) -> None:
+        # test the case where search method has been changed to gridsearch
+
+        self.assert_changepoints_exist(
+            self.normal_ts, self.normal_cp_arr, self.normal_gridsearch_cps
+        )
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ("default", False, False),
+            ("w_priors", True, False),
+            ("w_agg_post", False, True),
+            ("w_priors_and_agg_post", True, True),
+        ]
+    )
+    def test_additional_multivariate_normal_plots(
+        self, _, choose_priors, agg_cp
+    ) -> None:
+        # check if multivariate detection works with choosing priors
+        cps = self.multnorm_bocpd_model.detector(
+            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+            choose_priors=choose_priors,
+            agg_cp=agg_cp,
+        )
+        self.multnorm_bocpd_model.plot(cps)
+
+    def test_normal_multivariate_changeprob_length(self) -> None:
+
+        change_prob_dict = self.multnorm_bocpd_model.get_change_prob()
+        change_prob_val = change_prob_dict.values()
+
+        for prob_arr in change_prob_val:
+            self.assertEqual(prob_arr.shape[0], len(self.multnorm_ts))
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ("default", "multnorm_cps"),
+            (
+                "changepointpriors_and_thresholds",
+                "multnorm_cps_changepointpriors_and_thresholds",
+            ),
+        ]
+    )
+    def test_normal_multivariate_changepoints(self, _, cps_name) -> None:
+        cps = getattr(self, cps_name)
+
+        for t in cps:
+            cp = t[0].start_time
+            if cp == self.multnorm_ts.time.values[0]:
+                continue
+            self.assertIn(cp, self.multnorm_cp_arr)
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ("default", "multnorm_cps", Counter(value1=3, value2=3, value3=3)),
+            (
+                "changepointpriors_and_thresholds",
+                "multnorm_cps_changepointpriors_and_thresholds",
+                Counter(value2=3),
+            ),
+        ]
+    )
+    def test_normal_multivariate_num_timeseries(
+        self, _, cps_name, target_counter
+    ) -> None:
+        cps = getattr(self, cps_name)
+        counter = Counter()
+        for t in cps:
+            ts_name = t[1].ts_name
+            cp = t[0].start_time
+            if cp == self.multnorm_ts.time.values[0]:
+                continue
+            counter += Counter({ts_name: 1})
+
+        # Check we have all the time series.
+        self.assertEqual(counter, target_counter)
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ("default", "multnorm_cps", 9),
+            # We should have 3 change points per time series (of which there are 3)
+            # However, we have set different change point priors, so we lose 3
+            # and we set different thresholds, so we lose the other 3.
+            (
+                "changepointpriors_and_thresholds",
+                "multnorm_cps_changepointpriors_and_thresholds",
+                3,
+            ),
+        ]
+    )
+    def test_normal_multivariate_changepoints_length(
+        self, _, cps_name, target_len
+    ) -> None:
+        cps = getattr(self, cps_name)
+        self.assertEqual(len(cps), target_len)
+
+    def test_trend(self) -> None:
+        # expect only one cp
+        # test if atleast one cp is in 90:110
+        start_list = [cp[0].start_time for cp in self.trend_cps]
+        intersect = list(set(start_list) & set(self.trend_ts.time.values[90:110]))
+        self.assertGreaterEqual(len(intersect), 1)
+
+    def test_trend_confidence(self) -> None:
+        # check if confidence is greater than threshold
+        self.assertGreaterEqual(
+            self.trend_cps[0][0].confidence,
+            0.5,
+            f"confidence should have been at least threshold 0.5, but got {self.trend_cps[0][0].confidence}",
+        )
+
+    def test_poisson_changepoints(self) -> None:
+
+        self.assert_changepoints_exist(
+            self.poisson_ts, self.poisson_cp_arr, self.poisson_cps
+        )
