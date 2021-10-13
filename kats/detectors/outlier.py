@@ -182,7 +182,9 @@ class MultivariateAnomalyDetector(Detector):
         """
 
         z_score_threshold = 3
-        # pyre-fixme[16]: Module `stats` has no attribute `zscore`.
+        # pyre-fixme[6]: Expected `Union[typing.Sequence[typing.Sequence[float]],
+        #  typing.Sequence[float], np.ndarray, pd.core.series.Series]` for 1st param
+        #  but got `DataFrame`.
         zscore_df = stats.zscore(df)
         non_outlier_flag = zscore_df < z_score_threshold
         df_clean = df.where(non_outlier_flag, np.nan)
@@ -281,7 +283,7 @@ class MultivariateAnomalyDetector(Detector):
         residual_score["overall_anomaly_score"] = overall_anomaly_score
         # calculate p-values
         dof = len(self.df.columns)
-        # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
+        # pyre-fixme[28]: Unexpected keyword argument `df`.
         residual_score["p_value"] = stats.chi2.sf(overall_anomaly_score, df=dof)
 
         return residual_score

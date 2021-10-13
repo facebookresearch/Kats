@@ -19,9 +19,6 @@ import numpy as np
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData, SearchMethodEnum
 from kats.detectors.detector import Detector
 from scipy.special import logsumexp  # @manual
-
-# pyre-ignore[21]: Could not find name `invgamma` in `scipy.stats`.
-# pyre-ignore[21]: Could not find name `nbinom` in `scipy.stats`.
 from scipy.stats import invgamma, linregress, norm, nbinom  # @manual
 
 try:

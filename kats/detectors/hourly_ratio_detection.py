@@ -10,8 +10,6 @@ import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
-
-# pyre-ignore[21]: Could not find a name `chi2` defined in module `scipy.stats`.
 from scipy.stats import chi2
 from sklearn.covariance import MinCovDet
 
@@ -173,10 +171,8 @@ class HourlyRatioDetector(Detector):
 
         diff = obs - median
         scores = np.sum(diff * np.linalg.solve(cov, diff.T).T, axis=1)
-        # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
         pvalue = 1.0 - chi2(df=diff.shape[1]).cdf(scores)
         lab = pvalue <= alpha
-        # pyre-fixme[7]: Expected `Tuple[np.ndarray, np.ndarray]` but got `Tuple[bool, float]`.
         return (lab, pvalue)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.

@@ -48,8 +48,6 @@ from kats.consts import (
     TimeSeriesData,
 )
 from kats.detectors.detector import Detector
-
-# pyre-ignore[21]: Could not find name `chi2` in `scipy.stats`.
 from scipy.stats import chi2  # @manual
 
 
@@ -267,7 +265,6 @@ class CUSUMDetector(Detector):
                 # pyre-fixme[61]: `mu1` may not be initialized here.
                 {"mu0": mu0, "mu1": mu1, "changepoint": changepoint},
             )
-            # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
             pval_int = 1 - chi2.cdf(llr_int, 2)
             # pyre-fixme[61]: `mu0` may not be initialized here.
             delta_int = mu1 - mu0
@@ -448,7 +445,6 @@ class CUSUMDetector(Detector):
                 change_direction=change_direction,
             )
             change_meta["llr"] = self._get_llr(ts, change_meta)
-            # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
             change_meta["p_value"] = 1 - chi2.cdf(change_meta["llr"], 2)
 
             # compare magnitude on interest_window and historical_window
@@ -470,9 +466,7 @@ class CUSUMDetector(Detector):
                         )
                     )
 
-            # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
             if_significant = change_meta["llr"] > chi2.ppf(1 - threshold, 2)
-            # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
             if_significant_int = change_meta["llr_int"] > chi2.ppf(1 - threshold, 2)
             if change_direction == "increase":
                 larger_than_min_abs_change = (
@@ -625,10 +619,8 @@ class MultiCUSUMDetector(CUSUMDetector):
                 start_point=start_point,
             )
             change_meta["llr"] = self._get_llr(ts, change_meta)
-            # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
             change_meta["p_value"] = 1 - chi2.cdf(change_meta["llr"], ts.shape[1] + 1)
 
-            # pyre-ignore[16]: Module `stats` has no attribute `chi2`.
             if_significant = change_meta["llr"] > chi2.ppf(
                 1 - threshold, ts.shape[1] + 1
             )

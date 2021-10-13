@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from kats.consts import TimeSeriesData, TimeSeriesChangePoint
 from kats.detectors.detector import Detector
-
-# pyre-fixme[21]: Could not find name `zscore` in `scipy.stats`.
 from scipy.stats import norm, zscore  # @manual
 
 
@@ -61,7 +59,6 @@ class RobustStatDetector(Detector):
             .fillna(0)
         )
 
-        # pyre-fixme[16]: Module `stats` has no attribute `zscore`.
         y_zscores = zscore(df_)
         p_values = norm.sf(np.abs(y_zscores))
         ind = np.where(p_values < p_value_cutoff)[0]
@@ -80,6 +77,7 @@ class RobustStatDetector(Detector):
             cp = TimeSeriesChangePoint(
                 start_time=data_df.index.values[idx],
                 end_time=data_df.index.values[idx],
+                # pyre-fixme[16]: `float` has no attribute `__getitem__`.
                 confidence=1 - p_values[idx],
             )
             metadata = RobustStatMetadata(index=idx, metric=float(df_.iloc[idx]))

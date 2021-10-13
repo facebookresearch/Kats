@@ -644,7 +644,8 @@ class Simulator:
             )
         for arr_idx, y_idx in enumerate(anomaly_arr):
             if y_idx < 0 or y_idx >= self.n:
-                raise ValueError(f"Anamaly point {y_idx} is out of range")
+                raise ValueError(f"Anomaly point {y_idx} is out of range")
+            # pyre-fixme[16]: `Sequence` has no attribute `__setitem__`.
             noise_arr[y_idx] = z_score_arr[arr_idx] * noise
 
         y_val += noise_arr

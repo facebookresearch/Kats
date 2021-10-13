@@ -15,8 +15,6 @@ from kats.detectors.cusum_detection import (
     MultiCUSUMDetector,
 )
 from parameterized import parameterized
-
-# pyre-fixme[21]: Could not find name `chi2` in `scipy.stats`.
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
 
@@ -213,7 +211,6 @@ class CUSUMDetectorTest(TestCase):
     def test_p_val(self, pval_name, llr_name) -> None:
         self.assertEqual(
             attrgetter(pval_name)(self),
-            # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
             1 - chi2.cdf(attrgetter(llr_name)(self), 2),
         )
 
@@ -439,7 +436,6 @@ class MultiCUSUMDetectorTest(TestCase):
     def test_p_val(self, metadata_name) -> None:
         self.assertEqual(
             attrgetter(metadata_name)(self).p_value,
-            # pyre-fixme[16]: Module `stats` has no attribute `chi2`.
             1 - chi2.cdf(attrgetter(metadata_name)(self).llr, self.D + 1),
         )
 
