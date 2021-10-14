@@ -76,23 +76,22 @@ class ThetaModel(m.Model):
 
     def __init__(
         self,
-        data: Optional[TimeSeriesData] = None,
-        params: Optional[ThetaParams] = None,
+        data: TimeSeriesData,
+        params: ThetaParams,
     ) -> None:
         super().__init__(data, params)
         self.n = None
         self.__subtype__ = "theta"
-        if self.data is not None:
-            if not isinstance(self.data.value, pd.Series):
-                msg = "Only support univariate time series, but get {type}.".format(
-                    type=type(self.data.value)
-                )
-                logging.error(msg)
-                raise ValueError(msg)
-            self.n = self.data.value.shape[0]
+        if not isinstance(self.data.value, pd.Series):
+            msg = "Only support univariate time series, but get {type}.".format(
+                type=type(self.data.value)
+            )
+            logging.error(msg)
+            raise ValueError(msg)
+        self.n = self.data.value.shape[0]
 
     def check_seasonality(self) -> None:
-        """Determine if the metirc to be forecasted is seasonal or not"""
+        """Determine if the metric to be forecasted is seasonal or not"""
 
         y = self.data.value
         m = self.params.m

@@ -60,7 +60,9 @@ class cupikTest(TestCase):
         )
 
     def test_thetamodel(self) -> None:
-        pipe = Pipeline([("theta_model", ThetaModel(params=ThetaParams()))])
+        pipe = Pipeline(
+            [("theta_model", ThetaModel(data=self.TSData, params=ThetaParams()))]
+        )
         fitted = pipe.fit(self.TSData)
         bools = (
             # pyre-fixme[16]: Optional type has no attribute `values`.
@@ -77,7 +79,7 @@ class cupikTest(TestCase):
         pipe = Pipeline(
             [
                 ("trend_detector", MKDetector(threshold=0.8)),
-                ("theta_model", ThetaModel(params=ThetaParams())),
+                ("theta_model", ThetaModel(data=self.TSData, params=ThetaParams())),
             ]
         )
         fitted = pipe.fit(self.TSData)
