@@ -15,7 +15,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import math
 from copy import copy
-from typing import List, Dict
+from typing import Any, List, Dict, Optional
 
 import kats.models.model as m
 import numpy as np
@@ -74,6 +74,19 @@ class STLFModel(m.Model):
         params: the parameter class defined with `STLFParams`
     """
 
+    decomp: Optional[Dict[str, TimeSeriesData]] = None
+    sea_data: Optional[TimeSeriesData] = None
+    desea_data: Optional[TimeSeriesData] = None
+    model: Optional[m.Model] = None
+    include_history: Optional[bool] = None
+    freq: Optional[str] = None
+    alpha: Optional[float] = None
+    y_fcst: Optional[np.ndarray] = None
+    fcst_lower: Optional[np.ndarray] = None
+    fcst_upper: Optional[np.ndarray] = None
+    dates: Optional[pd.DatetimeIndex] = None
+    fcst_df: Optional[pd.DataFrame] = None
+
     def __init__(self, data: TimeSeriesData, params: STLFParams) -> None:
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.Series):
@@ -89,30 +102,27 @@ class STLFModel(m.Model):
             logging.error(msg)
             raise ValueError(msg)
 
-    def deseasonalize(self) -> TimeSeriesData:
+    def deseasonalize(self) -> "STLFModel":
         """De-seasonalize the time series data
 
         Args:
             None
 
         Returns:
-            The seasonal and de-seasonalized data
+            This object, with `decomp`, `sea_data`, and `desea_data` attributes
+            set to the decomposition results.
         """
 
         # create decomposer for time series decomposition
         decomposer = TimeSeriesDecomposition(self.data, "multiplicative")
-        # pyre-fixme[16]: `STLFModel` has no attribute `decomp`.
-        self.decomp = decomposer.decomposer()
+        self.decomp = decomp = decomposer.decomposer()
 
-        # pyre-fixme[16]: `STLFModel` has no attribute `sea_data`.
-        self.sea_data = copy(self.decomp["seasonal"])
-        # pyre-fixme[16]: `STLFModel` has no attribute `desea_data`.
-        self.desea_data = copy(self.data)
-        self.desea_data.value = self.desea_data.value / self.decomp["seasonal"].value
-        # pyre-fixme[7]: Expected `TimeSeriesData` but got `STLFModel`.
+        self.sea_data = copy(decomp["seasonal"])
+        self.desea_data = desea_data = copy(self.data)
+        desea_data.value = desea_data.value / decomp["seasonal"].value
         return self
 
-    def fit(self, **kwargs) -> None:
+    def fit(self, **kwargs) -> "STLFModel":
         """Fit STLF model
 
         Args:
@@ -126,36 +136,30 @@ class STLFModel(m.Model):
             "Call fit() with parameters. " "kwargs:{kwargs}".format(kwargs=kwargs)
         )
         self.deseasonalize()
+        data = self.desea_data
+        assert data is not None
         if self.params.method == "prophet":
             params = prophet.ProphetParams()
             model = prophet.ProphetModel(
-                # pyre-fixme[16]: `STLFModel` has no attribute `desea_data`.
-                data=self.desea_data,
+                data=data,
                 params=params,
             )
             model.fit()
-
-        if self.params.method == "theta":
+        elif self.params.method == "theta":
             params = theta.ThetaParams(m=1)
-            model = theta.ThetaModel(data=self.desea_data, params=params)
+            model = theta.ThetaModel(data=data, params=params)
             model.fit()
-
-        if self.params.method == "linear":
+        elif self.params.method == "linear":
             params = linear_model.LinearModelParams()
-            model = linear_model.LinearModel(data=self.desea_data, params=params)
+            model = linear_model.LinearModel(data=data, params=params)
             model.fit()
-
-        if self.params.method == "quadratic":
+        else:
+            assert self.params.method == "quadratic"
             params = quadratic_model.QuadraticModelParams()
-            model = quadratic_model.QuadraticModel(data=self.desea_data, params=params)
+            model = quadratic_model.QuadraticModel(data=data, params=params)
             model.fit()
-        # pyre-fixme[16]: `STLFModel` has no attribute `model`.
-        # pyre-fixme[61]: `model` may not be initialized here.
         self.model = model
-        # pyre-fixme[7]: Expected `None` but got `Union[linear_model.LinearModel,
-        #  prophet.ProphetModel, quadratic_model.QuadraticModel, theta.ThetaModel]`.
-        # pyre-fixme[61]: `model` may not be initialized here.
-        return model
+        return self
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, include_history=False, **kwargs) -> pd.DataFrame:
@@ -169,38 +173,34 @@ class STLFModel(m.Model):
             The predicted dataframe with following columns:
             `time`, `fcst`, `fcst_lower`, and `fcst_upper`
         """
+        model = self.model
+        if model is None:
+            raise ValueError("Call fit() before predict().")
+        decomp = self.decomp
+        assert decomp is not None
 
         logging.debug(
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
-        # pyre-fixme[16]: `STLFModel` has no attribute `include_history`.
         self.include_history = include_history
-        # pyre-fixme[16]: `STLFModel` has no attribute `freq`.
-        # pyre-fixme[16]: `STLFModel` has no attribute `data`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
-        # pyre-fixme[16]: `STLFModel` has no attribute `alpha`.
         self.alpha = kwargs.get("alpha", 0.05)
 
         # trend forecast
-        # pyre-fixme[16]: `STLFModel` has no attribute `model`.
-        fcst = self.model.predict(steps=steps, include_history=include_history)
+        fcst = model.predict(steps=steps, include_history=include_history)
 
         # re-seasonalize
         m = self.params.m
         rep = math.trunc(1 + fcst.shape[0] / m)
 
-        # pyre-fixme[16]: `STLFModel` has no attribute `decomp`.
-        seasonality = self.decomp["seasonal"].value[-m:]
+        seasonality = decomp["seasonal"].value[-m:]
 
-        # pyre-fixme[16]: `STLFModel` has no attribute `y_fcst`.
         self.y_fcst = fcst.fcst * np.tile(seasonality, rep)[: fcst.shape[0]]
         if ("fcst_lower" in fcst.columns) and ("fcst_upper" in fcst.columns):
-            # pyre-fixme[16]: `STLFModel` has no attribute `fcst_lower`.
             self.fcst_lower = (
                 fcst.fcst_lower * np.tile(seasonality, rep)[: fcst.shape[0]]
             )
-            # pyre-fixme[16]: `STLFModel` has no attribute `fcst_upper`.
             self.fcst_upper = (
                 fcst.fcst_upper * np.tile(seasonality, rep)[: fcst.shape[0]]
             )
@@ -210,14 +210,12 @@ class STLFModel(m.Model):
         # TODO: create empirical uncertainty interval
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
-        # pyre-fixme[16]: `STLFModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
 
         if include_history:
             self.dates = np.concatenate((pd.to_datetime(self.data.time), self.dates))
 
-        # pyre-fixme[16]: `STLFModel` has no attribute `fcst_df`.
-        self.fcst_df = pd.DataFrame(
+        self.fcst_df = fcst_df = pd.DataFrame(
             {
                 "time": self.dates,
                 "fcst": self.y_fcst,
@@ -226,8 +224,8 @@ class STLFModel(m.Model):
             }
         )
 
-        logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
-        return self.fcst_df
+        logging.debug("Return forecast data: {fcst_df}".format(fcst_df=fcst_df))
+        return fcst_df
 
     def plot(self):
         """plot forecasted results from Prophet model"""
@@ -248,7 +246,7 @@ class STLFModel(m.Model):
         return "STLF"
 
     @staticmethod
-    def get_parameter_search_space() -> List[Dict[str, object]]:
+    def get_parameter_search_space() -> List[Dict[str, Any]]:
         """Provide a parameter space for STLF model
 
         Move the implementation of get_parameter_search_space() out of stlf
@@ -261,6 +259,4 @@ class STLFModel(m.Model):
             List of dicts contains parameter search space
         """
 
-        # pyre-fixme[7]: Expected `List[Dict[str, object]]` but got `List[Dict[str,
-        #  typing.Union[List[typing.Any], bool, str]]]`.
         return get_default_stlf_parameter_search_space()
