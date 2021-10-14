@@ -4,13 +4,13 @@
 
 import re
 from datetime import datetime, timedelta
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import numpy as np
 import pandas as pd
 import statsmodels
-from kats.detectors.bocpd import BOCPDetector
-from kats.detectors.bocpd_model import BocpdDetectorModel
+
+# from kats.detectors.bocpd_model import BocpdDetectorModel
 from kats.detectors.changepoint_evaluator import (
     TuringEvaluator,
     Evaluation,
@@ -18,21 +18,107 @@ from kats.detectors.changepoint_evaluator import (
     measure,
     true_positives,
 )
-from kats.detectors.cusum_detection import (
-    CUSUMDetector,
-)
 from kats.detectors.cusum_model import (
-    CUSUMDetectorModel,
     CusumScoreFunction,
 )
-from kats.detectors.robust_stat_detection import RobustStatDetector
-from kats.detectors.stat_sig_detector import (
-    StatSigDetectorModel,
-)
+from kats.detectors.detector import Detector
+
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
+
+
+class GenerateData:
+    """
+    Generate the data used to evaluate the parsing and the detector.
+    """
+
+    def __init__(self, monthly: bool = True) -> None:
+        self.eg_anno = {"1": [2, 6, 10], "2": [3, 6]}
+        if monthly:
+            date_range = pd.date_range(start="2010-02-01", end="2020-03-31", freq="M")
+            date_range_start = [x + timedelta(days=1) for x in date_range]
+            self.len_ts = len(date_range_start)
+            y_m_d_str = [datetime.strftime(x, "%Y-%m-%d") for x in date_range_start]
+            y_m_str = [datetime.strftime(x, "%Y-%m") for x in date_range_start]
+            int_str = [str(x) for x in range(self.len_ts)]
+            int_val = list(range(len(date_range_start)))
+
+            val = np.random.randn(len(date_range_start))
+
+            y_m_d_dict = {k: v for k, v in zip(y_m_d_str, val)}
+            y_m_dict = {k: v for k, v in zip(y_m_str, val)}
+            int_dict = {k: v for k, v in zip(int_str, val)}
+            int_val_dict = {k: v for k, v in zip(int_val, val)}
+
+            self.eg_df = pd.DataFrame(
+                [
+                    {
+                        "dataset_name": "eg_1",
+                        "time_series": str(y_m_d_dict),
+                        "annotation": str(self.eg_anno),
+                    },
+                    {
+                        "dataset_name": "eg_2",
+                        "time_series": str(y_m_dict),
+                        "annotation": str(self.eg_anno),
+                    },
+                    {
+                        "dataset_name": "eg_3",
+                        "time_series": str(int_dict),
+                        "annotation": str(self.eg_anno),
+                    },
+                    {
+                        "dataset_name": "eg_4",
+                        "time_series": str(int_val_dict),
+                        "annotation": str(self.eg_anno),
+                    },
+                ]
+            )
+        else:
+            eg_start_unix_time = 1613764800
+            self.num_secs_in_day = 3600 * 24
+
+            date_range_daily = pd.date_range(
+                start="2020-03-01", end="2020-03-31", freq="D"
+            )
+            date_range_start_daily = [x + timedelta(days=1) for x in date_range_daily]
+            self.len_ts = len(date_range_start_daily)
+            y_m_d_str_daily = [
+                datetime.strftime(x, "%Y-%m-%d") for x in date_range_start_daily
+            ]
+            int_daily = [
+                (eg_start_unix_time + x * self.num_secs_in_day)
+                for x in range(len(date_range_start_daily))
+            ]
+            int_str_daily = [str(x) for x in int_daily]
+
+            val_daily = np.random.randn(len(date_range_start_daily))
+
+            y_m_d_dict_daily = {k: v for k, v in zip(y_m_d_str_daily, val_daily)}
+            int_dict_daily = {k: v for k, v in zip(int_daily, val_daily)}
+            int_str_dict_daily = {k: v for k, v in zip(int_str_daily, val_daily)}
+
+            self.eg_df = pd.DataFrame(
+                [
+                    {
+                        "dataset_name": "eg_1",
+                        "time_series": str(y_m_d_dict_daily),
+                        "annotation": str(self.eg_anno),
+                    },
+                    {
+                        "dataset_name": "eg_3",
+                        "time_series": str(int_dict_daily),
+                        "annotation": str(self.eg_anno),
+                    },
+                    {
+                        "dataset_name": "eg_4",
+                        "time_series": str(int_str_dict_daily),
+                        "annotation": str(self.eg_anno),
+                    },
+                ]
+            )
 
 
 class TestChangepointEvaluator(TestCase):
@@ -98,61 +184,58 @@ class TestChangepointEvaluator(TestCase):
         tp3 = true_positives({1, 10, 20, 23}, {1, 3, 5, 8, 20}, choose_earliest=False)
         self.assertDictEqual(tp3, {1: 0, 10: -2, 20: 0})
 
+    def test_parse_data(self) -> None:
+        """
+        tests the correctness of test_parse_data.
+        """
+        # Define an evaluator with any model just to access the _parse_data method.
+        data_generator = GenerateData()
+        eg_df = data_generator.eg_df
+        turing_2 = TuringEvaluator(detector=Detector)
+        for i, row in eg_df.iterrows():
+            data_name, tsd, anno = turing_2._parse_data(row)
+            self.assertEqual(data_name, eg_df.dataset_name.values[i])
+            self.assertEqual(len(tsd), data_generator.len_ts)
+            self.assertDictEqual(anno, data_generator.eg_anno)
+
     def test_evaluator(self) -> None:
-        date_range = pd.date_range(start="2010-02-01", end="2020-03-31", freq="M")
-        date_range_start = [x + timedelta(days=1) for x in date_range]
-        y_m_d_str = [datetime.strftime(x, "%Y-%m-%d") for x in date_range_start]
-        y_m_str = [datetime.strftime(x, "%Y-%m") for x in date_range_start]
-        int_str = [str(x) for x in range(len(date_range_start))]
-        int_val = list(range(len(date_range_start)))
-
-        val = np.random.randn(len(date_range_start))
-
-        eg_anno = {"1": [2, 6, 10], "2": [3, 6]}
-        y_m_d_dict = {k: v for k, v in zip(y_m_d_str, val)}
-        y_m_dict = {k: v for k, v in zip(y_m_str, val)}
-        int_dict = {k: v for k, v in zip(int_str, val)}
-        int_val_dict = {k: v for k, v in zip(int_val, val)}
-
-        eg_df = pd.DataFrame(
-            [
-                {
-                    "dataset_name": "eg_1",
-                    "time_series": str(y_m_d_dict),
-                    "annotation": str(eg_anno),
-                },
-                {
-                    "dataset_name": "eg_2",
-                    "time_series": str(y_m_dict),
-                    "annotation": str(eg_anno),
-                },
-                {
-                    "dataset_name": "eg_3",
-                    "time_series": str(int_dict),
-                    "annotation": str(eg_anno),
-                },
-                {
-                    "dataset_name": "eg_4",
-                    "time_series": str(int_val_dict),
-                    "annotation": str(eg_anno),
-                },
-            ]
-        )
-
-        model_params = {"p_value_cutoff": 5e-3, "comparison_window": 2}
+        data_generator = GenerateData()
+        eg_df = data_generator.eg_df
+        model_params_mock = mock.MagicMock()
 
         # Test RobustStatDetector
-        turing_2 = TuringEvaluator(detector=RobustStatDetector)
-        eval_agg_2_df = turing_2.evaluate(data=eg_df, model_params=model_params)
+        class RobustStatDetector_fake(Detector):
+            def __init__(self, tsd=None):
+                pass
+
+            def detector(self, params=None):
+                return []
+
+        turing_2 = TuringEvaluator(detector=RobustStatDetector_fake)
+        eval_agg_2_df = turing_2.evaluate(data=eg_df, model_params=model_params_mock)
         self.assertEqual(eval_agg_2_df.shape[0], eg_df.shape[0])
 
         # Test CUSUMDetector
-        turing_3 = TuringEvaluator(detector=CUSUMDetector)
+        class CUSUMDetector_fake(Detector):
+            def __init__(self, tsd=None):
+                pass
+
+            def detector(self, params=None):
+                return []
+
+        turing_3 = TuringEvaluator(detector=CUSUMDetector_fake)
         eval_agg_3_df = turing_3.evaluate(data=eg_df)
         self.assertEqual(eval_agg_3_df.shape[0], eg_df.shape[0])
 
         # Test BOCPDDetector
-        turing_4 = TuringEvaluator(detector=BOCPDetector)
+        class BOCPDDetector_fake(Detector):
+            def __init__(self, tsd=None):
+                pass
+
+            def detector(self, params=None):
+                return []
+
+        turing_4 = TuringEvaluator(detector=BOCPDDetector_fake)
         eval_agg_4_df = turing_4.evaluate(data=eg_df)
         self.assertEqual(eval_agg_4_df.shape[0], eg_df.shape[0])
 
@@ -168,21 +251,44 @@ class TestChangepointEvaluator(TestCase):
         self.assertTrue(0.0 <= avg_f_score <= 1.0)
 
         # test load data
-        turing_5 = TuringEvaluator(detector=RobustStatDetector)
-        eval_agg_5_df = turing_5.evaluate(data=None, model_params=model_params)
+        eval_agg_5_df = turing_4.evaluate(data=None, model_params=model_params_mock)
         self.assertTrue(eval_agg_5_df.shape[0] > 0)
 
         # test ignore list
-        turing_6 = TuringEvaluator(detector=RobustStatDetector)
-        eval_agg_6_df = turing_6.evaluate(
-            data=eg_df, model_params=model_params, ignore_list=["eg_2"]
+        eval_agg_6_df = turing_4.evaluate(
+            data=eg_df,
+            model_params=model_params_mock,
+            ignore_list=[eg_df.dataset_name.values[1]],
         )
         self.assertEqual(eval_agg_6_df.shape[0], eg_df.shape[0] - 1)
 
         # test the detectormodels
-        turing_7 = TuringEvaluator(detector=BocpdDetectorModel, is_detector_model=True)
-        eval_agg_7_df = turing_7.evaluate(data=eg_df, model_params=None)
+        BocpdDetectorModelMock = mock.MagicMock()
+        BocpdDetectorModelMock.return_value.fit_predict.return_value.scores.value.values = np.array(
+            [0.0] * (data_generator.len_ts - 1) + [0.1]
+        )
+        turing_7 = TuringEvaluator(
+            detector=BocpdDetectorModelMock, is_detector_model=True
+        )
+        eval_agg_7_df = turing_7.evaluate(
+            data=eg_df,
+            model_params=None,
+            alert_style_cp=True,
+            threshold_high=0.001,
+        )
         self.assertEqual(eval_agg_7_df.shape[0], eg_df.shape[0])
+
+        # test load data
+        eval_agg_8_df = turing_7.evaluate(data=None, model_params=model_params_mock)
+        self.assertTrue(eval_agg_8_df.shape[0] > 0)
+
+        # test ignore list
+        eval_agg_9_df = turing_7.evaluate(
+            data=eg_df,
+            model_params=model_params_mock,
+            ignore_list=[eg_df.dataset_name.values[1]],
+        )
+        self.assertEqual(eval_agg_9_df.shape[0], eg_df.shape[0] - 1)
 
         # test Statsig
         num_secs_in_month = 86400 * 30
@@ -191,12 +297,15 @@ class TestChangepointEvaluator(TestCase):
             "n_test": 7 * num_secs_in_month,
             "time_unit": "sec",
         }
-
+        StatSigDetectorModelMock = mock.MagicMock()
+        StatSigDetectorModelMock.return_value.fit_predict.return_value.scores.value.values = np.array(
+            [0.0] * data_generator.len_ts
+        )
         turing_8 = TuringEvaluator(
-            detector=StatSigDetectorModel,
+            detector=StatSigDetectorModelMock,
             is_detector_model=True,
         )
-        eval_agg_8_df = turing_8.evaluate(
+        eval_agg_10_df = turing_8.evaluate(
             data=eg_df,
             # pyre-fixme[6]: Expected `Optional[typing.Dict[str, float]]` for 2nd
             #  param but got `Dict[str, typing.Union[int, str]]`.
@@ -205,54 +314,14 @@ class TestChangepointEvaluator(TestCase):
             threshold_low=-5.0,
             threshold_high=5.0,
         )
+        self.assertEqual(eval_agg_10_df.shape[0], eg_df.shape[0])
 
-        self.assertEqual(eval_agg_8_df.shape[0], eg_df.shape[0])
-
-        # test CUSUM
-        # since CUSUM needs daily data, constructing another eg_df
-        eg_start_unix_time = 1613764800
-        num_secs_in_day = 3600 * 24
-
-        date_range_daily = pd.date_range(start="2020-03-01", end="2020-03-31", freq="D")
-        date_range_start_daily = [x + timedelta(days=1) for x in date_range_daily]
-        y_m_d_str_daily = [
-            datetime.strftime(x, "%Y-%m-%d") for x in date_range_start_daily
-        ]
-        int_daily = [
-            (eg_start_unix_time + x * num_secs_in_day)
-            for x in range(len(date_range_start_daily))
-        ]
-        int_str_daily = [str(x) for x in int_daily]
-
-        val_daily = np.random.randn(len(date_range_start_daily))
-
-        y_m_d_dict_daily = {k: v for k, v in zip(y_m_d_str_daily, val_daily)}
-        int_dict_daily = {k: v for k, v in zip(int_daily, val_daily)}
-        int_str_dict_daily = {k: v for k, v in zip(int_str_daily, val_daily)}
-
-        eg_df_daily = pd.DataFrame(
-            [
-                {
-                    "dataset_name": "eg_1",
-                    "time_series": str(y_m_d_dict_daily),
-                    "annotation": str(eg_anno),
-                },
-                {
-                    "dataset_name": "eg_3",
-                    "time_series": str(int_dict_daily),
-                    "annotation": str(eg_anno),
-                },
-                {
-                    "dataset_name": "eg_4",
-                    "time_series": str(int_str_dict_daily),
-                    "annotation": str(eg_anno),
-                },
-            ]
-        )
+        data_generator = GenerateData(monthly=False)
+        eg_df = data_generator.eg_df
 
         cusum_model_params = {
-            "scan_window": 8 * num_secs_in_day,
-            "historical_window": 8 * num_secs_in_day,
+            "scan_window": 8 * data_generator.num_secs_in_day,
+            "historical_window": 8 * data_generator.num_secs_in_day,
             "threshold": 0.01,
             "delta_std_ratio": 1.0,
             "change_directions": ["increase", "decrease"],
@@ -260,16 +329,20 @@ class TestChangepointEvaluator(TestCase):
             "remove_seasonality": False,
         }
 
-        turing_9 = TuringEvaluator(detector=CUSUMDetectorModel, is_detector_model=True)
+        CUSUMDetectorModelMock = mock.MagicMock()
+        CUSUMDetectorModelMock.return_value.fit_predict.return_value.scores.value.values = np.array(
+            [0.0] * data_generator.len_ts
+        )
+
+        turing_9 = TuringEvaluator(
+            detector=CUSUMDetectorModelMock, is_detector_model=True
+        )
         eval_agg_9_df = turing_9.evaluate(
-            data=eg_df_daily,
-            # pyre-fixme[6]: Expected `Optional[typing.Dict[str, float]]` for 2nd
-            #  param but got `Dict[str, typing.Union[typing.List[str],
-            #  CusumScoreFunction, float]]`.
+            data=eg_df,
             model_params=cusum_model_params,
             alert_style_cp=True,
             threshold_low=-0.1,
             threshold_high=0.1,
         )
 
-        self.assertEqual(eval_agg_9_df.shape[0], eg_df_daily.shape[0])
+        self.assertEqual(eval_agg_9_df.shape[0], eg_df.shape[0])

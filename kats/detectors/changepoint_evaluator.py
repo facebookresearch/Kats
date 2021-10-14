@@ -95,7 +95,7 @@ def true_positives(
     T: Set[int], X: Set[int], margin: int = 5, choose_earliest: bool = True
 ) -> Dict[int, int]:
     """Compute true positives without double counting.
-    If there is multiple detected positives in the margin of a trupe positive and choose_earliest = True, we keep only the first one.
+    If there is multiple detected positives in the margin of a true positive and choose_earliest = True, we keep only the first one.
     If choose_earliest = False, we keep only the one closest to the true_positive.
 
     >>> true_positives({1, 10, 20, 23}, {3, 8, 20})
