@@ -285,7 +285,7 @@ class MetaLearnHPT:
     def build_network(
         self,
         n_hidden_shared: Optional[List[int]] = None,
-        n_hidden_cat_combo: Optional[List[int]] = None,
+        n_hidden_cat_combo: Optional[List[List[int]]] = None,
         n_hidden_num: Optional[List[int]] = None,
     ) -> None:
         """Build a multi-task neural network.

@@ -4,6 +4,7 @@
 
 import collections
 import logging
+import random
 from unittest import TestCase
 
 import numpy as np
@@ -25,49 +26,44 @@ from kats.models.prophet import ProphetModel
 from kats.models.sarima import SARIMAModel
 from kats.models.stlf import STLFModel
 from kats.models.theta import ThetaModel
-from kats.tsfeatures.tsfeatures import TsFeatures
-
-
-DATA = pd.DataFrame(
-    {
-        "time": pd.date_range("2020-05-06", periods=60, freq="D"),
-        "y": np.arange(1, 61),
-    }
+from kats.tests.models.test_models_dummy_data import (
+    METALEARNING_TEST_T1,
+    METALEARNING_TEST_T2,
+    METALEARNING_TEST_T2_FEATURES,
+    METALEARNING_TEST_FEATURES,
+    METALEARNING_TEST_MULTI,
 )
-TSData = TimeSeriesData(DATA)
 
 # TS which is too short
-TSData_short = TimeSeriesData(DATA.iloc[:8, :])
+TSData_short = TimeSeriesData(METALEARNING_TEST_T2.iloc[:8, :])
 
 # TS which has constant values only
-DATA_const = DATA.copy()
-DATA_const["y"] = 1
-TSData_const = TimeSeriesData(DATA_const)
+TSData_const = TimeSeriesData(
+    pd.DataFrame(
+        {
+            "time": pd.date_range("2021-05-06", periods=30, freq="D"),
+            "y": np.array([1] * 30),
+        }
+    )
+)
 
 # TS which has NAN values
-DATA_nan = DATA.copy()
+DATA_nan = METALEARNING_TEST_T2.copy()
 DATA_nan.iloc[10, 1] = np.nan
 TSData_nan = TimeSeriesData(DATA_nan)
 
 # TS which has INF values
-DATA_inf = DATA.copy()
+DATA_inf = METALEARNING_TEST_T2.copy()
 DATA_inf.iloc[10, 1] = np.inf
 TSData_inf = TimeSeriesData(DATA_inf)
 
 # TS which doesn't have constant frequency
-DATA_gap = DATA.copy()
+DATA_gap = METALEARNING_TEST_T2.copy()
 DATA_gap = DATA_gap.drop([3, 4])
 TSData_gap = TimeSeriesData(DATA_gap)
 
 # TS which is not univariate
-DATA_multi = pd.DataFrame(
-    {
-        "time": pd.date_range("2020-05-06", periods=60, freq="D"),
-        "y": np.arange(1, 61),
-        "z": np.random.randn(60),
-    }
-)
-TSData_multi = TimeSeriesData(DATA_multi)
+TSData_multi = TimeSeriesData(METALEARNING_TEST_MULTI)
 
 # Base Models
 base_models = {
@@ -79,22 +75,15 @@ base_models = {
     "theta": ThetaModel,
 }
 
-
-def generate_test_ts():
-    # time series with negative data, which contains Nan for TsFeatures
-    time = pd.date_range("2020-05-06", "2020-11-17", freq="D")
-    ts = pd.DataFrame(np.random.randn(len(time)), columns=["value"])
-    ts["time"] = time
-    ts1 = TimeSeriesData(ts)
-    # predictable time series
-    ts = pd.DataFrame(np.abs(np.random.randn(len(time))), columns=["value"])
-    ts["time"] = time
-    ts2 = TimeSeriesData(ts)
-    return (ts1, ts2)
+t1 = TimeSeriesData(METALEARNING_TEST_T1)
+t2 = TimeSeriesData(METALEARNING_TEST_T2)
+feature = np.array(METALEARNING_TEST_FEATURES)
 
 
 def generate_meta_data(n):
     # generate meta data to initialize MetaLearnModelSelect
+    np.random.seed(560)
+    random.seed(560)
     spaces = {m: base_models[m].get_parameter_search_space() for m in base_models}
 
     m = len(base_models)
@@ -125,6 +114,8 @@ def generate_meta_data(n):
 
 
 def generate_meta_data_by_model(model, n, d=40):
+    random.seed(560)
+    np.random.seed(560)
     model = model.lower()
     if model in base_models:
         model = base_models[model]
@@ -137,6 +128,13 @@ def generate_meta_data_by_model(model, n, d=40):
     y = [generator.gen(1).arms[0].parameters for i in range(n)]
     y = pd.DataFrame(y)
     return x, y
+
+
+METALEARNING_METADATA = generate_meta_data(35)
+METALEARNING_METADATA_BY_MODEL = {
+    t: generate_meta_data_by_model(t, 150)
+    for t in ["arima", "holtwinters", "sarima", "theta", "stlf", "prophet"]
+}
 
 
 def equals(v1, v2):
@@ -159,7 +157,7 @@ def equals(v1, v2):
 class testMetaLearner(TestCase):
     def test_get_meta_data(self) -> None:
         # test GetMetaData using a simple case
-        metadata = GetMetaData(data=TSData, num_trials=2, num_arms=1)
+        metadata = GetMetaData(data=t1, num_trials=1, num_arms=1)
         res = metadata.get_meta_data()
 
         # test meta data output
@@ -176,7 +174,7 @@ class testMetaLearner(TestCase):
 
     def test_inputdata_errors(self) -> None:
         # test input data error (time series' type is not TimeSeriesData)
-        self.assertRaises(ValueError, GetMetaData, DATA)
+        self.assertRaises(ValueError, GetMetaData, METALEARNING_TEST_T2)
 
         # test input data error (time series is not univariate)
         self.assertRaises(ValueError, GetMetaData, TSData_multi)
@@ -219,8 +217,7 @@ class MetaLearnModelSelectTest(TestCase):
         )
 
     def test_model(self) -> None:
-        samples = generate_meta_data(n=35)
-        mlms = MetaLearnModelSelect(samples)
+        mlms = MetaLearnModelSelect(METALEARNING_METADATA)
 
         # Test preprocess
         mlms.preprocess(downsample=True, scale=True)
@@ -251,7 +248,6 @@ class MetaLearnModelSelectTest(TestCase):
         # Test train
         mlms.train(method="RandomForest")
         # Test prediction consistency
-        t1, t2 = generate_test_ts()
         t2_df = t2.to_dataframe().copy()
         pred = mlms.pred(t2)
         pred_fuzzy = mlms.pred_fuzzy(t2)
@@ -263,7 +259,7 @@ class MetaLearnModelSelectTest(TestCase):
         # Test case for time series with nan features
         _ = mlms.pred(t1)
         # Test pred_by_feature and its consistency
-        feature = np.random.randn(3 * mlms.metadataX.shape[1]).reshape(3, -1)
+
         feature2 = feature.copy()
         pred = mlms.pred_by_feature(feature)
         pred_all = mlms.pred_by_feature(feature, n_top=2)
@@ -288,12 +284,10 @@ class MetaLearnPredictabilityTest(TestCase):
 
     def test_model(self) -> None:
         # Train a model
-        data = generate_meta_data(40)
-        mlp = MetaLearnPredictability(data)
+        mlp = MetaLearnPredictability(METALEARNING_METADATA)
         mlp.preprocess()
         mlp.train()
         # Test prediction for ts
-        t1, t2 = generate_test_ts()
         t2_df = t2.to_dataframe().copy()
         # Test case for time series with nan features
         ts_pred = mlp.pred(t1)
@@ -303,29 +297,30 @@ class MetaLearnPredictabilityTest(TestCase):
         )
 
         mlp.pred(t2)
-        features = np.random.randn(3 * mlp.features.shape[1]).reshape(3, -1)
-        features2 = features.copy()
-        mlp.pred_by_feature(features)
+        feature2 = feature.copy()
+        mlp.pred_by_feature(feature)
         # Test if the target TimeSeriesData keeps its original value
         equals(t2.to_dataframe(), t2_df)
         # Test if the features keep their original values
-        equals(features, features2)
+        equals(feature, feature2)
 
 
 class MetaLearnHPTTest(TestCase):
     def test_default_models(self) -> None:
-        t1, t2 = generate_test_ts()
         t2_df = t2.to_dataframe().copy()
-        feature1 = np.random.randn(3 * 40).reshape(3, -1)
-        feature2 = [np.random.randn(40), np.random.randn(40)]
-        feature3 = pd.DataFrame(np.random.randn(3 * 40).reshape(3, -1))
+        # np.array input
+        feature1 = feature
+        # List input
+        feature2 = METALEARNING_TEST_FEATURES
+        # pd.DataFrame input
+        feature3 = pd.DataFrame(METALEARNING_TEST_FEATURES)
         feature1_copy, feature2_copy, feature3_copy = (
             feature1.copy(),
             list(feature2),
             feature3.copy(),
         )
         for model in ["prophet", "arima", "sarima", "theta", "stlf", "holtwinters"]:
-            x, y = generate_meta_data_by_model(model, 150, 40)
+            x, y = METALEARNING_METADATA_BY_MODEL[model]
             # Check default models initialization and training
             mlhpt = MetaLearnHPT(x, y, default_model=model)
             mlhpt.get_default_model()
@@ -341,7 +336,9 @@ class MetaLearnHPTTest(TestCase):
             # Check prediction consistency:
             dict1 = t2_preds.parameters[0]
             t2.value /= t2.value.max()
-            dict2 = mlhpt.pred_by_feature(pd.DataFrame([TsFeatures().transform(t2)]))[0]
+            dict2 = mlhpt.pred_by_feature(
+                pd.DataFrame([METALEARNING_TEST_T2_FEATURES])
+            )[0]
             for elm in dict1:
                 if (
                     isinstance(dict1[elm], float)
@@ -365,7 +362,7 @@ class MetaLearnHPTTest(TestCase):
         equals(feature3, feature3_copy)
 
     def test_initialize(self) -> None:
-        x, y = generate_meta_data_by_model("arima", 150, 40)
+        x, y = METALEARNING_METADATA_BY_MODEL["arima"]
         self.assertRaises(ValueError, MetaLearnHPT, x, y)
         # Test load model method
         MetaLearnHPT(load_model=True)
@@ -378,13 +375,10 @@ class MetaLearnHPTTest(TestCase):
         )
 
     def test_customized_models(self) -> None:
-        t1, t2 = generate_test_ts()
-        x, y = generate_meta_data_by_model("arima", 150, 40)
+        x, y = METALEARNING_METADATA_BY_MODEL["arima"]
         # Test customized model
         mlhpt = MetaLearnHPT(x, y, ["p"], ["d", "q"])
         self.assertRaises(ValueError, mlhpt.build_network)
-        # pyre-fixme[6]: Expected `Optional[typing.List[int]]` for 2nd param but got
-        #  `List[typing.List[int]]`.
         mlhpt.build_network([40], [[5]], [10, 20])
         mlhpt.train()
         mlhpt.pred(t2)
