@@ -15,7 +15,7 @@ import traceback
 from datetime import datetime
 from enum import Enum
 from importlib import import_module
-from typing import Any, Dict, List, Optional
+from typing import Tuple, Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -38,8 +38,8 @@ class OutlierDetector(Detector):
         iqr_mult : iqr_mult * inter quartile range is used to classify outliers
     """
 
-    outliers_index: Optional[List] = None
     outliers: Optional[List[List]] = None
+    output_scores: Optional[pd.DataFrame] = None
 
     def __init__(
         self, data: TimeSeriesData, decomp: str = "additive", iqr_mult: float = 3.0
@@ -53,7 +53,7 @@ class OutlierDetector(Detector):
             self.decomp = "additive"
         self.iqr_mult = iqr_mult
 
-    def __clean_ts__(self, original: pd.DataFrame) -> List:
+    def __clean_ts__(self, original: pd.DataFrame) -> Tuple[List[int], List[float]]:
         """
         Performs detection for a single metric. First decomposes the time series
         and detects outliers when the values in residual time series are beyond the
@@ -95,10 +95,12 @@ class OutlierDetector(Detector):
         resid_q = np.nanpercentile(resid, [25, 75])
         iqr = resid_q[1] - resid_q[0]
         limits = resid_q + (self.iqr_mult * iqr * np.array([-1, 1]))
-
+        # calculate scores
+        output_scores = list((resid - limits[0]) / (limits[1] - limits[0]))
         outliers = resid[(resid >= limits[1]) | (resid <= limits[0])]
-        self.outliers_index = outliers_index = list(outliers.index)
-        return outliers_index
+        outliers_index = list(outliers.index)
+
+        return outliers_index, output_scores
 
     def detector(self):
         """
@@ -106,18 +108,29 @@ class OutlierDetector(Detector):
         """
 
         self.iter = TimeSeriesIterator(self.data)
+        column_names = [
+            col
+            for col in self.data.to_dataframe().columns
+            if col != self.data.time_col_name
+        ]
         self.outliers = []
+        output_scores_dict = {}
         logging.Logger("Detecting Outliers")
-        for ts in self.iter:
+
+        for ts, col in zip(self.iter, column_names):
             try:
-                outlier = self.__clean_ts__(ts)
-                self.outliers.append(outlier)
+                outliers_index, output_scores = self.__clean_ts__(ts)
+                self.outliers.append(outliers_index)
+                output_scores_dict[col] = output_scores
             except BaseException:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
                 logging.error("".join("!! " + line for line in lines))
                 logging.error("Outlier Detection Failed")
                 self.outliers.append([])
+
+        if output_scores_dict:
+            self.output_scores = pd.DataFrame(output_scores_dict, index=self.data.time)
 
 
 class MultivariateAnomalyDetectorType(Enum):

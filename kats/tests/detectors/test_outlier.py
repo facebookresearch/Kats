@@ -85,6 +85,25 @@ class OutlierDetectionTest(TestCase):
             m = OutlierDetector(ts_data_new)
             m.detector()
 
+    def test_output_scores_shape(self) -> None:
+        # test for a single time series
+        m = OutlierDetector(self.ts_data, "additive")
+        m.detector()
+        output_scores = m.output_scores
+
+        self.assertIsNotNone(output_scores)
+        if output_scores is not None:
+            self.assertEqual(output_scores.shape[0], m.data.value.shape[0])
+
+        # test for more than 1 time series
+        m2 = OutlierDetector(self.ts_data_2, "additive")
+        m2.detector()
+        output_scores2 = m2.output_scores
+
+        self.assertIsNotNone(output_scores2)
+        if output_scores2 is not None:
+            self.assertEqual(output_scores2.shape, m2.data.value.shape)
+
 
 class MultivariateVARDetectorTest(TestCase):
     def setUp(self):
