@@ -439,10 +439,10 @@ class AnomalyResponse:
     def __init__(
         self,
         scores: TimeSeriesData,
-        confidence_band: ConfidenceBand,
-        predicted_ts: TimeSeriesData,
+        confidence_band: Optional[ConfidenceBand],
+        predicted_ts: Optional[TimeSeriesData],
         anomaly_magnitude_ts: TimeSeriesData,
-        stat_sig_ts: TimeSeriesData,
+        stat_sig_ts: Optional[TimeSeriesData],
     ):
         self.scores = scores
         self.confidence_band = confidence_band
@@ -471,16 +471,22 @@ class AnomalyResponse:
         Add one more point and remove the last point
         """
         self.scores = self._update_ts_slice(self.scores, time, score)
-        self.confidence_band = ConfidenceBand(
-            lower=self._update_ts_slice(self.confidence_band.lower, time, ci_lower),
-            upper=self._update_ts_slice(self.confidence_band.upper, time, ci_upper),
-        )
+        confidence_band = self.confidence_band
+        if confidence_band is not None:
+            self.confidence_band = ConfidenceBand(
+                lower=self._update_ts_slice(confidence_band.lower, time, ci_lower),
+                upper=self._update_ts_slice(confidence_band.upper, time, ci_upper),
+            )
 
-        self.predicted_ts = self._update_ts_slice(self.predicted_ts, time, pred)
+        predicted_ts = self.predicted_ts
+        if predicted_ts is not None:
+            self.predicted_ts = self._update_ts_slice(predicted_ts, time, pred)
         self.anomaly_magnitude_ts = self._update_ts_slice(
             self.anomaly_magnitude_ts, time, anom_mag
         )
-        self.stat_sig_ts = self._update_ts_slice(self.stat_sig_ts, time, stat_sig)
+        stat_sig_ts = self.stat_sig_ts
+        if stat_sig_ts is not None:
+            self.stat_sig_ts = self._update_ts_slice(stat_sig_ts, time, stat_sig)
 
     def _update_ts_slice(
         self, ts: TimeSeriesData, time: datetime, value: Union[float, ArrayLike]
@@ -528,16 +534,23 @@ class AnomalyResponse:
         Add one more point and remove the last point
         """
         self._inplace_update_ts(self.scores, time, score)
-        self._inplace_update_ts(self.confidence_band.lower, time, ci_lower),
-        self._inplace_update_ts(self.confidence_band.upper, time, ci_upper)
+        cb = self.confidence_band
+        if cb is not None:
+            self._inplace_update_ts(cb.lower, time, ci_lower),
+            self._inplace_update_ts(cb.upper, time, ci_upper)
 
         self._inplace_update_ts(self.predicted_ts, time, pred)
         self._inplace_update_ts(self.anomaly_magnitude_ts, time, anom_mag)
         self._inplace_update_ts(self.stat_sig_ts, time, stat_sig)
 
     def _inplace_update_ts(
-        self, ts: TimeSeriesData, time: datetime, value: Union[float, ArrayLike]
+        self,
+        ts: Optional[TimeSeriesData],
+        time: datetime,
+        value: Union[float, ArrayLike],
     ) -> None:
+        if ts is None:
+            return
         if self.num_series == 1:
             ts.value.loc[ts.time == time] = value
         else:
@@ -547,26 +560,38 @@ class AnomalyResponse:
         """
         returns the response for the last N days
         """
+        cb = self.confidence_band
+        pts = self.predicted_ts
+        ssts = self.stat_sig_ts
 
         return AnomalyResponse(
             scores=self.scores[-N:],
-            confidence_band=ConfidenceBand(
-                upper=self.confidence_band.upper[-N:],
-                lower=self.confidence_band.lower[-N:],
+            confidence_band=None
+            if cb is None
+            else ConfidenceBand(
+                upper=cb.upper[-N:],
+                lower=cb.lower[-N:],
             ),
-            predicted_ts=self.predicted_ts[-N:],
+            predicted_ts=None if pts is None else pts[-N:],
             anomaly_magnitude_ts=self.anomaly_magnitude_ts[-N:],
-            stat_sig_ts=self.stat_sig_ts[-N:],
+            stat_sig_ts=None if ssts is None else ssts[-N:],
         )
 
     def __str__(self) -> str:
+        cb = self.confidence_band
+        upper = None if cb is None else cb.upper.value.values
+        lower = None if cb is None else cb.lower.value.values
+        predicted = (
+            None if self.predicted_ts is None else self.predicted_ts.value.values
+        )
+        statsig = None if self.stat_sig_ts is None else self.stat_sig_ts.value.values
         str_ret = f"""
         Time: {self.scores.time.values},
         Scores: {self.scores.value.values},
-        Upper Confidence Bound: {self.confidence_band.upper.value.values},
-        Lower Confidence Bound: {self.confidence_band.lower.value.values},
-        Predicted Time Series: {self.predicted_ts.value.values},
-        stat_sig:{self.stat_sig_ts.value.values}
+        Upper Confidence Bound: {upper},
+        Lower Confidence Bound: {lower},
+        Predicted Time Series: {predicted},
+        stat_sig:{statsig}
         """
 
         return str_ret

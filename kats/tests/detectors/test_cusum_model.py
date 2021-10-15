@@ -504,7 +504,7 @@ class TestRaiseCUSUMDetectorModel(TestCase):
     def test_raise_window_size(self) -> None:
         with self.assertRaisesRegex(
             ValueError,
-            "Step window should smaller than scan window to ensure we have overlap for scan windows.",
+            "Step window should be smaller than scan window to ensure we have overlap for scan windows.",
         ):
             _ = CUSUMDetectorModel(
                 scan_window=self.scan_window,
@@ -522,7 +522,7 @@ class TestRaiseCUSUMDetectorModel(TestCase):
     def test_raise_model_instantiation(self) -> None:
         with self.assertRaisesRegex(
             ValueError,
-            "You must either provide serialized model or values for scan_window and historical_window.",
+            "You must provide either serialized model or values for scan_window and historical_window.",
         ):
             _ = CUSUMDetectorModel()
 

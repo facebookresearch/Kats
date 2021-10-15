@@ -156,9 +156,9 @@ class CUSUMDetectorModel(DetectorModel):
             self.pre_std = previous_model["pre_std"]
             self.number_of_normal_scan = previous_model["number_of_normal_scan"]
             self.alert_change_direction = previous_model["alert_change_direction"]
-            self.scan_window = previous_model["scan_window"]
+            self.scan_window = scan_window = previous_model["scan_window"]
             self.historical_window = previous_model["historical_window"]
-            self.step_window = previous_model["step_window"]
+            self.step_window = step_window = previous_model["step_window"]
             self.threshold = previous_model["threshold"]
             self.delta_std_ratio = previous_model["delta_std_ratio"]
             self.magnitude_quantile = previous_model["magnitude_quantile"]
@@ -196,17 +196,13 @@ class CUSUMDetectorModel(DetectorModel):
 
         else:
             raise ValueError(
-                """
-            You must either provide serialized model or values for scan_window and historical_window.
-            """
+                "You must provide either serialized model or values for "
+                "scan_window and historical_window."
             )
-        # pyre-fixme[58]: `>=` is not supported for operand types `int` and
-        #  `Optional[int]`.
-        # pyre-fixme[58]: `>=` is not supported for operand types `int` and
-        #  `Optional[int]`.
         if step_window is not None and step_window >= scan_window:
             raise ValueError(
-                "Step window should smaller than scan window to ensure we have overlap for scan windows."
+                "Step window should be smaller than scan window to ensure we "
+                "have overlap for scan windows."
             )
 
     def __eq__(self, other):
@@ -249,7 +245,7 @@ class CUSUMDetectorModel(DetectorModel):
         self.pre_mean = baseline_mean
         self.pre_std = baseline_std
 
-    def _if_normal(self, cur_mean: float, change_directions: str) -> None:
+    def _if_normal(self, cur_mean: float, change_directions: List[str]) -> bool:
         if change_directions is not None:
             increase, decrease = (
                 "increase" in change_directions,
@@ -338,7 +334,6 @@ class CUSUMDetectorModel(DetectorModel):
         else:
             cur_mean = historical_data[scan_start_index:].value.mean()
 
-            # pyre-fixme[6]: Expected `str` for 2nd param but got `List[str]`.
             if self._if_normal(cur_mean, change_directions):
                 self.number_of_normal_scan += 1
                 if self.number_of_normal_scan >= NORMAL_TOLERENCE:
@@ -504,12 +499,9 @@ class CUSUMDetectorModel(DetectorModel):
             # if len(all data) is smaller than historical window return zero score
             return AnomalyResponse(
                 scores=self._predict(smooth_historical_data[-len(data) :], score_func),
-                # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
                 confidence_band=None,
-                # pyre-fixme[6]: Expected `TimeSeriesData` for 3rd param but got `None`.
                 predicted_ts=None,
                 anomaly_magnitude_ts=self._zeros_ts(data),
-                # pyre-fixme[6]: Expected `TimeSeriesData` for 5th param but got `None`.
                 stat_sig_ts=None,
             )
         anomaly_start_idx = self._time2idx(data, anomaly_start_time, "right")
@@ -523,12 +515,9 @@ class CUSUMDetectorModel(DetectorModel):
             # if len(all data) is smaller than scan data return zero score
             return AnomalyResponse(
                 scores=self._predict(smooth_historical_data[-len(data) :], score_func),
-                # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
                 confidence_band=None,
-                # pyre-fixme[6]: Expected `TimeSeriesData` for 3rd param but got `None`.
                 predicted_ts=None,
                 anomaly_magnitude_ts=self._zeros_ts(data),
-                # pyre-fixme[6]: Expected `TimeSeriesData` for 5th param but got `None`.
                 stat_sig_ts=None,
             )
 
@@ -620,12 +609,9 @@ class CUSUMDetectorModel(DetectorModel):
 
         return AnomalyResponse(
             scores=score_tsd,
-            # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
             confidence_band=None,
-            # pyre-fixme[6]: Expected `TimeSeriesData` for 3rd param but got `None`.
             predicted_ts=None,
             anomaly_magnitude_ts=self._zeros_ts(data),
-            # pyre-fixme[6]: Expected `TimeSeriesData` for 5th param but got `None`.
             stat_sig_ts=None,
         )
 
