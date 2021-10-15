@@ -14,8 +14,8 @@ import numpy as np
 import pandas as pd
 
 try:
-    from fbprophet import Prophet
-    from fbprophet.serialize import model_from_json, model_to_json
+    from prophet import Prophet
+    from prophet.serialize import model_from_json, model_to_json
 
     _no_prophet = False
 except ImportError:
@@ -144,7 +144,7 @@ class ProphetDetectorModel(DetectorModel):
         uncertainty_samples: float = 50,
     ) -> None:
         if _no_prophet:
-            raise RuntimeError("requires fbprophet to be installed")
+            raise RuntimeError("requires prophet to be installed")
         if serialized_model:
             self.model = model_from_json(serialized_model)
         else:
