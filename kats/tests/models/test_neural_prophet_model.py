@@ -11,7 +11,6 @@ from kats.models.neural_prophet import NeuralProphetParams
 
 class NeuralProphetModelTest(TestCase):
     def setUp(self):
-        # Expected default parameters
         self.expected_defaults = NeuralProphetParams(
             growth="linear",
             changepoints=None,
@@ -40,16 +39,21 @@ class NeuralProphetModelTest(TestCase):
         )
 
     def test_default_parameters(self) -> None:
+        """
+        Check that the default parameters are as expected. The expected values
+        are hard coded.
+        """
+        # Expected params should be valid
+        self.expected_defaults.validate_params()
 
-        """Check that the default parameters are as expected. The expected values are hard coded."""
-        act_params = vars(NeuralProphetParams())
+        actual_defaults = vars(NeuralProphetParams())
 
         for param, exp_val in vars(self.expected_defaults).items():
             msg = """param:{param}, exp_val:{exp_val},  val:{val}""".format(
-                param=param, exp_val=exp_val, val=act_params[param]
+                param=param, exp_val=exp_val, val=actual_defaults[param]
             )
             logging.info(msg)
-            self.assertEqual(act_params[param], exp_val)
+            self.assertEqual(actual_defaults[param], exp_val)
 
 
 if __name__ == "__main__":

@@ -219,7 +219,7 @@ class NeuralProphetParams(Params):
             )
         )
 
-        def validate_params(self):
-            """Validate Neural Prophet Parameters"""
-            logging.debug("Not yet implemented")
-            pass
+    def validate_params(self):
+        """Validate Neural Prophet Parameters"""
+        logging.debug("Not yet implemented")
+        pass
