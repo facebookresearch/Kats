@@ -93,6 +93,17 @@ class TimeSeriesChangePoint:
             f"{self.end_time}, confidence: {self.confidence})"
         )
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, TimeSeriesChangePoint)
+            and (self._start_time == other._start_time)
+            and (self._end_time == other._end_time)
+            and (self.confidence == other.confidence)
+        )
+
+    def __hash__(self):
+        return hash(self.__repr__())
+
 
 class TimeSeriesData:
     """The fundamental Kats data structure to store a time series.
