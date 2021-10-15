@@ -42,6 +42,12 @@ class QuadraticModelTest(TestCase):
         m_daily.predict(steps=30, freq="D", include_history=True)
         m.plot()
 
+    def test_predict_before_fit(self) -> None:
+        params = QuadraticModelParams()
+        m = QuadraticModel(self.TSData, params)
+        with self.assertRaises(ValueError):
+            m.predict(steps=30, freq="MS", include_history=True)
+
     def test_others(self) -> None:
         params = QuadraticModelParams()
         params.validate_params()
