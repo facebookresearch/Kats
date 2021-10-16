@@ -507,6 +507,10 @@ class BackTesterExpandingWindow(BackTesterParent):
     Iterations continue until the complete data set is used to either train
     or test in the final interation.
 
+    This procedure is also known in literature as a rolling origin evaluation
+    with a continously increasing in-sample size (train set) and a constant
+    out-sample size (test set).
+
     For more information, check out the Kats tutorial notebooks!
 
     Attributes:
@@ -515,6 +519,8 @@ class BackTesterExpandingWindow(BackTesterParent):
       end_train_percentage: A float for the final percentage of data used for
         training.
       test_percentage: A float for the percentage of data used for testing.
+        (The test set is taken at sliding positions from start_train_percentage
+         up to the end of the dataset - only the last fold is at the very end.)
       expanding_steps: An integer for the number of expanding steps (i.e.
         number of folds).
       error_methods: List of strings indicating which errors to calculate
