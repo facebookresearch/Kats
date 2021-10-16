@@ -21,14 +21,14 @@ import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.utils.parameter_tuning_utils import get_default_arima_parameter_search_space
-from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.arima.model import ARIMA
 
 
 class ARIMAParams(Params):
     """Parameter class for ARIMA model
 
     This is the parameter class for ARIMA model, it contains all necessary parameters from the following ARIMA implementation:
-    https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.html
+    https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.html
 
     Attributes:
         p: An integer for trend autoregressive (AR) order
@@ -104,7 +104,7 @@ class ARIMAModel(m.Model):
         """Fit ARIMA model with given parameters
 
         For more details on each parameter please refer to the following doc:
-        https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.fit.html#statsmodels.tsa.arima_model.ARIMA.fit
+        https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.fit.html#statsmodels.tsa.arima_model.ARIMA.fit
 
         Args:
             start_params: Optional; An array_like object for the initial guess of the solution for the loglikelihood maximization
