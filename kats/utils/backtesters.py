@@ -230,10 +230,8 @@ class BackTesterParent(ABC):
         """
 
         logging.info("Calculating MASE")
-        naive_error = np.abs(np.diff(training_inputs)).sum() / (
-            training_inputs.shape[0] - 1
-        )
-        return diffs.mean() / naive_error
+        naive_errors = np.abs(np.diff(training_inputs))
+        return diffs.mean() / naive_errors.mean()
 
     def _calc_mse(
         self,
