@@ -917,29 +917,16 @@ class CrossValidation:
         self.errors = {}
         self.raw_errors = []
 
-        if not rolling_window:
-            self._backtester = BackTesterExpandingWindow(
-                error_methods,
-                data,
-                params,
-                self.train_percentage,
-                100 - self.test_percentage,
-                self.test_percentage,
-                self.num_folds,
-                model_class,
-                multi=multi,
-            )
-        else:
-            self._backtester = BackTesterRollingWindow(
-                error_methods,
-                data,
-                params,
-                self.train_percentage,
-                self.test_percentage,
-                self.num_folds,
-                model_class,
-                multi=multi,
-            )
+        self._backtester = BackTesterRollingOrigin(
+            error_methods=error_methods,
+            data=data,
+            params=params,
+            start_train_percentage=self.train_percentage,
+            test_percentage=self.test_percentage,
+            expanding_steps=self.num_folds,
+            model_class=model_class,
+            constant_train_size=rolling_window,
+        )
 
     # Run cross validation
     def run_cv(self) -> None:
