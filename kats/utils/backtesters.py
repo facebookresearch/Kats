@@ -474,8 +474,8 @@ class BackTesterSimple(BackTesterParent):
         """Creates train/test folds for the backtest."""
 
         logging.info("Creating train test splits")
-        train_size = _get_percent_size(self.size, self.train_percentage)
-        test_size = _get_percent_size(self.size, self.test_percentage)
+        train_size = _get_absolute_size(self.size, self.train_percentage)
+        test_size = _get_absolute_size(self.size, self.test_percentage)
 
         if train_size <= 0 or train_size >= self.size:
             logging.error("Invalid training size: {0}".format(train_size))
@@ -608,9 +608,9 @@ class BackTesterExpandingWindow(BackTesterParent):
         """Creates train/test folds for the backtest."""
 
         logging.info("Creating train test splits")
-        start_train_size = _get_percent_size(self.size, self.start_train_percentage)
-        end_train_size = _get_percent_size(self.size, self.end_train_percentage)
-        test_size = _get_percent_size(self.size, self.test_percentage)
+        start_train_size = _get_absolute_size(self.size, self.start_train_percentage)
+        end_train_size = _get_absolute_size(self.size, self.end_train_percentage)
+        test_size = _get_absolute_size(self.size, self.test_percentage)
 
         if start_train_size <= 0 or start_train_size >= self.size:
             logging.error(
@@ -764,8 +764,8 @@ class BackTesterRollingWindow(BackTesterParent):
         """Creates train/test folds for the backtest."""
 
         logging.info("Creating train test splits")
-        train_size = _get_percent_size(self.size, self.train_percentage)
-        test_size = _get_percent_size(self.size, self.test_percentage)
+        train_size = _get_absolute_size(self.size, self.train_percentage)
+        test_size = _get_absolute_size(self.size, self.test_percentage)
 
         if train_size <= 0 or train_size >= self.size:
             logging.error("Invalid training size: {0}".format(train_size))
@@ -886,7 +886,7 @@ class BackTesterFixedWindow(BackTesterParent):
             raise ValueError("Invalid window percentage")
         self.window_percentage = window_percentage
 
-        offset = _get_percent_size(len(data.time), self.window_percentage)
+        offset = _get_absolute_size(len(data.time), self.window_percentage)
 
         logging.info("Calling parent class constructor")
         super().__init__(
@@ -899,9 +899,9 @@ class BackTesterFixedWindow(BackTesterParent):
         """Creates train/test folds for the backtest."""
 
         logging.info("Creating train test splits")
-        train_size = _get_percent_size(self.size, self.train_percentage)
-        test_size = _get_percent_size(self.size, self.test_percentage)
-        window_size = _get_percent_size(self.size, self.window_percentage)
+        train_size = _get_absolute_size(self.size, self.train_percentage)
+        test_size = _get_absolute_size(self.size, self.test_percentage)
+        window_size = _get_absolute_size(self.size, self.window_percentage)
 
         if train_size <= 0 or train_size >= self.size:
             logging.error("Invalid training size: {0}".format(train_size))
@@ -1076,7 +1076,7 @@ class CrossValidation:
             raise ValueError("Invalid error name")
 
 
-def _get_percent_size(size: int, percent: float) -> int:
+def _get_absolute_size(size: int, percent: float) -> int:
     """
     Returns absolute size corresponding to percentage of array of length size.
     """
