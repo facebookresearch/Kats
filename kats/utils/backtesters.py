@@ -223,7 +223,7 @@ class BackTesterParent(ABC):
         truth: np.ndarray,
         diffs: np.ndarray,
     ) -> float:
-        """Calculates MASE error.
+        """Calculates non-seasonal MASE error.
 
         mean(|actual - forecast| / naiveError), where
         naiveError = mean(|actual_[i] - actual_[i-1]|)
