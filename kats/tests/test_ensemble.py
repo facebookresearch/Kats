@@ -3,6 +3,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import unittest
+import unittest.mock as mock
 from unittest import TestCase
 
 import numpy as np
@@ -26,6 +27,7 @@ from kats.models.ensemble.ensemble import (
 from kats.models.ensemble.kats_ensemble import KatsEnsemble
 from kats.models.ensemble.median_ensemble import MedianEnsembleModel
 from kats.models.ensemble.weighted_avg_ensemble import WeightedAvgEnsemble
+from parameterized import parameterized
 
 np.random.seed(123321)
 DATA_dummy = pd.DataFrame(
@@ -40,6 +42,23 @@ TSData_dummy = TimeSeriesData(DATA_dummy)
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
+def get_fake_preds(
+    ts_data: TimeSeriesData, fcst_periods: int, fcst_freq: str
+) -> pd.DataFrame:
+    time = pd.date_range(
+        start=ts_data.time.iloc[-1], periods=fcst_periods + 1, freq=fcst_freq
+    )[1:]
+    fcst = np.random.uniform(0, 100, len(time))
+    return pd.DataFrame(
+        {
+            "time": {i: t for i, t in enumerate(time)},
+            "fcst": {i: t for i, t in enumerate(fcst)},
+            "fcst_lower": {i: t for i, t in enumerate(fcst + 10)},
+            "fcst_upper": {i: t for i, t in enumerate(fcst - 10)},
+        }
+    )
+
+
 class testBaseEnsemble(TestCase):
     def setUp(self):
         self.TSData = load_air_passengers()
@@ -51,56 +70,74 @@ class testBaseEnsemble(TestCase):
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
-    def test_fit_forecast(self) -> None:
-        params = EnsembleParams(
-            [
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got
-                #  `HoltWintersParams`.
-                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-                BaseModelParams(
-                    "sarima",
+        self.TSData_dummy = TSData_dummy
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
+    )
+    def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
+        ts_data = getattr(self, ts_data_name)
+        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
+        with mock.patch("kats.models.ensemble.ensemble.Pool") as mock_pooled:
+            mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
+            mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
+
+            params = EnsembleParams(
+                [
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
+                    BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
                     # pyre-fixme[6]: Expected `Model` for 2nd param but got
-                    #  `SARIMAParams`.
-                    sarima.SARIMAParams(
-                        p=2,
-                        d=1,
-                        q=1,
-                        trend="ct",
-                        seasonal_order=(1, 0, 1, 12),
-                        enforce_invertibility=False,
-                        enforce_stationarity=False,
+                    #  `HoltWintersParams`.
+                    BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
+                    BaseModelParams(
+                        "sarima",
+                        # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                        #  `SARIMAParams`.
+                        sarima.SARIMAParams(
+                            p=2,
+                            d=1,
+                            q=1,
+                            trend="ct",
+                            seasonal_order=(1, 0, 1, 12),
+                            enforce_invertibility=False,
+                            enforce_stationarity=False,
+                        ),
                     ),
-                ),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ProphetParams`.
-                BaseModelParams("prophet", prophet.ProphetParams()),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got
-                #  `LinearModelParams`.
-                BaseModelParams("linear", linear_model.LinearModelParams()),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got
-                #  `QuadraticModelParams`.
-                BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
-            ]
-        )
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got `ProphetParams`.
+                    BaseModelParams("prophet", prophet.ProphetParams()),
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                    #  `LinearModelParams`.
+                    BaseModelParams("linear", linear_model.LinearModelParams()),
+                    BaseModelParams(
+                        "quadratic",
+                        # pyre-fixme[6]: Expected `kats.models.model.Model[typing.Any]` for 2nd
+                        # positional only parameter to call `BaseModelParams.__init__` but got
+                        # `quadratic_model.QuadraticModelParams`.
+                        quadratic_model.QuadraticModelParams(),
+                    ),
+                ]
+            )
+            m = BaseEnsemble(ts_data, params)
 
-        m = BaseEnsemble(self.TSData, params)
-        m.fit()
-        m._predict_all(steps=30, freq="MS")
-        m.plot()
+            # fit the ensemble model
+            m.fit()
+            mock_pooled.assert_called()
+            mock_fit_model.assert_called()
 
-        m_daily = BaseEnsemble(self.TSData_daily, params)
-        m_daily.fit()
-        m_daily._predict_all(steps=30, freq="D")
-        m.plot()
+            # no predictions should be made yet
+            mock_fit_model.return_value.predict.assert_not_called()
 
-        m_dummy = BaseEnsemble(TSData_dummy, params)
-        m_dummy.fit()
-        m_dummy._predict_all(steps=30, freq="D")
-        m_dummy.plot()
+            # now run predict for each of the component models
+            m._predict_all(steps=steps, freq=freq)
 
-        # test __str__ method
-        self.assertEqual(m.__str__(), "Ensemble")
+            # now predict should have been called
+            mock_fit_model.return_value.predict.assert_called_with(
+                steps, freq=f"{freq}"
+            )
+            m.plot()
+
+            self.assertEqual(m.__str__(), "Ensemble")
 
     def test_others(self) -> None:
         # test validate_param in base params
