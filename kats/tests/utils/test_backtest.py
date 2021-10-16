@@ -787,7 +787,7 @@ class CrossValidationTest(unittest.TestCase):
             test_percentage=(100 - PERCENTAGE),
             num_folds=CV_NUM_FOLDS,
             model_class=self.model_class,
-            rolling_window=True,
+            constant_train_size=True,
             multi=False,
         )
         temp_cv.run_cv()
