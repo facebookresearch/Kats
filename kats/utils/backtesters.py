@@ -826,7 +826,7 @@ class BackTesterFixedWindow(BackTesterParent):
         return train_splits, test_splits
 
 
-class CrossValidation:
+class CrossValidation(BackTesterRollingOrigin):
     """Defines class to execute cross validation.
 
     Cross validation is a useful technique to use multiple folds of the
@@ -835,7 +835,7 @@ class CrossValidation:
     https://en.wikipedia.org/wiki/Cross-validation_(statistics)
 
     Attributes:
-      train_percentage: A float for the percentage of data used for training.
+      minimum_train_percentage: A float for the percentage of data used for training.
       test_percentage: A float for the percentage of data used for testing.
       num_folds: An integer for the number of folds to use.
       error_methods: List of strings indicating which errors to calculate
@@ -843,8 +843,8 @@ class CrossValidation:
       data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
       params: Parameters to train model with.
       model_class: Defines the model type to use for backtesting.
-      rolling_window: A boolean flag to use the rolling window method instead
-        of the expanding window method (default False).
+      constant_train_size: A boolean flag to use the constant training window method instead
+        of the expanding training window method (default False).
       multi: A boolean flag to toggle multiprocessing (default True).
       results: List of tuples `(training_data, testing_data, trained_model,
         forecast_predictions)` storing forecast results.
@@ -865,67 +865,40 @@ class CrossValidation:
             error_methods=all_errors,
             data=ts,
             params=paramsparams,
-            train_percentage=50,
+            minimum_train_percentage=50,
             test_percentage=25,
             num_folds=3,
             model_class=ARIMAModel,
-            rolling_window=True
+            constant_train_size=False
           )
       >>> backtester.run_backtest()
       >>> mape = cv.get_error_value("mape") # Retrieve MAPE error
     """
 
-    def __init__(
-        self,
-        error_methods: List[str],
-        data: TimeSeriesData,
-        params: Params,
-        train_percentage: float,
-        test_percentage: float,
-        num_folds: int,
-        model_class: Type,
-        rolling_window=False,
-        multi=True,
-    ):
-        logging.info("Initializing and validating parameter values")
-        if train_percentage <= 0:
-            logging.error("Non positive training percentage")
-            raise ValueError("Invalid training percentage")
-        elif train_percentage > 100:
-            logging.error("Too large training percentage")
-            raise ValueError("Invalid training percentage")
-        self.train_percentage = train_percentage
-        if test_percentage <= 0:
-            logging.error("Non positive test percentage")
-            raise ValueError("Invalid test percentage")
-        elif test_percentage > 100:
-            logging.error("Too large test percentage")
-            raise ValueError("Invalid test percentage")
-        self.test_percentage = test_percentage
-        if num_folds < 0:
-            logging.error("Non positive number of folds")
-            raise ValueError("Invalid number of folds")
-        self.num_folds = num_folds
+    def __init__(self,
+                 error_methods: List[str],
+                 data: TimeSeriesData,
+                 params: Params,
+                 minimum_train_percentage: float,
+                 test_percentage: float,
+                 num_folds: int,
+                 model_class: Type,
+                 constant_train_size=False,
+                 multi=True,
+                 **kwargs
+                 ):
 
-        self.size = len(data.time)
-        if self.size <= 0:
-            logging.error("self.size <= 0")
-            logging.error("self.size: {0}".format(self.size))
-            raise ValueError("Passing an empty time series")
-
-        self.results = []
-        self.errors = {}
-        self.raw_errors = []
-
-        self._backtester = BackTesterRollingOrigin(
+        super().__init__(
             error_methods=error_methods,
             data=data,
             params=params,
-            start_train_percentage=self.train_percentage,
-            test_percentage=self.test_percentage,
-            expanding_steps=self.num_folds,
+            start_train_percentage=minimum_train_percentage,
+            test_percentage=test_percentage,
+            expanding_steps=num_folds,
             model_class=model_class,
-            constant_train_size=rolling_window,
+            constant_train_size=constant_train_size,
+            multi=multi,
+            **kwargs
         )
 
     # Run cross validation
@@ -933,30 +906,8 @@ class CrossValidation:
         """Runs the cross validation."""
 
         logging.info("Running training and evaluation")
-        self._backtester.run_backtest()
-        self.results = self._backtester.results
-        self.errors = self._backtester.errors
-        self.raw_errors = self._backtester.raw_errors
+        self.run_backtest()
         logging.info("Finished")
-
-    def get_error_value(self, error_name: str) -> float:
-        """Gets requested error value.
-
-        Args:
-          error_name: A string of the error whose value should be returned.
-
-        Returns:
-          A float of the eror value.
-
-        Raises:
-          ValueError: The error name is invalid.
-        """
-
-        if error_name in self.errors:
-            return self.errors[error_name]
-        else:
-            logging.error("Invalid error name: {0}".format(error_name))
-            raise ValueError("Invalid error name")
 
 
 def _get_percent_size(size: int, percent: float) -> int:
