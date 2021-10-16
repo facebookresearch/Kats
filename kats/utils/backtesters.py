@@ -560,7 +560,6 @@ class BackTesterExpandingWindow(BackTesterParent):
         data: TimeSeriesData,
         params: Params,
         start_train_percentage: float,
-        end_train_percentage: float,
         test_percentage: float,
         expanding_steps: int,
         model_class: Type,
