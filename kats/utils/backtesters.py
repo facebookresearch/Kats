@@ -498,12 +498,19 @@ class BackTesterSimple(BackTesterParent):
         return [(0, train_size)], [(train_size, train_size + test_size)]
 
 
-class BackTesterExpandingWindow(BackTesterParent):
-    """Defines functions to execute an expanding window backtest.
+class BackTesterRollingOrigin(BackTesterParent):
+    """Defines functions to execute an rolling origin backtest.
 
-    An expanding window backtest conducts a backtest over multiple iterations,
-    wherein each iteration, the size of the training dataset increases by a
-    fixed amount, while the test dataset "slides" forward to accommodate.
+    A rolling forecast origin backtest conducts a backtest over multiple
+    iterations, wherein each iteration, the "forecasting origin"
+    (the location separating training and testing datasets) "slides" forward
+    by a fixed amount.
+
+    Hereby, the size of the training dataset is usually increased at each
+    iteration, while the test dataset "slides" forward to accommodate.
+    However, the size of the training dataset can alternatively be held
+    constant, in which case at each iteration the start location of the
+    training dataset moves forward by the same amount as the "forecast origin".
     Iterations continue until the complete data set is used to either train
     or test in the final interation.
 
@@ -521,6 +528,9 @@ class BackTesterExpandingWindow(BackTesterParent):
       data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
       params: Parameters to train model with.
       model_class: Defines the model type to use for backtesting.
+      constant_train_size: A bool defining whether to keep the training data
+        size constant instead of expanding it at each iteration.
+        (default: False)
       multi: A boolean flag to toggle multiprocessing (default True).
       results: List of tuples `(training_data, testing_data, trained_model,
         forecast_predictions)` storing forecast results.
@@ -541,7 +551,7 @@ class BackTesterExpandingWindow(BackTesterParent):
       >>> ts = TimeSeriesData(df=df)
       >>> params = ARIMAParams(p=1, d=1, q=1)
       >>> all_errors = ["mape", "smape", "mae", "mase", "mse", "rmse"]
-      >>> backtester = BackTesterExpandingWindow(
+      >>> backtester = BackTesterRollingOrigin(
             error_methods=all_errors,
             data=ts,
             params=paramsparams,
@@ -549,6 +559,7 @@ class BackTesterExpandingWindow(BackTesterParent):
             test_percentage=25,
             expanding_steps=3,
             model_class=ARIMAModel,
+            constant_train_size=False,
           )
       >>> backtester.run_backtest()
       >>> mape = backtester.get_error_value("mape") # Retrieve MAPE error
@@ -563,6 +574,7 @@ class BackTesterExpandingWindow(BackTesterParent):
         test_percentage: float,
         expanding_steps: int,
         model_class: Type,
+        constant_train_size: bool = False,
         multi=True,
         **kwargs
     ):
@@ -592,6 +604,7 @@ class BackTesterExpandingWindow(BackTesterParent):
             logging.error("Non positive expanding steps")
             raise ValueError("Invalid expanding steps")
         self.expanding_steps = expanding_steps
+        self.constant_train_size = constant_train_size
 
         logging.info("Calling parent class constructor")
         super().__init__(error_methods, data, params, model_class, multi, **kwargs)
@@ -656,7 +669,10 @@ class BackTesterExpandingWindow(BackTesterParent):
             0, self.size - start_train_size - test_size, self.expanding_steps
         )
         for offset in offsets:
-            train_splits.append((0, int(start_train_size + offset)))
+            skip_size = 0
+            if self.constant_train_size:
+                skip_size = offset
+            train_splits.append((skip_size, int(start_train_size + offset)))
             test_splits.append(
                 (
                     int(start_train_size + offset),
@@ -666,137 +682,20 @@ class BackTesterExpandingWindow(BackTesterParent):
         return train_splits, test_splits
 
 
-class BackTesterRollingWindow(BackTesterParent):
-    """Defines functions to execute a rolling window backtest.
-
-    An rolling window backtest conducts a backtest over multiple iterations,
-    wherein each iteration, the start location of the training dataset moves
-    forward by a fixed amount, while the test dataset "slides" forward to
-    accommodate. Iterations continue until the end of the test set meets the
-    end of the full data set.
-
-    For more information, check out the Kats tutorial notebooks!
-
-    Attributes:
-      train_percentage: A float for the percentage of data used for training.
-      test_percentage: A float for the percentage of data used for testing.
-      sliding_steps: An integer for the number of rolling steps (i.e.
-        number of folds).
-      error_methods: List of strings indicating which errors to calculate
-        (see `ALLOWED_ERRORS` for exhaustive list).
-      data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
-      params: Parameters to train model with.
-      model_class: Defines the model type to use for backtesting.
-      multi: A boolean flag to toggle multiprocessing (default True).
-      results: List of tuples `(training_data, testing_data, trained_model,
-        forecast_predictions)` storing forecast results.
-      errors: Dictionary mapping the error type to value.
-      size: An integer for the total number of datapoints.
-      error_funcs: Dictionary mapping error name to the
-        function that calculates it.
-      freq: A string representing the (inferred) frequency of the
-        `pandas.DataFrame`.
-      raw_errors: List storing raw errors (truth - predicted).
-
-    Raises:
-      ValueError: One or more of the train, test, or sliding steps params
-        were invalid. Or the time series is empty.
-
-    Sample Usage:
-      >>> df = pd.read_csv("kats/data/air_passengers.csv")
-      >>> ts = TimeSeriesData(df=df)
-      >>> params = ARIMAParams(p=1, d=1, q=1)
-      >>> all_errors = ["mape", "smape", "mae", "mase", "mse", "rmse"]
-      >>> backtester = BackTesterExpandingWindow(
-            error_methods=all_errors,
-            data=ts,
-            params=paramsparams,
-            train_percentage=50,
-            test_percentage=25,
-            expanding_steps=3,
-            model_class=ARIMAModel,
-          )
-      >>> backtester.run_backtest()
-      >>> mape = backtester.get_error_value("mape") # Retrieve MAPE error
+class BackTesterExpandingWindow(BackTesterRollingOrigin):
+    """Defines functions to execute an expanding window backtest.
     """
 
-    def __init__(
-        self,
-        error_methods: List[str],
-        data: TimeSeriesData,
-        params: Params,
-        train_percentage: float,
-        test_percentage: float,
-        sliding_steps: int,
-        model_class: Type,
-        multi=True,
-        **kwargs
-    ):
-        logging.info("Initializing train/test percentages")
-        if train_percentage <= 0:
-            logging.error("Non positive training percentage")
-            raise ValueError("Invalid training percentage")
-        elif train_percentage > 100:
-            logging.error("Too large training percentage")
-            raise ValueError("Invalid training percentage")
-        self.train_percentage = train_percentage
-        if test_percentage <= 0:
-            logging.error("Non positive test percentage")
-            raise ValueError("Invalid test percentage")
-        elif test_percentage > 100:
-            logging.error("Too large test percentage")
-            raise ValueError("Invalid test percentage")
-        self.test_percentage = test_percentage
-        if sliding_steps < 0:
-            logging.error("Non positive sliding steps")
-            raise ValueError("Invalid sliding steps")
-        self.sliding_steps = sliding_steps
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs, constant_train_size=False)
 
-        logging.info("Calling parent class constructor")
-        super().__init__(error_methods, data, params, model_class, multi, **kwargs)
 
-    def _create_train_test_splits(
-        self,
-    ) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
-        """Creates train/test folds for the backtest."""
+class BackTesterRollingWindow(BackTesterRollingOrigin):
+    """Defines functions to execute a rolling window backtest.
+    """
 
-        logging.info("Creating train test splits")
-        train_size = _get_percent_size(self.size, self.train_percentage)
-        test_size = _get_percent_size(self.size, self.test_percentage)
-
-        if train_size <= 0 or train_size >= self.size:
-            logging.error("Invalid training size: {0}".format(train_size))
-            logging.error("Training Percentage: {0}".format(self.train_percentage))
-            raise ValueError("Incorrect training size")
-
-        if test_size <= 0 or test_size >= self.size:
-            logging.error("Invalid testing size: {0}".format(test_size))
-            logging.error("Testing Percentage: {0}".format(self.test_percentage))
-            raise ValueError("Incorrect testing size")
-
-        if train_size + test_size > self.size:
-            logging.error("Training and Testing sizes too big")
-            logging.error("Training size: {0}".format(train_size))
-            logging.error("Training Percentage: {0}".format(self.train_percentage))
-            logging.error("Testing size: {0}".format(test_size))
-            logging.error("Testing Percentage: {0}".format(self.test_percentage))
-            raise ValueError("Incorrect training and testing sizes")
-
-        # Handling edge case where only 1 fold is needed (same as BackTesterSimple)
-        if self.sliding_steps == 1:
-            return [(0, train_size)], [(train_size, train_size + test_size)]
-
-        train_splits = []
-        test_splits = []
-        offsets = _return_fold_offsets(
-            0, self.size - train_size - test_size, self.sliding_steps
-        )
-        for offset in offsets:
-            train_splits.append((offset, int(offset + train_size)))
-            test_splits.append(
-                (int(offset + train_size), int(offset + train_size + test_size))
-            )
-        return train_splits, test_splits
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs, constant_train_size=True)
 
 
 class BackTesterFixedWindow(BackTesterParent):
