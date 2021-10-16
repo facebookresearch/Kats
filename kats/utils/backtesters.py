@@ -512,8 +512,7 @@ class BackTesterExpandingWindow(BackTesterParent):
     Attributes:
       start_train_percentage: A float for the initial percentage of data used
         for training.
-      end_train_percentage: A float for the final percentage of data used for
-        training.
+        (The train percentage at the end will be 100 - test_percentage)
       test_percentage: A float for the percentage of data used for testing.
       expanding_steps: An integer for the number of expanding steps (i.e.
         number of folds).
@@ -547,7 +546,6 @@ class BackTesterExpandingWindow(BackTesterParent):
             data=ts,
             params=paramsparams,
             start_train_percentage=50,
-            end_train_percentage=75,
             test_percentage=25,
             expanding_steps=3,
             model_class=ARIMAModel,
@@ -577,16 +575,6 @@ class BackTesterExpandingWindow(BackTesterParent):
             logging.error("Too large start training percentage")
             raise ValueError("Invalid end training percentage")
         self.start_train_percentage = start_train_percentage
-        if end_train_percentage <= 0:
-            logging.error("Non positive end training percentage")
-            raise ValueError("Invalid start training percentage")
-        elif end_train_percentage > 100:
-            logging.error("Too large end training percentage")
-            raise ValueError("Invalid end training percentage")
-        elif end_train_percentage < self.start_train_percentage:
-            logging.error("Ending Training % < Start Training %")
-            raise ValueError("Start Training percentage must be less than End")
-        self.end_train_percentage = end_train_percentage
         if test_percentage <= 0:
             logging.error("Non positive test percentage")
             raise ValueError("Invalid test percentage")
@@ -594,6 +582,11 @@ class BackTesterExpandingWindow(BackTesterParent):
             logging.error("Too large test percentage")
             raise ValueError("Invalid test percentage")
         self.test_percentage = test_percentage
+        if start_train_percentage + test_percentage >= 100:
+            if start_train_percentage + test_percentage == 100 \
+                    and expanding_steps > 1:
+                logging.error("Too large combined train and test percentage")
+                raise ValueError("Training and testing percentage combination")
         if expanding_steps < 0:
             logging.error("Non positive expanding steps")
             raise ValueError("Invalid expanding steps")
@@ -609,7 +602,7 @@ class BackTesterExpandingWindow(BackTesterParent):
 
         logging.info("Creating train test splits")
         start_train_size = _get_percent_size(self.size, self.start_train_percentage)
-        end_train_size = _get_percent_size(self.size, self.end_train_percentage)
+        end_train_size = _get_percent_size(self.size, 100 - self.test_percentage)
         test_size = _get_percent_size(self.size, self.test_percentage)
 
         if start_train_size <= 0 or start_train_size >= self.size:
@@ -624,10 +617,10 @@ class BackTesterExpandingWindow(BackTesterParent):
         if end_train_size <= 0 or end_train_size >= self.size:
             logging.error("Invalid ending training size: {0}".format(end_train_size))
             logging.error(
-                "End Training Percentage: {0}".format(self.end_train_percentage)
+                "End Training Percentage: {0}".format(100 - self.test_percentage)
             )
             logging.error(
-                "End Training Percentage: {0}".format(self.end_train_percentage)
+                "End Training Percentage: {0}".format(100 - self.test_percentage)
             )
             raise ValueError("Incorrect starting training size")
 
@@ -640,7 +633,7 @@ class BackTesterExpandingWindow(BackTesterParent):
             logging.error("Training and Testing sizes too big")
             logging.error("End Training size: {0}".format(end_train_size))
             logging.error(
-                "End Training Percentage: {0}".format(self.end_train_percentage)
+                "End Training Percentage: {0}".format(100 - self.test_percentage)
             )
             logging.error("Testing size: {0}".format(test_size))
             logging.error("Testing Percentage: {0}".format(self.test_percentage))
