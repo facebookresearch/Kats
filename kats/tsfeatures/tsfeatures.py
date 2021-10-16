@@ -1064,9 +1064,9 @@ class TsFeatures:
         diff1x = [x[i] - x[i - 1] for i in range(1, len(x))]
         diff2x = [diff1x[i] - diff1x[i - 1] for i in range(1, len(diff1x))]
 
-        y_acf_list = acf(x, unbiased=False, fft=True, nlags=period)[1:]
-        diff1y_acf_list = acf(diff1x, unbiased=False, fft=True, nlags=nlag)[1:]
-        diff2y_acf_list = acf(diff2x, unbiased=False, fft=True, nlags=nlag)[1:]
+        y_acf_list = acf(x, fft=True, nlags=period)[1:]
+        diff1y_acf_list = acf(diff1x, fft=True, nlags=nlag)[1:]
+        diff2y_acf_list = acf(diff2x, fft=True, nlags=nlag)[1:]
 
         y_pacf_list = pacf(x, nlags=period)[1:]
         diff1y_pacf_list = pacf(diff1x, nlags=nlag)[1:]
@@ -1252,7 +1252,7 @@ class TsFeatures:
 
         # First min AC
         special_ac_features = {"firstmin_ac": np.nan, "firstzero_ac": np.nan}
-        AC = acf(x, unbiased=False, fft=True, nlags=len(x))[1:]
+        AC = acf(x, fft=True, nlags=len(x))[1:]
         if extra_args is not None and extra_args.get("firstmin_ac", default_status):
             i = 0
             while i < len(AC) - 1:
