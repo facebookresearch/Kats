@@ -581,9 +581,11 @@ class BackTesterExpandingWindow(BackTesterParent):
             logging.error("Too large test percentage")
             raise ValueError("Invalid test percentage")
         self.test_percentage = test_percentage
-        if start_train_percentage + test_percentage >= 100:
-            if start_train_percentage + test_percentage == 100 \
-                    and expanding_steps > 1:
+        if start_train_percentage + test_percentage > 100:
+            logging.error("Too large combined train and test percentage")
+            raise ValueError("Training and testing percentage combination")
+        elif start_train_percentage + test_percentage == 100:
+            if expanding_steps > 1:
                 logging.error("Too large combined train and test percentage")
                 raise ValueError("Training and testing percentage combination")
         if expanding_steps < 0:
@@ -601,7 +603,6 @@ class BackTesterExpandingWindow(BackTesterParent):
 
         logging.info("Creating train test splits")
         start_train_size = _get_percent_size(self.size, self.start_train_percentage)
-        end_train_size = _get_percent_size(self.size, 100 - self.test_percentage)
         test_size = _get_percent_size(self.size, self.test_percentage)
 
         if start_train_size <= 0 or start_train_size >= self.size:
@@ -613,30 +614,34 @@ class BackTesterExpandingWindow(BackTesterParent):
             )
             raise ValueError("Incorrect starting training size")
 
-        if end_train_size <= 0 or end_train_size >= self.size:
-            logging.error("Invalid ending training size: {0}".format(end_train_size))
-            logging.error(
-                "End Training Percentage: {0}".format(100 - self.test_percentage)
-            )
-            logging.error(
-                "End Training Percentage: {0}".format(100 - self.test_percentage)
-            )
-            raise ValueError("Incorrect starting training size")
-
         if test_size <= 0 or test_size >= self.size:
             logging.error("Invalid testing size: {0}".format(test_size))
             logging.error("Testing Percentage: {0}".format(self.test_percentage))
             raise ValueError("Incorrect testing size")
 
-        if end_train_size + test_size > self.size:
+        if start_train_size + test_size > self.size:
             logging.error("Training and Testing sizes too big")
-            logging.error("End Training size: {0}".format(end_train_size))
-            logging.error(
-                "End Training Percentage: {0}".format(100 - self.test_percentage)
-            )
+            logging.error("Start Training size: {0}".format(start_train_size))
+            logging.error("Start Training Percentage: {0}".format(
+                self.start_train_percentage))
             logging.error("Testing size: {0}".format(test_size))
             logging.error("Testing Percentage: {0}".format(self.test_percentage))
             raise ValueError("Incorrect training and testing sizes")
+        elif start_train_size + test_size == self.size:
+            if self.expanding_steps > 1:
+                logging.error("Training and Testing sizes too big "
+                              "for multiple steps")
+                logging.error("Start Training size: {0}".format(
+                    start_train_size))
+                logging.error("Start Training Percentage: {0}".format(
+                    self.start_train_percentage))
+                logging.error("Testing size: {0}".format(test_size))
+                logging.error("Testing Percentage: {0}".format(
+                    self.test_percentage))
+                logging.error("Expanding steps: {}".format(
+                    self.expanding_steps))
+                raise ValueError("Incorrect training and testing sizes "
+                                 "for multiple steps")
 
         # Handling edge case where only 1 fold is needed (same as BackTesterSimple)
         if self.expanding_steps == 1:
@@ -648,7 +653,7 @@ class BackTesterExpandingWindow(BackTesterParent):
         train_splits = []
         test_splits = []
         offsets = _return_fold_offsets(
-            start_train_size, end_train_size, self.expanding_steps
+            0, self.size - start_train_size - test_size, self.expanding_steps
         )
         for offset in offsets:
             train_splits.append((0, int(start_train_size + offset)))
