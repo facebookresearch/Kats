@@ -28,7 +28,9 @@ class TestOutlierDetectorModel(TestCase):
         self.assertEqual(response_single_ts.scores.value.shape, single_ts.value.shape)
 
         self.assertEqual(
-            response_single_ts.predicted_ts.value.shape, single_ts.value.shape
+            # pyre-fixme[16]: Optional type has no attribute `value`.
+            response_single_ts.predicted_ts.value.shape,
+            single_ts.value.shape,
         )
 
     def test_response_shape_for_multi_series(self) -> None:
@@ -44,6 +46,7 @@ class TestOutlierDetectorModel(TestCase):
         self.assertEqual(response_multi_ts.scores.value.shape, multi_ts.value.shape)
 
         self.assertEqual(
+            # pyre-fixme[16]: Optional type has no attribute `value`.
             response_multi_ts.predicted_ts.value.shape,
             multi_ts.value.shape,
         )
