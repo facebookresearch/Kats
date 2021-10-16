@@ -975,7 +975,7 @@ class CrossValidation:
             model_class=ARIMAModel,
             rolling_window=True
           )
-      >>> backtester.run_backtest()
+      >>> cv.run_cv()
       >>> mape = cv.get_error_value("mape") # Retrieve MAPE error
     """
 
