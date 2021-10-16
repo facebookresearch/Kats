@@ -226,7 +226,7 @@ class BackTesterParent(ABC):
         """Calculates MASE error.
 
         mean(|actual - forecast| / naiveError), where
-        naiveError = 1/ (n-1) sigma^n_[i=2](|actual_[i] - actual_[i-1]|)
+        naiveError = mean(|actual_[i] - actual_[i-1]|)
         """
 
         logging.info("Calculating MASE")
