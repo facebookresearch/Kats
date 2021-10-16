@@ -684,6 +684,10 @@ class BackTesterRollingWindow(BackTesterParent):
     accommodate. Iterations continue until the end of the test set meets the
     end of the full data set.
 
+    This procedure is also known in literature as a rolling origin evaluation
+    with a constant in-sample size (train set) and a constant out-sample size
+    (test set).
+
     For more information, check out the Kats tutorial notebooks!
 
     Attributes:
@@ -937,12 +941,14 @@ class BackTesterFixedWindow(BackTesterParent):
 
 
 class CrossValidation:
-    """Defines class to execute cross validation.
+    """Defines class to execute time series cross validation.
 
     Cross validation is a useful technique to use multiple folds of the
     training and testing data to help optimize the performance of the
     model (e.g. hyperparameter tuning). For more info on cross validation, see
     https://en.wikipedia.org/wiki/Cross-validation_(statistics)
+
+    This procedure is also known in literature as a rolling origin evaluation.
 
     Attributes:
       train_percentage: A float for the percentage of data used for training.
