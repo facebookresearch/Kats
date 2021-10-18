@@ -3,6 +3,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+from dataclasses import dataclass
 from typing import Dict, List, Type
 
 import kats.utils.time_series_parameter_tuning as tpt
@@ -11,7 +12,6 @@ import pandas as pd
 from kats.consts import SearchMethodEnum
 from kats.detectors import changepoint_evaluator
 from kats.detectors.detector import DetectorModel
-from dataclasses import dataclass
 
 
 def check_metric_is_supported(metric: str):
@@ -43,6 +43,7 @@ def evaluate_parameters_detector_model(params, detector, data):
         threshold_high=threshold_high,
     )
     return results, turing_model
+
 
 @dataclass
 class DetectorModelSet:
