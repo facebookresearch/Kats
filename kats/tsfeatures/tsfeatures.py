@@ -2008,8 +2008,13 @@ class TsFeatures:
             if extra_args is not None and extra_args.get(
                 "time_avg_timezone_offset", default_status
             ):
-                utcoffsets = [dt.utcoffset().total_seconds() for dt in index]
-                time_features["time_avg_timezone_offset"] = np.array(utcoffsets).mean()
+                try:
+                    utcoffsets = [dt.utcoffset().total_seconds() for dt in index]
+                    time_features["time_avg_timezone_offset"] = np.array(
+                        utcoffsets
+                    ).mean()
+                except AttributeError:
+                    time_features["time_avg_timezone_offset"] = 0.0
 
             if extra_args is not None and extra_args.get(
                 "time_length_days", default_status
