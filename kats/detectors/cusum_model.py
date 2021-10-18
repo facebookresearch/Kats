@@ -412,7 +412,7 @@ class CUSUMDetectorModel(DetectorModel):
             historical_data: :class:`kats.consts.TimeSeriesData` object representing the history.
 
         Returns:
-            The anomaly response contains the anomaly socres.
+            The anomaly response contains the anomaly scores.
         """
         # get parameters
         scan_window = self.scan_window
