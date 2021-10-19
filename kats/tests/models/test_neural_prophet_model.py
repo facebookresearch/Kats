@@ -2,16 +2,54 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import builtins
 import logging
+import sys
 import unittest
 from unittest import TestCase
+from unittest.mock import patch
 
 from kats.models.neural_prophet import NeuralProphetParams
 
 
 class NeuralProphetModelTest(TestCase):
-    def setUp(self):
-        self.expected_defaults = NeuralProphetParams(
+    @classmethod
+    def setUpClass(cls):
+        original_import_fn = builtins.__import__
+
+        def mock_neural_prophet_import(module, *args, **kwargs):
+            if module == "neuralprophet":
+                raise ImportError
+            else:
+                return original_import_fn(module, *args, **kwargs)
+
+        cls.mock_imports = patch(
+            "builtins.__import__", side_effect=mock_neural_prophet_import
+        )
+
+    def test_neural_prophet_not_installed(self) -> None:
+        # Unload neural_prophet module so its imports can be mocked as necessary
+        del sys.modules["kats.models.neural_prophet"]
+
+        with self.mock_imports:
+            from kats.models.neural_prophet import NeuralProphetParams
+
+            self.assertRaises(RuntimeError, NeuralProphetParams)
+
+        # Restore the neural_prophet module
+        del sys.modules["kats.models.neural_prophet"]
+        from kats.models.neural_prophet import NeuralProphetParams
+
+        # Confirm that the module has been properly reloaded -- should not
+        # raise an exception anymore
+        NeuralProphetParams()
+
+    def test_default_parameters(self) -> None:
+        """
+        Check that the default parameters are as expected. The expected values
+        are hard coded.
+        """
+        expected_defaults = NeuralProphetParams(
             growth="linear",
             changepoints=None,
             n_changepoints=10,
@@ -37,18 +75,12 @@ class NeuralProphetModelTest(TestCase):
             normalize="auto",
             impute_missing=True,
         )
-
-    def test_default_parameters(self) -> None:
-        """
-        Check that the default parameters are as expected. The expected values
-        are hard coded.
-        """
         # Expected params should be valid
-        self.expected_defaults.validate_params()
+        expected_defaults.validate_params()
 
         actual_defaults = vars(NeuralProphetParams())
 
-        for param, exp_val in vars(self.expected_defaults).items():
+        for param, exp_val in vars(expected_defaults).items():
             msg = """param:{param}, exp_val:{exp_val},  val:{val}""".format(
                 param=param, exp_val=exp_val, val=actual_defaults[param]
             )
