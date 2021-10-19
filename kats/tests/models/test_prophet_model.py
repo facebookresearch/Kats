@@ -14,22 +14,27 @@ import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.models.prophet import ProphetModel, ProphetParams
+from kats.tests.models.test_models_dummy_data import (
+    NONSEASONAL_INPUT,
+    NONSEASONAL_FUTURE_DF,
+    AIR_FCST_30_PROPHET,
+    AIR_FCST_30_PROPHET_CAP_AND_FLOOR,
+    PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR,
+    AIR_FCST_30_PROPHET_INCL_HIST,
+    PEYTON_FCST_15_PROPHET_INCL_HIST,
+    AIR_FCST_15_PROPHET_LOGISTIC_CAP,
+    PEYTON_FCST_30_PROPHET_DAILY_CAP,
+    AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY,
+    PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY,
+    NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE,
+)
+from pandas.util.testing import assert_frame_equal
 from parameterized import parameterized
-
 
 TEST_DATA = {
     "nonseasonal": {
-        "ts": TimeSeriesData(
-            pd.DataFrame(
-                {
-                    "time": pd.date_range("1960-12-01", "1963-01-01", freq="m"),
-                    "y": np.random.randn(25),
-                }
-            )
-        ),
-        "future_df": pd.DataFrame(
-            {"ds": pd.date_range("1963-01-01", "1964-01-01", freq="m")}
-        ),
+        "ts": TimeSeriesData(NONSEASONAL_INPUT),
+        "future_df": NONSEASONAL_FUTURE_DF,
         "params": ProphetParams(),
     },
     "daily": {
@@ -73,6 +78,8 @@ TEST_DATA = {
 class ProphetModelTest(TestCase):
     @classmethod
     def setUpClass(cls):
+        np.random.seed(0)
+
         original_import_fn = builtins.__import__
 
         def mock_prophet_import(module, *args, **kwargs):
@@ -168,7 +175,7 @@ class ProphetModelTest(TestCase):
                 "MS",
                 None,
                 None,
-                None,
+                AIR_FCST_30_PROPHET,
             ],
             [
                 "monthly, cap and floor",
@@ -179,7 +186,7 @@ class ProphetModelTest(TestCase):
                 "MS",
                 None,
                 None,
-                None,
+                AIR_FCST_30_PROPHET_CAP_AND_FLOOR,
             ],
             [
                 "daily, cap and floor",
@@ -190,7 +197,7 @@ class ProphetModelTest(TestCase):
                 "D",
                 None,
                 None,
-                None,
+                PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR,
             ],
             [
                 "monthly, historical",
@@ -201,29 +208,29 @@ class ProphetModelTest(TestCase):
                 "MS",
                 None,
                 None,
-                None,
+                AIR_FCST_30_PROPHET_INCL_HIST,
             ],
             [
                 "daily, historical",
                 TEST_DATA["daily"]["ts"],
                 TEST_DATA["daily"]["params"],
-                30,
+                15,
                 True,
                 "D",
                 None,
                 None,
-                None,
+                PEYTON_FCST_15_PROPHET_INCL_HIST,
             ],
             [
                 "monthly, logistic with cap",
                 TEST_DATA["monthly"]["ts"],
                 TEST_DATA["monthly"]["params_logistic_cap"],
-                30,
+                15,
                 False,
                 "MS",
                 None,
                 None,
-                None,
+                AIR_FCST_15_PROPHET_LOGISTIC_CAP,
             ],
             [
                 "daily, logistic with cap",
@@ -234,7 +241,7 @@ class ProphetModelTest(TestCase):
                 "D",
                 None,
                 None,
-                None,
+                PEYTON_FCST_30_PROPHET_DAILY_CAP,
             ],
             [
                 "monthly, custom seasonality",
@@ -245,7 +252,7 @@ class ProphetModelTest(TestCase):
                 "MS",
                 None,
                 None,
-                None,
+                AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY,
             ],
             [
                 "daily, custom seasonality",
@@ -256,7 +263,7 @@ class ProphetModelTest(TestCase):
                 "D",
                 None,
                 None,
-                None,
+                PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY,
             ],
             [
                 "optional predict params",
@@ -267,7 +274,7 @@ class ProphetModelTest(TestCase):
                 None,
                 TEST_DATA["nonseasonal"]["future_df"],
                 True,
-                None,
+                NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE,
             ],
         ]
     )
@@ -281,7 +288,7 @@ class ProphetModelTest(TestCase):
         freq: Optional[str],
         future: Optional[pd.DataFrame],
         raw: Optional[bool],
-        truth: TimeSeriesData,
+        truth: pd.DataFrame,
     ) -> None:
         kwargs = {}
         if freq is not None:
@@ -294,8 +301,9 @@ class ProphetModelTest(TestCase):
         params.validate_params()
         m = ProphetModel(data=ts, params=params)
         m.fit()
-        m.predict(steps=steps, include_history=include_history, **kwargs)
-        # TODO: validate results
+        forecast_df = m.predict(steps=steps, include_history=include_history, **kwargs)
+
+        assert_frame_equal(forecast_df, truth, check_exact=False)
 
     def test_multivar(self) -> None:
         # Prophet model does not support multivariate time series data
