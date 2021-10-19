@@ -3,29 +3,47 @@
 # LICENSE file in the root directory of this source tree.
 
 import unittest
+from typing import Dict, Optional, Union
 from unittest import TestCase
 
+import numpy as np
+import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.models.sarima import SARIMAModel, SARIMAParams
+from kats.tests.models.test_models_dummy_data import (
+    AIR_FCST_15_SARIMA_PARAM_1_MODEL_1,
+    AIR_FCST_15_SARIMA_PARAM_2_MODEL_1,
+    AIR_FCST_30_SARIMA_PARAM_1_MODEL_1,
+    AIR_FCST_30_SARIMA_PARAM_2_MODEL_1,
+    AIR_FCST_15_SARIMA_PARAM_2_MODEL_2,
+    AIR_FCST_30_SARIMA_PARAM_2_MODEL_2,
+    AIR_FCST_15_SARIMA_PARAM_1_MODEL_2,
+    AIR_FCST_30_SARIMA_PARAM_1_MODEL_2,
+    AIR_FCST_15_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
+    AIR_FCST_30_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
+    EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1,
+)
+from pandas.util.testing import assert_frame_equal
+from parameterized import parameterized
 
-
-class SARIMAModelTest(TestCase):
-    def setUp(self):
-        self.TSData = load_air_passengers()
-
-        DATA_daily = load_data("peyton_manning.csv")
-        DATA_daily.columns = ["time", "y"]
-        self.TSData_daily = TimeSeriesData(DATA_daily)
-
-        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
-        self.TSData_multi = TimeSeriesData(DATA_multi)
-
-    def test_fit_forecast(self) -> None:
-        def setUp(self):
-            self.TSData = load_air_passengers()
-
-        params = SARIMAParams(
+AIR_TS = load_air_passengers()
+MULTI_DF = load_data("multivariate_anomaly_simulated_data.csv")
+STEPS_1 = 15
+STEPS_2 = 30
+TEST_DATA = {
+    "monthly": {
+        "ts": AIR_TS,
+        "invalid_ts": TimeSeriesData(
+            load_data("multivariate_anomaly_simulated_data.csv")
+        ),
+        "freq": "MS",
+        "p1": SARIMAParams(
+            p=1,
+            d=1,
+            q=1,
+        ),
+        "p2": SARIMAParams(
             p=2,
             d=1,
             q=1,
@@ -33,51 +51,185 @@ class SARIMAModelTest(TestCase):
             seasonal_order=(1, 0, 1, 12),
             enforce_invertibility=False,
             enforce_stationarity=False,
+        ),
+        "invalid_p": SARIMAParams(
+            p=-1,
+            d=1,
+            q=1,
+        ),
+        "m1": {
+            "cov_type": None,
+            "method": "lbfgs",
+            "maxiter": 50,
+            "full_output": False,
+            "optim_score": None,
+            "optim_complex_step": False,
+            "optim_hessian": None,
+        },
+        "m2": {
+            "cov_type": None,
+            "method": "newton",
+            "maxiter": 1,
+            "full_output": False,
+            "optim_score": "harvey",
+            "optim_complex_step": True,
+            "optim_hessian": "opg",
+        },
+        "invalid_m1": {
+            "start_params": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            "cov_type": "None",
+            "method": "lbfgs",
+            "maxiter": 50,
+            "full_output": False,
+            "optim_score": None,
+            "optim_complex_step": False,
+            "optim_hessian": None,
+        },
+        "invalid_m2": {
+            "cov_type": None,
+            "method": "invalid",
+            "maxiter": 50,
+            "full_output": False,
+            "optim_score": None,
+            "optim_complex_step": False,
+            "optim_hessian": None,
+        },
+        "steps_1": STEPS_1,
+        "steps_2": STEPS_2,
+        "no_incl_hist": False,
+        "incl_hist": True,
+        "truth_p1_m1_15": AIR_FCST_15_SARIMA_PARAM_1_MODEL_1,
+        "truth_p2_m1_15": AIR_FCST_15_SARIMA_PARAM_2_MODEL_1,
+        "truth_p1_m2_15": AIR_FCST_15_SARIMA_PARAM_1_MODEL_2,
+        "truth_p2_m2_15": AIR_FCST_15_SARIMA_PARAM_2_MODEL_2,
+        "truth_p1_m1_30": AIR_FCST_30_SARIMA_PARAM_1_MODEL_1,
+        "truth_p2_m1_30": AIR_FCST_30_SARIMA_PARAM_2_MODEL_1,
+        "truth_p1_m2_30": AIR_FCST_30_SARIMA_PARAM_1_MODEL_2,
+        "truth_p2_m2_30": AIR_FCST_30_SARIMA_PARAM_2_MODEL_2,
+        "truth_p1_m1_15_incl_hist": AIR_FCST_15_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
+        "truth_p1_m1_30_incl_hist": AIR_FCST_30_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
+    },
+}
+
+
+class SARIMAModelTest(TestCase):
+    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
+    @parameterized.expand(
+        [
+            [
+                "monthly_p1_m1",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["p1"],
+                TEST_DATA["monthly"]["m1"],
+                TEST_DATA["monthly"]["steps_1"],
+                TEST_DATA["monthly"]["steps_2"],
+                TEST_DATA["monthly"]["truth_p1_m1_15"],
+                TEST_DATA["monthly"]["truth_p1_m1_30"],
+                TEST_DATA["monthly"]["no_incl_hist"],
+                TEST_DATA["monthly"]["freq"],
+            ],
+            # TODO: Figure out why results aren't deterministic: T103684646
+            # [
+            #     "monthly_p2_m1",
+            #     TEST_DATA["monthly"]["ts"],
+            #     TEST_DATA["monthly"]["p2"],
+            #     TEST_DATA["monthly"]["m1"],
+            #     TEST_DATA["monthly"]["steps_1"],
+            #     TEST_DATA["monthly"]["steps_2"],
+            #     TEST_DATA["monthly"]["truth_p2_m1_15"],
+            #     TEST_DATA["monthly"]["truth_p2_m1_30"],
+            #     TEST_DATA["monthly"]["no_incl_hist"],
+            #     TEST_DATA["monthly"]["freq"],
+            # ],
+            [
+                "monthly_p1_m2",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["p1"],
+                TEST_DATA["monthly"]["m2"],
+                TEST_DATA["monthly"]["steps_1"],
+                TEST_DATA["monthly"]["steps_2"],
+                TEST_DATA["monthly"]["truth_p1_m2_15"],
+                TEST_DATA["monthly"]["truth_p1_m2_30"],
+                TEST_DATA["monthly"]["no_incl_hist"],
+                TEST_DATA["monthly"]["freq"],
+            ],
+            [
+                "monthly_p2_m2",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["p2"],
+                TEST_DATA["monthly"]["m2"],
+                TEST_DATA["monthly"]["steps_1"],
+                TEST_DATA["monthly"]["steps_2"],
+                TEST_DATA["monthly"]["truth_p2_m2_15"],
+                TEST_DATA["monthly"]["truth_p2_m2_30"],
+                TEST_DATA["monthly"]["no_incl_hist"],
+                TEST_DATA["monthly"]["freq"],
+            ],
+            [
+                "monthly_p1_m1_incl_hist",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["p1"],
+                TEST_DATA["monthly"]["m1"],
+                TEST_DATA["monthly"]["steps_1"],
+                TEST_DATA["monthly"]["steps_2"],
+                TEST_DATA["monthly"]["truth_p1_m1_15_incl_hist"],
+                TEST_DATA["monthly"]["truth_p1_m1_30_incl_hist"],
+                TEST_DATA["monthly"]["incl_hist"],
+                TEST_DATA["monthly"]["freq"],
+            ],
+        ]
+    )
+    def test_fcst(
+        self,
+        name: str,
+        ts: TimeSeriesData,
+        params: SARIMAParams,
+        model_params: Dict[str, Optional[Union[str, int, bool]]],
+        steps_1: int,
+        steps_2: int,
+        truth_1: pd.DataFrame,
+        truth_2: pd.DataFrame,
+        include_history: bool = False,
+        freq: str = "MS",
+    ) -> None:
+        m = SARIMAModel(data=ts, params=params)
+        # pyre-fixme[6]: Incompatible parameter type...
+        m.fit(**model_params)
+        res_1 = m.predict(
+            steps=steps_1, include_history=include_history, freq=freq
+        ).reset_index(
+            drop=True,
         )
-        params.validate_params()
-        m = SARIMAModel(self.TSData, params)
-        m.fit(
-            start_params=None,
-            # pyre-fixme[6]: Expected `bool` for 2nd param but got `None`.
-            transformed=None,
-            # pyre-fixme[6]: Expected `bool` for 3rd param but got `None`.
-            includes_fixed=None,
-            cov_type=None,
-            cov_kwds=None,
-            method="lbfgs",
-            maxiter=50,
-            # pyre-fixme[6]: Expected `bool` for 8th param but got `int`.
-            full_output=1,
-            disp=False,
-            callback=None,
-            return_params=False,
-            optim_score=None,
-            # pyre-fixme[6]: Expected `bool` for 13th param but got `None`.
-            optim_complex_step=None,
-            optim_hessian=None,
-            low_memory=False,
+        res_2 = m.predict(
+            steps=steps_2, include_history=include_history, freq=freq
+        ).reset_index(
+            drop=True,
         )
-        m.predict(steps=30, freq="MS")
-        m.plot()
+        assert_frame_equal(
+            res_1,
+            truth_1,
+            check_exact=False,
+            # pyre-fixme[6]: Expected `bool` for 4th parameter...
+            check_less_precise=2,
+        )
+        assert_frame_equal(
+            res_2,
+            truth_2,
+            check_exact=False,
+            # pyre-fixme[6]: Expected `bool` for 4th parameter...
+            check_less_precise=2,
+        )
 
-        m_daily = SARIMAModel(self.TSData_daily, params)
-        m_daily.fit()
-        m_daily.predict(steps=30, freq="D")
-        m.plot()
-
-    def test_exog_forecast(self) -> None:
-        # Prepping data
-        steps = 10
-
-        DATA_multi = self.TSData_multi.to_dataframe()
-        endog = DATA_multi["0"][:-steps]
-        time = self.TSData_multi.time_to_index()[:-steps]
-
-        exog = DATA_multi["1"][:-steps].values
-        fcst_exog = DATA_multi["1"][-steps:].values  # exog to be used for predictions
-
-        ts_data = TimeSeriesData(value=endog, time=time)
-
+    def test_exog(self) -> None:
+        # Prep data
+        steps = STEPS_1
+        df = MULTI_DF
+        ts_original = TimeSeriesData(df)
+        endog = df["0"][:-steps]
+        time = ts_original.time_to_index()[:-steps]
+        exog = df["1"][:-steps].values
+        fcst_exog = df["1"][-steps:].values  # exog to be used for predictions
+        ts = TimeSeriesData(value=endog, time=time)
         params = SARIMAParams(
             p=2,
             d=1,
@@ -89,50 +241,84 @@ class SARIMAModelTest(TestCase):
             exog=exog,
         )
 
-        params.validate_params()
-        m = SARIMAModel(ts_data, params)
-        m.fit(
-            start_params=None,
-            # pyre-fixme[6]: Expected `bool` for 2nd param but got `None`.
-            transformed=None,
-            # pyre-fixme[6]: Expected `bool` for 3rd param but got `None`.
-            includes_fixed=None,
-            cov_type=None,
-            cov_kwds=None,
-            method="lbfgs",
-            maxiter=50,
-            # pyre-fixme[6]: Expected `bool` for 8th param but got `int`.
-            full_output=1,
-            disp=False,
-            callback=None,
-            return_params=False,
-            optim_score=None,
-            # pyre-fixme[6]: Expected `bool` for 13th param but got `None`.
-            optim_complex_step=None,
-            optim_hessian=None,
-            low_memory=False,
+        # Fit/Predict
+        m = SARIMAModel(ts, params)
+        m.fit(**TEST_DATA["monthly"]["m1"])
+        res = m.predict(steps=steps, exog=fcst_exog, freq="D").reset_index(
+            drop=True,
         )
-        m.predict(steps=steps, exog=fcst_exog, freq="D")
+
+        # Compare against truth
+        assert_frame_equal(
+            res,
+            EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1,
+            check_exact=False,
+            # pyre-fixme[6]: Expected `bool` for 4th parameter...
+            check_less_precise=2,
+        )
+
+        # Should raise a ValueError if exogenous variables aren't used to predict
+        self.assertRaises(ValueError, m.predict, steps, "D")
+
+    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
+    @parameterized.expand(
+        [
+            [
+                "invalid_p",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["invalid_p"],
+                TEST_DATA["monthly"]["m1"],
+            ],
+            [
+                "invalid_m1",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["p1"],
+                TEST_DATA["monthly"]["invalid_m1"],
+            ],
+            [
+                "invalid_m2",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["p1"],
+                TEST_DATA["monthly"]["invalid_m2"],
+            ],
+            [
+                "invalid_ts",
+                TEST_DATA["monthly"]["invalid_ts"],
+                TEST_DATA["monthly"]["p1"],
+                TEST_DATA["monthly"]["m1"],
+            ],
+        ]
+    )
+    def test_invalid_params(
+        self,
+        name: str,
+        ts: TimeSeriesData,
+        params: SARIMAParams,
+        model_params: Dict[str, Optional[Union[str, int, bool]]],
+    ) -> None:
+        with self.assertRaises((ValueError, np.linalg.LinAlgError)):
+            m = SARIMAModel(data=ts, params=params)
+            # pyre-fixme[6]: Incompatible parameter type...
+            m.fit(**model_params)
+
+    def test_exec_plot(self) -> None:
+        m = SARIMAModel(
+            data=TEST_DATA["monthly"]["ts"], params=TEST_DATA["monthly"]["p1"]
+        )
+        m.fit(**TEST_DATA["monthly"]["m1"])
+        _ = m.predict(steps=STEPS_1)
         m.plot()
 
-        # should raise a value error if exogenous variables aren't used to predict
-        with self.assertRaises(ValueError):
-            m.predict(steps=steps, freq="D")
-
-    def test_others(self) -> None:
-        params = SARIMAParams(
-            p=2,
-            d=1,
-            q=1,
-            trend="ct",
-            seasonal_order=(1, 0, 1, 12),
-            enforce_invertibility=False,
-            enforce_stationarity=False,
+    def test_name(self) -> None:
+        m = SARIMAModel(
+            data=TEST_DATA["monthly"]["ts"], params=TEST_DATA["monthly"]["p1"]
         )
-        params.validate_params()
-        m = SARIMAModel(self.TSData, params)
+        self.assertEqual(m.__str__(), "SARIMA")
 
-        # test search space
+    def test_search_space(self) -> None:
+        m = SARIMAModel(
+            data=TEST_DATA["monthly"]["ts"], params=TEST_DATA["monthly"]["p1"]
+        )
         self.assertEqual(
             m.get_parameter_search_space(),
             [
@@ -182,16 +368,10 @@ class SARIMAModelTest(TestCase):
             ],
         )
 
-        # test __str__ method
-        self.assertEqual(m.__str__(), "SARIMA")
-
-        # test input error
-        self.assertRaises(
-            ValueError,
-            SARIMAModel,
-            self.TSData_multi,
-            params,
-        )
+    # Filler test
+    def test_validate_params(self) -> None:
+        params = TEST_DATA["monthly"]["p1"]
+        params.validate_params()
 
 
 if __name__ == "__main__":
