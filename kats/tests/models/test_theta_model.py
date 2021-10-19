@@ -5,14 +5,23 @@
 import unittest
 from typing import Optional
 from unittest import TestCase
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.models.theta import ThetaModel, ThetaParams
-from pandas.util.testing import assert_series_equal
+from kats.tests.models.test_models_dummy_data import (
+    NONSEASONAL_INPUT,
+    AIR_FCST_15_THETA,
+    AIR_FCST_15_THETA_INCL_HIST,
+    PEYTON_FCST_30_THETA,
+    PEYTON_FCST_30_THETA_INCL_HIST,
+)
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 from parameterized import parameterized
+
 
 np.random.seed(0)
 
@@ -40,14 +49,7 @@ TEST_DATA = {
         "params": ThetaParams(m=2),
     },
     "nonseasonal": {
-        "ts": TimeSeriesData(
-            pd.DataFrame(
-                {
-                    "time": pd.date_range("1960-12-01", "1963-01-01", freq="m"),
-                    "y": np.random.randn(25),
-                }
-            )
-        ),
+        "ts": TimeSeriesData(NONSEASONAL_INPUT),
         "params": ThetaParams(m=4),
     },
     "daily": {
@@ -88,7 +90,7 @@ class ThetaModelTest(TestCase):
                 0.05,
                 False,
                 None,
-                None,
+                AIR_FCST_15_THETA,
             ],
             [
                 "monthly, include history",
@@ -98,7 +100,7 @@ class ThetaModelTest(TestCase):
                 0.05,
                 True,
                 None,
-                None,
+                AIR_FCST_15_THETA_INCL_HIST,
             ],
             [
                 "daily",
@@ -108,7 +110,7 @@ class ThetaModelTest(TestCase):
                 0.05,
                 False,
                 None,
-                None,
+                PEYTON_FCST_30_THETA,
             ],
             [
                 "daily, include history",
@@ -118,7 +120,7 @@ class ThetaModelTest(TestCase):
                 0.05,
                 True,
                 None,
-                None,
+                PEYTON_FCST_30_THETA_INCL_HIST,
             ],
         ]
     )
@@ -131,12 +133,14 @@ class ThetaModelTest(TestCase):
         alpha: float,
         include_history: bool,
         freq: Optional[str],
-        truth: TimeSeriesData,
+        truth: pd.DataFrame,
     ) -> None:
         m = ThetaModel(data=ts, params=params)
         m.fit()
-        m.predict(steps=steps, alpha=alpha, include_history=include_history, freq=freq)
-        # TODO: validate results
+        forecast_df = m.predict(
+            steps=steps, alpha=alpha, include_history=include_history, freq=freq
+        )
+        assert_frame_equal(forecast_df, truth, check_exact=False)
 
     # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
@@ -251,6 +255,28 @@ class ThetaModelTest(TestCase):
                 },
             ],
         )
+
+    def test_others(self) -> None:
+        m = ThetaModel(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"])
+        # fit must be called before predict
+        self.assertRaises(ValueError, m.predict, 30)
+
+        # seasonal data must be deseasonalized before fit
+        with patch.object(
+            m, "deseasonalize", (lambda self: self.data).__get__(m)
+        ), patch.object(m, "check_seasonality"):
+            m.n = None
+            m.seasonal = True
+            m.decomp = None
+            self.assertRaises(ValueError, m.fit)
+
+        with patch(
+            "kats.utils.decomposition.TimeSeriesDecomposition.decomposer",
+            return_value={"seasonal": TEST_DATA["daily"]["ts"] * 0},
+        ):
+            # Don't deseasonalize if any seasonal index = 0
+            deseas_data = m.deseasonalize()
+            assert_series_equal(deseas_data.value, TEST_DATA["daily"]["ts"].value)
 
 
 if __name__ == "__main__":
