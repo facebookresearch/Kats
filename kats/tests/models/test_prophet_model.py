@@ -2,9 +2,12 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import builtins
+import sys
 import unittest
 from typing import Optional
 from unittest import TestCase
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -23,6 +26,9 @@ TEST_DATA = {
                     "y": np.random.randn(25),
                 }
             )
+        ),
+        "future_df": pd.DataFrame(
+            {"ds": pd.date_range("1963-01-01", "1964-01-01", freq="m")}
         ),
         "params": ProphetParams(),
     },
@@ -65,12 +71,79 @@ TEST_DATA = {
 
 
 class ProphetModelTest(TestCase):
-    def test_params(self) -> None:
-        # Test default value
-        params = ProphetParams()
-        params.validate_params()
+    @classmethod
+    def setUpClass(cls):
+        original_import_fn = builtins.__import__
 
-        # Test invalid params
+        def mock_prophet_import(module, *args, **kwargs):
+            if module == "fbprophet":
+                raise ImportError
+            else:
+                return original_import_fn(module, *args, **kwargs)
+
+        cls.mock_imports = patch("builtins.__import__", side_effect=mock_prophet_import)
+
+    def test_fbprophet_not_installed(self) -> None:
+        # Unload prophet module so its imports can be mocked as necessary
+        del sys.modules["kats.models.prophet"]
+
+        with self.mock_imports:
+            from kats.models.prophet import ProphetModel, ProphetParams
+
+            self.assertRaises(RuntimeError, ProphetParams)
+            self.assertRaises(
+                RuntimeError,
+                ProphetModel,
+                TEST_DATA["daily"]["ts"],
+                TEST_DATA["daily"]["params"],
+            )
+
+        # Restore the prophet module
+        del sys.modules["kats.models.prophet"]
+        from kats.models.prophet import ProphetModel, ProphetParams
+
+        # Confirm that the module has been properly reloaded -- should not
+        # raise an exception anymore
+        ProphetModel(TEST_DATA["daily"]["ts"], ProphetParams())
+
+    def test_default_parameters(self) -> None:
+        """
+        Check that the default parameters are as expected. The expected values
+        are hard coded.
+        """
+        expected_defaults = ProphetParams(
+            growth="linear",
+            changepoints=None,
+            n_changepoints=25,
+            changepoint_range=0.8,
+            yearly_seasonality="auto",
+            weekly_seasonality="auto",
+            daily_seasonality="auto",
+            holidays=None,
+            seasonality_mode="additive",
+            seasonality_prior_scale=10.0,
+            holidays_prior_scale=10.0,
+            changepoint_prior_scale=0.05,
+            mcmc_samples=0,
+            interval_width=0.80,
+            uncertainty_samples=1000,
+            cap=None,
+            floor=None,
+            custom_seasonalities=None,
+        )
+
+        actual_defaults = vars(ProphetParams())
+
+        # Expected params should be valid
+        expected_defaults.validate_params()
+
+        for param, exp_val in vars(expected_defaults).items():
+            msg = "param: {param}, expected default: {exp_val}, actual default: {val}".format(
+                param=param, exp_val=exp_val, val=actual_defaults[param]
+            )
+            self.assertEqual(actual_defaults[param], exp_val, msg)
+
+    def test_invalid_params(self) -> None:
         params = ProphetParams(growth="logistic")
         self.assertRaises(ValueError, params.validate_params)
 
@@ -183,6 +256,17 @@ class ProphetModelTest(TestCase):
                 "D",
                 None,
                 None,
+                None,
+            ],
+            [
+                "optional predict params",
+                TEST_DATA["nonseasonal"]["ts"],
+                TEST_DATA["nonseasonal"]["params"],
+                30,
+                False,
+                None,
+                TEST_DATA["nonseasonal"]["future_df"],
+                True,
                 None,
             ],
         ]
