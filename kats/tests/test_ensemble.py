@@ -214,55 +214,75 @@ class testMedianEnsemble(TestCase):
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
-    def test_fit_forecast(self) -> None:
-        params = EnsembleParams(
-            [
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got
-                #  `HoltWintersParams`.
-                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-                BaseModelParams(
-                    "sarima",
+        self.TSData_dummy = TSData_dummy
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
+    )
+    def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
+        ts_data = getattr(self, ts_data_name)
+        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
+            ["time", "fcst"]
+        ]
+        with mock.patch("kats.models.ensemble.ensemble.Pool") as mock_pooled:
+            mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
+            mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
+
+            params = EnsembleParams(
+                [
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got `ARIMAParams`.
+                    BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
                     # pyre-fixme[6]: Expected `Model` for 2nd param but got
-                    #  `SARIMAParams`.
-                    sarima.SARIMAParams(
-                        p=2,
-                        d=1,
-                        q=1,
-                        trend="ct",
-                        seasonal_order=(1, 0, 1, 12),
-                        enforce_invertibility=False,
-                        enforce_stationarity=False,
+                    #  `HoltWintersParams`.
+                    BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
+                    BaseModelParams(
+                        "sarima",
+                        # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                        #  `SARIMAParams`.
+                        sarima.SARIMAParams(
+                            p=2,
+                            d=1,
+                            q=1,
+                            trend="ct",
+                            seasonal_order=(1, 0, 1, 12),
+                            enforce_invertibility=False,
+                            enforce_stationarity=False,
+                        ),
                     ),
-                ),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got `ProphetParams`.
-                BaseModelParams("prophet", prophet.ProphetParams()),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got
-                #  `LinearModelParams`.
-                BaseModelParams("linear", linear_model.LinearModelParams()),
-                # pyre-fixme[6]: Expected `Model` for 2nd param but got
-                #  `QuadraticModelParams`.
-                BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
-            ]
-        )
-        m = MedianEnsembleModel(data=self.TSData, params=params)
-        m.fit()
-        m.predict(steps=30, freq="MS")
-        m.plot()
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got `ProphetParams`.
+                    BaseModelParams("prophet", prophet.ProphetParams()),
+                    # pyre-fixme[6]: Expected `Model` for 2nd param but got
+                    #  `LinearModelParams`.
+                    BaseModelParams("linear", linear_model.LinearModelParams()),
+                    BaseModelParams(
+                        "quadratic",
+                        # pyre-fixme[6]: Expected `kats.models.model.Model[typing.Any]` for 2nd positional
+                        # only parameter to call `BaseModelParams.__init__` but got
+                        # `quadratic_model.QuadraticModelParams`
+                        quadratic_model.QuadraticModelParams(),
+                    ),
+                ]
+            )
+            m = MedianEnsembleModel(data=ts_data, params=params)
+            # fit the ensemble model
+            m.fit()
 
-        m_daily = MedianEnsembleModel(data=self.TSData_daily, params=params)
-        m_daily.fit()
-        m_daily.predict(steps=30, freq="D")
-        m_daily.plot()
+            mock_pooled.assert_called()
+            mock_fit_model.assert_called()
 
-        m_dummy = MedianEnsembleModel(data=TSData_dummy, params=params)
-        m_dummy.fit()
-        m_dummy.predict(steps=30, freq="D")
-        m_dummy.plot()
+            # no predictions should be made yet
+            mock_fit_model.return_value.predict.assert_not_called()
 
-        # test __str__ method
-        self.assertEqual(m_daily.__str__(), "Median Ensemble")
+            # now run predict on the ensemble model
+            m.predict(steps=steps, freq=freq)
+            mock_fit_model.return_value.predict.assert_called_with(
+                steps, freq=f"{freq}"
+            )
+            m.plot()
+
+            # test __str__ method
+            self.assertEqual(m.__str__(), "Median Ensemble")
 
     def test_others(self) -> None:
         # validate params in EnsembleParams
