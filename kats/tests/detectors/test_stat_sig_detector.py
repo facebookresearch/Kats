@@ -4,6 +4,7 @@
 
 import random
 import re
+import unittest.mock as mock
 from datetime import datetime, timedelta
 from unittest import TestCase
 
@@ -20,30 +21,33 @@ statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
 
+_SERIALIZED = b'{"n_control": 20, "n_test": 7, "time_unit": "s"}'
+
 
 class TestStatSigDetector(TestCase):
-    def test_detector(self) -> None:
-        np.random.seed(100)
-
+    def setUp(self) -> None:
         date_start_str = "2020-03-01"
         date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
         previous_seq = [date_start + timedelta(days=x) for x in range(60)]
         values = np.random.randn(len(previous_seq))
-        ts_init = TimeSeriesData(
+        self.ts_init = TimeSeriesData(
             pd.DataFrame({"time": previous_seq[0:30], "value": values[0:30]})
         )
 
-        ts_later = TimeSeriesData(
+        self.ts_later = TimeSeriesData(
             pd.DataFrame({"time": previous_seq[30:35], "value": values[30:35]})
         )
+        self.ss_detect = StatSigDetectorModel(n_control=20, n_test=7)
 
-        ss_detect = StatSigDetectorModel(n_control=20, n_test=7)
-
-        pred_later = ss_detect.fit_predict(historical_data=ts_init, data=ts_later)
-        ss_detect.visualize()
+    def test_detector(self) -> None:
+        np.random.seed(100)
+        pred_later = self.ss_detect.fit_predict(
+            historical_data=self.ts_init, data=self.ts_later
+        )
+        self.ss_detect.visualize()
 
         # prediction returns scores of same length
-        self.assertEqual(len(pred_later.scores), len(ts_later))
+        self.assertEqual(len(pred_later.scores), len(self.ts_later))
 
     def test_pmm_use_case(self) -> None:
         random.seed(100)
@@ -107,7 +111,6 @@ class TestStatSigDetector(TestCase):
         n_test = 8
         num_control = 8
         num_test = 12
-        import random
 
         control_time = pd.date_range(start="2018-01-01", freq="D", periods=num_control)
 
@@ -158,18 +161,66 @@ class TestStatSigDetector(TestCase):
             )
         )
 
-        ss_detect = StatSigDetectorModel(n_control=20, n_test=7)
-        self.assertEqual(ss_detect.n_test, 7)
+        self.assertEqual(self.ss_detect.n_test, 7)
         with self.assertRaises(ValueError):
-            ss_detect.fit_predict(historical_data=ts_init, data=ts_later)
+            self.ss_detect.fit_predict(historical_data=ts_init, data=ts_later)
+
+    def test_load_from_serialized(self) -> None:
+        detector = StatSigDetectorModel(serialized_model=_SERIALIZED)
+        self.assertEqual(detector.n_control, 20)
+        self.assertEqual(detector.n_test, 7)
+        self.assertEqual(detector.time_unit, "s")
+
+    def test_serialize(self) -> None:
+        detector = StatSigDetectorModel(n_control=20, n_test=7, time_unit="s")
+        self.assertEqual(_SERIALIZED, detector.serialize())
+
+    def test_missing_values(self) -> None:
+        with self.assertRaises(ValueError):
+            _ = StatSigDetectorModel()
+
+    def test_visualize_unpredicted(self) -> None:
+        detector = StatSigDetectorModel(n_control=20, n_test=7)
+        with self.assertRaises(ValueError):
+            detector.visualize()
+
+    def test_missing_time_unit(self) -> None:
+        detector = StatSigDetectorModel(n_control=20, n_test=7)
+        with mock.patch.object(detector, "_set_time_unit"):
+            with self.assertRaises(ValueError):
+                detector.fit_predict(data=self.ts_later, historical_data=self.ts_init)
+
+    def test_no_update(self) -> None:
+        detector = StatSigDetectorModel(n_control=20, n_test=7)
+        with mock.patch.object(detector, "_should_update") as su:
+            su.return_value = False
+            result = detector.fit_predict(
+                data=self.ts_later, historical_data=self.ts_init
+            )
+            self.assertEqual(detector.response, result)
+
+    def test_fallback_on_historical_time_unit(self) -> None:
+        data = TimeSeriesData(
+            pd.DataFrame(
+                {
+                    "time": [
+                        datetime(2021, 1, 1),
+                        datetime(2021, 1, 2),
+                        datetime(2021, 2, 1),
+                    ],
+                    "values": [0, 1, 2],
+                }
+            )
+        )
+        detector = StatSigDetectorModel(n_control=20, n_test=7)
+        detector.fit_predict(data=data, historical_data=self.ts_init)
+        self.assertEqual("D", detector.time_unit)
 
 
 class TestMultiStatSigDetector(TestCase):
-    def test_multi_detector(self) -> None:
+    def setUp(self) -> None:
         np.random.seed(100)
-
-        date_start_str = "2020-03-01"
-        date_start = datetime.strptime(date_start_str, "%Y-%m-%d")
+        date_start = datetime.strptime("2020-03-01", "%Y-%m-%d")
         num_seq = 3
 
         previous_seq = [date_start + timedelta(days=x) for x in range(60)]
@@ -194,18 +245,31 @@ class TestMultiStatSigDetector(TestCase):
         )
 
         ss_detect = MultiStatSigDetectorModel(n_control=20, n_test=7)
-        self.assertEqual(ss_detect.n_test, 7)
-        pred_later = ss_detect.fit_predict(historical_data=ts_init, data=ts_later)
+        self.num_seq = num_seq
+        self.previous_seq = previous_seq
+        self.values = values
+        self.ts_init = ts_init
+        self.ts_later = ts_later
+        self.ss_detect = ss_detect
+
+    def test_multi_detector(self) -> None:
+        self.assertEqual(self.ss_detect.n_test, 7)
+
+    def test_multi_predict_fit(self) -> None:
+        pred_later = self.ss_detect.fit_predict(
+            historical_data=self.ts_init, data=self.ts_later
+        )
 
         # prediction returns scores of same length
-        self.assertEqual(len(pred_later.scores), len(ts_later))
+        self.assertEqual(len(pred_later.scores), len(self.ts_later))
 
+    def test_multi_after_rename(self) -> None:
         # rename the time series and make sure everthing still works as it did above
         ts_init_renamed = TimeSeriesData(
             pd.DataFrame(
                 {
-                    **{"time": previous_seq[0:30]},
-                    **{f"ts_{i}": values[i][0:30] for i in range(num_seq)},
+                    **{"time": self.previous_seq[0:30]},
+                    **{f"ts_{i}": self.values[i][0:30] for i in range(self.num_seq)},
                 }
             )
         )
@@ -213,19 +277,14 @@ class TestMultiStatSigDetector(TestCase):
         ts_later_renamed = TimeSeriesData(
             pd.DataFrame(
                 {
-                    **{"time": previous_seq[30:35]},
-                    **{f"ts_{i}": values[i][30:35] for i in range(num_seq)},
+                    **{"time": self.previous_seq[30:35]},
+                    **{f"ts_{i}": self.values[i][30:35] for i in range(self.num_seq)},
                 }
             )
         )
-
-        ss_detect = MultiStatSigDetectorModel(n_control=20, n_test=7)
-        self.assertEqual(ss_detect.n_test, 7)
-        pred_later = ss_detect.fit_predict(
+        pred_later = self.ss_detect.fit_predict(
             historical_data=ts_init_renamed, data=ts_later_renamed
         )
-
-        # prediction returns scores of same length
         self.assertEqual(len(pred_later.scores), len(ts_later_renamed))
 
     def test_no_historical_data(self) -> None:
@@ -268,7 +327,6 @@ class TestMultiStatSigDetector(TestCase):
         num_control = 8
         num_test = 12
         num_seq = 3
-        import random
 
         control_time = pd.date_range(start="2018-01-01", freq="D", periods=num_control)
 
@@ -347,3 +405,21 @@ class TestMultiStatSigDetector(TestCase):
         self.assertEqual(ss_detect.n_test, 7)
         with self.assertRaises(ValueError):
             ss_detect.fit_predict(historical_data=ts_init, data=ts_later)
+
+    def test_multi_no_update(self) -> None:
+        ss_detect = MultiStatSigDetectorModel(n_control=20, n_test=7)
+        with mock.patch.object(ss_detect, "_should_update") as su:
+            su.return_value = False
+            pred_later = ss_detect.fit_predict(
+                historical_data=self.ts_init, data=self.ts_later
+            )
+
+        # prediction returns scores of same length
+        self.assertEqual(len(pred_later.scores), ss_detect.last_N)
+
+    def test_multi_fit(self) -> None:
+        self.assertIsNone(self.ss_detect.fit(self.ts_init))
+
+    def test_multi_predict(self) -> None:
+        with self.assertRaises(ValueError):
+            self.ss_detect.predict(self.ts_later)

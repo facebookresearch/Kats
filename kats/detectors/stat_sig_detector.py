@@ -28,16 +28,6 @@ multivariate version that uses a false discovery rate (FDR) controlling procedur
 """
 
 
-def to_datetime(dt: np.datetime64) -> datetime:
-    """
-    Helper function to convert from np.datetime64 which
-    is used by pandas pd.to_datetime to datetime in datetime
-    library
-    """
-
-    return datetime.utcfromtimestamp(dt.tolist() / 1e9)
-
-
 class StatSigDetectorModel(DetectorModel):
     """
     StatSigDetectorModel is a simple detector, which compares a control and test period.
@@ -75,13 +65,14 @@ class StatSigDetectorModel(DetectorModel):
     >>> anom = ss_detect.fit_predict(data=data_ts, historical_data=hist_ts)
     """
 
+    data: Optional[TimeSeriesData] = None
+
     def __init__(
         self,
         n_control: Optional[int] = None,
         n_test: Optional[int] = None,
         serialized_model: Optional[bytes] = None,
-        # pyre-fixme[9]: time_unit has type `str`; used as `None`.
-        time_unit: str = None,
+        time_unit: Optional[str] = None,
     ) -> None:
 
         if serialized_model:
@@ -97,10 +88,8 @@ class StatSigDetectorModel(DetectorModel):
 
         if (self.n_control is None) or (self.n_test is None):
             raise ValueError(
-                """
-            You must either provide serialized model or values for control and test
-            intervals.
-            """
+                "You must either provide serialized model or values for control "
+                "and test intervals."
             )
 
         self.control_interval = None
@@ -144,10 +133,7 @@ class StatSigDetectorModel(DetectorModel):
             logging.error(msg)
             raise ValueError(msg)
 
-        # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
-        #  `Optional[TimeSeriesData]`.
         self._set_time_unit(data=data, historical_data=historical_data)
-
         self.last_N = len(data)
 
         # this ensures we start with a default response of
@@ -163,16 +149,13 @@ class StatSigDetectorModel(DetectorModel):
         # not enough historical data
         data, historical_data = self._handle_not_enough_history(
             data=data,
-            # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
-            #  `Optional[TimeSeriesData]`.
             historical_data=historical_data,
         )
-        # pyre-fixme[16]: `StatSigDetectorModel` has no attribute `data`.
         self.data = data
 
         # first initialize this with the historical data
         self._init_data(historical_data)
-        self._init_control_test(historical_data)
+        self._init_control_test(data if historical_data is None else historical_data)
         # set the flag to true
         self.is_initialized = True
 
@@ -191,14 +174,17 @@ class StatSigDetectorModel(DetectorModel):
 
         return self.response.get_last_n(self.last_N)
 
-    def visualize(self):
+    def visualize(self) -> None:
         """Function to visualize the result of the StatSigDetectorModel."""
+        data = self.data
+        if data is None:
+            raise ValueError("Call fit_predict() before visualize()")
         sns.set()
         plt.figure(figsize=(10, 8))
         ax1 = plt.subplot(211)
-        N_data = len(self.data)
+        N_data = len(data)
 
-        ax1.plot(self.data.time, self.data.value.values, "k-")
+        ax1.plot(data.time, data.value.values, "k-")
         ax1.plot(
             self.response.predicted_ts.time.iloc[-N_data:],
             self.response.predicted_ts.value.values[-N_data:],
@@ -222,16 +208,17 @@ class StatSigDetectorModel(DetectorModel):
             "r-",
         )
 
-    def _set_time_unit(self, data: TimeSeriesData, historical_data: TimeSeriesData):
+    def _set_time_unit(
+        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData]
+    ) -> None:
         """
         if the time unit is not set, this function tries to set it.
         """
-
-        # first try historical data
         if not self.time_unit:
-            self.time_unit = pd.infer_freq(data.time)
-        if not self.time_unit and historical_data:
-            pd.infer_freq(historical_data.time)
+            time_unit = pd.infer_freq(data.time)
+            if not time_unit and historical_data:
+                time_unit = pd.infer_freq(historical_data.time)
+            self.time_unit = time_unit
 
     def _should_update(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
@@ -250,31 +237,22 @@ class StatSigDetectorModel(DetectorModel):
 
         end_time = data.time.iloc[-1]
 
-        if end_time < (
+        return end_time >= (
             start_time
             + pd.Timedelta(
                 value=(self.n_control + self.n_test - 1), unit=self.time_unit
             )
-        ):
-            return False
-        else:
-            return True
+        )
 
     def _handle_not_enough_history(
-        self, data: TimeSeriesData, historical_data: TimeSeriesData
-    ) -> Tuple[TimeSeriesData, TimeSeriesData]:
+        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData]
+    ) -> Tuple[TimeSeriesData, Optional[TimeSeriesData]]:
         """
         Handles the case when we don't have enough historical data.
         If we don't need to update, this does not do anything.
         If we need to update, this divides up the data accordingly.
         """
-
-        if self.time_unit is None:
-            raise ValueError("time_unit variable cannot be None")
-
-        # if we are not upating, we should not do anything
-        if not self._should_update(data=data, historical_data=historical_data):
-            return data, historical_data
+        assert self.time_unit is not None
 
         num_hist_points = self.n_control + self.n_test - 1
 
@@ -322,7 +300,7 @@ class StatSigDetectorModel(DetectorModel):
 
         return
 
-    def _init_response(self, data: TimeSeriesData):
+    def _init_response(self, data: TimeSeriesData) -> None:
         """
         Initializes a default response.
         """
@@ -345,7 +323,7 @@ class StatSigDetectorModel(DetectorModel):
             stat_sig_ts=TimeSeriesData(time=data.time, value=pd.Series(zeros)),
         )
 
-    def _update_response(self, date: pd.Timestamp):
+    def _update_response(self, date: pd.Timestamp) -> None:
         """
         Updates the current response with data from date.
         """
@@ -364,7 +342,9 @@ class StatSigDetectorModel(DetectorModel):
             stat_sig=1.0 if perc_change.stat_sig else 0.0,
         )
 
-    def _get_start_end_dates(self, data: TimeSeriesData):
+    def _get_start_end_dates(
+        self, data: TimeSeriesData
+    ) -> Tuple[datetime, datetime, datetime, datetime]:
         """
         Gets the start and end dates of the initial interval.
         """
@@ -382,7 +362,7 @@ class StatSigDetectorModel(DetectorModel):
 
         return control_start_dt, control_end_dt, test_start_dt, test_end_dt
 
-    def _init_control_test(self, data: TimeSeriesData):
+    def _init_control_test(self, data: TimeSeriesData) -> None:
         """
         initializes the control and test intervals.
         """
@@ -399,7 +379,7 @@ class StatSigDetectorModel(DetectorModel):
         self.control_interval = ChangePointInterval(control_start_dt, control_end_dt)
         self.control_interval.data = self.data_history
 
-    def _update_control_test(self, data: TimeSeriesData):
+    def _update_control_test(self, data: TimeSeriesData) -> None:
         """
         Updates control and test with new data.
         """
@@ -412,14 +392,11 @@ class StatSigDetectorModel(DetectorModel):
         ) = self._get_start_end_dates(data)
 
         self.test_interval = ChangePointInterval(test_start_dt, test_end_dt)
-
         self.test_interval.data = self.data_history
-
         self.control_interval = ChangePointInterval(control_start_dt, control_end_dt)
-
         self.control_interval.data = self.data_history
 
-    def _init_data(self, data: TimeSeriesData):
+    def _init_data(self, data: Optional[TimeSeriesData]) -> None:
         self.data_history = data
 
     def _update_data(self, data: TimeSeriesData):
@@ -428,7 +405,7 @@ class StatSigDetectorModel(DetectorModel):
         """
 
         self.data_history = TimeSeriesData(
-            # pyre-fixme[6]: Expected `Union[None,
+            # pyre-ignore[6]: Expected `Union[None,
             #  pd.core.indexes.datetimes.DatetimeIndex, pd.core.series.Series]` for 1st
             #  param but got `DataFrame`.
             time=pd.concat([self.data_history.time, data.time]),
@@ -514,8 +491,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         n_control: Optional[int] = None,
         n_test: Optional[int] = None,
         serialized_model: Optional[bytes] = None,
-        # pyre-fixme[9]: time_unit has type `str`; used as `None`.
-        time_unit: str = None,
+        time_unit: Optional[str] = None,
         method: str = "fdr_bh",
     ) -> None:
 
@@ -543,10 +519,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             logging.error(msg)
             raise ValueError(msg)
 
-        # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
-        #  `Optional[TimeSeriesData]`.
         self._set_time_unit(data=data, historical_data=historical_data)
-
         self.last_N = len(data)
 
         # this ensures we start with a default response of
@@ -562,16 +535,13 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         # not enough historical data
         data, historical_data = self._handle_not_enough_history(
             data=data,
-            # pyre-fixme[6]: Expected `TimeSeriesData` for 2nd param but got
-            #  `Optional[TimeSeriesData]`.
             historical_data=historical_data,
         )
-        # pyre-fixme[16]: `MultiStatSigDetectorModel` has no attribute `data`.
         self.data = data
 
         # first initialize this with the historical data
         self._init_data(historical_data)
-        self._init_control_test(historical_data)
+        self._init_control_test(data if historical_data is None else historical_data)
         # set the flag to true
         self.is_initialized = True
 
@@ -593,7 +563,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
 
         return self.response.get_last_n(self.last_N)
 
-    def _init_response(self, data: TimeSeriesData):
+    def _init_response(self, data: TimeSeriesData) -> None:
 
         zeros_ts = TimeSeriesData(
             pd.DataFrame(
@@ -621,9 +591,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             stat_sig_ts=zeros_ts,
         )
 
-    # pyre-fixme[14]: `_update_response` overrides method defined in
-    #  `StatSigDetectorModel` inconsistently.
-    def _update_response(self, date: datetime):
+    def _update_response(self, date: pd.Timestamp) -> None:
         """
         updates the current response with data from date
         """
@@ -643,7 +611,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             stat_sig=perc_change.stat_sig,
         )
 
-    def _init_control_test(self, data: TimeSeriesData):
+    def _init_control_test(self, data: TimeSeriesData) -> None:
         """
         initializes the control and test intervals
         """
@@ -659,7 +627,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         self.control_interval = ChangePointInterval(control_start_dt, control_end_dt)
         self.control_interval.data = self.data_history
 
-    def _update_control_test(self, data: TimeSeriesData):
+    def _update_control_test(self, data: TimeSeriesData) -> None:
         """
         updates control and test with new data
         """
