@@ -296,7 +296,9 @@ class SARIMAModelTest(TestCase):
         params: SARIMAParams,
         model_params: Dict[str, Optional[Union[str, int, bool]]],
     ) -> None:
-        with self.assertRaises((ValueError, np.linalg.LinAlgError)):
+        with self.assertRaises(
+            (ValueError, np.linalg.LinAlgError, NotImplementedError)
+        ):
             m = SARIMAModel(data=ts, params=params)
             # pyre-fixme[6]: Incompatible parameter type...
             m.fit(**model_params)
