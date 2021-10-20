@@ -21,14 +21,16 @@ We use the implementation in statsmodels and re-write the API to adapt Kats deve
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import kats.models.model as m
+import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.utils.parameter_tuning_utils import get_default_var_parameter_search_space
 from matplotlib import pyplot as plt
 from statsmodels.tsa.api import VAR
+from statsmodels.tsa.vector_ar.var_model import VARResults
 
 
 class VARParams(Params):
@@ -76,6 +78,16 @@ class VARModel(m.Model):
         params: the parameter class defined with `VARParams`
     """
 
+    model: Optional[VARResults] = None
+    k_ar: Optional[int] = None
+    sigma_u: Optional[np.ndarray] = None
+    resid: Optional[np.ndarray] = None
+    include_history: bool = False
+    freq: Optional[str] = None
+    alpha: Optional[float] = None
+    dates: Optional[pd.DatetimeIndex] = None
+    fcst_dict: Optional[Dict[str, Dict[str, Any]]] = None
+
     def __init__(self, data: TimeSeriesData, params: VARParams) -> None:
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.DataFrame):
@@ -84,7 +96,6 @@ class VARModel(m.Model):
             )
             logging.error(msg)
             raise ValueError(msg)
-        self.include_history = False
 
     def fit(self, **kwargs) -> None:
         """Fit VAR model"""
@@ -98,8 +109,7 @@ class VARModel(m.Model):
         logging.info("Created VAR model.")
 
         # fit VAR model
-        # pyre-fixme[16]: `VARModel` has no attribute `model`.
-        self.model = var.fit(
+        self.model = model = var.fit(
             maxlags=self.params.maxlags,
             method=self.params.method,
             ic=self.params.ic,
@@ -108,12 +118,9 @@ class VARModel(m.Model):
         )
         logging.info("Fitted VAR model.")
 
-        # pyre-fixme[16]: `VARModel` has no attribute `k_ar`.
-        self.k_ar = self.model.k_ar
-        # pyre-fixme[16]: `VARModel` has no attribute `sigma_u`.
-        self.sigma_u = self.model.sigma_u
-        # pyre-fixme[16]: `VARModel` has no attribute `resid`.
-        self.resid = self.model.resid
+        self.k_ar = model.k_ar
+        self.sigma_u = model.sigma_u
+        self.resid = model.resid
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
@@ -123,7 +130,8 @@ class VARModel(m.Model):
 
         Args:
             steps: Number of time steps to forecast
-            include_history: optional, A boolearn to specify whether to include historical data. Default is False.
+            include_history: optional, A boolearn to specify whether to include
+                historical data. Default is False.
             freq: optional, frequency of timeseries data.
                 Defaults to automatically inferring from time index.
             alpha: optional, significance level of confidence interval.
@@ -133,68 +141,67 @@ class VARModel(m.Model):
             Disctionary of predicted results for each metric. Each metric result
             has following columns: `time`, `fcst`, `fcst_lower`, and `fcst_upper`
         """
+        model = self.model
+        if model is None:
+            raise ValueError("Call fit() before predict().")
 
         logging.debug(
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
         self.include_history = include_history
-        # pyre-fixme[16]: `VARModel` has no attribute `freq`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
-        # pyre-fixme[16]: `VARModel` has no attribute `alpha`.
-        self.alpha = kwargs.get("alpha", 0.05)
+        self.alpha = alpha = kwargs.get("alpha", 0.05)
 
-        # pyre-fixme[16]: `VARModel` has no attribute `model`.
-        fcst = self.model.forecast_interval(
-            y=self.model.y, steps=steps, alpha=self.alpha
-        )
+        fcst = model.forecast_interval(y=model.y, steps=steps, alpha=alpha)
         logging.info("Generated forecast data from VAR model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
         dates = dates[1:]  # Return correct number of periods
-        # pyre-fixme[16]: `VARModel` has no attribute `dates`.
         self.dates = dates
 
-        # pyre-fixme[16]: `VARModel` has no attribute `fcst_dict`.
-        self.fcst_dict = {}
+        self.fcst_dict = fcst_dict = {}
         ts_names = list(self.data.value.columns)
 
         for i, name in enumerate(ts_names):
             fcst_df = pd.DataFrame(
                 {
-                    "time": self.dates,
+                    "time": dates,
                     "fcst": fcst[0][:, i],
                     "fcst_lower": fcst[1][:, i],
                     "fcst_upper": fcst[2][:, i],
                 }
             )
-            self.fcst_dict[name] = fcst_df
+            fcst_dict[name] = fcst_df
 
         if self.include_history:
             try:
-                hist_fcst = self.model.fittedvalues.values
+                hist_fcst = model.fittedvalues.values
                 hist_dates = self.data.time.iloc[-len(hist_fcst) :]
                 for i, name in enumerate(ts_names):
                     print(pd.DataFrame({"time": hist_dates, "fcst": hist_fcst[:, i]}))
                     fcst_df = pd.concat(
                         [
                             pd.DataFrame({"time": hist_dates, "fcst": hist_fcst[:, i]}),
-                            self.fcst_dict[name],
+                            fcst_dict[name],
                         ]
                     )
-                    self.fcst_dict[name] = fcst_df
+                    fcst_dict[name] = fcst_df
 
             except Exception as e:
-                msg = f"Fail to generate in-sample forecasts for historical data with error message {e}."
+                msg = (
+                    "Failed to generate in-sample forecasts for historical data "
+                    f"with error message {e}."
+                )
                 logging.error(msg)
                 raise ValueError(msg)
 
         logging.debug(
             "Return forecast data: {fcst_dict}".format(fcst_dict=self.fcst_dict)
         )
-        ret = {k: TimeSeriesData(v) for k, v in self.fcst_dict.items()}
+        ret = {k: TimeSeriesData(v) for k, v in fcst_dict.items()}
         return ret
 
     # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
@@ -202,20 +209,27 @@ class VARModel(m.Model):
     #  defined in `m.Model`.
     def plot(self) -> None:
         """Plot forecasted results from VAR model"""
+        fcst_dict = self.fcst_dict
+        if fcst_dict is None:
+            raise ValueError("Call predict() before plot().")
+        dates = self.dates
+        assert dates is not None
         logging.info("Generating chart for forecast result from VAR model.")
 
         fig, axes = plt.subplots(ncols=2, dpi=120, figsize=(10, 6))
         for i, ax in enumerate(axes.flatten()):
-            # pyre-fixme[16]: `VARModel` has no attribute `fcst_dict`.
-            ts_name = list(self.fcst_dict.keys())[i]
-            data = self.fcst_dict[ts_name]
+            ts_name = list(fcst_dict.keys())[i]
+            data = fcst_dict[ts_name]
             ax.plot(pd.to_datetime(self.data.time), self.data.value[ts_name], "k")
-            # pyre-fixme[16]: `VARModel` has no attribute `dates`.
-            fcst_dates = self.dates.to_pydatetime()
-            ax.plot(fcst_dates, data.fcst, ls="-", c="#4267B2")
+            fcst_dates = dates.to_pydatetime()
+            ax.plot(fcst_dates, data["fcst"], ls="-", c="#4267B2")
 
             ax.fill_between(
-                fcst_dates, data.fcst_lower, data.fcst_upper, color="#4267B2", alpha=0.2
+                fcst_dates,
+                data["fcst_lower"],
+                data["fcst_upper"],
+                color="#4267B2",
+                alpha=0.2,
             )
 
             ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)

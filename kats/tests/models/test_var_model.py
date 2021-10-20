@@ -6,6 +6,7 @@ import unittest
 from unittest import TestCase
 from unittest.mock import patch
 
+import matplotlib.pyplot as plt
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
@@ -35,20 +36,38 @@ class testVARModel(TestCase):
     def test_predict_exception(self, mock_obj) -> None:
         mock_obj.side_effect = Exception
         with self.assertRaisesRegex(
-            Exception, "^Fail to generate in-sample forecasts for historical data"
+            Exception, "^Failed to generate in-sample forecasts for historical data"
         ):
             params = VARParams()
             m = VARModel(self.TSData_multi, params)
             m.fit()
             m.predict(steps=30, include_history=True)
 
+    def test_predict_unfit(self) -> None:
+        with self.assertRaises(ValueError):
+            m = VARModel(self.TSData_multi, VARParams())
+            m.predict(steps=30)
+
     def test_trivial_path(self) -> None:
         params = VARParams()
         params.validate_params()
         m = VARModel(self.TSData_multi, params)
-        print(m)
         with self.assertRaises(NotImplementedError):
             VARModel.get_parameter_search_space()
+
+    # @pytest.mark.image_compare
+    def test_plot(self) -> plt.Figure:
+        with self.assertRaises(ValueError):
+            m = VARModel(self.TSData_multi, VARParams())
+            m.fit()
+            m.predict(steps=30, include_history=True)
+            m.plot()
+            return plt.gcf()
+
+    def test_plot_unpredict(self) -> None:
+        with self.assertRaises(ValueError):
+            m = VARModel(self.TSData_multi, VARParams())
+            m.plot()
 
 
 if __name__ == "__main__":
