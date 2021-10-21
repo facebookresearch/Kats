@@ -37,7 +37,7 @@ BASE_MODELS = {
 }
 
 
-class BaseModelParams:
+class BaseModelParams(Params):
     """Ensemble parameter class
 
     This class contains three attributes:
@@ -47,7 +47,7 @@ class BaseModelParams:
         model_params: model_param is defined in base models
     """
 
-    def __init__(self, model_name: str, model_params: model.Model, **kwargs) -> None:
+    def __init__(self, model_name: str, model_params: Params, **kwargs) -> None:
         self.model_name = model_name
         self.model_params = model_params
         logging.debug(
@@ -63,7 +63,7 @@ class BaseModelParams:
         pass
 
 
-class EnsembleParams:
+class EnsembleParams(Params):
     __slots__ = ["models"]
 
     def __init__(self, models: List[BaseModelParams]) -> None:
