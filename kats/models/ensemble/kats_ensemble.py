@@ -281,6 +281,7 @@ class KatsEnsemble:
         data: TimeSeriesData,
         models: EnsembleParams,
         should_auto_backtest: bool = False,
+        err_method: str = "mape",
     ) -> Tuple[Dict[Any, Any], Optional[Dict[str, float]]]:
         """callable forecast executor
 
@@ -324,10 +325,10 @@ class KatsEnsemble:
         fitted = {model: res.get() for model, res in fitted_models.items()}
 
         # if auto back testing
-        weights = self.backTestExecutor() if should_auto_backtest else None
+        weights = self.backTestExecutor(err_method) if should_auto_backtest else None
         return fitted, weights
 
-    def fit(self) -> KatsEnsemble:
+    def fit(self, err_method: str = "mape") -> KatsEnsemble:
         """Fit individual forecasting models via calling fitExecutor
 
         This is the fit methdo to fit individual forecasting model
@@ -381,6 +382,7 @@ class KatsEnsemble:
                 data=self.data,
                 models=model_params,
                 should_auto_backtest=auto_backtesting,
+                err_method=err_method,
             )
         return self
 
@@ -711,7 +713,7 @@ class KatsEnsemble:
             fcsts["fcst_upper"] = fcsts["fcst_upper"].replace(0, np.nan)
         return fcsts
 
-    def backTestExecutor(self) -> Dict[str, float]:
+    def backTestExecutor(self, err_method) -> Dict[str, float]:
         """wrapper for back test executor
 
         services which use KatsEnsemble need to write their own backtest wrapper
@@ -723,7 +725,7 @@ class KatsEnsemble:
             The dict of backtesting results
         """
 
-        weights, _ = self._backtester_all()
+        weights, _ = self._backtester_all(err_method=err_method)
         return weights
 
     def _fit_single(
