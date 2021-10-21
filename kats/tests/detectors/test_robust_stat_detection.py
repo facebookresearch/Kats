@@ -4,6 +4,7 @@
 
 import math
 import re
+from operator import attrgetter
 from unittest import TestCase
 
 import numpy as np
@@ -11,6 +12,7 @@ import pandas as pd
 import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.robust_stat_detection import RobustStatDetector
+from parameterized import parameterized
 from sklearn.datasets import make_spd_matrix
 
 statsmodels_ver = float(
@@ -19,21 +21,14 @@ statsmodels_ver = float(
 
 
 class RobustStatTest(TestCase):
-    def test_no_change(self) -> None:
-        np.random.seed(10)
+    def setUp(self):
+        self.random_seed = 10
+        np.random.seed(self.random_seed)
+        self.dates = pd.Series(pd.date_range("2019-01-01", "2019-03-01"))
+
+        # Initialize the change_points
         df_noregress = pd.DataFrame({"no_change": [math.sin(i) for i in range(60)]})
 
-        df_noregress["time"] = pd.Series(pd.date_range("2019-01-01", "2019-03-01"))
-
-        timeseries = TimeSeriesData(df_noregress)
-        detector = RobustStatDetector(timeseries)
-        change_points = detector.detector()
-
-        self.assertEqual(len(change_points), 0)
-        detector.plot(change_points)
-
-    def test_increasing_detection(self) -> None:
-        np.random.seed(10)
         df_increase = pd.DataFrame(
             {
                 "increase": [
@@ -42,17 +37,6 @@ class RobustStatTest(TestCase):
             }
         )
 
-        df_increase["time"] = pd.Series(pd.date_range("2019-01-01", "2019-03-01"))
-
-        timeseries = TimeSeriesData(df_increase)
-        detector = RobustStatDetector(timeseries)
-        change_points = detector.detector()
-
-        self.assertEqual(len(change_points), 1)
-        detector.plot(change_points)
-
-    def test_decreasing_detection(self) -> None:
-        np.random.seed(10)
         df_decrease = pd.DataFrame(
             {
                 "decrease": [
@@ -61,33 +45,11 @@ class RobustStatTest(TestCase):
             }
         )
 
-        df_decrease["time"] = pd.Series(pd.date_range("2019-01-01", "2019-03-01"))
-
-        timeseries = TimeSeriesData(df_decrease)
-        detector = RobustStatDetector(timeseries)
-        change_points = detector.detector()
-
-        self.assertEqual(len(change_points), 1)
-        detector.plot(change_points)
-
-    def test_spike_change_pos(self) -> None:
-        np.random.seed(10)
-        df_slope_change = pd.DataFrame(
+        df_spike_pos = pd.DataFrame(
             {"spike": [math.sin(i) if i != 27 else 30 * math.sin(i) for i in range(60)]}
         )
 
-        df_slope_change["time"] = pd.Series(pd.date_range("2019-01-01", "2019-03-01"))
-
-        timeseries = TimeSeriesData(df_slope_change)
-        detector = RobustStatDetector(timeseries)
-        change_points = detector.detector()
-
-        self.assertEqual(len(change_points), 2)
-        detector.plot(change_points)
-
-    def test_spike_change_neg(self) -> None:
-        np.random.seed(10)
-        df_slope_change = pd.DataFrame(
+        df_spike_neg = pd.DataFrame(
             {
                 "spike": [
                     math.sin(i) if i != 27 else -30 * math.sin(i) for i in range(60)
@@ -95,21 +57,60 @@ class RobustStatTest(TestCase):
             }
         )
 
-        df_slope_change["time"] = pd.Series(pd.date_range("2019-01-01", "2019-03-01"))
+        def _create_change_pt(df):
+            df["time"] = self.dates
+            timeseries = TimeSeriesData(df)
+            detector = RobustStatDetector(timeseries)
+            change_points = detector.detector()
+            return detector, change_points
 
-        timeseries = TimeSeriesData(df_slope_change)
-        detector = RobustStatDetector(timeseries)
-        change_points = detector.detector()
+        self.d_noregress, self.change_points_noregress = _create_change_pt(df_noregress)
+        self.d_increase, self.change_points_increase = _create_change_pt(df_increase)
+        self.d_decrease, self.change_points_decrease = _create_change_pt(df_decrease)
+        self.d_spike_pos, self.change_points_spike_pos = _create_change_pt(df_spike_pos)
+        self.d_spike_neg, self.change_points_spike_neg = _create_change_pt(df_spike_neg)
 
-        self.assertEqual(len(change_points), 2)
+        # Time series without name
+        n = 10
+        time = pd.Series(pd.date_range(start="2018-01-01", periods=n, freq="D"))
+        value = pd.Series(np.arange(n))
+        ts = TimeSeriesData(time=time, value=value)
 
-    def test_rasie_error(self) -> None:
+        self.d_ts_without_name = RobustStatDetector(ts)
+        self.change_points_ts_without_name = self.d_ts_without_name.detector()
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["change_points_noregress", 0],
+            ["change_points_increase", 1],
+            ["change_points_decrease", 1],
+            ["change_points_spike_pos", 2],
+            ["change_points_spike_neg", 2],
+        ]
+    )
+    def test_length(self, change_points, ans) -> None:
+        self.assertEqual(len(attrgetter(change_points)(self)), ans)
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["d_noregress", "change_points_noregress"],
+            ["d_increase", "change_points_increase"],
+            ["d_decrease", "change_points_decrease"],
+            ["d_spike_pos", "change_points_spike_pos"],
+            ["d_spike_neg", "change_points_spike_neg"],
+            ["d_ts_without_name", "change_points_ts_without_name"],
+        ]
+    )
+    def test_plot(self, detector, change_points) -> None:
+        attrgetter(detector)(self).plot(attrgetter(change_points)(self))
+
+    def test_raise_error(self) -> None:
         D = 10
-        random_state = 10
-        np.random.seed(random_state)
         mean1 = np.ones(D)
         mean2 = mean1 * 2
-        sigma = make_spd_matrix(D, random_state=random_state)
+        sigma = make_spd_matrix(D, random_state=self.random_seed)
 
         df_increase = pd.DataFrame(
             np.concatenate(
@@ -120,18 +121,8 @@ class RobustStatTest(TestCase):
             )
         )
 
-        df_increase["time"] = pd.Series(pd.date_range("2019-01-01", "2019-04-01"))
+        df_increase["time"] = self.dates
 
         timeseries_multi = TimeSeriesData(df_increase)
         with self.assertRaises(ValueError):
             RobustStatDetector(timeseries_multi)
-
-    def test_ts_without_name(self) -> None:
-        n = 10
-        time = pd.Series(pd.date_range(start="2018-01-01", periods=n, freq="D"))
-        value = pd.Series(np.arange(n))
-        ts = TimeSeriesData(time=time, value=value)
-
-        detector = RobustStatDetector(ts)
-        change_points = detector.detector()
-        detector.plot(change_points)
