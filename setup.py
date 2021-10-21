@@ -17,11 +17,11 @@ with open("README.md", "r") as f:
 with open("requirements.txt", "r") as f:
     install_requires = f.read().splitlines()
 
-# optional dependencies skipped when MINIMAL=1
+# optional dependencies skipped when MINIMAL_KATS=1
 with open("test_requirements.txt", "r") as f:
     extra_requires = f.read().splitlines()
 
-if not os.environ.get("MINIMAL", False):
+if not os.environ.get("MINIMAL_KATS", False):
     install_requires += extra_requires
 
 
