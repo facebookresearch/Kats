@@ -3,6 +3,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import builtins
+import re
 import sys
 import unittest
 from typing import Optional
@@ -11,25 +12,42 @@ from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
+import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.tests.models.test_models_dummy_data import (
     NONSEASONAL_INPUT,
     NONSEASONAL_FUTURE_DF,
-    AIR_FCST_30_PROPHET,
-    AIR_FCST_30_PROPHET_CAP_AND_FLOOR,
-    PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR,
-    AIR_FCST_30_PROPHET_INCL_HIST,
-    PEYTON_FCST_15_PROPHET_INCL_HIST,
-    AIR_FCST_15_PROPHET_LOGISTIC_CAP,
-    PEYTON_FCST_30_PROPHET_DAILY_CAP,
-    AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY,
-    PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY,
-    NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE,
+    AIR_FCST_30_PROPHET_SM_11,
+    AIR_FCST_30_PROPHET_CAP_AND_FLOOR_SM_11,
+    PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR_SM_11,
+    AIR_FCST_30_PROPHET_INCL_HIST_SM_11,
+    PEYTON_FCST_15_PROPHET_INCL_HIST_SM_11,
+    AIR_FCST_15_PROPHET_LOGISTIC_CAP_SM_11,
+    PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_11,
+    AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11,
+    PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11,
+    NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_11,
+    AIR_FCST_30_PROPHET_SM_12,
+    AIR_FCST_30_PROPHET_CAP_AND_FLOOR_SM_12,
+    PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR_SM_12,
+    AIR_FCST_30_PROPHET_INCL_HIST_SM_12,
+    PEYTON_FCST_15_PROPHET_INCL_HIST_SM_12,
+    AIR_FCST_15_PROPHET_LOGISTIC_CAP_SM_12,
+    PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_12,
+    AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12,
+    PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12,
+    NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_12,
 )
 from pandas.util.testing import assert_frame_equal
 from parameterized import parameterized
+
+
+statsmodels_ver = float(
+    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
+)
+
 
 TEST_DATA = {
     "nonseasonal": {
@@ -78,8 +96,6 @@ TEST_DATA = {
 class ProphetModelTest(TestCase):
     @classmethod
     def setUpClass(cls):
-        np.random.seed(0)
-
         original_import_fn = builtins.__import__
 
         def mock_prophet_import(module, *args, **kwargs):
@@ -175,7 +191,11 @@ class ProphetModelTest(TestCase):
                 "MS",
                 None,
                 None,
-                AIR_FCST_30_PROPHET,
+                (
+                    AIR_FCST_30_PROPHET_SM_11
+                    if statsmodels_ver < 0.12
+                    else AIR_FCST_30_PROPHET_SM_12
+                ),
             ],
             [
                 "monthly, cap and floor",
@@ -186,7 +206,11 @@ class ProphetModelTest(TestCase):
                 "MS",
                 None,
                 None,
-                AIR_FCST_30_PROPHET_CAP_AND_FLOOR,
+                (
+                    AIR_FCST_30_PROPHET_CAP_AND_FLOOR_SM_11
+                    if statsmodels_ver < 0.12
+                    else AIR_FCST_30_PROPHET_CAP_AND_FLOOR_SM_12
+                ),
             ],
             [
                 "daily, cap and floor",
@@ -197,7 +221,11 @@ class ProphetModelTest(TestCase):
                 "D",
                 None,
                 None,
-                PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR,
+                (
+                    PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR_SM_11
+                    if statsmodels_ver < 0.12
+                    else PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR_SM_12
+                ),
             ],
             [
                 "monthly, historical",
@@ -208,7 +236,11 @@ class ProphetModelTest(TestCase):
                 "MS",
                 None,
                 None,
-                AIR_FCST_30_PROPHET_INCL_HIST,
+                (
+                    AIR_FCST_30_PROPHET_INCL_HIST_SM_11
+                    if statsmodels_ver < 0.12
+                    else AIR_FCST_30_PROPHET_INCL_HIST_SM_12
+                ),
             ],
             [
                 "daily, historical",
@@ -219,7 +251,11 @@ class ProphetModelTest(TestCase):
                 "D",
                 None,
                 None,
-                PEYTON_FCST_15_PROPHET_INCL_HIST,
+                (
+                    PEYTON_FCST_15_PROPHET_INCL_HIST_SM_11
+                    if statsmodels_ver < 0.12
+                    else PEYTON_FCST_15_PROPHET_INCL_HIST_SM_12
+                ),
             ],
             [
                 "monthly, logistic with cap",
@@ -230,7 +266,11 @@ class ProphetModelTest(TestCase):
                 "MS",
                 None,
                 None,
-                AIR_FCST_15_PROPHET_LOGISTIC_CAP,
+                (
+                    AIR_FCST_15_PROPHET_LOGISTIC_CAP_SM_11
+                    if statsmodels_ver < 0.12
+                    else AIR_FCST_15_PROPHET_LOGISTIC_CAP_SM_12
+                ),
             ],
             [
                 "daily, logistic with cap",
@@ -241,7 +281,11 @@ class ProphetModelTest(TestCase):
                 "D",
                 None,
                 None,
-                PEYTON_FCST_30_PROPHET_DAILY_CAP,
+                (
+                    PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_11
+                    if statsmodels_ver < 0.12
+                    else PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_12
+                ),
             ],
             [
                 "monthly, custom seasonality",
@@ -252,7 +296,11 @@ class ProphetModelTest(TestCase):
                 "MS",
                 None,
                 None,
-                AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY,
+                (
+                    AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11
+                    if statsmodels_ver < 0.12
+                    else AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12
+                ),
             ],
             [
                 "daily, custom seasonality",
@@ -263,7 +311,11 @@ class ProphetModelTest(TestCase):
                 "D",
                 None,
                 None,
-                PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY,
+                (
+                    PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11
+                    if statsmodels_ver < 0.12
+                    else PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12
+                ),
             ],
             [
                 "optional predict params",
@@ -274,7 +326,11 @@ class ProphetModelTest(TestCase):
                 None,
                 TEST_DATA["nonseasonal"]["future_df"],
                 True,
-                NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE,
+                (
+                    NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_11
+                    if statsmodels_ver < 0.12
+                    else NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_12
+                ),
             ],
         ]
     )
@@ -290,6 +346,7 @@ class ProphetModelTest(TestCase):
         raw: Optional[bool],
         truth: pd.DataFrame,
     ) -> None:
+        np.random.seed(0)
         kwargs = {}
         if freq is not None:
             kwargs["freq"] = freq

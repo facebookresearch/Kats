@@ -2,6 +2,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import re
 import unittest
 from typing import Optional
 from unittest import TestCase
@@ -9,21 +10,29 @@ from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
+import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.models.theta import ThetaModel, ThetaParams
 from kats.tests.models.test_models_dummy_data import (
     NONSEASONAL_INPUT,
-    AIR_FCST_15_THETA,
-    AIR_FCST_15_THETA_INCL_HIST,
-    PEYTON_FCST_30_THETA,
-    PEYTON_FCST_30_THETA_INCL_HIST,
+    AIR_FCST_15_THETA_SM_11,
+    AIR_FCST_15_THETA_INCL_HIST_SM_11,
+    PEYTON_FCST_30_THETA_SM_11,
+    PEYTON_FCST_30_THETA_INCL_HIST_SM_11,
+    AIR_FCST_15_THETA_SM_12,
+    AIR_FCST_15_THETA_INCL_HIST_SM_12,
+    PEYTON_FCST_30_THETA_SM_12,
+    PEYTON_FCST_30_THETA_INCL_HIST_SM_12,
 )
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from parameterized import parameterized
 
 
-np.random.seed(0)
+statsmodels_ver = float(
+    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
+)
+
 
 TEST_DATA = {
     "short": {
@@ -90,7 +99,11 @@ class ThetaModelTest(TestCase):
                 0.05,
                 False,
                 None,
-                AIR_FCST_15_THETA,
+                (
+                    AIR_FCST_15_THETA_SM_11
+                    if statsmodels_ver < 0.12
+                    else AIR_FCST_15_THETA_SM_12
+                ),
             ],
             [
                 "monthly, include history",
@@ -100,7 +113,11 @@ class ThetaModelTest(TestCase):
                 0.05,
                 True,
                 None,
-                AIR_FCST_15_THETA_INCL_HIST,
+                (
+                    AIR_FCST_15_THETA_INCL_HIST_SM_11
+                    if statsmodels_ver < 0.12
+                    else AIR_FCST_15_THETA_INCL_HIST_SM_12
+                ),
             ],
             [
                 "daily",
@@ -110,7 +127,11 @@ class ThetaModelTest(TestCase):
                 0.05,
                 False,
                 None,
-                PEYTON_FCST_30_THETA,
+                (
+                    PEYTON_FCST_30_THETA_SM_11
+                    if statsmodels_ver < 0.12
+                    else PEYTON_FCST_30_THETA_SM_12
+                ),
             ],
             [
                 "daily, include history",
@@ -120,7 +141,11 @@ class ThetaModelTest(TestCase):
                 0.05,
                 True,
                 None,
-                PEYTON_FCST_30_THETA_INCL_HIST,
+                (
+                    PEYTON_FCST_30_THETA_INCL_HIST_SM_11
+                    if statsmodels_ver < 0.12
+                    else PEYTON_FCST_30_THETA_INCL_HIST_SM_12
+                ),
             ],
         ]
     )
@@ -135,6 +160,7 @@ class ThetaModelTest(TestCase):
         freq: Optional[str],
         truth: pd.DataFrame,
     ) -> None:
+        np.random.seed(0)
         m = ThetaModel(data=ts, params=params)
         m.fit()
         forecast_df = m.predict(
