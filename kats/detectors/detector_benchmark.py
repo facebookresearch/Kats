@@ -4,21 +4,23 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Type
+from typing import Dict, List, Type, Tuple
 
 import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
 import pandas as pd
 from kats.consts import SearchMethodEnum
-from kats.detectors import changepoint_evaluator
+from kats.detectors.changepoint_evaluator import TuringEvaluator
 from kats.detectors.detector import DetectorModel
+
+SUPPORTED_METRICS = {"f_score", "precision", "recall", "delay"}
 
 
 def check_metric_is_supported(metric: str):
     """Check if the metric specified by the user is supported by our evaluator."""
-    if metric not in ["f_score", "precision", "recall", "delay"]:
+    if metric not in SUPPORTED_METRICS:
         raise Exception(
-            "Supported metrics for evaluating detector are: f_score, precision, recall, or delay"
+            f"Supported metrics for evaluating detector are: {SUPPORTED_METRICS}"
         )
 
 
@@ -31,20 +33,6 @@ def decompose_params(params: Dict):
     return params_model, threshold_low, threshold_high
 
 
-def evaluate_parameters_detector_model(params, detector, data):
-    turing_model = changepoint_evaluator.TuringEvaluator(
-        is_detector_model=True, detector=detector
-    )
-    params_model, threshold_low, threshold_high = decompose_params(params)
-    results = turing_model.evaluate(
-        data=data,
-        model_params=params_model,
-        threshold_low=threshold_low,
-        threshold_high=threshold_high,
-    )
-    return results, turing_model
-
-
 @dataclass
 class DetectorModelSet:
     def __init__(
@@ -54,15 +42,42 @@ class DetectorModelSet:
     ):
         self.model_name = model_name
         self.model = model
+        self.result = None
+        self.parameters = None
+
+    def update_benchmark_results(self, benchmark_results: Dict):
+        benchmark_results[self.model_name] = self.result
+
+    def evaluate(
+        self, data_df: pd.DataFrame
+    ) -> Tuple[Dict[str, pd.DataFrame], TuringEvaluator]:
+        self.result, turing_evaluator = self.evaluate_parameters_detector_model(
+            self.get_params(), self.model, data_df
+        )
+
+        return {self.model_name: self.result}, turing_evaluator
+
+    def evaluate_parameters_detector_model(
+        self, params, detector, data
+    ) -> Tuple[pd.DataFrame, TuringEvaluator]:
+        turing_model = TuringEvaluator(is_detector_model=True, detector=detector)
+        params_model, threshold_low, threshold_high = decompose_params(params)
+        results = turing_model.evaluate(
+            data=data,
+            model_params=params_model,
+            threshold_low=threshold_low,
+            threshold_high=threshold_high,
+        )
+        return results, turing_model
+
+    def get_params(self):
+        return self.parameters
 
 
 class PredefinedModel(DetectorModelSet):
     def __init__(self, model_name: str, model: Type[DetectorModel], parameters: Dict):
         super().__init__(model_name, model)
         self.parameters = parameters
-
-    def get_params(self):
-        return self.parameters
 
 
 class ModelOptimizer(DetectorModelSet):
@@ -102,7 +117,7 @@ class ModelOptimizer(DetectorModelSet):
 
     def _evaluation_method(self, params: Dict):
         try:
-            results, _ = evaluate_parameters_detector_model(
+            results, _ = self.evaluate_parameters_detector_model(
                 params, self.model, self.data_df
             )
             return np.mean(results[self.optimization_metric])
@@ -157,10 +172,8 @@ class ModelBenchmark:
     def evaluate(self):
         """Evaluate each model of models_dict on data and store output in self.results_tmp."""
         for model in self.models:
-            result, turing_evaluator = evaluate_parameters_detector_model(
-                model.get_params(), model.model, self.data_df
-            )
-            self.results_tmp[model.model_name] = result
+            result, turing_evaluator = model.evaluate(self.data_df)
+            self.results_tmp.update(result)
             self.evaluators_tmp[model.model_name] = turing_evaluator
 
     def compare_algos_on(self, metric: str):
