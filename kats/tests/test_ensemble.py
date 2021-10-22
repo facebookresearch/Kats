@@ -79,35 +79,35 @@ class testBaseEnsemble(TestCase):
     def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
+        params = EnsembleParams(
+            [
+                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
+                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
+                BaseModelParams(
+                    "sarima",
+                    sarima.SARIMAParams(
+                        p=2,
+                        d=1,
+                        q=1,
+                        trend="ct",
+                        seasonal_order=(1, 0, 1, 12),
+                        enforce_invertibility=False,
+                        enforce_stationarity=False,
+                    ),
+                ),
+                BaseModelParams("prophet", prophet.ProphetParams()),
+                BaseModelParams("linear", linear_model.LinearModelParams()),
+                BaseModelParams(
+                    "quadratic",
+                    quadratic_model.QuadraticModelParams(),
+                ),
+            ]
+        )
+        m = BaseEnsemble(ts_data, params)
+
         with mock.patch("kats.models.ensemble.ensemble.Pool") as mock_pooled:
             mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
             mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
-
-            params = EnsembleParams(
-                [
-                    BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                    BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-                    BaseModelParams(
-                        "sarima",
-                        sarima.SARIMAParams(
-                            p=2,
-                            d=1,
-                            q=1,
-                            trend="ct",
-                            seasonal_order=(1, 0, 1, 12),
-                            enforce_invertibility=False,
-                            enforce_stationarity=False,
-                        ),
-                    ),
-                    BaseModelParams("prophet", prophet.ProphetParams()),
-                    BaseModelParams("linear", linear_model.LinearModelParams()),
-                    BaseModelParams(
-                        "quadratic",
-                        quadratic_model.QuadraticModelParams(),
-                    ),
-                ]
-            )
-            m = BaseEnsemble(ts_data, params)
 
             # fit the ensemble model
             m.fit()
@@ -200,35 +200,36 @@ class testMedianEnsemble(TestCase):
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
             ["time", "fcst"]
         ]
+        params = EnsembleParams(
+            [
+                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
+                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
+                BaseModelParams(
+                    "sarima",
+                    sarima.SARIMAParams(
+                        p=2,
+                        d=1,
+                        q=1,
+                        trend="ct",
+                        seasonal_order=(1, 0, 1, 12),
+                        enforce_invertibility=False,
+                        enforce_stationarity=False,
+                    ),
+                ),
+                BaseModelParams("prophet", prophet.ProphetParams()),
+                BaseModelParams("linear", linear_model.LinearModelParams()),
+                BaseModelParams(
+                    "quadratic",
+                    quadratic_model.QuadraticModelParams(),
+                ),
+            ]
+        )
+        m = MedianEnsembleModel(data=ts_data, params=params)
+
         with mock.patch("kats.models.ensemble.ensemble.Pool") as mock_pooled:
             mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
             mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
 
-            params = EnsembleParams(
-                [
-                    BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                    BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-                    BaseModelParams(
-                        "sarima",
-                        sarima.SARIMAParams(
-                            p=2,
-                            d=1,
-                            q=1,
-                            trend="ct",
-                            seasonal_order=(1, 0, 1, 12),
-                            enforce_invertibility=False,
-                            enforce_stationarity=False,
-                        ),
-                    ),
-                    BaseModelParams("prophet", prophet.ProphetParams()),
-                    BaseModelParams("linear", linear_model.LinearModelParams()),
-                    BaseModelParams(
-                        "quadratic",
-                        quadratic_model.QuadraticModelParams(),
-                    ),
-                ]
-            )
-            m = MedianEnsembleModel(data=ts_data, params=params)
             # fit the ensemble model
             m.fit()
 
@@ -276,7 +277,17 @@ class testWeightedAvgEnsemble(TestCase):
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
-    def test_fit_forecast(self) -> None:
+        self.TSData_dummy = TSData_dummy
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
+    )
+    def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
+        ts_data = getattr(self, ts_data_name)
+        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
+            ["time", "fcst"]
+        ]
         params = EnsembleParams(
             [
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
@@ -301,23 +312,31 @@ class testWeightedAvgEnsemble(TestCase):
                 BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
             ]
         )
-        m = WeightedAvgEnsemble(data=self.TSData, params=params)
-        m.fit()
-        m.predict(steps=30, freq="MS", err_method="mape")
-        m.plot()
 
-        m_daily = WeightedAvgEnsemble(data=self.TSData_daily, params=params)
-        m_daily.fit()
-        m_daily.predict(steps=30, freq="D")
-        m.plot()
+        m = WeightedAvgEnsemble(ts_data, params=params)
 
-        m_dummy = WeightedAvgEnsemble(data=TSData_dummy, params=params)
-        m_dummy.fit()
-        m_dummy.predict(steps=30, freq="D")
-        m_dummy.plot()
+        with mock.patch("kats.models.ensemble.ensemble.Pool") as mock_pooled:
+            mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
+            mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
 
-        # test __str__ method
-        self.assertEqual(m.__str__(), "Weighted Average Ensemble")
+            # fit the ensemble model
+            m.fit()
+            mock_pooled.assert_called()
+
+            with mock.patch(
+                "kats.models.ensemble.weighted_avg_ensemble.Pool"
+            ) as mock_weighted_pooled:
+                mock_backtest = (
+                    mock_weighted_pooled.return_value.apply_async.return_value.get
+                )
+                # the backtester should just return a random number here
+                mock_backtest.return_value = np.random.rand()
+                m.predict(steps=steps, freq=freq)
+                mock_backtest.assert_called()
+                m.plot()
+
+            # test __str__ method
+            self.assertEqual(m.__str__(), "Weighted Average Ensemble")
 
     def test_others(self) -> None:
         # validate params in EnsembleParams
