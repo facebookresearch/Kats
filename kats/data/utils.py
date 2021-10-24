@@ -21,7 +21,6 @@ import io
 import os
 import pkgutil
 
-import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from scipy.special import expit  # @manual
