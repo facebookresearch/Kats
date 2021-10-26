@@ -17,3 +17,4 @@ from . import robust_stat_detection  # noqa # usort: skip
 from . import seasonality  # noqa # usort: skip
 from . import stat_sig_detector  # noqa # usort: skip
 from . import trend_mk  # noqa # usort: skip
+from .meta_learning import metalearning_detection_model  # noqa # usort: skip
