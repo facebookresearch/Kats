@@ -5,7 +5,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -45,6 +45,9 @@ class HarmonicRegressionParams(Params):
 
 
 class HarmonicRegressionModel(Model):
+    params: Optional[np.ndarray] = None
+    harms: Optional[np.ndarray] = None
+
     def __init__(self, data: TimeSeriesData, params: HarmonicRegressionParams) -> None:
         super().__init__(data, params)
         if not self.data.is_univariate():
@@ -63,8 +66,6 @@ class HarmonicRegressionModel(Model):
         """Fits harmonic regression to the time series.
         See fit_harmonics for details.
         """
-        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.
-        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
         self.params, self.harms = self.fit_harmonics(
             self.regression_params.period, self.regression_params.fourier_order
         )
@@ -81,8 +82,6 @@ class HarmonicRegressionModel(Model):
         Pandas DataFrame with the dates (time) and the
         forecast values (fcst)
         """
-        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.
-        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
         if self.params is None or self.harms is None:
             msg = "Call fit before predict."
             logging.error(msg)
@@ -97,7 +96,7 @@ class HarmonicRegressionModel(Model):
     # pyre-fixme[15]: `plot` overrides method defined in `Model` inconsistently.
     # pyre-fixme[40]: Non-static method `plot` cannot override a static method
     #  defined in `Model`.
-    def plot(self) -> Figure:
+    def plot(self) -> Tuple[Figure, pd.DataFrame]:
         """Demeans the time series, fits the harmonics,
             returns the plot and error metrics.
         Parameters
@@ -109,8 +108,6 @@ class HarmonicRegressionModel(Model):
         if _no_plotly:
             raise RuntimeError("requires plotly to be installed")
 
-        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `params`.
-        # pyre-fixme[16]: `HarmonicRegressionModel` has no attribute `harms`.
         if self.params is None or self.harms is None:
             msg = "Call fit before plot."
             logging.error(msg)
@@ -125,8 +122,6 @@ class HarmonicRegressionModel(Model):
         )
 
         fig = plot_fitted_harmonics(self.data.time, self.data.value, fitted_harmonics)
-        # pyre-fixme[7]: Expected `Figure` but got `Tuple[typing.Any,
-        #  pd.core.frame.DataFrame]`.
         return fig, err_table
 
     @staticmethod
