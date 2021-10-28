@@ -23,12 +23,9 @@ class HoltWintersModelTest(TestCase):
 
     def test_fit_forecast(self) -> None:
         params = HoltWintersParams(
-            # pyre-fixme[6]: Expected `str` for 1st param but got `None`.
-            trend=None,
+            trend="add",
             damped=False,
-            # pyre-fixme[6]: Expected `str` for 3rd param but got `None`.
             seasonal=None,
-            # pyre-fixme[6]: Expected `int` for 4th param but got `None`.
             seasonal_periods=None,
         )
         m = HoltWintersModel(data=self.TSData, params=params)
@@ -110,6 +107,11 @@ class HoltWintersModelTest(TestCase):
                 },
             ],
         )
+
+    def test_predict_unfit(self):
+        m = HoltWintersModel(self.TSData, HoltWintersParams())
+        with self.assertRaises(ValueError):
+            m.predict(10)
 
 
 if __name__ == "__main__":
