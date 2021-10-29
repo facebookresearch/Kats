@@ -332,6 +332,7 @@ class TuringEvaluator(BenchmarkEvaluator):
         alert_style_cp: bool = False,
         threshold_low: float = 0.0,
         threshold_high: float = 1.0,
+        margin: int = 5,
     ) -> pd.DataFrame:
 
         if self.is_detector_model:
@@ -342,10 +343,14 @@ class TuringEvaluator(BenchmarkEvaluator):
                 alert_style_cp=alert_style_cp,
                 threshold_low=threshold_low,
                 threshold_high=threshold_high,
+                margin=margin,
             )
         else:
             return self._evaluate_detector(
-                model_params=model_params, data=data, ignore_list=ignore_list
+                model_params=model_params,
+                data=data,
+                ignore_list=ignore_list,
+                margin=margin,
             )
 
     def _evaluate_detector_model(
@@ -356,6 +361,7 @@ class TuringEvaluator(BenchmarkEvaluator):
         alert_style_cp: bool = False,
         threshold_low: float = 0.0,
         threshold_high: float = 1.0,
+        margin: int = 5,
     ) -> pd.DataFrame:
 
         if not ignore_list:
@@ -384,7 +390,9 @@ class TuringEvaluator(BenchmarkEvaluator):
                 anom_obj, alert_style_cp, threshold_low, threshold_high
             )
 
-            eval_dict = measure(annotations=anno, predictions=self.cp_dict[data_name])
+            eval_dict = measure(
+                annotations=anno, predictions=self.cp_dict[data_name], margin=margin
+            )
             eval_list.append(
                 Evaluation(
                     dataset_name=data_name,
@@ -405,6 +413,7 @@ class TuringEvaluator(BenchmarkEvaluator):
         model_params: Optional[Dict[str, float]] = None,
         data: Optional[pd.DataFrame] = None,
         ignore_list: Optional[List[str]] = None,
+        margin: int = 5,
     ) -> pd.DataFrame:
         if model_params is None:
             model_params = {}
@@ -426,7 +435,9 @@ class TuringEvaluator(BenchmarkEvaluator):
             detector = self.detector(tsd)
             change_points = detector.detector(**model_params)
             self.cp_dict[data_name] = get_cp_index(change_points, tsd)
-            eval_dict = measure(annotations=anno, predictions=self.cp_dict[data_name])
+            eval_dict = measure(
+                annotations=anno, predictions=self.cp_dict[data_name], margin=margin
+            )
             eval_list.append(
                 Evaluation(
                     dataset_name=data_name,

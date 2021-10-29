@@ -39,9 +39,11 @@ class DetectorModelSet:
         self,
         model_name: str,
         model: Type[DetectorModel],
+        margin: int = 5,
     ):
         self.model_name = model_name
         self.model = model
+        self.margin = margin
         self.result = None
         self.parameters = None
 
@@ -58,7 +60,10 @@ class DetectorModelSet:
         return {self.model_name: self.result}, turing_evaluator
 
     def evaluate_parameters_detector_model(
-        self, params, detector, data
+        self,
+        params: Dict,
+        detector: Type[DetectorModel],
+        data: pd.DataFrame,
     ) -> Tuple[pd.DataFrame, TuringEvaluator]:
         turing_model = TuringEvaluator(is_detector_model=True, detector=detector)
         params_model, threshold_low, threshold_high = decompose_params(params)
@@ -67,6 +72,7 @@ class DetectorModelSet:
             model_params=params_model,
             threshold_low=threshold_low,
             threshold_high=threshold_high,
+            margin=self.margin,
         )
         return results, turing_model
 
