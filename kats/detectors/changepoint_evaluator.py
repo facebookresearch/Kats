@@ -322,7 +322,7 @@ class TuringEvaluator(BenchmarkEvaluator):
         self.detector = detector
         self.eval_agg = None
         self.is_detector_model = is_detector_model
-        self.cp_list = []
+        self.cp_dict = {}
 
     def evaluate(
         self,
@@ -380,11 +380,11 @@ class TuringEvaluator(BenchmarkEvaluator):
             # pyre-fixme[16]: `Detector` has no attribute `fit_predict`.
             anom_obj = detector.fit_predict(tsd)
 
-            self.cp_list = get_cp_index_from_detector_model(
+            self.cp_dict[data_name] = get_cp_index_from_detector_model(
                 anom_obj, alert_style_cp, threshold_low, threshold_high
             )
 
-            eval_dict = measure(annotations=anno, predictions=self.cp_list)
+            eval_dict = measure(annotations=anno, predictions=self.cp_dict[data_name])
             eval_list.append(
                 Evaluation(
                     dataset_name=data_name,
@@ -425,8 +425,8 @@ class TuringEvaluator(BenchmarkEvaluator):
             # pyre-fixme[45]: Cannot instantiate abstract class `Detector`.
             detector = self.detector(tsd)
             change_points = detector.detector(**model_params)
-            self.cp_list = get_cp_index(change_points, tsd)
-            eval_dict = measure(annotations=anno, predictions=self.cp_list)
+            self.cp_dict[data_name] = get_cp_index(change_points, tsd)
+            eval_dict = measure(annotations=anno, predictions=self.cp_dict[data_name])
             eval_list.append(
                 Evaluation(
                     dataset_name=data_name,
