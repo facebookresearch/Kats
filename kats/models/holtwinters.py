@@ -11,8 +11,10 @@ https://www.statsmodels.org/dev/generated/statsmodels.tsa.holtwinters.Exponentia
 We rewrite the corresponding API to accommodate the Kats development style
 """
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Any
 
 import kats.models.model as m
 import pandas as pd
@@ -22,25 +24,19 @@ from kats.utils.parameter_tuning_utils import (
     get_default_holtwinters_parameter_search_space,
 )
 from statsmodels.tsa.holtwinters import ExponentialSmoothing as HoltWinters
-from statsmodels.tsa.holtwinters import HoltWintersResults
 
 
 class HoltWintersParams(Params):
     """Parameter class for the HoltWinters model
 
-    Not all parameters from the statsmodels API have been implemented here, the
-    full list of parameters can be found at:
+    Not all parameters from the statsmodels API have been implemented here, the full list of the parameter can be found:
     https://www.statsmodels.org/dev/generated/statsmodels.tsa.holtwinters.ExponentialSmoothing.html
 
     Attributes:
-        trend: Optional; A string that specifies the type of trend component.
-            Can be 'add' and 'mul' or 'additive' and 'multiplicative'.
-        damped: Optional; A boolean indicates whether the trend should be damped.
-        seasonal: Optional; A string that specifies the type of seasonal
-            component. Can be 'add' and 'mul' or 'additive' and 'multiplicative'.
-        seasonal_periods: Optional; An integer that specifies the period for the
-            seasonal component, e.g. 4 for quarterly data and 7 for weekly
-            seasonality of daily data.
+        trend: Optional; A string that specifies the type of trend component. Can be 'add' and 'mul' or 'additive' and 'multiplicative'. Default is 'add'
+        damped: Optional; A boolean indicates whether the trend should be damped or not. Default is False
+        seasonal: Optional; A string that specifies the type of seasonal component Can be 'add' and 'mul' or 'additive' and 'multiplicative'. Default is None
+        seasonal_periods: Optional; An integer that specifies the period for the seasonal component, e.g. 4 for quarterly data and 7 for weekly seasonality of daily data. Default is None
     """
 
     __slots__ = ["trend", "damped", "seasonal", "seasonal_periods"]
@@ -49,8 +45,10 @@ class HoltWintersParams(Params):
         self,
         trend: str = "add",
         damped: bool = False,
-        seasonal: Optional[str] = None,
-        seasonal_periods: Optional[int] = None,
+        # pyre-fixme[9]: seasonal has type `str`; used as `None`.
+        seasonal: str = None,
+        # pyre-fixme[9]: seasonal_periods has type `int`; used as `None`.
+        seasonal_periods: int = None,
     ) -> None:
         super().__init__()
         self.trend = trend
@@ -97,18 +95,9 @@ class HoltWintersModel(m.Model):
     """Model class for the HoltWinters model
 
     Attributes:
-        data: :class:`kats.consts.TimeSeriesData`, the input historical time
-            series data from TimeSeriesData
+        data: :class:`kats.consts.TimeSeriesData`, the input historical time series data from TimeSeriesData
         params: The HoltWinters model parameters from HoltWintersParams
     """
-
-    model: Optional[HoltWintersResults] = None
-    freq: Optional[str] = None
-    dates: Optional[pd.DatetimeIndex] = None
-    include_history: bool = False
-    alpha: Optional[float] = None
-    y_fcst: Optional[pd.Series] = None
-    fcst_df: Optional[pd.DataFrame] = None
 
     def __init__(self, data: TimeSeriesData, params: HoltWintersParams) -> None:
         super().__init__(data, params)
@@ -130,6 +119,7 @@ class HoltWintersModel(m.Model):
             seasonal=self.params.seasonal,
             seasonal_periods=self.params.seasonal_periods,
         )
+        # pyre-fixme[16]: `HoltWintersModel` has no attribute `model`.
         self.model = holtwinters.fit()
         logging.info("Fitted HoltWinters.")
 
@@ -139,36 +129,35 @@ class HoltWintersModel(m.Model):
     ) -> pd.DataFrame:
         """Predict with fitted HoltWinters model
 
-        If the alpha keyword argument is specified, an empirical confidence
-        interval is computed through a K-fold cross validation and a linear
-        regression model, the forecast outcome will include a confidence interval
-        there; otherwise no confidence interval is included in the final forecast.
-        Please refer to the 'emp_confidence_int' module for full detailed
-        implementation of the empirical confidence interval computation.
+        If the alpha keyword argument is specified, an empirical confidence interval is computed through a K-fold cross validation and a linear regression model, the forecast outcome will include a confidence interval there; otherwise no confidence interval is included in the final forecast. Please refer to the 'emp_confidence_int' module for full detailed implementation of the empirical confidence interval computation
 
         Args:
             steps:
             include_history:
         Returns:
-            A pd.DataFrame with the forecast and confidence interval (if
-            empirical confidence interval calculation is triggered)
+            A pd.DataFrame with the forecast and confidence interval (if empirical confidence interval calculation is triggered)
         """
-        model = self.model
-        if model is None:
-            raise ValueError("Call fit() before predict()")
 
         logging.debug(
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
-        self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
+        if "freq" not in kwargs:
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `freq`.
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `data`.
+            self.freq = pd.infer_freq(self.data.time)
+        else:
+            self.freq = kwargs["freq"]
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
+        # pyre-fixme[16]: `HoltWintersModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
+        # pyre-fixme[16]: `HoltWintersModel` has no attribute `include_history`.
         self.include_history = include_history
 
         if "alpha" in kwargs:
-            self.alpha = alpha = kwargs["alpha"]
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `alpha`.
+            self.alpha = kwargs["alpha"]
             # build empirical CI
             error_methods = kwargs.get("error_methods", ["mape"])
             train_percentage = kwargs.get("train_percentage", 70)
@@ -183,28 +172,28 @@ class HoltWintersModel(m.Model):
                 test_percentage=test_percentage,
                 sliding_steps=sliding_steps,
                 model_class=HoltWintersModel,
-                confidence_level=1 - alpha,
+                confidence_level=1 - self.alpha,
                 multi=False,
             )
             logging.debug(
-                "Use EmpConfidenceInt for CI with parameters: error_methods = "
-                f"{error_methods}, train_percentage = {train_percentage}, "
-                f"test_percentage = {test_percentage}, sliding_steps = "
-                f"{sliding_steps}, confidence_level = {1-alpha}, "
-                f"multi={multi}."
+                f"""Use EmpConfidenceInt for CI with parameters: error_methods = {error_methods}, train_percentage = {train_percentage},
+                    test_percentage = {test_percentage}, sliding_steps = {sliding_steps}, confidence_level = {1-self.alpha}, multi={multi}."""
             )
             fcst = eci.get_eci(steps=steps)
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `y_fcst`.
             self.y_fcst = fcst["fcst"]
         else:
-            fcst = model.forecast(steps)
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `model`.
+            fcst = self.model.forecast(steps)
             self.y_fcst = fcst
             fcst = pd.DataFrame({"time": self.dates, "fcst": fcst})
         logging.info("Generated forecast data from Holt-Winters model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 
         if include_history:
-            history_fcst = model.predict(start=0, end=len(self.data.time))
-            fcst_df = pd.concat(
+            history_fcst = self.model.predict(start=0, end=len(self.data.time) - 1)
+            # pyre-fixme[16]: `HoltWintersModel` has no attribute `fcst_df`.
+            self.fcst_df = pd.concat(
                 [
                     pd.DataFrame(
                         {
@@ -216,11 +205,10 @@ class HoltWintersModel(m.Model):
                 ]
             )
         else:
-            fcst_df = fcst
-        self.fcst_df = fcst_df
+            self.fcst_df = fcst
 
-        logging.debug("Return forecast data: {fcst_df}".format(fcst_df=fcst_df))
-        return fcst_df
+        logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
+        return self.fcst_df
 
     def plot(self):
         """Plot forecast results from the HoltWinters model"""

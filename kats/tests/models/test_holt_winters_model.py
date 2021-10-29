@@ -5,51 +5,75 @@
 import unittest
 from unittest import TestCase
 
+import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers, load_data
 from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
+from kats.tests.models.test_models_dummy_data import (
+    AIR_FCST_HW_1,  # first param combination results
+    AIR_FCST_HW_2,
+)
+from pandas.util.testing import assert_frame_equal
+from parameterized import parameterized
+
+TEST_DATA = {
+    "monthly": {
+        "ts": load_air_passengers(),
+        "freq": "MS",
+        "res_1": AIR_FCST_HW_1,
+        "res_2": AIR_FCST_HW_2,
+    },
+}
 
 
 class HoltWintersModelTest(TestCase):
-    def setUp(self):
-        self.TSData = load_air_passengers()
-
-        DATA_daily = load_data("peyton_manning.csv")
-        DATA_daily.columns = ["time", "y"]
-        self.TSData_daily = TimeSeriesData(DATA_daily)
-
-        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
-        self.TSData_multi = TimeSeriesData(DATA_multi)
-
-    def test_fit_forecast(self) -> None:
-        params = HoltWintersParams(
+    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
+    @parameterized.expand(
+        [
+            [
+                "monthly",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["freq"],
+                TEST_DATA["monthly"]["res_1"],
+                TEST_DATA["monthly"]["res_2"],
+            ],
+        ]
+    )
+    def test_fcst(
+        self,
+        name: str,
+        ts: TimeSeriesData,
+        freq: str,
+        truth_1: pd.DataFrame,
+        truth_2: pd.DataFrame,
+    ):
+        # Set up params
+        params_1 = HoltWintersParams(
             trend="add",
-            damped=False,
-            seasonal=None,
-            seasonal_periods=None,
+            seasonal="add",
+            seasonal_periods=7,
         )
-        m = HoltWintersModel(data=self.TSData, params=params)
-        m.fit()
-        m.predict(steps=30)
-        m.predict(steps=30, include_history=True, alpha=0.05)
-        m.plot()
-
-        m_daily = HoltWintersModel(data=self.TSData_daily, params=params)
-        m_daily.fit()
-        m_daily.predict(steps=30)
-        m.predict(
-            steps=30,
-            include_history=True,
-            alpha=0.05,
-            error_metrics=["mape"],
-            train_percentage=80,
-            test_percentage=10,
-            sliding_steps=3,
+        params_2 = HoltWintersParams(
+            trend="mul",
+            seasonal="mul",
+            seasonal_periods=7,
         )
-        m.plot()
 
-    def test_others(self) -> None:
-        # test param validation
+        params_1.validate_params()
+        params_2.validate_params()
+        # Fit forecast
+        m_1 = HoltWintersModel(ts, params_1)
+        m_2 = HoltWintersModel(ts, params_2)
+        m_1.fit()
+        m_2.fit()
+        res_1 = m_1.predict(steps=30, freq=freq, include_history=True)
+        res_2 = m_2.predict(steps=30, alpha=0.9)
+
+        # Test result
+        assert_frame_equal(truth_1, res_1)
+        assert_frame_equal(truth_2, res_2)
+
+    def test_invalid_params(self) -> None:
         self.assertRaises(
             ValueError,
             HoltWintersParams,
@@ -62,19 +86,39 @@ class HoltWintersModelTest(TestCase):
             seasonal="random_seasonal",
         )
 
+        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
+        TSData_multi = TimeSeriesData(DATA_multi)
+
         params = HoltWintersParams()
+
         self.assertRaises(
             ValueError,
             HoltWintersModel,
-            self.TSData_multi,
-            params,
+            data=TSData_multi,
+            params=params,
         )
 
-        m = HoltWintersModel(self.TSData, params)
+    def test_exec_plot(self):
+        # Set up params
+        params = HoltWintersParams(
+            trend="add",
+            seasonal="add",
+            seasonal_periods=7,
+        )
+        # Fit forecast
+        m = HoltWintersModel(TEST_DATA["monthly"]["ts"], params)
+        m.fit()
+        _ = m.predict(steps=2, freq=TEST_DATA["monthly"]["freq"])
 
-        # test __str__ method
+        # Test plotting
+        m.plot()
+
+    def test_name(self):
+        m = HoltWintersModel(TEST_DATA["monthly"]["ts"], None)
         self.assertEqual(m.__str__(), "HoltWinters")
 
+    def test_search_space(self):
+        m = HoltWintersModel(TEST_DATA["monthly"]["ts"], None)
         self.assertEqual(
             m.get_parameter_search_space(),
             [
@@ -99,19 +143,12 @@ class HoltWintersModelTest(TestCase):
                 {
                     "name": "seasonal_periods",
                     "type": "choice",
-                    # The number of periods in this seasonality
-                    # (e.g. 7 periods for daily data would be used for weekly seasonality)
                     "values": [4, 7, 10, 14, 24, 30],
                     "value_type": "int",
                     "is_ordered": True,
                 },
             ],
         )
-
-    def test_predict_unfit(self):
-        m = HoltWintersModel(self.TSData, HoltWintersParams())
-        with self.assertRaises(ValueError):
-            m.predict(10)
 
 
 if __name__ == "__main__":
