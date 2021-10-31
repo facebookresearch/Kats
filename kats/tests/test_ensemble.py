@@ -2,6 +2,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import sys
 import unittest
 import unittest.mock as mock
 from unittest import TestCase
@@ -358,8 +359,15 @@ class testWeightedAvgEnsemble(TestCase):
 class testKatsEnsemble(TestCase):
     def setUp(self):
         self.TSData = load_air_passengers()
+        self.TSData_dummy = TSData_dummy
 
-    def test_fit_forecast(self) -> None:
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
+    )
+    def test_fit_median_forecast(self, ts_data_name, steps, freq) -> None:
+        ts_data = getattr(self, ts_data_name)
+        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
         model_params = EnsembleParams(
             [
                 BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
@@ -381,33 +389,112 @@ class testKatsEnsemble(TestCase):
                 BaseModelParams("theta", theta.ThetaParams(m=12)),
             ]
         )
-        aggregations = ["median", "weightedavg"]
         decomps = ["additive", "multiplicative"]
 
-        for agg in aggregations:
-            for decomp in decomps:
-                KatsEnsembleParam = {
-                    "models": model_params,
-                    "aggregation": agg,
-                    "seasonality_length": 12,
-                    "decomposition_method": decomp,
-                }
+        for decomp in decomps:
+            KatsEnsembleParam = {
+                "models": model_params,
+                "aggregation": "median",
+                "seasonality_length": 12,
+                "decomposition_method": decomp,
+            }
 
-                m = KatsEnsemble(data=self.TSData, params=KatsEnsembleParam)
+            m = KatsEnsemble(data=ts_data, params=KatsEnsembleParam)
+
+            with mock.patch("multiprocessing.managers.SyncManager.Pool") as mock_pooled:
+                mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
+                mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
+                # fit the model
                 m.fit()
-                m.predict(steps=30)
+                mock_pooled.assert_called()
+                # no predictions should be made yet
+                mock_fit_model.return_value.predict.assert_not_called()
+                # now run predict on the ensemble model
+                m.predict(steps=steps)
+                mock_fit_model.return_value.predict.assert_called_with(steps)
                 m.aggregate()
                 m.plot()
 
-                m = KatsEnsemble(data=self.TSData, params=KatsEnsembleParam)
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
+    )
+    def test_fit_weightedavg_forecast(self, ts_data_name, steps, freq) -> None:
+        ts_data = getattr(self, ts_data_name)
+        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
+        model_params = EnsembleParams(
+            [
+                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
+                BaseModelParams(
+                    "sarima",
+                    sarima.SARIMAParams(
+                        p=2,
+                        d=1,
+                        q=1,
+                        trend="ct",
+                        seasonal_order=(1, 0, 1, 12),
+                        enforce_invertibility=False,
+                        enforce_stationarity=False,
+                    ),
+                ),
+                BaseModelParams("prophet", prophet.ProphetParams()),
+                BaseModelParams("linear", linear_model.LinearModelParams()),
+                BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
+                BaseModelParams("theta", theta.ThetaParams(m=12)),
+            ]
+        )
+        decomps = ["additive", "multiplicative"]
+
+        for decomp in decomps:
+            KatsEnsembleParam = {
+                "models": model_params,
+                "aggregation": "weightedavg",
+                "seasonality_length": 12,
+                "decomposition_method": decomp,
+            }
+            m = KatsEnsemble(data=ts_data, params=KatsEnsembleParam)
+
+            with mock.patch("multiprocessing.managers.SyncManager.Pool") as mock_pooled:
+                mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
+                mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
+                mock_fit_model.return_value.__add__ = mock.MagicMock(
+                    return_value=np.random.rand()
+                )
+                # fit the model
                 m.fit()
-                m.forecast(steps=30)
+                mock_pooled.assert_called()
+
+                # no predictions should be made yet
+                mock_fit_model.return_value.predict.assert_not_called()
+                # backtesting should be done after calling fit
+                mock_fit_model.return_value.__add__.assert_called_with(
+                    sys.float_info.epsilon
+                )
+
+                # now run predict on the ensemble model
+                m.predict(steps=steps)
+                mock_fit_model.return_value.predict.assert_called_with(steps)
                 m.aggregate()
                 m.plot()
 
-                m = KatsEnsemble(data=TSData_dummy, params=KatsEnsembleParam)
-                m.fit()
+                # reset all the mocks and make sure they're not called
+                mock_pooled.reset_mock()
+                mock_pooled.assert_not_called()
+                mock_fit_model.return_value.predict.assert_not_called()
+                mock_fit_model.return_value.__add__.assert_not_called()
+
+                # now retry the above with forecast rather than fit/predict
                 m.forecast(steps=30)
+                mock_pooled.assert_called()
+
+                # backtesting should be done after calling fit
+                mock_fit_model.return_value.__add__.assert_called_with(
+                    sys.float_info.epsilon
+                )
+
+                # now run predict on the ensemble model
+                # m.predict(steps=steps)
+                mock_fit_model.return_value.predict.assert_called_with(steps)
                 m.aggregate()
                 m.plot()
 
