@@ -22,7 +22,7 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_INPUT_NAN,
 )
 from pandas.util.testing import assert_frame_equal
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 # TODO: add reset_columns to function in kats.data.utils and then import
 def load_data(file_name, reset_columns=False):
@@ -64,7 +64,6 @@ TEST_DATA = {
 
 
 class LinearModelTest(TestCase):
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [
@@ -114,7 +113,6 @@ class LinearModelTest(TestCase):
         assert_frame_equal(truth_95, res_95)
         assert_frame_equal(truth_99, res_99)
 
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [

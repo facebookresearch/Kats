@@ -28,7 +28,7 @@ from kats.models.ensemble.ensemble import (
 from kats.models.ensemble.kats_ensemble import KatsEnsemble
 from kats.models.ensemble.median_ensemble import MedianEnsembleModel
 from kats.models.ensemble.weighted_avg_ensemble import WeightedAvgEnsemble
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 np.random.seed(123321)
 DATA_dummy = pd.DataFrame(
@@ -73,7 +73,6 @@ class testBaseEnsemble(TestCase):
 
         self.TSData_dummy = TSData_dummy
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
@@ -192,7 +191,6 @@ class testMedianEnsemble(TestCase):
 
         self.TSData_dummy = TSData_dummy
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
@@ -280,7 +278,6 @@ class testWeightedAvgEnsemble(TestCase):
 
         self.TSData_dummy = TSData_dummy
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
@@ -361,7 +358,6 @@ class testKatsEnsemble(TestCase):
         self.TSData = load_air_passengers()
         self.TSData_dummy = TSData_dummy
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
@@ -415,7 +411,6 @@ class testKatsEnsemble(TestCase):
                 m.aggregate()
                 m.plot()
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
     )

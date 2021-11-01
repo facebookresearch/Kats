@@ -25,7 +25,7 @@ from kats.tests.models.test_models_dummy_data import (
     EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1,
 )
 from pandas.util.testing import assert_frame_equal
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 AIR_TS = load_air_passengers()
 MULTI_DF = load_data("multivariate_anomaly_simulated_data.csv")
@@ -113,7 +113,6 @@ TEST_DATA = {
 
 
 class SARIMAModelTest(TestCase):
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [
@@ -260,7 +259,6 @@ class SARIMAModelTest(TestCase):
         # Should raise a ValueError if exogenous variables aren't used to predict
         self.assertRaises(ValueError, m.predict, steps, "D")
 
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [

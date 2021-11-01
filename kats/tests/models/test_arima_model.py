@@ -23,7 +23,7 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_ARIMA_PARAM_1_MODEL_1_INCL_HIST,
 )
 from pandas.util.testing import assert_frame_equal
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 STEPS_1 = 15
 STEPS_2 = 30
@@ -111,7 +111,6 @@ TEST_DATA = {
 
 
 class ARIMAModelTest(TestCase):
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [
@@ -215,7 +214,6 @@ class ARIMAModelTest(TestCase):
                 check_less_precise=True,
             )
 
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [

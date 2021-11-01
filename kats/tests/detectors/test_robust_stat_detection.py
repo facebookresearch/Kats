@@ -12,7 +12,7 @@ import pandas as pd
 import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.robust_stat_detection import RobustStatDetector
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 from sklearn.datasets import make_spd_matrix
 
 statsmodels_ver = float(
@@ -79,7 +79,6 @@ class RobustStatTest(TestCase):
         self.d_ts_without_name = RobustStatDetector(ts)
         self.change_points_ts_without_name = self.d_ts_without_name.detector()
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["change_points_noregress", 0],
@@ -92,7 +91,6 @@ class RobustStatTest(TestCase):
     def test_length(self, change_points, ans) -> None:
         self.assertEqual(len(attrgetter(change_points)(self)), ans)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["d_noregress", "change_points_noregress"],

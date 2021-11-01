@@ -15,7 +15,7 @@ from kats.detectors.cusum_model import (
     CUSUMDetectorModel,
     CusumScoreFunction,
 )
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
@@ -60,7 +60,6 @@ class TestIncreaseCUSUMDetectorModel(TestCase):
 
         self.serialized_model = self.model.serialize()
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ("increase_length_match", len, "score_tsd", "test_data_window"),
@@ -164,7 +163,6 @@ class TestDecreaseCUSUMDetectorModel(TestCase):
             data=data, score_func=CusumScoreFunction.z_score.value
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ("decrease_length_match", len, "score_tsd"),
@@ -246,7 +244,6 @@ class TestAdhocCUSUMDetectorModel(TestCase):
             data=self.tsd[-8:]
         ).scores
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ("adhoc", len, "score_tsd", len, "tsd"),
@@ -428,7 +425,6 @@ class TestDecomposingSeasonalityCUSUMDetectorModel(TestCase):
             data=self.tsd,
         ).scores
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             (

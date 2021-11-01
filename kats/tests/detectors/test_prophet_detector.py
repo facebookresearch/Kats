@@ -16,7 +16,7 @@ from kats.detectors.prophet_detector import (
     ProphetScoreFunction,
 )
 from kats.utils.simulator import Simulator
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
@@ -251,21 +251,18 @@ class TestProphetDetector(TestCase):
     # Alternate between using the current model and using serialized model
     SEED_AND_SERIALIZATIONS = [[0, True], [1, False], [2, True], [3, False], [4, True]]
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(SEED_AND_SERIALIZATIONS)
     def test_no_anomaly_prediction_length(self, seed, use_serialized_model) -> None:
         include_anomaly = False
         res = self.scenario_results(seed, include_anomaly, use_serialized_model)
         self.assertEqual(len(res.scores), 10)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(SEED_AND_SERIALIZATIONS)
     def test_anomaly_prediction_length(self, seed, use_serialized_model) -> None:
         include_anomaly = True
         res = self.scenario_results(seed, include_anomaly, use_serialized_model)
         self.assertEqual(len(res.scores), 10)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(SEED_AND_SERIALIZATIONS)
     def test_finds_no_anomaly_when_no_anomoly(self, seed, use_serialized_model) -> None:
         # Prophet should not find any anomalies on a well formed synthetic time series
@@ -274,7 +271,6 @@ class TestProphetDetector(TestCase):
         anomaly_found = res.scores.min < -0.3 or res.scores.max > 0.3
         self.assertFalse(anomaly_found)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(SEED_AND_SERIALIZATIONS)
     def test_finds_anomaly_when_anomaly_present(
         self, seed, use_serialized_model

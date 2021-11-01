@@ -14,7 +14,7 @@ from kats.detectors.cusum_detection import (
     CUSUMDetector,
     MultiCUSUMDetector,
 )
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
 
@@ -154,7 +154,6 @@ class CUSUMDetectorTest(TestCase):
         self.no_reg_detector = CUSUMDetector(timeseries)
         self.no_reg_change_points = self.no_reg_detector.detector(start_point=20)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_change_points", 1],
@@ -168,7 +167,6 @@ class CUSUMDetectorTest(TestCase):
     def test_cp_len(self, cp_name, expected) -> None:
         self.assertEqual(len(attrgetter(cp_name)(self)), expected)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata", 29],
@@ -180,7 +178,6 @@ class CUSUMDetectorTest(TestCase):
             abs(attrgetter(metadata_name)(self).cp_index - expected), 1
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata", "increase"],
@@ -201,7 +198,6 @@ class CUSUMDetectorTest(TestCase):
     def test_increasing_regression(self) -> None:
         self.assertTrue(self.inc_metadata.regression_detected)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["season_metadata.p_value_int", "season_metadata.llr_int"],
@@ -223,7 +219,6 @@ class CUSUMDetectorTest(TestCase):
     def test_increasing_stable_changepoint(self) -> None:
         self.assertTrue(self.inc_metadata.stable_changepoint)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_detector", "inc_change_points"],
@@ -297,7 +292,6 @@ class CUSUMDetectorTest(TestCase):
             timeseries = TimeSeriesData(df_multi_var)
             CUSUMDetector(timeseries)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["WARNING", 0.9],
@@ -371,7 +365,6 @@ class MultiCUSUMDetectorTest(TestCase):
         self.dec_change_points = MultiCUSUMDetector(timeseries_decrease).detector()
         self.dec_metadata = self.dec_change_points[0][1]
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_change_points"],
@@ -381,7 +374,6 @@ class MultiCUSUMDetectorTest(TestCase):
     def test_cp_len(self, cp_name) -> None:
         self.assertEqual(len(attrgetter(cp_name)(self)), 1)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata"],
@@ -391,7 +383,6 @@ class MultiCUSUMDetectorTest(TestCase):
     def test_cp_index(self, cp_name) -> None:
         self.assertLessEqual(abs(attrgetter(cp_name)(self).cp_index - 59), 1)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata.mu0", "inc_metadata.mu1"],
@@ -402,7 +393,6 @@ class MultiCUSUMDetectorTest(TestCase):
         for m1, m2 in zip(attrgetter(m1_name)(self), attrgetter(m2_name)(self)):
             self.assertLess(m1, m2)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata", "inc_metadata.mu0", "inc_metadata.mu1"],
@@ -416,7 +406,6 @@ class MultiCUSUMDetectorTest(TestCase):
         ):
             self.assertEqual(d, diff)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata"],
@@ -426,7 +415,6 @@ class MultiCUSUMDetectorTest(TestCase):
     def test_regression(self, metadata_name) -> None:
         self.assertTrue(attrgetter(metadata_name)(self).regression_detected)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata"],
@@ -439,7 +427,6 @@ class MultiCUSUMDetectorTest(TestCase):
             1 - chi2.cdf(attrgetter(metadata_name)(self).llr, self.D + 1),
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata"],
@@ -449,7 +436,6 @@ class MultiCUSUMDetectorTest(TestCase):
     def test_gaussian_increase_p_val_nan(self, metadata_name) -> None:
         self.assertTrue(np.isnan(attrgetter(metadata_name)(self).p_value_int))
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata"],
@@ -459,7 +445,6 @@ class MultiCUSUMDetectorTest(TestCase):
     def test_gaussian_increase_llr_int(self, metadata_name) -> None:
         self.assertEqual(attrgetter(metadata_name)(self).llr_int, np.inf)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["inc_metadata"],

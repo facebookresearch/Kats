@@ -17,7 +17,7 @@ from kats.detectors.bocpd import (
     TrendChangeParameters,
 )
 from kats.utils.simulator import Simulator
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
@@ -208,7 +208,6 @@ class BOCPDTest(TestCase):
 
     # Test Plots #
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ("normal", "normal_bocpd_model", "normal_cps"),
@@ -235,7 +234,6 @@ class BOCPDTest(TestCase):
         ]  # dict only has a single element here
         self.assertEqual(change_prob.shape[0], len(self.normal_ts))
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ("default", False, False),
@@ -257,7 +255,6 @@ class BOCPDTest(TestCase):
             self.normal_ts, self.normal_cp_arr, self.normal_gridsearch_cps
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ("default", False, False),
@@ -285,7 +282,6 @@ class BOCPDTest(TestCase):
         for prob_arr in change_prob_val:
             self.assertEqual(prob_arr.shape[0], len(self.multnorm_ts))
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ("default", "multnorm_cps"),
@@ -304,7 +300,6 @@ class BOCPDTest(TestCase):
                 continue
             self.assertIn(cp, self.multnorm_cp_arr)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ("default", "multnorm_cps", Counter(value1=3, value2=3, value3=3)),
@@ -330,7 +325,6 @@ class BOCPDTest(TestCase):
         # Check we have all the time series.
         self.assertEqual(counter, target_counter)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ("default", "multnorm_cps", 9),

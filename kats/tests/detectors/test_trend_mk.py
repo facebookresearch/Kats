@@ -10,7 +10,7 @@ import pandas as pd
 import statsmodels
 from kats.detectors.trend_mk import MKDetector
 from kats.tests.detectors.utils import gen_no_trend_data_ndim, gen_trend_data_ndim
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]

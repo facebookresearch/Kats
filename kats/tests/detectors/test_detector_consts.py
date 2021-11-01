@@ -18,7 +18,7 @@ from kats.detectors.detector_consts import (
     PercentageChange,
     SingleSpike,
 )
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
@@ -105,7 +105,6 @@ class UnivariateChangePointIntervalTest(TestCase):
     def test_interval_seq_length(self) -> None:
         self.assertEqual(len(self.previous_int), len(self.previous_seq))
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["start_time", "current_start"],
@@ -261,7 +260,6 @@ class MultivariateChangePointIntervalTest(TestCase):
         # test extending the data to include the whole sequence except the last point
         self.assertEqual(len(self.previous_int) + 1, len(self.previous_seq))
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["previous_int2"],
@@ -271,7 +269,6 @@ class MultivariateChangePointIntervalTest(TestCase):
     def test_extend_length(self, attribute) -> None:
         self.assertEqual(len(attrgetter(attribute)(self)), len(self.previous_seq))
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["start_time", "current_start"],
@@ -288,7 +285,6 @@ class MultivariateChangePointIntervalTest(TestCase):
             attrgetter(attribute)(self.current_int), attrgetter(initial_object)(self)
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["mean_val", "current_values_mean"],
@@ -301,7 +297,6 @@ class MultivariateChangePointIntervalTest(TestCase):
             attrgetter(initial_object)(self),
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [["current_int", "current_length"], ["spike_array", "num_seq"]]
     )
@@ -675,7 +670,6 @@ class TestUnivariateAnomalyResponse(TestCase):
         #  Ensure that num_series is properly populated - this response object is univariate
         self.assertEqual(self.response.num_series, 1)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["scores"],
@@ -690,7 +684,6 @@ class TestUnivariateAnomalyResponse(TestCase):
         # assert that all the lengths of the time series are preserved
         self.assertEqual(len(attrgetter(attribute)(self.response)), self.N)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["scores"],
@@ -722,7 +715,6 @@ class TestUnivariateAnomalyResponse(TestCase):
             attrgetter(initial_object)(self).value[1],
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["scores", 1.23],  # common_val
@@ -864,7 +856,6 @@ class TestMultivariateAnomalyResponse(TestCase):
         # Ensure that num_series is properly populated
         self.assertEqual(self.response.num_series, self.num_seq)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["scores"],
@@ -895,7 +886,6 @@ class TestMultivariateAnomalyResponse(TestCase):
             attrgetter(initial_object)(self).value.iloc[1].tolist(),
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["scores", 1.23],  # common_val
@@ -913,7 +903,6 @@ class TestMultivariateAnomalyResponse(TestCase):
             (new_value * np.ones(self.num_seq)).tolist(),
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["scores"],

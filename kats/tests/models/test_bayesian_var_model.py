@@ -11,7 +11,7 @@ import pytest
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.models.bayesian_var import BayesianVAR, BayesianVARParams
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 
 class testBayesianVARModel(TestCase):
@@ -103,7 +103,6 @@ class testBayesianVARModel(TestCase):
         # fmt: on
         pd.testing.assert_frame_equal(expected, m.sigma_u)
 
-    # pyre-fixme[16]: Module `parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             ("zero_p", 0, 1, 1, 1, 1),

@@ -16,7 +16,7 @@ from kats.detectors.meta_learning.exceptions import (
 )
 from kats.detectors.meta_learning.hpt_tuning import MetaDetectHptSelect
 from kats.detectors.meta_learning.synth_metadata_reader import SynthMetadataReader
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 
 class TestMetaDetectHptSelect(TestCase):

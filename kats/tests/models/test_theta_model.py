@@ -26,7 +26,7 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_THETA_INCL_HIST_SM_12,
 )
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 
 statsmodels_ver = float(
@@ -88,7 +88,6 @@ class ThetaModelTest(TestCase):
         params = ThetaParams(m=12)
         self.assertEqual(params.m, 12)
 
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [
@@ -168,7 +167,6 @@ class ThetaModelTest(TestCase):
         )
         assert_frame_equal(forecast_df, truth, check_exact=False)
 
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [
@@ -208,7 +206,6 @@ class ThetaModelTest(TestCase):
         m.check_seasonality()
         self.assertEqual(m.seasonal, is_seasonal)
 
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [

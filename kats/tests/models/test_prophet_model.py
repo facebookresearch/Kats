@@ -41,7 +41,7 @@ from kats.tests.models.test_models_dummy_data import (
     NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_12,
 )
 from pandas.util.testing import assert_frame_equal
-from parameterized import parameterized
+from parameterized.parameterized import parameterized
 
 
 statsmodels_ver = float(
@@ -179,7 +179,6 @@ class ProphetModelTest(TestCase):
         )
         self.assertRaises(ValueError, params.validate_params)
 
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [
