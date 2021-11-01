@@ -4,7 +4,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Type, Tuple
+from typing import Dict, List, Optional, Tuple, Type
 
 import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
@@ -40,10 +40,12 @@ class DetectorModelSet:
         model_name: str,
         model: Type[DetectorModel],
         margin: int = 5,
+        alert_style_cp: bool = True,
     ):
         self.model_name = model_name
         self.model = model
         self.margin = margin
+        self.alert_style_cp = alert_style_cp
         self.result = None
         self.parameters = None
 
@@ -64,12 +66,15 @@ class DetectorModelSet:
         params: Dict,
         detector: Type[DetectorModel],
         data: pd.DataFrame,
+        ignore_list: Optional[List[str]] = None,
     ) -> Tuple[pd.DataFrame, TuringEvaluator]:
         turing_model = TuringEvaluator(is_detector_model=True, detector=detector)
         params_model, threshold_low, threshold_high = decompose_params(params)
         results = turing_model.evaluate(
             data=data,
             model_params=params_model,
+            ignore_list=ignore_list,
+            alert_style_cp=self.alert_style_cp,
             threshold_low=threshold_low,
             threshold_high=threshold_high,
             margin=self.margin,
