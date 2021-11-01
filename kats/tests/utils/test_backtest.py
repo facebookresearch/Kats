@@ -157,7 +157,6 @@ class ExpandingWindowBackTesterTest(unittest.TestCase):
         cls.TSData = load_air_passengers()
 
         cls.train_folds, cls.test_folds = cls.create_folds(
-            cls,
             data=DATA,
             start_train_size=EXPANDING_WINDOW_START / 100.0 * len(DATA),
             end_train_size=PERCENTAGE / 100.0 * len(DATA),
@@ -299,8 +298,9 @@ class ExpandingWindowBackTesterTest(unittest.TestCase):
         # Test that folds are equivalent
         self.assertEqual(one_step_folds_expanding, folds_simple)
 
+    @classmethod
     def create_folds(
-        self,
+        cls,
         data: pd.DataFrame,
         start_train_size: float,
         end_train_size: float,
@@ -337,7 +337,6 @@ class RollingWindowBackTesterTest(unittest.TestCase):
         cls.TSData = load_air_passengers()
 
         cls.train_folds, cls.test_folds = cls.create_folds(
-            cls,
             data=DATA,
             train_size=ROLLING_WINDOW_TRAIN / 100.0 * len(DATA),
             test_size=(100 - PERCENTAGE) / 100.0 * len(DATA),
@@ -476,8 +475,9 @@ class RollingWindowBackTesterTest(unittest.TestCase):
         # Test that folds are equivalent
         self.assertEqual(one_step_folds_rolling, folds_simple)
 
+    @classmethod
     def create_folds(
-        self,
+        cls,
         data: pd.DataFrame,
         train_size: float,
         test_size: float,
@@ -626,8 +626,6 @@ class CrossValidationTest(unittest.TestCase):
             train_fold = expanding_train_folds[i]
             test_fold = expanding_test_folds[i]
             temp_model = self.model_class(
-                # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for
-                #  1st param but got `Tuple[int, int]`.
                 data=TimeSeriesData(train_fold),
                 params=self.model_params,
             )
@@ -637,11 +635,7 @@ class CrossValidationTest(unittest.TestCase):
 
             # Using model predictions from temp_model to calculate true errors
             pred = np.array(temp_fcst["fcst"])
-            # pyre-fixme[6]: Expected `typing_extensions.Literal[0]` for 1st param
-            #  but got `typing_extensions.Literal['y']`.
             truth = np.array(test_fold["y"])
-            # pyre-fixme[6]: Expected `typing_extensions.Literal[0]` for 1st param
-            #  but got `typing_extensions.Literal['y']`.
             train = np.array(train_fold["y"])
             compute_errors_list(train, pred, truth, true_errors)
 
@@ -667,24 +661,18 @@ class CrossValidationTest(unittest.TestCase):
         self.model_class.assert_has_calls(
             [
                 mock.call(
-                    # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]`
-                    #  for 1st param but got `Tuple[int, int]`.
                     data=TimeSeriesData(expanding_train_folds[0]),
                     params=self.model_params,
                 ),
                 mock.call().fit(),
                 mock.call().predict(steps=TIMESTEPS, freq=FREQUENCY),
                 mock.call(
-                    # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]`
-                    #  for 1st param but got `Tuple[int, int]`.
                     data=TimeSeriesData(expanding_train_folds[1]),
                     params=self.model_params,
                 ),
                 mock.call().fit(),
                 mock.call().predict(steps=TIMESTEPS, freq=FREQUENCY),
                 mock.call(
-                    # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]`
-                    #  for 1st param but got `Tuple[int, int]`.
                     data=TimeSeriesData(expanding_train_folds[2]),
                     params=self.model_params,
                 ),
@@ -755,8 +743,6 @@ class CrossValidationTest(unittest.TestCase):
             train_fold = rolling_train_folds[i]
             test_fold = rolling_test_folds[i]
             temp_model = self.model_class(
-                # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for
-                #  1st param but got `Tuple[int, int]`.
                 data=TimeSeriesData(train_fold),
                 params=self.model_params,
             )
@@ -766,11 +752,7 @@ class CrossValidationTest(unittest.TestCase):
 
             # Using model predictions from temp_model to calculate true errors
             pred = np.array(temp_fcst["fcst"])
-            # pyre-fixme[6]: Expected `typing_extensions.Literal[0]` for 1st param
-            #  but got `typing_extensions.Literal['y']`.
             truth = np.array(test_fold["y"])
-            # pyre-fixme[6]: Expected `typing_extensions.Literal[0]` for 1st param
-            #  but got `typing_extensions.Literal['y']`.
             train = np.array(train_fold["y"])
             compute_errors_list(train, pred, truth, true_errors)
 
@@ -798,24 +780,18 @@ class CrossValidationTest(unittest.TestCase):
         self.model_class.assert_has_calls(
             [
                 mock.call(
-                    # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]`
-                    #  for 1st param but got `Tuple[int, int]`.
                     data=TimeSeriesData(rolling_train_folds[0]),
                     params=self.model_params,
                 ),
                 mock.call().fit(),
                 mock.call().predict(steps=TIMESTEPS, freq=FREQUENCY),
                 mock.call(
-                    # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]`
-                    #  for 1st param but got `Tuple[int, int]`.
                     data=TimeSeriesData(rolling_train_folds[1]),
                     params=self.model_params,
                 ),
                 mock.call().fit(),
                 mock.call().predict(steps=TIMESTEPS, freq=FREQUENCY),
                 mock.call(
-                    # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]`
-                    #  for 1st param but got `Tuple[int, int]`.
                     data=TimeSeriesData(rolling_train_folds[2]),
                     params=self.model_params,
                 ),
@@ -850,7 +826,7 @@ class CrossValidationTest(unittest.TestCase):
         num_folds: int,
         test_size: float,
         expanding: bool,
-    ) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+    ) -> Tuple[List[pd.DataFrame], List[pd.DataFrame]]:
         train_folds = []
         test_folds = []
         """
