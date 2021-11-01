@@ -216,7 +216,8 @@ class CUSUMDetector(Detector):
         if change_direction == "increase":
             changepoint_func = np.argmin
             logging.debug("Detecting increase changepoint.")
-        if change_direction == "decrease":
+        else:
+            assert change_direction == "decrease"
             changepoint_func = np.argmax
             logging.debug("Detecting decrease changepoint.")
         n = 0
@@ -228,11 +229,11 @@ class CUSUMDetector(Detector):
 
         if start_point is None:
             cusum_ts = np.cumsum(ts_int - np.mean(ts_int))
-            # pyre-fixme[61]: `changepoint_func` may not be initialized here.
             changepoint = min(changepoint_func(cusum_ts), len(ts_int) - 2)
         else:
             changepoint = start_point
 
+        mu0 = mu1 = None
         # iterate until the changepoint converage
         while n < max_iter:
             n += 1
@@ -241,7 +242,6 @@ class CUSUMDetector(Detector):
             mean = (mu0 + mu1) / 2
             # here is where cusum is happening
             cusum_ts = np.cumsum(ts_int - mean)
-            # pyre-fixme[61]: `changepoint_func` may not be initialized here.
             next_changepoint = max(1, min(changepoint_func(cusum_ts), len(ts_int) - 2))
             if next_changepoint == changepoint:
                 break
@@ -261,12 +261,9 @@ class CUSUMDetector(Detector):
         else:
             llr_int = self._get_llr(
                 ts_int,
-                # pyre-fixme[61]: `mu0` may not be initialized here.
-                # pyre-fixme[61]: `mu1` may not be initialized here.
                 {"mu0": mu0, "mu1": mu1, "changepoint": changepoint},
             )
             pval_int = 1 - chi2.cdf(llr_int, 2)
-            # pyre-fixme[61]: `mu0` may not be initialized here.
             delta_int = mu1 - mu0
             changepoint += interest_window[0]
 
@@ -435,8 +432,11 @@ class CUSUMDetector(Detector):
             change_directions = ["increase", "decrease"]
 
         for change_direction in change_directions:
-
-            assert change_direction in ["increase", "decrease"]
+            if change_direction not in {"increase", "decrease"}:
+                raise ValueError(
+                    "Change direction must be 'increase' or 'decrease.' "
+                    f"Got {change_direction}"
+                )
 
             change_meta = self._get_change_point(
                 ts,
@@ -683,10 +683,12 @@ class MultiCUSUMDetector(CUSUMDetector):
             for i in range(len(x))
         )
 
-    # pyre-fixme[14]: `_get_change_point` overrides method defined in
-    #  `CUSUMDetector` inconsistently.
     def _get_change_point(
-        self, ts: np.ndarray, max_iter: int, start_point: int
+        self,
+        ts: np.ndarray,
+        max_iter: int,
+        start_point: int,
+        change_direction: str = "increase",
     ) -> Dict[str, Any]:
 
         # locate the change point using cusum method
@@ -696,7 +698,7 @@ class MultiCUSUMDetector(CUSUMDetector):
 
         if start_point is None:
             start_point = len(ts_int) // 2
-            changepoint = start_point
+        changepoint = start_point
 
         # iterate until the changepoint converage
         while n < max_iter:
@@ -735,7 +737,6 @@ class MultiCUSUMDetector(CUSUMDetector):
                 1, min(changepoint_func(cusum_ts), len(cusum_ts) - 2)
             )
 
-            # pyre-fixme[61]: `changepoint` may not be initialized here.
             if next_changepoint == changepoint:
                 break
             else:
@@ -757,13 +758,11 @@ class MultiCUSUMDetector(CUSUMDetector):
         sigma0 = sigma1 = np.cov(ts, rowvar=False)
 
         return {
-            # pyre-fixme[61]: `changepoint` may not be initialized here.
             "changepoint": changepoint,
             "mu0": mu0,
             "mu1": mu1,
             "sigma0": sigma0,
             "sigma1": sigma1,
-            # pyre-fixme[61]: `changepoint` may not be initialized here.
             "changetime": self.data.time[changepoint],
             "stable_changepoint": stable_changepoint,
             "delta": mu1 - mu0,
