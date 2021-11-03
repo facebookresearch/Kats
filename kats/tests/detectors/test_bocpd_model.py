@@ -3,6 +3,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import re
+from operator import attrgetter
 from unittest import TestCase
 
 import numpy as np
@@ -11,6 +12,7 @@ import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.bocpd_model import BocpdDetectorModel
 from kats.utils.simulator import Simulator
+from parameterized import parameterized
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
@@ -23,84 +25,64 @@ class BocpdDetectorModelTest(TestCase):
     second_cp_begin = 350
 
     def setUp(self):
-        self.sim = Simulator(n=450, start="2018-01-01")
+        sim = Simulator(n=450, start="2018-01-01")
 
-        self.cp_array_input = [
+        cp_array_input = [
             BocpdDetectorModelTest.first_cp_begin,
             BocpdDetectorModelTest.first_cp_end,
             BocpdDetectorModelTest.second_cp_begin,
         ]
 
         self.ts_length = 450
-        self.sigma = 0.05
 
-        self.level_arr = [1.35, 1.05, 1.35, 1.2]
-
-    def test_no_history(self) -> None:
-
-        level_ts = self.sim.level_shift_sim(
+        self.level_ts = sim.level_shift_sim(
             random_seed=100,
-            cp_arr=self.cp_array_input,
-            level_arr=self.level_arr,
-            noise=self.sigma,
+            cp_arr=cp_array_input,
+            level_arr=[1.35, 1.05, 1.35, 1.2],
+            noise=0.05,
             seasonal_period=7,
             seasonal_magnitude=0.0,
         )
 
+        # Define detector model with no historical data
         bocpd_detector = BocpdDetectorModel()
-        anom = bocpd_detector.fit_predict(data=level_ts)
-        self.assertEqual(len(anom.scores), self.ts_length)
-        threshold = 0.4
+        self.no_history_model = bocpd_detector.fit_predict(data=self.level_ts)
 
-        # we have set changepoints at 100, 200, 350
-        # we want to make sure those are detected
-        # we set some slack for them be detected
-        # 5 time points before/after
-        self.assertTrue(np.max(anom.scores.value.values[95:105]) > threshold)
-        self.assertTrue(np.max(anom.scores.value.values[195:205]) > threshold)
-        self.assertTrue(np.max(anom.scores.value.values[345:355]) > threshold)
-
-    def test_history(self) -> None:
-        ts_length = 450
-        ts_history_length = 100
-
-        level_ts = self.sim.level_shift_sim(
-            random_seed=100,
-            cp_arr=self.cp_array_input,
-            level_arr=self.level_arr,
-            noise=self.sigma,
-            seasonal_period=7,
-            seasonal_magnitude=0.0,
+        # setup history model
+        history_model_ts_length = 450
+        history_model_ts_history_length = 100
+        self.history_model_scores_length = (
+            history_model_ts_length - history_model_ts_history_length
         )
 
         level_ts_history = TimeSeriesData(
-            time=level_ts.time.iloc[:ts_history_length],
-            value=pd.Series(level_ts.value.iloc[:ts_history_length], name="value"),
+            time=self.level_ts.time.iloc[:history_model_ts_history_length],
+            value=pd.Series(
+                self.level_ts.value.iloc[:history_model_ts_history_length],
+                name="value",
+            ),
         )
 
         level_ts_data = TimeSeriesData(
-            time=level_ts.time.iloc[ts_history_length:],
-            value=pd.Series(level_ts.value.iloc[ts_history_length:], name="value"),
+            time=self.level_ts.time.iloc[history_model_ts_history_length:],
+            value=pd.Series(
+                self.level_ts.value.iloc[history_model_ts_history_length:],
+                name="value",
+            ),
         )
 
-        bocpd_detector = BocpdDetectorModel()
-        anom = bocpd_detector.fit_predict(
+        history_bocpd_detector = BocpdDetectorModel()
+        self.history_model = history_bocpd_detector.fit_predict(
             historical_data=level_ts_history, data=level_ts_data
         )
-        self.assertEqual(len(anom.scores), ts_length - ts_history_length)
 
-        threshold = 0.4
-        # same as above.
-        # we test for the two changepoints in 200, 350, but shifted by 100
-        # since that is the length of the history
-        self.assertTrue(np.max(anom.scores.value.values[95:105]) > threshold)
-        self.assertTrue(np.max(anom.scores.value.values[245:255]) > threshold)
+        # setup of slow drift model
+        self.slow_drift_model_ts_length = 200
 
-    def test_slow_drift(self) -> None:
-        ts_length = 200
-
-        sim = Simulator(n=ts_length, start="2018-01-01")
-        trend_ts = sim.trend_shift_sim(
+        drift_model_sim = Simulator(
+            n=self.slow_drift_model_ts_length, start="2018-01-01"
+        )
+        drift_model_trend_ts = drift_model_sim.trend_shift_sim(
             random_seed=15,
             cp_arr=[100],
             trend_arr=[3, 28],
@@ -109,39 +91,104 @@ class BocpdDetectorModelTest(TestCase):
             seasonal_period=7,
             seasonal_magnitude=0,
         )
-        bocpd_detector = BocpdDetectorModel(slow_drift=True)
-        anom = bocpd_detector.fit_predict(data=trend_ts)
-        self.assertEqual(len(anom.scores), ts_length)
+
+        drift_model_bocpd_detector = BocpdDetectorModel(slow_drift=True)
+        self.slow_drift_model = drift_model_bocpd_detector.fit_predict(
+            data=drift_model_trend_ts
+        )
+
+        # setup of no drift model
+        no_drift_model_bocpd_detector = BocpdDetectorModel(slow_drift=False)
+        self.serialized_no_drift_model = no_drift_model_bocpd_detector.serialize()
+
+        self.ignore_drift_parameter_model = BocpdDetectorModel(
+            serialized_model=self.serialized_no_drift_model, slow_drift=True
+        )
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            [95, 105],  # Interval 1
+            [195, 205],  # Interval 2
+            [345, 355],  # Interval 3
+        ]
+    )
+    def test_no_history_threshold(self, from_interval, to_interval) -> None:
+        anom = self.no_history_model
         threshold = 0.4
 
+        # we have set changepoints at 100, 200, 350
+        # we want to make sure those are detected
+        # we set some slack for them be detected
+        # 5 time points before/after
+        self.assertTrue(
+            np.max(anom.scores.value.values[from_interval:to_interval]) > threshold
+        )
+
+    @parameterized.expand(
+        [
+            [
+                "of_no_history_model",
+                "no_history_model.scores",
+                "ts_length",
+            ],
+            [
+                "of_history_model",
+                "history_model.scores",
+                "history_model_scores_length",
+            ],
+            [
+                "of_slow_drift_model",
+                "slow_drift_model.scores",
+                "slow_drift_model_ts_length",
+            ],
+        ]
+    )
+    def test_scores_length_validation(
+        self, name, attribute_predicted, attribute_actual
+    ):
+        self.assertEqual(
+            len(attrgetter(attribute_predicted)(self)),
+            attrgetter(attribute_actual)(self),
+        )
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            [95, 105],  # Interval 1
+            [245, 255],  # Interval 2
+        ]
+    )
+    def test_history_threshold(self, from_interval, to_interval) -> None:
+        threshold = 0.4
+        # we test for the two changepoints in 200, 350, but shifted by 100
+        # since that is the length of the history
+        self.assertTrue(
+            np.max(self.history_model.scores.value.values[from_interval:to_interval])
+            > threshold
+        )
+
+    def test_slow_drift_threshold(self) -> None:
+        threshold = 0.4
         # we have set changepoints at 100
         # we want to make sure that is detected
         # we set some slack for them be detected
         # 5 time points before/after
-        self.assertTrue(np.max(anom.scores.value.values[95:105]) > threshold)
-
-    def test_serialize(self) -> None:
-
-        level_ts = self.sim.level_shift_sim(
-            random_seed=100,
-            cp_arr=self.cp_array_input,
-            level_arr=self.level_arr,
-            noise=self.sigma,
-            seasonal_period=7,
-            seasonal_magnitude=0.0,
+        self.assertTrue(
+            np.max(self.slow_drift_model.scores.value.values[95:105]) > threshold
         )
 
-        bocpd_detector = BocpdDetectorModel(slow_drift=False)
-        ser_model = bocpd_detector.serialize()
+    def test_serialize_ignore_slow_drift_parm(self) -> None:
+        # In setup section:
+        # In serialized_no_drift_model we used slow_drift=False.
+        # But while reading the serialized model, we used slow_drift=True.
+        # The parameter slow_drift=True must be ignored, and the model must have
+        # the original parameter slow_drift=False (in the serialized model)
+        self.assertEqual(self.ignore_drift_parameter_model.slow_drift, False)
 
-        # check that it ignores the slow_drift parameter
-        # and considers the serialized one instead
-        bocpd_detector2 = BocpdDetectorModel(
-            serialized_model=ser_model, slow_drift=True
-        )
-        self.assertEqual(bocpd_detector2.slow_drift, False)
-
-        anom = bocpd_detector2.fit_predict(data=level_ts)
+    def test_serialize_fit_predict_with_ignore_slow_drift_parm(self) -> None:
+        # See setup section to find how the ignore_drift_parameter_model is setup
+        anom = self.ignore_drift_parameter_model.fit_predict(data=self.level_ts)
         self.assertEqual(len(anom.scores), self.ts_length)
 
     def test_missing_data(self) -> None:
