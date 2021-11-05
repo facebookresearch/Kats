@@ -2,6 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-unsafe
+
 """A module for meta-learner hyper-parameter selection.
 
 This module contains two classes, including:

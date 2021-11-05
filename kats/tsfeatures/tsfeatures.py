@@ -2,6 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-unsafe
+
 """TsFeatures is a module for performing adhoc feature engineering on time series
 data using different statistics.
 

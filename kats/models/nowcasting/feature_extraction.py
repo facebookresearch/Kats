@@ -2,6 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-unsafe
+
 """This is a file with functions which turn time series into ML features.
 
 Typical use case is to create various features for the nowcasting model.

@@ -2,6 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-unsafe
+
 """Apply LSTM for time series forecasting.
 
 The LSTM (long short-term memory) model is a recurrent neural network model that

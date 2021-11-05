@@ -2,6 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-unsafe
+
 """Kats ensemble model
 
 Implementation of the Kats ensemble model. It starts from seasonality detection, if seasonality detected, it

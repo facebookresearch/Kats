@@ -2,6 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-unsafe
+
 """ Module that has parameter tuning classes for time series models.
 
 This module has a collection of classes. A subset of these classes are parameter tuning

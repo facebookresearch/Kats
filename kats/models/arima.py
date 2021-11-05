@@ -2,6 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-unsafe
+
 """ARIMA (Auto Regressive Integrated Moving Average) for time series data.
 
 ARIMA is a classical statistical model with three main components from its name:

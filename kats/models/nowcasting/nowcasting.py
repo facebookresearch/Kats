@@ -2,6 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-unsafe
+
 """Nowcasting is the basic model for short-term forecasting.
 
 This modules contains class NowcastingParams, which is the class parameter

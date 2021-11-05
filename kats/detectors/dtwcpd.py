@@ -2,6 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-unsafe
+
 """
 This file implements the Dynamic Time Warping (DTW) ChangePoint detector
 algorithm as a DetectorModel, to provide a common interface.
