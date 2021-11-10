@@ -97,6 +97,8 @@ class OutlierDetectionTest(TestCase):
         if output_scores is not None:
             self.assertEqual(output_scores.shape[0], m.data.value.shape[0])
 
+        # test that there are not any nan values in output score
+        self.assertFalse(output_scores["y"].isnull().any())
         # test for more than 1 time series
         m2 = OutlierDetector(self.ts_data_2, "additive")
         m2.detector()

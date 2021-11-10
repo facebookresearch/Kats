@@ -86,7 +86,9 @@ class OutlierDetector(Detector):
             original = original.interpolate(method="linear", limit_direction="both")
 
         # Once our own decomposition is ready, we can directly use it here
-        result = seasonal_decompose(original, model=self.decomp)
+        result = seasonal_decompose(
+            original, model=self.decomp, extrapolate_trend="freq"
+        )
         rem = result.resid
         detrend = original["y"] - result.trend
         strength = float(1 - np.nanvar(rem) / np.nanvar(detrend))
