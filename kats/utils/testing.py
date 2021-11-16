@@ -2,20 +2,18 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 Utilities for testing and evaluation.
 """
 
-from typing import Any, Callable, Dict, Union
+from typing import Callable, Dict, Union
 
 import numpy as np
 
 try:
     from plotly.graph_objs import Figure
 except ImportError:
-    Figure = Any
+    Figure = object
 
 
 def rmse(pred: np.ndarray, truth: np.ndarray) -> float:
@@ -63,7 +61,7 @@ error_funcs: Dict[
 
 
 class PlotlyAdapter:
-    def __init__(self, fig: Figure):
+    def __init__(self, fig: Figure) -> None:
         self.fig = fig
 
     def save_fig(self, path: str) -> None:

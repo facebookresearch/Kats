@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """The Empirical Confidence (Prediction) Interval
 
 This is an empirical way to estimate the prediction interval for any forecasting models
@@ -19,6 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
 from kats.utils.backtesters import BackTesterRollingWindow
 from scipy import stats
 
@@ -67,11 +66,11 @@ class EmpConfidenceInt:
         train_percentage: float,
         test_percentage: float,
         sliding_steps: int,
-        model_class: Type,
+        # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+        model_class: Type[Model],
         multi: bool = True,
         confidence_level: float = 0.8,
-        **kwargs
-    ):
+    ) -> None:
         self.error_methods = error_methods
         self.data = data
         self.params = params
@@ -168,17 +167,18 @@ class EmpConfidenceInt:
         logging.info("Fit the OLS model and get the coefs.")
         self.coefs = np.linalg.lstsq(X, y)[0]
 
-    def get_eci(self, steps: int, **kwargs) -> pd.DataFrame:
+    def get_eci(self, steps: int, freq: str = "D") -> pd.DataFrame:
         """Get empirical prediction interval
 
         Args:
-            steps: the length of forecasting horizon
+            steps: the length of forecasting horizon.
+            freq: the frequency.
 
         Returns:
             The dataframe of forecasted values with prediction intervals
         """
 
-        self.freq = kwargs.get("freq", "D")
+        self.freq = freq
         # get dates
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
