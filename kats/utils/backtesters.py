@@ -225,17 +225,15 @@ class BackTesterParent(ABC):
         truth: np.ndarray,
         diffs: np.ndarray,
     ) -> float:
-        """Calculates MASE error.
+        """Calculates non-seasonal MASE error.
 
         mean(|actual - forecast| / naiveError), where
-        naiveError = 1/ (n-1) sigma^n_[i=2](|actual_[i] - actual_[i-1]|)
+        naiveError = mean(|actual_[i] - actual_[i-1]|)
         """
 
         logging.info("Calculating MASE")
-        naive_error = np.abs(np.diff(training_inputs)).sum() / (
-            training_inputs.shape[0] - 1
-        )
-        return diffs.mean() / naive_error
+        naive_errors = np.abs(np.diff(training_inputs))
+        return diffs.mean() / naive_errors.mean()
 
     def _calc_mse(
         self,
