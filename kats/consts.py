@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 This module contains some of the key data structures in the Kats library,
 including :class:`TimeSeriesData`, :class:`TimeSeriesChangePoint`, and
@@ -19,6 +17,7 @@ algorithms right at the user's fingertips.
 
 from __future__ import annotations
 
+import builtins
 import copy
 import datetime
 import logging
@@ -66,44 +65,47 @@ class TimeSeriesChangePoint:
         confidence: The confidence of the change point.
     """
 
-    def __init__(self, start_time, end_time, confidence: float) -> None:
+    def __init__(
+        self, start_time: pd.Timestamp, end_time: pd.Timestamp, confidence: float
+    ) -> None:
         self._start_time = start_time
         self._end_time = end_time
         self._confidence = confidence
 
     @property
-    def start_time(self):
+    def start_time(self) -> pd.Timestamp:
         return self._start_time
 
     @property
-    def end_time(self):
+    def end_time(self) -> pd.Timestamp:
         return self._end_time
 
     @property
     def confidence(self) -> float:
         return self._confidence
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"TimeSeriesChangePoint(start_time: {self.start_time}, end_time: "
             f"{self.end_time}, confidence: {self.confidence})"
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"TimeSeriesChangePoint(start_time: {self.start_time}, end_time: "
             f"{self.end_time}, confidence: {self.confidence})"
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, TimeSeriesChangePoint):
+            return NotImplemented
         return (
-            isinstance(other, TimeSeriesChangePoint)
-            and (self._start_time == other._start_time)
+            (self._start_time == other._start_time)
             and (self._end_time == other._end_time)
             and (self.confidence == other.confidence)
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__repr__())
 
 
@@ -182,6 +184,8 @@ class TimeSeriesData:
         time series.
     """
 
+    _time: pd.Series
+    _value: Union[pd.Series, pd.DataFrame]
     _min: float = np.nan
     _max: float = np.nan
 
@@ -277,13 +281,14 @@ class TimeSeriesData:
             if time.name:
                 self.time_col_name = time.name
             else:
+                # pyre-ignore[6]: Expected `Union[typing.Callable[[Optional[typing.Has...
                 self._time.rename(DEFAULT_TIME_NAME, inplace=True)
             # Make sure the value series has a name
             if (
                 isinstance(self._value, pd.core.series.Series)
                 and self._value.name is None
             ):
-                # pyre-fixme[6]: Expected `Union[typing.Callable[[Optional[typing.Has...
+                # pyre-ignore[6]: Expected `Union[typing.Callable[[Optional[typing.Has...
                 self._value.rename(DEFAULT_VALUE_NAME, inplace=True)
             # Checking for emptiness
             if self.time.empty and self.value.empty:
@@ -458,7 +463,9 @@ class TimeSeriesData:
     def __len__(self) -> int:
         return len(self.value)
 
-    def __getitem__(self, sliced) -> TimeSeriesData:
+    def __getitem__(
+        self, sliced: Union[str, Iterable, builtins.slice]
+    ) -> TimeSeriesData:
         if isinstance(sliced, str) or (
             isinstance(sliced, Iterable) and all(isinstance(s, str) for s in sliced)
         ):
@@ -468,7 +475,11 @@ class TimeSeriesData:
                 time_col_name=self.time_col_name,
             )
         return TimeSeriesData(
+            # pyre-ignore[6]: Expected `Optional[typing.Hashable]` for 1st param but
+            #  got `Union[typing.Iterable[typing.Any], slice]`.
             time=self.time[sliced],
+            # pyre-ignore[6]: Expected `Optional[typing.Hashable]` for 1st param but
+            #  got `Union[typing.Iterable[typing.Any], slice]`.
             value=self.value[sliced],
             time_col_name=self.time_col_name,
         )
@@ -479,7 +490,7 @@ class TimeSeriesData:
     def _repr_html_(self) -> str:
         return self.to_dataframe()._repr_html_()
 
-    def _set_univariate_values_to_series(self):
+    def _set_univariate_values_to_series(self) -> None:
         # This hack is required since downstream models are expecting value of
         # type Series in case of univariate time series
         if isinstance(self.value, pd.DataFrame) and self.value.shape[1] == 1:
@@ -630,7 +641,7 @@ class TimeSeriesData:
         if validate_dimension and len(self.time) != self.value.shape[0]:
             raise ValueError("time and value has different length (dimension)!")
 
-    def _calc_min_max_values(self):
+    def _calc_min_max_values(self) -> None:
         # Get maximum and minimum values
         if not self.value.empty:
             if isinstance(self.value, pd.core.series.Series):
@@ -664,7 +675,7 @@ class TimeSeriesData:
         else:
             return False
 
-    def freq_to_timedelta(self):
+    def freq_to_timedelta(self) -> pd.Timedelta:
         """
         Returns a `pandas.Timedelta` representation of the
         :class:`TimeSeriesdata` frequency.
@@ -693,7 +704,7 @@ class TimeSeriesData:
 
         return self.time_to_index().tz
 
-    def is_univariate(self):
+    def is_univariate(self) -> bool:
         """Returns whether the :class:`TimeSeriesData` is univariate.
 
         Returns:
@@ -840,7 +851,7 @@ class TimeSeriesData:
         self,
         freq: Optional[Union[str, pd.Timedelta]] = None,
         method: str = "linear",
-        remove_duplicate_time=False,
+        remove_duplicate_time: bool = False,
     ) -> TimeSeriesData:
         """
         Interpolate missing date if `time` doesn't have constant frequency.
@@ -961,18 +972,20 @@ class TimeSeriesData:
 
 
 class TimeSeriesIterator:
+    a: Optional[pd.DataFrame] = None
+
     def __init__(self, ts: TimeSeriesData) -> None:
-        self.ts = copy.deepcopy(ts)
+        self.ts: TimeSeriesData = copy.deepcopy(ts)
         self.ts.value = pd.DataFrame(ts.value)
         self.start = 0
 
-    def __iter__(self):
+    def __iter__(self) -> TimeSeriesIterator:
         self.a = pd.DataFrame(
             list(self.ts.value.iloc[:, 0]), index=list(self.ts.time), columns=["y"]
         )
         return self
 
-    def __next__(self):
+    def __next__(self) -> pd.DataFrame:
         if self.start < self.ts.value.shape[1]:
             x = pd.DataFrame(
                 list(self.ts.value.iloc[:, self.start]),
@@ -1000,7 +1013,7 @@ class TSIterator:
         self.ts = ts
         self.curr = 0
 
-    def __iter__(self):
+    def __iter__(self) -> TSIterator:
         return self
 
     def __next__(self) -> TimeSeriesData:
@@ -1024,10 +1037,10 @@ class TSIterator:
 
 
 class Params:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         pass
 
 

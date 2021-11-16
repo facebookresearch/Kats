@@ -102,6 +102,7 @@ class RobustStatDetector(Detector):
             logging.warning("No change points detected!")
 
         for change in change_points:
+            # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
             plt.axvline(x=change[0].start_time, color="red")
 
         plt.show()

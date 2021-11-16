@@ -628,4 +628,5 @@ class MKDetector(Detector):
                 logging.warning("No trend detected!")
 
             for t in detected_time_points:
+                # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
                 plt.axvline(x=t[0].start_time, color="red")

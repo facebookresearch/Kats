@@ -555,6 +555,7 @@ class CUSUMDetector(Detector):
 
         for change in change_points:
             if change[1].regression_detected:
+                # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
                 plt.axvline(x=change[0].start_time, color="red")
 
         interest_window = self.interest_window
