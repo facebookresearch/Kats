@@ -959,8 +959,9 @@ class CrossValidation:
       data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
       params: Parameters to train model with.
       model_class: Defines the model type to use for backtesting.
-      rolling_window: A boolean flag to use the rolling window method instead
-        of the expanding window method (default False).
+      constant_train_size: A boolean flag to keep the train set size constant,
+          sliding it forward with each iteration instead of expanding the
+          train set with each iteration (default False).
       multi: A boolean flag to toggle multiprocessing (default True).
       results: List of tuples `(training_data, testing_data, trained_model,
         forecast_predictions)` storing forecast results.
@@ -1000,7 +1001,7 @@ class CrossValidation:
         test_percentage: float,
         num_folds: int,
         model_class: Type,
-        rolling_window=False,
+        constant_train_size=False,
         multi=True,
     ):
         logging.info("Initializing and validating parameter values")
@@ -1033,7 +1034,7 @@ class CrossValidation:
         self.errors = {}
         self.raw_errors = []
 
-        if not rolling_window:
+        if not constant_train_size:
             self._backtester = BackTesterExpandingWindow(
                 error_methods,
                 data,
