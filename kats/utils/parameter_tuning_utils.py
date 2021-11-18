@@ -17,14 +17,12 @@ They are called by hyperparemeter tuning module, time_series_parameter_tuning.py
 """
 
 
-from typing import Dict, List, Union
+from typing import Any, Dict, List
 
 import numpy as np
 
 
-def get_default_prophet_parameter_search_space() -> List[
-    Dict[str, Union[str, list, bool]]
-]:
+def get_default_prophet_parameter_search_space() -> List[Dict[str, Any]]:
     """Generates default search space as a list of dictionaries and returns it for prophet model.
 
     Each dictionary in the list corresponds to a hyperparameter, having properties
@@ -92,9 +90,7 @@ def get_default_prophet_parameter_search_space() -> List[
     ]
 
 
-def get_default_arnet_parameter_search_space() -> List[
-    Dict[str, Union[str, list, bool]]
-]:
+def get_default_arnet_parameter_search_space() -> List[Dict[str, Any]]:
     """Generates default search space as a list of dictionaries and returns it for arnet.
 
     Each dictionary in the list corresponds to a hyperparameter, having properties
@@ -136,9 +132,7 @@ def get_default_arnet_parameter_search_space() -> List[
     ]
 
 
-def get_default_stlf_parameter_search_space() -> List[
-    Dict[str, Union[str, list, bool]]
-]:
+def get_default_stlf_parameter_search_space() -> List[Dict[str, Any]]:
     """Generates default search space as a list of dictionaries and returns it for stfl.
 
     Each dictionary in the list corresponds to a hyperparameter, having properties
@@ -174,9 +168,7 @@ def get_default_stlf_parameter_search_space() -> List[
     ]
 
 
-def get_default_arima_parameter_search_space() -> List[
-    Dict[str, Union[str, list, bool]]
-]:
+def get_default_arima_parameter_search_space() -> List[Dict[str, Any]]:
     """Generates default search space as a list of dictionaries and returns it for arima.
 
     Each dictionary in the list corresponds to a hyperparameter, having properties
@@ -218,9 +210,7 @@ def get_default_arima_parameter_search_space() -> List[
     ]
 
 
-def get_default_holtwinters_parameter_search_space() -> List[
-    Dict[str, Union[str, list, bool]]
-]:
+def get_default_holtwinters_parameter_search_space() -> List[Dict[str, Any]]:
     """Generates default search space as a list of dictionaries and returns it for holtwinters.
 
     Each dictionary in the list corresponds to a hyperparameter, having properties
@@ -268,9 +258,7 @@ def get_default_holtwinters_parameter_search_space() -> List[
     ]
 
 
-def get_default_sarima_parameter_search_space() -> List[
-    Dict[str, Union[str, list, bool]]
-]:
+def get_default_sarima_parameter_search_space() -> List[Dict[str, Any]]:
     """Generates default search space as a list of dictionaries and returns it for sarima.
 
     Each dictionary in the list corresponds to a hyperparameter, having properties
@@ -334,9 +322,7 @@ def get_default_sarima_parameter_search_space() -> List[
     ]
 
 
-def get_default_theta_parameter_search_space() -> List[
-    Dict[str, Union[str, list, bool]]
-]:
+def get_default_theta_parameter_search_space() -> List[Dict[str, Any]]:
     """Generates default search space as a list of dictionaries and returns it for theta.
 
     Each dictionary in the list corresponds to a hyperparameter, having properties
@@ -366,7 +352,7 @@ def get_default_theta_parameter_search_space() -> List[
     ]
 
 
-def get_default_var_parameter_search_space() -> List[Dict[str, Union[str, list, bool]]]:
+def get_default_var_parameter_search_space() -> List[Dict[str, Any]]:
     """Generates default search space as a list of dictionaries and returns it for var.
 
     Each dictionary in the list corresponds to a hyperparameter, having properties

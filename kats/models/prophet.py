@@ -361,6 +361,4 @@ class ProphetModel(Model):
     @staticmethod
     def get_parameter_search_space() -> List[Dict[str, object]]:
         """get default parameter search space for Prophet model"""
-        # pyre-fixme[7]: Expected `List[Dict[str, object]]` but got `List[Dict[str,
-        #  typing.Union[List[typing.Any], bool, str]]]`.
         return get_default_prophet_parameter_search_space()
