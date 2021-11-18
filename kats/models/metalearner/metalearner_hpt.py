@@ -682,8 +682,37 @@ class MetaLearnHPT:
                 f"Fail to load model from {file_path}, and error message is: {e}"
             )
 
-    def plot(self):
-        """Plot loss paths of classification/regression on both training and validation set."""
+    def plot(
+        self,
+        figsize: Optional[Tuple[int, int]] = None,
+        xlabel: str = "Epoch",
+        train_linestyle: str = ".-",
+        validation_linestyle: str = "o-",
+        classification_title: str = "Loss path of classification tasks",
+        regression_title: str = "Loss path of regression task",
+        classification_ylabel: str = "Cross-entropy",
+        regression_ylabel: str = "MSE",
+        use_legend: bool = True,
+        legend: Optional[List[str]] = None,
+    ) -> np.ndarray:
+        """Plot loss paths of classification/regression on both training and validation.
+
+        Args:
+            figsize: optional figure size if creating. If None, uses (15, 7).
+            xlabel: x-axis label.
+            train_linestyle: line style to use for training.
+            validation_linestyle: line style to use for validation.
+            classification_title: title for classification plot.
+            regression_title: title for regression plot.
+            classification_ylabel: y-axis label for classification plot.
+            regression_ylabel: y-axis label for regression plot.
+            use_legend: if True, plots legend on both plots.
+            legend: Legend labels to use. if None, uses ["training set",
+                "validation set"].
+
+        Returns:
+            The matplotlib Axes.
+        """
 
         if (
             not self._loss_path["LOSS_train_cat"]
@@ -691,22 +720,29 @@ class MetaLearnHPT:
         ):
             raise _log_error("Using a loaded model or no trained model!")
 
-        plt.figure(figsize=(15, 7))
-        plt.subplot(1, 2, 1)
-        plt.plot(self._loss_path["LOSS_train_cat"], ".-")
-        plt.plot(self._loss_path["LOSS_val_cat"], "o-")
-        plt.legend(["training set", "validation set"])
-        plt.title("Loss path of classification tasks")
-        plt.ylabel("Cross-entropy")
-        plt.xlabel("Epoch")
+        if figsize is None:
+            figsize = (15, 7)
+        _, axs = plt.subplots(1, 2, figsize=figsize, sharex=True)
+        if legend is None:
+            legend = ["training set", "validation set"]
 
-        plt.subplot(1, 2, 2)
-        plt.plot(self._loss_path["LOSS_train_num"], ".-")
-        plt.plot(self._loss_path["LOSS_val_num"], "o-")
-        plt.legend(["training set", "validation set"])
-        plt.title("Loss path of regression task")
-        plt.ylabel("MSE")
-        plt.xlabel("Epoch")
+        ax = axs[0]
+        ax.plot(self._loss_path["LOSS_train_cat"], train_linestyle)
+        ax.plot(self._loss_path["LOSS_val_cat"], validation_linestyle)
+        if use_legend:
+            ax.legend(legend)
+        ax.set_title(classification_title)
+        ax.set_ylabel(classification_ylabel)
+
+        ax = axs[1]
+        ax.plot(self._loss_path["LOSS_train_num"], train_linestyle)
+        ax.plot(self._loss_path["LOSS_val_num"], validation_linestyle)
+        if use_legend:
+            ax.legend(legend)
+        ax.set_title(regression_title)
+        ax.set_ylabel(regression_ylabel)
+        ax.set_xlabel(xlabel)
+        return axs
 
 
 class MultitaskNet(nn.Module):

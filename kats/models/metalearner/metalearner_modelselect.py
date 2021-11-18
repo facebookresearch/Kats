@@ -186,24 +186,34 @@ class MetaLearnModelSelect:
                 "Successfully scaled data by centering to the mean and component-wise scaling to unit variance!"
             )
 
-    def plot_feature_comparison(self, i: int, j: int) -> None:
+    def plot_feature_comparison(
+        self,
+        i: int,
+        j: int,
+        ax: Optional[plt.Axes] = None,
+        figsize: Optional[Tuple[int, int]] = None,
+    ) -> plt.Axes:
         """Generate the time series features comparison plot.
 
         Args:
             i: A integer representing the index of one feature vector from feature matrix to be compared.
             j: A integer representing the other index of one feature vector from feature matrix to be compared.
+            ax: optional axes to use for plotting.
+            figsize: optional figure size to create. If None, use (12, 6).
 
         Returns:
-            None
+            The matplotlib Axes.
         """
 
         combined = pd.concat([self.metadataX.iloc[i], self.metadataX.iloc[j]], axis=1)
         combined.columns = [
-            str(self.metadataY.iloc[i]) + " model",
-            str(self.metadataY.iloc[j]) + " model",
+            f"{self.metadataY.iloc[i]} model",
+            f"{self.metadataY.iloc[j]} model",
         ]
+        if figsize is None:
+            figsize = (12, 6)
         # pyre-fixme[29]: `CachedAccessor` is not a function.
-        combined.plot(kind="bar", figsize=(12, 6))
+        return combined.plot(kind="bar", figsize=figsize, ax=ax)
 
     def get_corr_mtx(self) -> pd.DataFrame:
         """Calculate correlation matrix of feature matrix.
@@ -214,21 +224,33 @@ class MetaLearnModelSelect:
 
         return self.metadataX.corr()
 
-    def plot_corr_heatmap(self, camp: str = "RdBu_r") -> None:
+    def plot_corr_heatmap(
+        self,
+        camp: str = "RdBu_r",
+        ax: Optional[plt.Axes] = None,
+        figsize: Optional[Tuple[int, int]] = None,
+    ) -> plt.Axes:
         """Generate heat-map for correlation matrix of feature matrix.
 
         Args:
-            camp: Optional; A string representing the olor bar used to generate heat-map. Default is "RdBu_r".
+            cmap: Optional; A string representing the color bar used to generate heat-map. Default is "RdBu_r".
+            ax: optional axes to use for plotting.
+            figsize: optional figure size to create. If None, use (8, 6).
 
         Returns:
-            None
+            The matplotlib Axes.
         """
-        fig, _ = plt.subplots(figsize=(8, 6))
-        _ = sns.heatmap(
+        if ax is None:
+            if figsize is None:
+                figsize = (8, 6)
+            _, ax = plt.subplots(figsize=figsize)
+
+        return sns.heatmap(
             self.get_corr_mtx(),
             cmap=camp,
             yticklabels=self.metadataX.columns,
             xticklabels=self.metadataX.columns,
+            ax=ax,
         )
 
     def train(
