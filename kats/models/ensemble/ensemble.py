@@ -2,24 +2,19 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """Ensemble techniques for forecasting
 
 This implements a set of ensemble techniques including weighted averaging, median ensemble
 and STL-based ensembling method. This is the parent class for all ensemble models.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 from multiprocessing import Pool, cpu_count
-from typing import List
+from typing import Dict, List, Optional, Type
 
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models import (
-    model,
     arima,
     holtwinters,
     linear_model,
@@ -27,6 +22,7 @@ from kats.models import (
     quadratic_model,
     sarima,
 )
+from kats.models.model import Model
 
 
 BASE_MODELS = {
@@ -49,7 +45,8 @@ class BaseModelParams(Params):
         model_params: model_param is defined in base models
     """
 
-    def __init__(self, model_name: str, model_params: Params, **kwargs) -> None:
+    def __init__(self, model_name: str, model_params: Params) -> None:
+        super().__init__()
         self.model_name = model_name
         self.model_params = model_params
         logging.debug(
@@ -60,7 +57,7 @@ class BaseModelParams(Params):
             )
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         logging.info("Method validate_params() is not implemented.")
         pass
 
@@ -69,18 +66,28 @@ class EnsembleParams(Params):
     __slots__ = ["models"]
 
     def __init__(self, models: List[BaseModelParams]) -> None:
-        self.models = models
+        self.models: List[BaseModelParams] = models
 
 
-class BaseEnsemble:
+# pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+class BaseEnsemble(Model):
     """Base ensemble class
 
     Implement parent class for ensemble.
     """
 
+    # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+    fitted: Optional[Dict[str, Model]] = None
+
     def __init__(self, data: TimeSeriesData, params: EnsembleParams) -> None:
-        self.data = data
-        self.params = params
+        super().__init__(data, params)
+
+        if not isinstance(self.data.value, pd.Series):
+            msg = "Only support univariate time series, but get {type}.".format(
+                type=type(self.data.value)
+            )
+            logging.error(msg)
+            raise ValueError(msg)
 
         for m in params.models:
             if m.model_name not in BASE_MODELS:
@@ -91,16 +98,7 @@ class BaseEnsemble:
                 logging.error(msg)
                 raise ValueError(msg)
 
-        if not isinstance(self.data.value, pd.Series):
-            msg = "Only support univariate time series, but get {type}.".format(
-                type=type(self.data.value)
-            )
-            logging.error(msg)
-            raise ValueError(msg)
-
-    def fit(
-        self,
-    ):
+    def fit(self) -> None:
         """Fit method for ensemble model
 
         This method fits each individual model for ensembling
@@ -123,7 +121,8 @@ class BaseEnsemble:
         pool.join()
         self.fitted = {model: res.get() for model, res in fitted_models.items()}
 
-    def _fit_single(self, model_func: model.Model, model_param: Params):
+    # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+    def _fit_single(self, model_func: Type[Model], model_param: Params) -> Model:
         """Private method to fit individual model
 
         Args:
@@ -135,12 +134,13 @@ class BaseEnsemble:
         """
 
         # get the model function call
-        # pyre-fixme[29]: `Model` is not a function.
         m = model_func(params=model_param, data=self.data)
         m.fit()
         return m
 
-    def _predict_all(self, steps: int, **kwargs):
+    # pyre-fixme[2]: Parameter must be annotated.
+    # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+    def _predict_all(self, steps: int, **kwargs) -> Dict[str, Model]:
         """Private method to fit all individual models
 
         Args:
@@ -149,19 +149,24 @@ class BaseEnsemble:
         Returns:
             None
         """
+        fitted = self.fitted
+        if fitted is None:
+            raise ValueError("Call fit() before predict().")
 
         predicted = {}
-        # pyre-fixme[16]: `BaseEnsemble` has no attribute `fitted`.
-        for model_name, model_fitted in self.fitted.items():
+        for model_name, model_fitted in fitted.items():
             predicted[model_name] = model_fitted.predict(steps, **kwargs)
         return predicted
 
-    def plot(self):
+    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
+    #  defined in `Model`.
+    def plot(self) -> None:
         """Plot method for ensemble model (not implemented yet)"""
 
         pass
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Get the class name as a string
 
         Args:

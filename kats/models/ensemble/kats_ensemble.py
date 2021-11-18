@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """Kats ensemble model
 
 Implementation of the Kats ensemble model. It starts from seasonality detection, if seasonality detected, it
@@ -20,9 +18,8 @@ import multiprocessing
 import sys
 from copy import copy
 from multiprocessing import cpu_count
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Type, Union
 
-import kats.models.model as mm
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData, Params
@@ -73,7 +70,8 @@ def _logged_error(msg: str) -> ValueError:
     return ValueError(msg)
 
 
-class KatsEnsemble:
+# pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+class KatsEnsemble(Model):
     """Decomposition based ensemble model in Kats
     This is the holistic ensembling class based on decomposition when seasonality presents
     """
@@ -84,14 +82,14 @@ class KatsEnsemble:
     steps: int = -1
     decomposition_method: str = ""
     model_params: Optional[EnsembleParams] = None
-    fitted: Optional[Dict[Any, Any]] = None
+    fitted: Optional[Dict[str, Any]] = None
     weights: Optional[Dict[str, float]] = None
     predicted: Optional[Dict[str, pd.DataFrame]] = None
     err: Optional[Dict[str, float]] = None
     dates: Optional[pd.DatetimeIndex] = None
     fcst_dates: Optional[ArrayLike] = None
     fcst_df: Optional[pd.DataFrame] = None
-    errors: Optional[Dict[Any, Any]] = None
+    errors: Optional[Dict[str, Any]] = None
 
     def __init__(
         self,
@@ -99,11 +97,11 @@ class KatsEnsemble:
         params: Dict[str, Any],
     ) -> None:
         self.data = data
-        self.freq = pd.infer_freq(data.time)
+        self.freq: Optional[str] = pd.infer_freq(data.time)
         self.params = params
         self.validate_params()
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         # validate aggregation method
         if self.params["aggregation"] not in ("median", "weightedavg"):
             method = self.params["aggregation"]
@@ -143,7 +141,7 @@ class KatsEnsemble:
             self.fitExecutor = self.params["fitExecutor"]
 
     @staticmethod
-    def seasonality_detector(data) -> bool:
+    def seasonality_detector(data: TimeSeriesData) -> bool:
         """Detect seasonalities from given TimeSeriesData
 
         Args:
@@ -284,7 +282,7 @@ class KatsEnsemble:
         models: EnsembleParams,
         should_auto_backtest: bool = False,
         err_method: str = "mape",
-    ) -> Tuple[Dict[Any, Any], Optional[Dict[str, float]]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, float]]]:
         """callable forecast executor
 
         This is native implementation with Python's multiprocessing
@@ -348,7 +346,8 @@ class KatsEnsemble:
         auto_backtesting = False if self.params["aggregation"] == "median" else True
 
         # check fitExecutor
-        if "fitExecutor" not in self.params.keys():
+        fitExecutor = self.params.get("fitExecutor")
+        if fitExecutor is None:
             fitExecutor = self.fitExecutor
 
         if self.seasonality:
@@ -368,7 +367,6 @@ class KatsEnsemble:
                     given_models.append(tmp)
 
             self.model_params = model_params = EnsembleParams(given_models)
-            # pyre-fixme[61]: `fitExecutor` may not be initialized here.
             self.fitted, self.weights = fitExecutor(
                 data=desea_data,
                 models=model_params,
@@ -379,7 +377,6 @@ class KatsEnsemble:
             self.model_params = model_params = EnsembleParams(
                 self.params["models"].models
             )
-            # pyre-fixme[61]: `fitExecutor` may not be initialized here.
             self.fitted, self.weights = fitExecutor(
                 data=self.data,
                 models=model_params,
@@ -388,6 +385,7 @@ class KatsEnsemble:
             )
         return self
 
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int) -> KatsEnsemble:
         """Predit future for each individual model
 
@@ -441,7 +439,7 @@ class KatsEnsemble:
             # its native C.I if user choose weighted average ensemble.
             for k, v in predicted.items():
                 # if predicted df doesn't have fcst_lower and fcst_upper
-                if "fcst_lower" not in v.columns or "fcst_upper" not in v.columns:
+                if not {"fcst_lower", "fcst_upper"}.issubset(v.columns):
                     # add dummy C.I
                     tmp_v = copy(v)
                     tmp_v["fcst_lower"] = np.nan
@@ -530,6 +528,8 @@ class KatsEnsemble:
                 elif extra_error is not None:
                     desea_err.update(extra_error)
                 self.err = forecast_error = desea_err
+            else:
+                forecast_error = None
         else:
             # no seasonality detected
             predicted, forecast_error = self.forecastExecutor(
@@ -557,7 +557,6 @@ class KatsEnsemble:
 
         # we need to transform err to weights if it's weighted avg
         if self.params["aggregation"] == "weightedavg":
-            # pyre-fixme[61]: `forecast_error` may not be initialized here.
             assert forecast_error is not None
             original_weights = {
                 model: 1 / (err + sys.float_info.epsilon)
@@ -715,7 +714,7 @@ class KatsEnsemble:
             fcsts["fcst_upper"] = fcsts["fcst_upper"].replace(0, np.nan)
         return fcsts
 
-    def backTestExecutor(self, err_method) -> Dict[str, float]:
+    def backTestExecutor(self, err_method: str) -> Dict[str, float]:
         """wrapper for back test executor
 
         services which use KatsEnsemble need to write their own backtest wrapper
@@ -731,7 +730,12 @@ class KatsEnsemble:
         return weights
 
     def _fit_single(
-        self, data: TimeSeriesData, model_func: Callable, model_param: Params
+        self,
+        data: TimeSeriesData,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
+        model_func: Callable,
+        model_param: Params
+        # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
     ) -> Model:
         """Private method to fit individual model
 
@@ -752,7 +756,8 @@ class KatsEnsemble:
     def _backtester_single(
         self,
         params: Params,
-        model_class,
+        # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+        model_class: Type[Model],
         train_percentage: int = 80,
         test_percentage: int = 20,
         err_method: str = "mape",
@@ -828,6 +833,9 @@ class KatsEnsemble:
         }
         return weights, errors
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
+    #  defined in `Model`.
     def plot(self) -> None:
         """plot forecast results"""
         fcst_df = self.fcst_df
@@ -835,4 +843,4 @@ class KatsEnsemble:
             raise _logged_error("forecast must be called before plot.")
 
         logging.info("Generating chart for forecast result from Ensemble model.")
-        mm.Model.plot(self.data, fcst_df)
+        Model.plot(self.data, fcst_df)

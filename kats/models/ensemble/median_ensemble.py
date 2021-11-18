@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """Median ensembling method
 
 Ensemble models with median of individual models
@@ -12,8 +10,8 @@ model, we take the median from each time point as the final results
 """
 
 import logging
+from typing import List, Optional, cast
 
-import kats.models.model as mm
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.models.ensemble import ensemble
@@ -28,6 +26,12 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
         params: the model parameter class in Kats
     """
 
+    freq: Optional[str] = None
+    fcst: Optional[pd.DataFrame] = None
+    fcst_dates: Optional[pd.DatetimeIndex] = None
+    dates: Optional[pd.DatetimeIndex] = None
+    fcst_df: Optional[pd.DataFrame] = None
+
     def __init__(self, data: TimeSeriesData, params: EnsembleParams) -> None:
         self.data = data
         self.params = params
@@ -38,7 +42,9 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
             logging.error(msg)
             raise ValueError(msg)
 
-    def predict(self, steps: int, **kwargs):
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[2]: Parameter must be annotated.
+    def predict(self, steps: int, **kwargs) -> pd.DataFrame:
         """Predict method of median ensemble model
 
         Args:
@@ -52,39 +58,30 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
-        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `freq`.
-        self.freq = kwargs.get("freq", "D")
+        # Keep freq in the parameters passed to _predict_all()
+        self.freq = freq = kwargs.get("freq", "D")
         pred_dict = self._predict_all(steps, **kwargs)
 
         fcst_all = pd.concat(
-            [x.fcst.reset_index(drop=True) for x in pred_dict.values()], axis=1
+            # pyre-fixme[16]: `Model` has no attribute `fcst`.
+            [x.fcst.reset_index(drop=True) for x in pred_dict.values()],
+            axis=1,
         )
-        fcst_all.columns = pred_dict.keys()
-        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `fcst`.
+        fcst_all.columns = cast(List[str], pred_dict.keys())
         self.fcst = fcst_all.median(axis=1)
 
         # create future dates
         last_date = self.data.time.max()
-        dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
+        dates = pd.date_range(start=last_date, periods=steps + 1, freq=freq)
         dates = dates[dates != last_date]
-        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `fcst_dates`.
         self.fcst_dates = dates.to_pydatetime()
-        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]
-
-        # pyre-fixme[16]: `MedianEnsembleModel` has no attribute `fcst_df`.
-        self.fcst_df = pd.DataFrame({"time": self.dates, "fcst": self.fcst})
+        self.fcst_df = fcst_df = pd.DataFrame({"time": self.dates, "fcst": self.fcst})
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
-        return self.fcst_df
+        return fcst_df
 
-    def plot(self):
-        """Plot method for median ensemble model"""
-
-        logging.info("Generating chart for forecast result from Ensemble.")
-        mm.Model.plot(self.data, self.fcst_df)
-
-    def __str__(self):
+    def __str__(self) -> str:
         """Get default parameter search space for the median ensemble model
 
         Args:

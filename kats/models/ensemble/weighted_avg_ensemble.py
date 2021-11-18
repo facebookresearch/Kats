@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """Ensemble models with weighted average individual models
 
 Assume we have k base models, after we make forecasts with each individual
@@ -14,13 +12,14 @@ weight.
 import logging
 import sys
 from multiprocessing import Pool, cpu_count
+from typing import Any, Dict, List, Optional, Type, Union, cast
 
-import kats.models.model as mm
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models.ensemble import ensemble
 from kats.models.ensemble.ensemble import BASE_MODELS, EnsembleParams
+from kats.models.model import Model
 from kats.utils.backtesters import BackTesterSimple
 
 
@@ -31,6 +30,14 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
         data: the input time series data as in :class:`kats.consts.TimeSeriesData`
         params: the model parameter class in Kats
     """
+
+    freq: Optional[str] = None
+    errors: Optional[Dict[str, Any]] = None
+    weights: Optional[Dict[str, Any]] = None
+    fcst_weighted: Optional[Union[pd.DataFrame, pd.Series]] = None
+    fcst_dates: Optional[pd.DatetimeIndex] = None
+    dates: Optional[pd.DatetimeIndex] = None
+    fcst_df: Optional[pd.DataFrame] = None
 
     def __init__(self, data: TimeSeriesData, params: EnsembleParams) -> None:
         self.data = data
@@ -45,7 +52,8 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
     def _backtester_single(
         self,
         params: Params,
-        model_class,
+        # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+        model_class: Type[Model],
         train_percentage: int = 80,
         test_percentage: int = 20,
         err_method: str = "mape",
@@ -75,7 +83,7 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
         bt.run_backtest()
         return bt.get_error_value(err_method)
 
-    def _backtester_all(self, err_method: str = "mape"):
+    def _backtester_all(self, err_method: str = "mape") -> Dict[str, Any]:
         """Private method to run all backtesting process
 
         Args:
@@ -99,20 +107,20 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
             )
         pool.close()
         pool.join()
-        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `errors`.
         self.errors = {model: res.get() for model, res in backtesters.items()}
         original_weights = {
             model: 1 / (err + sys.float_info.epsilon)
             for model, err in self.errors.items()
         }
-        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `weights`.
         self.weights = {
             model: err / sum(original_weights.values())
             for model, err in original_weights.items()
         }
         return self.weights
 
-    def predict(self, steps: int, **kwargs):
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[2]: Parameter must be annotated.
+    def predict(self, steps: int, **kwargs) -> pd.DataFrame:
         """Predict method of weighted average ensemble model
 
         Args:
@@ -121,9 +129,8 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
         Returns:
             forecasting results as in pd.DataFrame
         """
-
-        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `freq`.
-        self.freq = kwargs.get("freq", "D")
+        # keep these in kwargs to pass to _predict_all.
+        self.freq = freq = kwargs.get("freq", "D")
         err_method = kwargs.get("err_method", "mape")
         # calculate the weights
         self._backtester_all(err_method=err_method)
@@ -132,34 +139,29 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
         pred_dict = self._predict_all(steps, **kwargs)
 
         fcst_all = pd.concat(
-            [x.fcst.reset_index(drop=True) for x in pred_dict.values()], axis=1
+            # pyre-fixme[16]: `Model` has no attribute `fcst`.
+            [x.fcst.reset_index(drop=True) for x in pred_dict.values()],
+            axis=1,
         )
-        fcst_all.columns = pred_dict.keys()
-        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `fcst_weighted`.
-        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `weights`.
-        self.fcst_weighted = fcst_all.dot(np.array(list(self.weights.values())))
+        fcst_all.columns = cast(List[str], pred_dict.keys())
+        weights = self.weights
+        assert weights is not None
+        self.fcst_weighted = fcst_all.dot(np.array(list(weights.values())))
 
         # create future dates
         last_date = self.data.time.max()
-        dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
+        dates = pd.date_range(start=last_date, periods=steps + 1, freq=freq)
         dates = dates[dates != last_date]
-        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `fcst_dates`.
         self.fcst_dates = dates.to_pydatetime()
-        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `dates`.
         self.dates = dates[dates != last_date]
+        self.fcst_df = fcst_df = pd.DataFrame(
+            {"time": self.dates, "fcst": self.fcst_weighted}
+        )
 
-        # pyre-fixme[16]: `WeightedAvgEnsemble` has no attribute `fcst_df`.
-        self.fcst_df = pd.DataFrame({"time": self.dates, "fcst": self.fcst_weighted})
+        logging.debug("Return forecast data: {fcst_df}")
+        return fcst_df
 
-        logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
-        return self.fcst_df
-
-    def plot(self):
-        """Plot method for weighted average ensemble model"""
-        logging.info("Generating chart for forecast result from Ensemble.")
-        mm.Model.plot(self.data, self.fcst_df)
-
-    def __str__(self):
+    def __str__(self) -> str:
         """Get default parameter search space for the weighted average ensemble model
 
         Args:
