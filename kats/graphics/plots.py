@@ -2,11 +2,9 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 # Utility functions for plotting
 
-from typing import Any, List
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -18,10 +16,12 @@ try:
     Figure = go.Figure
 except ImportError:
     _no_plotly = True
-    Figure = Any
+    Figure = object
 
 
-def plot_scatter_with_confints(val: List[float], confint: np.ndarray, title) -> Figure:
+def plot_scatter_with_confints(
+    val: List[float], confint: np.ndarray, title: str
+) -> Figure:
     """Plots a scatter plot with confidence intervals used to plot ACF and PACF
     Parameters
     ----------
