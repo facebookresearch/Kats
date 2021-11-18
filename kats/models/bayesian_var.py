@@ -459,23 +459,30 @@ class BayesianVAR(m.Model):
 
         return indiv_forecasts
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
-    #  defined in `m.Model`.
-    def plot(self) -> None:
+    def plot(
+        self,
+        ax: Optional[plt.Axes] = None,
+        figsize: Optional[Tuple[int, int]] = None,
+        **kwargs,
+    ) -> plt.Axes:
         """Plot forecasted results from Bayesian VAR model"""
         forecast = self.forecast
         data = self.data
         if forecast is None:
             raise ValueError("Must call predict() before plot()")
 
-        plt.figure(figsize=(20, 6))
-        plt.title("Input Timeseries & Forecast")
+        if ax is None:
+            if figsize is None:
+                figsize = (20, 6)
+            _, ax = plt.subplots(figsize=figsize)
+        ax.set_title("Input Timeseries & Forecast")
 
         for i, c in enumerate(self.data.value.columns):
             color = f"C{i}"
-            plt.plot(data.time, data.value[c], c=color)
-            plt.plot(forecast[c].time, forecast[c].value, "--", c=color)
+            ax.plot(data.time, data.value[c], c=color)
+            ax.plot(forecast[c].time, forecast[c].value, "--", c=color)
+
+        return ax
 
     @property
     def sigma_u(self) -> pd.DataFrame:

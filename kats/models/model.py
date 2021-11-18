@@ -5,11 +5,11 @@
 # pyre-unsafe
 
 import logging
-from typing import Generic, Optional, TypeVar
+from typing import Generic, Optional, Tuple, TypeVar
 
+import matplotlib.pyplot as plt
 import pandas as pd
 from kats.consts import TimeSeriesData
-from matplotlib import pyplot as plt
 
 ParamsType = TypeVar("ParamsType")
 
@@ -27,6 +27,8 @@ class Model(Generic[ParamsType]):
         validate_frequency: validate the frequency of time series
         validate_dimension: validate the dimension of time series
     """
+    fcst_df: Optional[pd.DataFrame] = None
+    include_history: bool = False
 
     def __init__(
         self,
@@ -70,63 +72,67 @@ class Model(Generic[ParamsType]):
         """
         pass
 
-    @staticmethod
     def plot(
-        data: TimeSeriesData,
-        fcst: pd.DataFrame,
-        include_history=False,
-    ) -> None:
-        """plot method for forecasting models
+        self,
+        ax: Optional[plt.Axes] = None,
+        figsize: Optional[Tuple[int, int]] = None,
+        **kwargs
+    ) -> plt.Axes:
+        """Plot method for forecasting models
 
-        This method provides the plotting functionality for all forecasting
+        This method provides base plotting functionality for all forecasting
         models.
 
         Args:
-            data: `TimeSeriesData`, the historical time series data set
-            fcst: forecasted results from forecasting models
-            include_history: if True, include the historical data when plotting.
+            ax: optional Matplotlib Axes to use.
+        Returns:
+            The matplotlib Axes object.
         """
+        fcst_df = self.fcst_df
+        if fcst_df is None:
+            raise ValueError("predict() must be called before plot().")
+        data = self.data
+        include_history = self.include_history
+
         logging.info("Generating chart for forecast result.")
-        fig = plt.figure(facecolor="w", figsize=(10, 6))
-        ax = fig.add_subplot(111)
-        ax.plot(pd.to_datetime(data.time), data.value, "k")
+        if ax is None:
+            if figsize is None:
+                figsize = (10, 6)
+            fig, ax = plt.subplots(facecolor="w", figsize=figsize)
+        else:
+            fig = plt.gcf()
 
-        last_date = data.time.max()
-        steps = fcst.shape[0]
-        freq = pd.infer_freq(data.time)
-        dates = pd.date_range(start=last_date, periods=steps + 1, freq=freq)
+        # Allow subclasses to specify different kwargs by fetching them
+        # here instead of in the method signature.
+        intervals = kwargs.get("intervals", True)
+        ls = kwargs.get("ls", "-")
+        history_color = kwargs.get("history_color", "k")
+        forecast_color = kwargs.get("forecast_color", "#4267B2")
+        grid = kwargs.get("grid", True)
+        xlabel = kwargs.get("xlabel", "time")
+        ylabel = kwargs.get("ylabel", "y")
 
-        dates_to_plot = dates[dates != last_date]  # Return correct number of periods
-
-        fcst_dates = dates_to_plot.to_pydatetime()
+        if grid:
+            ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)
 
         if include_history:
-            ax.plot(fcst.time, fcst.fcst, ls="-", c="#4267B2")
+            ax.plot(data.time, data.value, history_color)
 
-            if ("fcst_lower" in fcst.columns) and ("fcst_upper" in fcst.columns):
-                ax.fill_between(
-                    fcst.time,
-                    fcst.fcst_lower,
-                    fcst.fcst_upper,
-                    color="#4267B2",
-                    alpha=0.2,
-                )
-        else:
-            ax.plot(fcst_dates, fcst.fcst, ls="-", c="#4267B2")
+        ax.plot(fcst_df["time"], fcst_df["fcst"], ls=ls, c=forecast_color)
 
-            if ("fcst_lower" in fcst.columns) and ("fcst_upper" in fcst.columns):
-                ax.fill_between(
-                    fcst_dates,
-                    fcst.fcst_lower,
-                    fcst.fcst_upper,
-                    color="#4267B2",
-                    alpha=0.2,
-                )
+        if intervals and {"fcst_lower", "fcst_upper"}.issubset(fcst_df.columns):
+            ax.fill_between(
+                fcst_df["time"],
+                fcst_df["fcst_lower"],
+                fcst_df["fcst_upper"],
+                color=forecast_color,
+                alpha=0.2,
+            )
 
-        ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)
-        ax.set_xlabel(xlabel="time")
-        ax.set_ylabel(ylabel="y")
-        fig.tight_layout()
+        ax.set_xlabel(xlabel=xlabel)
+        ax.set_ylabel(ylabel=ylabel)
+        fig.set_tight_layout(True)
+        return ax
 
     @staticmethod
     def get_parameter_search_space():

@@ -96,8 +96,6 @@ class HarmonicRegressionModel(Model):
 
     # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
     # pyre-fixme[15]: `plot` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
-    #  defined in `Model`.
     def plot(self) -> Tuple[Figure, pd.DataFrame]:
         """Demeans the time series, fits the harmonics,
             returns the plot and error metrics.

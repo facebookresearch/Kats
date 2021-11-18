@@ -22,10 +22,10 @@ Kats development style.
 import logging
 from typing import List, Dict, Optional, Callable, Any
 
-import kats.models.model as m
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import get_default_arima_parameter_search_space
 from statsmodels.tsa.arima_model import ARIMA, ARIMAResults
 
@@ -66,7 +66,7 @@ class ARIMAParams(Params):
         pass
 
 
-class ARIMAModel(m.Model):
+class ARIMAModel(Model):
     """Model class for ARIMA model
 
     Attributes:
@@ -247,11 +247,6 @@ class ARIMAModel(m.Model):
                 raise ValueError(msg)
         logging.debug(f"Return forecast data: {fcst_df}")
         return fcst_df
-
-    def plot(self):
-        """Plot forecast results from the ARIMA model"""
-
-        m.Model.plot(self.data, self.fcst_df)
 
     def __str__(self):
         return "ARIMA"

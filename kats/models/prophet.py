@@ -17,8 +17,8 @@ except ImportError:
     _no_prophet = True
     Prophet = dict  # for Pyre
 
-import kats.models.model as m
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import (
     get_default_prophet_parameter_search_space,
 )
@@ -194,7 +194,7 @@ class ProphetParams(Params):
         pass
 
 
-class ProphetModel(m.Model):
+class ProphetModel(Model):
     """Model class for Prophet
 
     This class provides fit, predict, and plot methods for Prophet model
@@ -320,7 +320,6 @@ class ProphetModel(m.Model):
         # pyre-fixme[16]: `ProphetModel` has no attribute `freq`.
         # pyre-fixme[16]: `ProphetModel` has no attribute `data`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
-        # pyre-fixme[16]: `ProphetModel` has no attribute `include_history`.
         self.include_history = include_history
         # prepare future for Prophet.predict
         future = kwargs.get("future")
@@ -344,8 +343,7 @@ class ProphetModel(m.Model):
         logging.info("Generated forecast data from Prophet model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 
-        # pyre-fixme[16]: `ProphetModel` has no attribute `fcst_df`.
-        self.fcst_df = pd.DataFrame(
+        self.fcst_df = fcst_df = pd.DataFrame(
             {
                 "time": fcst.ds,
                 "fcst": fcst.yhat,
@@ -355,12 +353,7 @@ class ProphetModel(m.Model):
         )
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
-        return self.fcst_df
-
-    def plot(self):
-        """plot forecasted results from Prophet model"""
-        logging.info("Generating chart for forecast result from Prophet model.")
-        m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
+        return fcst_df
 
     def __str__(self):
         return "Prophet"

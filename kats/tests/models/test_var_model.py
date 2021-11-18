@@ -19,6 +19,8 @@ class testVARModel(TestCase):
     def setUp(self):
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
+        DATA_multi2 = load_data("multi_ts.csv")
+        self.TSData_multi2 = TimeSeriesData(DATA_multi2)
 
     def test_fit_forecast(self) -> None:
         params = VARParams()
@@ -59,17 +61,39 @@ class testVARModel(TestCase):
 
     # @pytest.mark.image_compare
     def test_plot(self) -> plt.Figure:
+        # Test the example from the 201 notebook.
+        m = VARModel(self.TSData_multi2, VARParams())
+        m.fit()
+        m.predict(steps=90)
+        m.plot()
+        return plt.gcf()
+
+    # @pytest.mark.image_compare
+    def test_plot_include_history(self) -> plt.Figure:
+        # This shouldn't error, but currently does.
         with self.assertRaises(ValueError):
-            m = VARModel(self.TSData_multi, VARParams())
+            m = VARModel(self.TSData_multi2, VARParams())
             m.fit()
-            m.predict(steps=30, include_history=True)
+            m.predict(steps=90, include_history=True)
             m.plot()
             return plt.gcf()
+
+    def test_plot_ax_not_supported(self) -> None:
+        with self.assertRaises(ValueError):
+            _, ax = plt.subplots()
+            m = VARModel(self.TSData_multi, VARParams())
+            m.fit()
+            m.predict(steps=5)
+            m.plot(ax=ax)
 
     def test_plot_unpredict(self) -> None:
         with self.assertRaises(ValueError):
             m = VARModel(self.TSData_multi, VARParams())
             m.plot()
+
+    def test_str(self) -> None:
+        result = str(VARModel(self.TSData_multi, VARParams()))
+        self.assertEqual("VAR", result)
 
 
 if __name__ == "__main__":

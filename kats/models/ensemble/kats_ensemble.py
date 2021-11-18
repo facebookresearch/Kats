@@ -832,15 +832,3 @@ class KatsEnsemble(Model):
             for model, err in original_weights.items()
         }
         return weights, errors
-
-    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
-    #  defined in `Model`.
-    def plot(self) -> None:
-        """plot forecast results"""
-        fcst_df = self.fcst_df
-        if fcst_df is None:
-            raise _logged_error("forecast must be called before plot.")
-
-        logging.info("Generating chart for forecast result from Ensemble model.")
-        Model.plot(self.data, fcst_df)

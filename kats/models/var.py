@@ -20,15 +20,13 @@ We use the implementation in statsmodels and re-write the API to adapt Kats deve
     m.plot()
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-import kats.models.model as m
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import get_default_var_parameter_search_space
 from matplotlib import pyplot as plt
 from statsmodels.tsa.api import VAR
@@ -70,7 +68,7 @@ class VARParams(Params):
         pass
 
 
-class VARModel(m.Model):
+class VARModel(Model):
     """Model class for VAR
 
     This class provides fit, predict, and plot methods for VAR model
@@ -84,7 +82,6 @@ class VARModel(m.Model):
     k_ar: Optional[int] = None
     sigma_u: Optional[np.ndarray] = None
     resid: Optional[np.ndarray] = None
-    include_history: bool = False
     freq: Optional[str] = None
     alpha: Optional[float] = None
     dates: Optional[pd.DatetimeIndex] = None
@@ -206,39 +203,51 @@ class VARModel(m.Model):
         ret = {k: TimeSeriesData(v) for k, v in fcst_dict.items()}
         return ret
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
-    #  defined in `m.Model`.
-    def plot(self) -> None:
+    def plot(
+        self,
+        ax: Optional[plt.Axes] = None,
+        figsize: Optional[Tuple[int, int]] = None,
+        dpi: int = 120,
+        forecast_color: str = "#4267B2",
+        history_color: str = "k",
+        grid: bool = True,
+        xlabel: str = "time",
+        **kwargs,
+    ) -> plt.Axes:
         """Plot forecasted results from VAR model"""
         fcst_dict = self.fcst_dict
         if fcst_dict is None:
             raise ValueError("Call predict() before plot().")
+        if ax is not None:
+            raise ValueError("VARModel does not support the ax parameter.")
         dates = self.dates
         assert dates is not None
+        fcst_dates = dates.to_pydatetime()
         logging.info("Generating chart for forecast result from VAR model.")
 
-        fig, axes = plt.subplots(ncols=2, dpi=120, figsize=(10, 6))
-        for i, ax in enumerate(axes.flatten()):
-            ts_name = list(fcst_dict.keys())[i]
-            data = fcst_dict[ts_name]
-            ax.plot(pd.to_datetime(self.data.time), self.data.value[ts_name], "k")
-            fcst_dates = dates.to_pydatetime()
-            ax.plot(fcst_dates, data["fcst"], ls="-", c="#4267B2")
+        if figsize is None:
+            figsize = (10, 6)
+        fig, axes = plt.subplots(ncols=2, dpi=dpi, figsize=figsize)
+        for ts_name, ax in zip(self.data.value.columns, axes.flat):
+            ax.plot(self.data.time, self.data.value[ts_name], history_color)
 
+            data = fcst_dict[ts_name]
+            ax.plot(fcst_dates, data["fcst"], ls="-", c=forecast_color)
             ax.fill_between(
                 fcst_dates,
                 data["fcst_lower"],
                 data["fcst_upper"],
-                color="#4267B2",
+                color=forecast_color,
                 alpha=0.2,
             )
 
-            ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)
-            ax.set_xlabel(xlabel="time")
+            if grid:
+                ax.grid(True, which="major", c="gray", ls="-", lw=1, alpha=0.2)
+            ax.set_xlabel(xlabel=xlabel)
             ax.set_ylabel(ylabel=ts_name)
 
-        plt.tight_layout()
+        fig.set_tight_layout(True)
+        return axes
 
     def __str__(self):
         """VAR model as a string

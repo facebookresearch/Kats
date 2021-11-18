@@ -19,7 +19,6 @@ import math
 from copy import copy
 from typing import Any, List, Dict, Optional
 
-import kats.models.model as m
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
@@ -29,6 +28,7 @@ from kats.models import (
     quadratic_model,
     theta,
 )
+from kats.models.model import Model
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.parameter_tuning_utils import get_default_stlf_parameter_search_space
 
@@ -66,7 +66,7 @@ class STLFParams(Params):
         pass
 
 
-class STLFModel(m.Model):
+class STLFModel(Model):
     """Model class for STLF
 
     This class provides fit, predict, and plot methods for STLF model
@@ -79,8 +79,7 @@ class STLFModel(m.Model):
     decomp: Optional[Dict[str, TimeSeriesData]] = None
     sea_data: Optional[TimeSeriesData] = None
     desea_data: Optional[TimeSeriesData] = None
-    model: Optional[m.Model] = None
-    include_history: Optional[bool] = None
+    model: Optional[Model] = None
     freq: Optional[str] = None
     alpha: Optional[float] = None
     y_fcst: Optional[np.ndarray] = None
@@ -228,12 +227,6 @@ class STLFModel(m.Model):
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=fcst_df))
         return fcst_df
-
-    def plot(self):
-        """plot forecasted results from Prophet model"""
-
-        logging.info("Generating chart for forecast result from STLF model.")
-        m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
 
     def __str__(self):
         """AR net moddel as a string

@@ -15,11 +15,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 from typing import List, Dict
 
-import kats.models.model as m
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 
 
@@ -48,7 +48,7 @@ class LinearModelParams(Params):
         pass
 
 
-class LinearModel(m.Model):
+class LinearModel(Model):
     """Model class for Linear Model.
 
     This class provides the fit, predict and plot methods for the Linear Model
@@ -136,11 +136,6 @@ class LinearModel(m.Model):
         )
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return self.fcst_df
-
-    def plot(self):
-        """Plot Forecasted results from the Linar Model."""
-        logging.info("Generating chart for forecast result from LinearModel.")
-        m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
 
     def __str__(self):
         return "Linear Model"

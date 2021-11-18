@@ -14,11 +14,11 @@ variables `x` and `x^2`, where `x` is the time.
 import logging
 from typing import Dict, List, Optional
 
-import kats.models.model as m
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 
 
@@ -49,7 +49,7 @@ class QuadraticModelParams(Params):
         pass
 
 
-class QuadraticModel(m.Model):
+class QuadraticModel(Model):
     """Model class for Quadratic Model.
 
     This class provides the fit, predict and plot methods for the Quadratic Model
@@ -60,9 +60,8 @@ class QuadraticModel(m.Model):
     """
 
     past_length: Optional[int] = None
-    model: Optional[m.Model] = None
+    model: Optional[Model] = None
     freq: Optional[str] = None
-    include_history: Optional[bool] = None
     _X_future: Optional[List[int]] = None
     sdev: Optional[float] = None
     dates: Optional[pd.DatetimeIndex] = None
@@ -156,11 +155,6 @@ class QuadraticModel(m.Model):
         )
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return fcst_df
-
-    def plot(self):
-        """Plot Forecasted results from the Quadratic Model."""
-        logging.info("Generating chart for forecast result from QuadraticModel.")
-        m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
 
     def __str__(self):
         return "Quadratic"

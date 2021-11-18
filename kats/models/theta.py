@@ -18,10 +18,10 @@ import math
 from copy import copy
 from typing import Any, Dict, List, Optional
 
-import kats.models.model as m
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.parameter_tuning_utils import get_default_theta_parameter_search_space
 from scipy.stats import norm  # @manual
@@ -51,7 +51,7 @@ class ThetaParams(Params):
         pass
 
 
-class ThetaModel(m.Model):
+class ThetaModel(Model):
     """Model class for Theta
 
     This class provides fit, predict, and plot methods for STLF model
@@ -246,12 +246,6 @@ class ThetaModel(m.Model):
         self.fcst_df = fcst_df
         logging.debug(f"Return forecast data: {fcst_df}")
         return fcst_df
-
-    def plot(self):
-        """Plot forecasted results from Theta model"""
-
-        logging.info("Generating chart for forecast result from theta model.")
-        m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
 
     def __str__(self) -> str:
         """Theta model as a string

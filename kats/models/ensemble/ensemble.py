@@ -158,14 +158,6 @@ class BaseEnsemble(Model):
             predicted[model_name] = model_fitted.predict(steps, **kwargs)
         return predicted
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[40]: Non-static method `plot` cannot override a static method
-    #  defined in `Model`.
-    def plot(self) -> None:
-        """Plot method for ensemble model (not implemented yet)"""
-
-        pass
-
     def __str__(self) -> str:
         """Get the class name as a string
 

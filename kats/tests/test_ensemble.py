@@ -126,7 +126,6 @@ class testBaseEnsemble(TestCase):
             mock_fit_model.return_value.predict.assert_called_with(
                 steps, freq=f"{freq}"
             )
-            m.plot()
 
             self.assertEqual(m.__str__(), "Ensemble")
 

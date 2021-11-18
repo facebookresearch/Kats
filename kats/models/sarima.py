@@ -9,10 +9,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 from typing import List, Dict, Optional, Tuple, Callable, Union, Any
 
-import kats.models.model as m
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData, Params
+from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import (
     get_default_sarima_parameter_search_space,
 )
@@ -101,7 +101,7 @@ class SARIMAParams(Params):
         pass
 
 
-class SARIMAModel(m.Model):
+class SARIMAModel(Model):
     """Model class for SARIMA.
 
     This class provides fit, predict and plot methods for SARIMA model.
@@ -358,11 +358,6 @@ class SARIMAModel(m.Model):
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return self.fcst_df
-
-    def plot(self):
-        """Plot forecasted results from SARIMA model."""
-        logging.info("Generating chart for forecast result from SARIMA model.")
-        m.Model.plot(self.data, self.fcst_df, include_history=self.include_history)
 
     def __str__(self):
         return "SARIMA"

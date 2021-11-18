@@ -19,12 +19,12 @@ https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-import kats.models.model as mm
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -104,7 +104,7 @@ class LSTMForecast(nn.Module):
         return predictions[-1]
 
 
-class LSTMModel(mm.Model):
+class LSTMModel(Model):
     """Kats model class for time series LSTM model
 
     This is the Kats model class for time series forecast using the LSTM model
@@ -281,11 +281,6 @@ class LSTMModel(mm.Model):
         logging.debug(f"Return forecast data: {self.fcst_df}")
 
         return fcst_df
-
-    def plot(self):
-        """Plot forecast results from the LSTM model"""
-
-        mm.Model.plot(self.data, self.fcst_df)
 
     def __str__(self):
         return "LSTM"
