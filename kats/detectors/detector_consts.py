@@ -556,7 +556,7 @@ class AnomalyResponse:
         if self.num_series == 1:
             ts.value.loc[ts.time == time] = value
         else:
-            ts.value.loc[ts.time == time] = pd.DataFrame(value)
+            ts.value.loc[ts.time == time, :] = np.array(value, dtype=float)
 
     def get_last_n(self, N: int) -> AnomalyResponse:
         """

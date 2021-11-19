@@ -252,6 +252,10 @@ class TestMultiStatSigDetector(TestCase):
         self.ts_later = ts_later
         self.ss_detect = ss_detect
 
+    def _check_tsdata_nonnull(self, ts: TimeSeriesData) -> None:
+        for v in ts.value.values:
+            self.assertIsNotNone(v)
+
     def test_multi_detector(self) -> None:
         self.assertEqual(self.ss_detect.n_test, 7)
 
@@ -262,6 +266,7 @@ class TestMultiStatSigDetector(TestCase):
 
         # prediction returns scores of same length
         self.assertEqual(len(pred_later.scores), len(self.ts_later))
+        self._check_tsdata_nonnull(pred_later.scores)
 
     def test_multi_after_rename(self) -> None:
         # rename the time series and make sure everthing still works as it did above
@@ -286,6 +291,7 @@ class TestMultiStatSigDetector(TestCase):
             historical_data=ts_init_renamed, data=ts_later_renamed
         )
         self.assertEqual(len(pred_later.scores), len(ts_later_renamed))
+        self._check_tsdata_nonnull(pred_later.scores)
 
     def test_no_historical_data(self) -> None:
         n = 35
@@ -310,6 +316,7 @@ class TestMultiStatSigDetector(TestCase):
         ss_detect3 = MultiStatSigDetectorModel(n_control=n_control, n_test=n_test)
         anom = ss_detect3.fit_predict(data=hist_ts)
         self.assertEqual(len(anom.scores), n)
+        self._check_tsdata_nonnull(anom.scores)
 
         # for the first n_control + n_test  - 1 values, score is zero,
         # afterwards it is non zero once we reach (n_control + n_test) data points
@@ -362,6 +369,7 @@ class TestMultiStatSigDetector(TestCase):
         anom = ss_detect.fit_predict(data=data_ts, historical_data=hist_ts)
 
         self.assertEqual(len(anom.scores), len(data_ts))
+        self._check_tsdata_nonnull(anom.scores)
         # until we reach n_control + n_test, we get zeroes
         # non zero afterwards
 
@@ -416,6 +424,7 @@ class TestMultiStatSigDetector(TestCase):
 
         # prediction returns scores of same length
         self.assertEqual(len(pred_later.scores), ss_detect.last_N)
+        self._check_tsdata_nonnull(pred_later.scores)
 
     def test_multi_fit(self) -> None:
         self.assertIsNone(self.ss_detect.fit(self.ts_init))

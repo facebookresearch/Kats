@@ -567,13 +567,11 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
 
     def _init_response(self, data: TimeSeriesData) -> None:
 
-        zeros_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": data.time},
-                    **{c: pd.Series(np.zeros(len(data))) for c in data.value.columns},
-                }
-            )
+        zeros_df = pd.DataFrame(
+            {
+                **{"time": data.time},
+                **{c: pd.Series(np.zeros(len(data))) for c in data.value.columns},
+            }
         )
 
         init_ts = TimeSeriesData(
@@ -586,11 +584,11 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         )
 
         self.response = AnomalyResponse(
-            scores=zeros_ts,
+            scores=TimeSeriesData(zeros_df.copy()),
             confidence_band=ConfidenceBand(upper=init_ts, lower=init_ts),
             predicted_ts=init_ts,
-            anomaly_magnitude_ts=zeros_ts,
-            stat_sig_ts=zeros_ts,
+            anomaly_magnitude_ts=TimeSeriesData(zeros_df.copy()),
+            stat_sig_ts=TimeSeriesData(zeros_df.copy()),
         )
 
     def _update_response(self, date: pd.Timestamp) -> None:
