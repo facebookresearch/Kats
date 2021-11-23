@@ -68,7 +68,7 @@ class BackTesterParent(ABC):
         model_class: Type,
         multi: bool,
         offset=0,
-        **kwargs
+        **kwargs,
     ):
         self.error_methods = error_methods
         self.data = data
@@ -447,7 +447,7 @@ class BackTesterSimple(BackTesterParent):
         train_percentage: float,
         test_percentage: float,
         model_class: Type,
-        **kwargs
+        **kwargs,
     ):
         logging.info("Initializing train/test percentages")
         if train_percentage <= 0:
@@ -498,26 +498,31 @@ class BackTesterSimple(BackTesterParent):
         return [(0, train_size)], [(train_size, train_size + test_size)]
 
 
-class BackTesterExpandingWindow(BackTesterParent):
-    """Defines functions to execute an expanding window backtest.
+class BackTesterRollingOrigin(BackTesterParent):
+    """Defines functions to execute an rolling origin backtest.
 
-    An expanding window backtest conducts a backtest over multiple iterations,
-    wherein each iteration, the size of the training dataset increases by a
-    fixed amount, while the test dataset "slides" forward to accommodate.
+    A rolling forecast origin backtest conducts a backtest over multiple
+    iterations, wherein each iteration, the "forecasting origin"
+    (the location separating training and testing datasets) "slides" forward
+    by a fixed amount.
+
+    Hereby, the size of the training dataset is usually increased at each
+    iteration, while the test dataset "slides" forward to accommodate.
+    However, the size of the training dataset can alternatively be held
+    constant, in which case at each iteration the start location of the
+    training dataset moves forward by the same amount as the "forecast origin".
     Iterations continue until the complete data set is used to either train
     or test in the final interation.
 
     This procedure is also known in literature as a rolling origin evaluation
     with a continuously increasing in-sample size (train set) and a constant
     out-sample size (test set).
-
     For more information, check out the Kats tutorial notebooks!
 
     Attributes:
       start_train_percentage: A float for the initial percentage of data used
-        for training.
-      end_train_percentage: A float for the final percentage of data used for
-        training.
+        for training. (The train percentage at the end will be 100 -
+        test_percentage)
       test_percentage: A float for the percentage of data used for testing.
         (The test set is taken at sliding positions from start_train_percentage
          up to the end of the dataset - only the last fold is at the very end.)
@@ -528,6 +533,8 @@ class BackTesterExpandingWindow(BackTesterParent):
       data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
       params: Parameters to train model with.
       model_class: Defines the model type to use for backtesting.
+      constant_train_size: A bool defining if the training data size should be
+        constant instead of expanding it at each iteration (default False).
       multi: A boolean flag to toggle multiprocessing (default True).
       results: List of tuples `(training_data, testing_data, trained_model,
         forecast_predictions)` storing forecast results.
@@ -548,18 +555,153 @@ class BackTesterExpandingWindow(BackTesterParent):
       >>> ts = TimeSeriesData(df=df)
       >>> params = ARIMAParams(p=1, d=1, q=1)
       >>> all_errors = ["mape", "smape", "mae", "mase", "mse", "rmse"]
-      >>> backtester = BackTesterExpandingWindow(
+      >>> backtester = BackTesterRollingOrigin(
             error_methods=all_errors,
             data=ts,
             params=params,
             start_train_percentage=50,
-            end_train_percentage=75,
             test_percentage=25,
             expanding_steps=3,
             model_class=ARIMAModel,
+            constant_train_size=False,
           )
       >>> backtester.run_backtest()
       >>> mape = backtester.get_error_value("mape") # Retrieve MAPE error
+    """
+
+    def __init__(
+        self,
+        error_methods: List[str],
+        data: TimeSeriesData,
+        params: Params,
+        start_train_percentage: float,
+        test_percentage: float,
+        expanding_steps: int,
+        model_class: Type,
+        constant_train_size: bool = False,
+        multi=True,
+        **kwargs,
+    ):
+        logging.info("Initializing train/test percentages")
+        if start_train_percentage <= 0:
+            logging.error("Non positive start training percentage")
+            raise ValueError("Invalid start training percentage")
+        elif start_train_percentage > 100:
+            logging.error("Too large start training percentage")
+            raise ValueError("Invalid end training percentage")
+        self.start_train_percentage = start_train_percentage
+        if test_percentage <= 0:
+            logging.error("Non positive test percentage")
+            raise ValueError("Invalid test percentage")
+        elif test_percentage > 100:
+            logging.error("Too large test percentage")
+            raise ValueError("Invalid test percentage")
+        self.test_percentage = test_percentage
+        if start_train_percentage + test_percentage > 100:
+            logging.error("Too large combined train and test percentage")
+            raise ValueError(  # noqa
+                "Invalid training and testing percentage combination."
+            )
+        elif start_train_percentage + test_percentage == 100:
+            if expanding_steps > 1:
+                logging.error(
+                    "Too large combined train and test percentage for "
+                    "%s expanding steps.",
+                    expanding_steps,
+                )
+                raise ValueError(
+                    "Invalid trraining and testing percentage combination "
+                    f"given for {expanding_steps} expanding steps"
+                )
+        if expanding_steps < 0:
+            logging.error("Non positive expanding steps")
+            raise ValueError("Invalid expanding steps")
+        self.expanding_steps = expanding_steps
+        self.constant_train_size = constant_train_size
+
+        logging.info("Calling parent class constructor")
+        super().__init__(error_methods, data, params, model_class, multi, **kwargs)
+
+    def _create_train_test_splits(
+        self,
+    ) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+        """Creates train/test folds for the backtest."""
+
+        logging.info("Creating train test splits")
+        start_train_size = _get_absolute_size(self.size, self.start_train_percentage)
+        test_size = _get_absolute_size(self.size, self.test_percentage)
+
+        if start_train_size <= 0 or start_train_size >= self.size:
+            logging.error(
+                "Invalid starting training size: {0}".format(start_train_size)
+            )
+            logging.error(
+                "Start Training Percentage: {0}".format(self.start_train_percentage)
+            )
+            raise ValueError("Incorrect starting training size")
+
+        if test_size <= 0 or test_size >= self.size:
+            logging.error("Invalid testing size: {0}".format(test_size))
+            logging.error("Testing Percentage: {0}".format(self.test_percentage))
+            raise ValueError("Incorrect testing size")
+
+        if start_train_size + test_size > self.size:
+            if start_train_size + test_size > self.size:
+                logging.error("Training and Testing sizes too big")
+                logging.error("Start Training size: {0}".format(start_train_size))
+                logging.error(
+                    "Start Training Percentage: {0}".format(self.start_train_percentage)
+                )
+            logging.error("Testing size: {0}".format(test_size))
+            logging.error("Testing Percentage: {0}".format(self.test_percentage))
+            raise ValueError("Incorrect training and testing sizes")
+        elif start_train_size + test_size == self.size:
+            if self.expanding_steps > 1:
+                logging.error(
+                    "Training and Testing sizes too big " "for multiple steps"
+                )
+                logging.error("Start Training size: {0}".format(start_train_size))
+                logging.error(
+                    "Start Training Percentage: {0}".format(self.start_train_percentage)
+                )
+                logging.error("Testing size: {0}".format(test_size))
+                logging.error("Testing Percentage: {0}".format(self.test_percentage))
+                logging.error("Expanding steps: {}".format(self.expanding_steps))
+                raise ValueError(
+                    "Incorrect training and testing sizes " "for multiple steps"
+                )
+
+        # Handling edge case where only 1 fold is needed (same as BackTesterSimple)
+        if self.expanding_steps == 1:
+            return (
+                [(0, start_train_size)],
+                [(start_train_size, start_train_size + test_size)],
+            )
+
+        train_splits = []
+        test_splits = []
+        offsets = _return_fold_offsets(
+            0, self.size - start_train_size - test_size, self.expanding_steps
+        )
+        for offset in offsets:
+            skip_size = 0
+            if self.constant_train_size:
+                skip_size = offset
+            train_splits.append((skip_size, int(start_train_size + offset)))
+            test_splits.append(
+                (
+                    int(start_train_size + offset),
+                    int(start_train_size + offset + test_size),
+                )
+            )
+        return train_splits, test_splits
+
+
+class BackTesterExpandingWindow(BackTesterRollingOrigin):
+    """Defines functions to exectute an expanding window backtest.
+
+    This class will be deprecated soon. Please use `BackTesterRollingOrigin`
+    with param `constant_train_size = True`.
     """
 
     def __init__(
@@ -573,164 +715,31 @@ class BackTesterExpandingWindow(BackTesterParent):
         expanding_steps: int,
         model_class: Type,
         multi=True,
-        **kwargs
+        **kwargs,
     ):
-        logging.info("Initializing train/test percentages")
-        if start_train_percentage <= 0:
-            logging.error("Non positive start training percentage")
-            raise ValueError("Invalid start training percentage")
-        elif start_train_percentage > 100:
-            logging.error("Too large start training percentage")
-            raise ValueError("Invalid end training percentage")
-        self.start_train_percentage = start_train_percentage
-        if end_train_percentage <= 0:
-            logging.error("Non positive end training percentage")
-            raise ValueError("Invalid start training percentage")
-        elif end_train_percentage > 100:
-            logging.error("Too large end training percentage")
-            raise ValueError("Invalid end training percentage")
-        elif end_train_percentage < self.start_train_percentage:
-            logging.error("Ending Training % < Start Training %")
-            raise ValueError("Start Training percentage must be less than End")
-        self.end_train_percentage = end_train_percentage
-        if test_percentage <= 0:
-            logging.error("Non positive test percentage")
-            raise ValueError("Invalid test percentage")
-        elif test_percentage > 100:
-            logging.error("Too large test percentage")
-            raise ValueError("Invalid test percentage")
-        self.test_percentage = test_percentage
-        if expanding_steps < 0:
-            logging.error("Non positive expanding steps")
-            raise ValueError("Invalid expanding steps")
-        self.expanding_steps = expanding_steps
-
-        logging.info("Calling parent class constructor")
-        super().__init__(error_methods, data, params, model_class, multi, **kwargs)
-
-    def _create_train_test_splits(
-        self,
-    ) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
-        """Creates train/test folds for the backtest."""
-
-        logging.info("Creating train test splits")
-        start_train_size = _get_absolute_size(self.size, self.start_train_percentage)
-        end_train_size = _get_absolute_size(self.size, self.end_train_percentage)
-        test_size = _get_absolute_size(self.size, self.test_percentage)
-
-        if start_train_size <= 0 or start_train_size >= self.size:
-            logging.error(
-                "Invalid starting training size: {0}".format(start_train_size)
-            )
-            logging.error(
-                "Start Training Percentage: {0}".format(self.start_train_percentage)
-            )
-            raise ValueError("Incorrect starting training size")
-
-        if end_train_size <= 0 or end_train_size >= self.size:
-            logging.error("Invalid ending training size: {0}".format(end_train_size))
-            logging.error(
-                "End Training Percentage: {0}".format(self.end_train_percentage)
-            )
-            logging.error(
-                "End Training Percentage: {0}".format(self.end_train_percentage)
-            )
-            raise ValueError("Incorrect starting training size")
-
-        if test_size <= 0 or test_size >= self.size:
-            logging.error("Invalid testing size: {0}".format(test_size))
-            logging.error("Testing Percentage: {0}".format(self.test_percentage))
-            raise ValueError("Incorrect testing size")
-
-        if end_train_size + test_size > self.size:
-            logging.error("Training and Testing sizes too big")
-            logging.error("End Training size: {0}".format(end_train_size))
-            logging.error(
-                "End Training Percentage: {0}".format(self.end_train_percentage)
-            )
-            logging.error("Testing size: {0}".format(test_size))
-            logging.error("Testing Percentage: {0}".format(self.test_percentage))
-            raise ValueError("Incorrect training and testing sizes")
-
-        # Handling edge case where only 1 fold is needed (same as BackTesterSimple)
-        if self.expanding_steps == 1:
-            return (
-                [(0, start_train_size)],
-                [(start_train_size, start_train_size + test_size)],
-            )
-
-        train_splits = []
-        test_splits = []
-        offsets = _return_fold_offsets(
-            start_train_size, end_train_size, self.expanding_steps
+        logging.info(
+            "BackTesterExpandingWindow will be deprecated. Please use the "
+            "updated API found in BackTesterRollingOrigin."
         )
-        for offset in offsets:
-            train_splits.append((0, int(start_train_size + offset)))
-            test_splits.append(
-                (
-                    int(start_train_size + offset),
-                    int(start_train_size + offset + test_size),
-                )
-            )
-        return train_splits, test_splits
+        super().__init__(
+            error_methods=error_methods,
+            data=data,
+            params=params,
+            start_train_percentage=start_train_percentage,
+            test_percentage=test_percentage,
+            expanding_steps=expanding_steps,
+            model_class=model_class,
+            multi=multi,
+            constant_train_size=False,
+            **kwargs,
+        )
 
 
-class BackTesterRollingWindow(BackTesterParent):
+class BackTesterRollingWindow(BackTesterRollingOrigin):
     """Defines functions to execute a rolling window backtest.
 
-    An rolling window backtest conducts a backtest over multiple iterations,
-    wherein each iteration, the start location of the training dataset moves
-    forward by a fixed amount, while the test dataset "slides" forward to
-    accommodate. Iterations continue until the end of the test set meets the
-    end of the full data set.
-
-    This procedure is also known in literature as a rolling origin evaluation
-    with a constant in-sample size (train set) and a constant out-sample size
-    (test set).
-
-    For more information, check out the Kats tutorial notebooks!
-
-    Attributes:
-      train_percentage: A float for the percentage of data used for training.
-      test_percentage: A float for the percentage of data used for testing.
-      sliding_steps: An integer for the number of rolling steps (i.e.
-        number of folds).
-      error_methods: List of strings indicating which errors to calculate
-        (see `ALLOWED_ERRORS` for exhaustive list).
-      data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
-      params: Parameters to train model with.
-      model_class: Defines the model type to use for backtesting.
-      multi: A boolean flag to toggle multiprocessing (default True).
-      results: List of tuples `(training_data, testing_data, trained_model,
-        forecast_predictions)` storing forecast results.
-      errors: Dictionary mapping the error type to value.
-      size: An integer for the total number of datapoints.
-      error_funcs: Dictionary mapping error name to the
-        function that calculates it.
-      freq: A string representing the (inferred) frequency of the
-        `pandas.DataFrame`.
-      raw_errors: List storing raw errors (truth - predicted).
-
-    Raises:
-      ValueError: One or more of the train, test, or sliding steps params
-        were invalid. Or the time series is empty.
-
-    Sample Usage:
-      >>> df = pd.read_csv("kats/data/air_passengers.csv")
-      >>> ts = TimeSeriesData(df=df)
-      >>> params = ARIMAParams(p=1, d=1, q=1)
-      >>> all_errors = ["mape", "smape", "mae", "mase", "mse", "rmse"]
-      >>> backtester = BackTesterExpandingWindow(
-            error_methods=all_errors,
-            data=ts,
-            params=params,
-            train_percentage=50,
-            test_percentage=25,
-            expanding_steps=3,
-            model_class=ARIMAModel,
-          )
-      >>> backtester.run_backtest()
-      >>> mape = backtester.get_error_value("mape") # Retrieve MAPE error
+    This class will be deprecated soon. Please use `BackTesterRollingOrigin`
+    with param `constant_train_size = False`.
     """
 
     def __init__(
@@ -743,73 +752,24 @@ class BackTesterRollingWindow(BackTesterParent):
         sliding_steps: int,
         model_class: Type,
         multi=True,
-        **kwargs
+        **kwargs,
     ):
-        logging.info("Initializing train/test percentages")
-        if train_percentage <= 0:
-            logging.error("Non positive training percentage")
-            raise ValueError("Invalid training percentage")
-        elif train_percentage > 100:
-            logging.error("Too large training percentage")
-            raise ValueError("Invalid training percentage")
-        self.train_percentage = train_percentage
-        if test_percentage <= 0:
-            logging.error("Non positive test percentage")
-            raise ValueError("Invalid test percentage")
-        elif test_percentage > 100:
-            logging.error("Too large test percentage")
-            raise ValueError("Invalid test percentage")
-        self.test_percentage = test_percentage
-        if sliding_steps < 0:
-            logging.error("Non positive sliding steps")
-            raise ValueError("Invalid sliding steps")
-        self.sliding_steps = sliding_steps
-
-        logging.info("Calling parent class constructor")
-        super().__init__(error_methods, data, params, model_class, multi, **kwargs)
-
-    def _create_train_test_splits(
-        self,
-    ) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
-        """Creates train/test folds for the backtest."""
-
-        logging.info("Creating train test splits")
-        train_size = _get_absolute_size(self.size, self.train_percentage)
-        test_size = _get_absolute_size(self.size, self.test_percentage)
-
-        if train_size <= 0 or train_size >= self.size:
-            logging.error("Invalid training size: {0}".format(train_size))
-            logging.error("Training Percentage: {0}".format(self.train_percentage))
-            raise ValueError("Incorrect training size")
-
-        if test_size <= 0 or test_size >= self.size:
-            logging.error("Invalid testing size: {0}".format(test_size))
-            logging.error("Testing Percentage: {0}".format(self.test_percentage))
-            raise ValueError("Incorrect testing size")
-
-        if train_size + test_size > self.size:
-            logging.error("Training and Testing sizes too big")
-            logging.error("Training size: {0}".format(train_size))
-            logging.error("Training Percentage: {0}".format(self.train_percentage))
-            logging.error("Testing size: {0}".format(test_size))
-            logging.error("Testing Percentage: {0}".format(self.test_percentage))
-            raise ValueError("Incorrect training and testing sizes")
-
-        # Handling edge case where only 1 fold is needed (same as BackTesterSimple)
-        if self.sliding_steps == 1:
-            return [(0, train_size)], [(train_size, train_size + test_size)]
-
-        train_splits = []
-        test_splits = []
-        offsets = _return_fold_offsets(
-            0, self.size - train_size - test_size, self.sliding_steps
+        logging.info(
+            "BackTesterRollingWindow will be deprecated. Please use the "
+            "updated API found in BackTesterRollingOrigin."
         )
-        for offset in offsets:
-            train_splits.append((offset, int(offset + train_size)))
-            test_splits.append(
-                (int(offset + train_size), int(offset + train_size + test_size))
-            )
-        return train_splits, test_splits
+        super().__init__(
+            error_methods=error_methods,
+            data=data,
+            params=params,
+            start_train_percentage=train_percentage,
+            test_percentage=test_percentage,
+            expanding_steps=sliding_steps,
+            model_class=model_class,
+            multi=multi,
+            constant_train_size=True,
+            **kwargs,
+        )
 
 
 class BackTesterFixedWindow(BackTesterParent):
@@ -871,7 +831,7 @@ class BackTesterFixedWindow(BackTesterParent):
         test_percentage: float,
         window_percentage: int,
         model_class: Type,
-        **kwargs
+        **kwargs,
     ):
         logging.info("Initializing train/test percentages")
         if train_percentage <= 0:
