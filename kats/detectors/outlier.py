@@ -40,6 +40,8 @@ class OutlierDetector(Detector):
         iqr_mult : iqr_mult * inter quartile range is used to classify outliers
     """
 
+    # pyre-fixme[15]: `outliers` overrides attribute defined in `Detector`
+    #  inconsistently.
     outliers: Optional[List[List]] = None
     output_scores: Optional[pd.DataFrame] = None
 
@@ -306,6 +308,7 @@ class MultivariateAnomalyDetector(Detector):
         return residual_score
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self) -> pd.DataFrame:
         """
         Fit the detection model and return the results

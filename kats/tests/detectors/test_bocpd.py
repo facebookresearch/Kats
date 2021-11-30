@@ -203,7 +203,7 @@ class BOCPDTest(TestCase):
         # TODO: this check only tests that all changepoints we find should be there
         #       but not the other way around, that we find all change points.
         for t in cps:
-            cp = t[0].start_time
+            cp = t.start_time
             if cp == ts.time.values[0]:
                 continue
             self.assertIn(cp, cp_arr)
@@ -297,7 +297,7 @@ class BOCPDTest(TestCase):
         cps = getattr(self, cps_name)
 
         for t in cps:
-            cp = t[0].start_time
+            cp = t.start_time
             if cp == self.multnorm_ts.time.values[0]:
                 continue
             self.assertIn(cp, self.multnorm_cp_arr)
@@ -318,8 +318,8 @@ class BOCPDTest(TestCase):
         cps = getattr(self, cps_name)
         counter = Counter()
         for t in cps:
-            ts_name = t[1].ts_name
-            cp = t[0].start_time
+            ts_name = t.ts_name
+            cp = t.start_time
             if cp == self.multnorm_ts.time.values[0]:
                 continue
             counter += Counter({ts_name: 1})
@@ -349,16 +349,16 @@ class BOCPDTest(TestCase):
     def test_trend(self) -> None:
         # expect only one cp
         # test if atleast one cp is in 90:110
-        start_list = [cp[0].start_time for cp in self.trend_cps]
+        start_list = [cp.start_time for cp in self.trend_cps]
         intersect = list(set(start_list) & set(self.trend_ts.time.values[90:110]))
         self.assertGreaterEqual(len(intersect), 1)
 
     def test_trend_confidence(self) -> None:
         # check if confidence is greater than threshold
         self.assertGreaterEqual(
-            self.trend_cps[0][0].confidence,
+            self.trend_cps[0].confidence,
             0.5,
-            f"confidence should have been at least threshold 0.5, but got {self.trend_cps[0][0].confidence}",
+            f"confidence should have been at least threshold 0.5, but got {self.trend_cps[0].confidence}",
         )
 
     def test_poisson_changepoints(self) -> None:

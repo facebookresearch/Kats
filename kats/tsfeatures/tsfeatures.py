@@ -1426,43 +1426,40 @@ class TsFeatures:
         try:
             cusum = cusum_detection.CUSUMDetector(ts)
             cusum_cp = cusum.detector()
+            cp = None if len(cusum_cp) == 0 else cusum_cp[0]
             if extra_args is not None and extra_args.get("cusum_num", default_status):
                 cusum_detector_features["cusum_num"] = len(cusum_cp)
             if extra_args is not None and extra_args.get("cusum_conf", default_status):
                 cusum_detector_features["cusum_conf"] = (
-                    0 if len(cusum_cp) == 0 else cusum_cp[0][0].confidence
+                    0 if cp is None else cp.confidence
                 )
             if extra_args is not None and extra_args.get(
                 "cusum_cp_index", default_status
             ):
                 cusum_detector_features["cusum_cp_index"] = (
-                    0 if len(cusum_cp) == 0 else cusum_cp[0][1]._cp_index / len(ts)
+                    0 if cp is None else cp.cp_index / len(ts)
                 )
             if extra_args is not None and extra_args.get("cusum_delta", default_status):
-                cusum_detector_features["cusum_delta"] = (
-                    0 if len(cusum_cp) == 0 else cusum_cp[0][1]._delta
-                )
+                cusum_detector_features["cusum_delta"] = 0 if cp is None else cp.delta
             if extra_args is not None and extra_args.get("cusum_llr", default_status):
-                cusum_detector_features["cusum_llr"] = (
-                    0 if len(cusum_cp) == 0 else cusum_cp[0][1]._llr
-                )
+                cusum_detector_features["cusum_llr"] = 0 if cp is None else cp.llr
             if extra_args is not None and extra_args.get(
                 "cusum_regression_detected", default_status
             ):
                 cusum_detector_features["cusum_regression_detected"] = (
-                    False if len(cusum_cp) == 0 else cusum_cp[0][1]._regression_detected
+                    False if cp is None else cp.regression_detected
                 )
             if extra_args is not None and extra_args.get(
                 "cusum_stable_changepoint", default_status
             ):
                 cusum_detector_features["cusum_stable_changepoint"] = (
-                    False if len(cusum_cp) == 0 else cusum_cp[0][1]._stable_changepoint
+                    False if cp is None else cp.stable_changepoint
                 )
             if extra_args is not None and extra_args.get(
                 "cusum_p_value", default_status
             ):
                 cusum_detector_features["cusum_p_value"] = (
-                    0 if len(cusum_cp) == 0 else cusum_cp[0][1]._p_value
+                    0 if cp is None else cp.p_value
                 )
         except Exception as e:
             logging.warning(f"Cusum Detector failed {e}")
@@ -1501,11 +1498,14 @@ class TsFeatures:
             if extra_args is not None and extra_args.get(
                 "robust_metric_mean", default_status
             ):
-                robust_stat_detector_features["robust_metric_mean"] = (
-                    0
-                    if len(robust_cp) == 0
-                    else np.sum([cp[1]._metric for cp in robust_cp]) / len(robust_cp)
-                )
+                ncp = len(robust_cp)
+                if ncp == 0:
+                    robust_stat_detector_features["robust_metric_mean"] = np.nan
+                else:
+                    metric = 0.0
+                    for cp in robust_cp:
+                        metric += cp.metric
+                    robust_stat_detector_features["robust_metric_mean"] = metric / ncp
         except Exception as e:
             logging.warning(f"Robust Stat Detector failed {e}")
         return robust_stat_detector_features
@@ -1550,7 +1550,7 @@ class TsFeatures:
                 bocp_detector_features["bocp_conf_max"] = (
                     0
                     if len(bocp_cp) == 0
-                    else np.max([cp[0].confidence for cp in bocp_cp])
+                    else np.max([cp.confidence for cp in bocp_cp])
                 )
             if extra_args is not None and extra_args.get(
                 "bocp_conf_mean", default_status
@@ -1558,7 +1558,7 @@ class TsFeatures:
                 bocp_detector_features["bocp_conf_mean"] = (
                     0
                     if len(bocp_cp) == 0
-                    else np.sum([cp[0].confidence for cp in bocp_cp]) / len(bocp_cp)
+                    else np.mean([cp.confidence for cp in bocp_cp])
                 )
         except Exception as e:
             logging.warning(f"BOCPDetector failed {e}")
@@ -1641,22 +1641,23 @@ class TsFeatures:
             if extra_args is not None and extra_args.get(
                 "trend_num_increasing", default_status
             ):
-                trend_detector_features["trend_num_increasing"] = len(
-                    [
-                        p
-                        for p in tdetected_time_points
-                        if p[1].trend_direction == "decreasing"
-                    ]
-                )
+                num_decreasing = 0
+                for p in tdetected_time_points:
+                    if p.trend_direction == "decreasing":
+                        num_decreasing += 1
+                trend_detector_features["trend_num_increasing"] = num_decreasing
             if extra_args is not None and extra_args.get(
                 "trend_avg_abs_tau", default_status
             ):
-                trend_detector_features["trend_avg_abs_tau"] = (
-                    0
-                    if len(tdetected_time_points) == 0
-                    else np.sum([abs(p[1].Tau) for p in tdetected_time_points])
-                    / len(tdetected_time_points)
-                )
+                npoints = len(tdetected_time_points)
+                if npoints == 0:
+                    trend_detector_features["trend_avg_abs_tau"] = 0
+                else:
+                    tau = 0.0
+                    for p in tdetected_time_points:
+                        if isinstance(p.Tau, float):
+                            tau += abs(p.Tau)
+                    trend_detector_features["trend_avg_abs_tau"] = tau / npoints
         except Exception as e:
             logging.warning(f"Trend Detector failed {e}")
         return trend_detector_features

@@ -42,7 +42,7 @@ class CUSUMDetectorTest(TestCase):
         inc_timeseries = TimeSeriesData(df_increase)
         self.inc_detector = CUSUMDetector(inc_timeseries)
         self.inc_change_points = self.inc_detector.detector()
-        self.inc_metadata = self.inc_change_points[0][1]
+        self.inc_metadata = self.inc_change_points[0]
 
         # decreasing detection setup
         df_decrease = pd.DataFrame(
@@ -58,7 +58,7 @@ class CUSUMDetectorTest(TestCase):
         dec_timeseries = TimeSeriesData(df_decrease)
         self.dec_detector = CUSUMDetector(dec_timeseries)
         self.dec_change_points = self.dec_detector.detector()
-        self.dec_metadata = self.dec_change_points[0][1]
+        self.dec_metadata = self.dec_change_points[0]
 
         # seasonality setup
         self.periodicity = 48
@@ -102,7 +102,7 @@ class CUSUMDetectorTest(TestCase):
             change_directions=["increase", "decrease"],
             delta_std_ratio=0,
         )
-        self.season_metadata = self.season_inc_trend_change_points[0][1]
+        self.season_metadata = self.season_inc_trend_change_points[0]
 
         # test on step change with no variance
         df_increase_no_var = pd.DataFrame(
@@ -349,7 +349,7 @@ class MultiCUSUMDetectorTest(TestCase):
 
         timeseries_increase = TimeSeriesData(df_increase)
         self.inc_change_points = MultiCUSUMDetector(timeseries_increase).detector()
-        self.inc_metadata = self.inc_change_points[0][1]
+        self.inc_metadata = self.inc_change_points[0]
 
         # decreasing setup
         df_decrease = pd.DataFrame(
@@ -365,7 +365,7 @@ class MultiCUSUMDetectorTest(TestCase):
 
         timeseries_decrease = TimeSeriesData(df_decrease)
         self.dec_change_points = MultiCUSUMDetector(timeseries_decrease).detector()
-        self.dec_metadata = self.dec_change_points[0][1]
+        self.dec_metadata = self.dec_change_points[0]
 
     @parameterized.expand(
         [

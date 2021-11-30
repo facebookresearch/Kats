@@ -5,7 +5,7 @@
 # pyre-unsafe
 
 import logging
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -178,7 +178,7 @@ class HourlyRatioDetector(Detector):
         return (lab, pvalue)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    def detector(self, support_fraction=0.9) -> List[TimeSeriesChangePoint]:
+    def detector(self, support_fraction=0.9) -> Sequence[TimeSeriesChangePoint]:
         """Run detection algorithm.
 
         Args:

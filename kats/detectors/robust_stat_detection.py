@@ -5,26 +5,35 @@
 # pyre-unsafe
 
 import logging
-from typing import List, Tuple
+from typing import Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from kats.consts import TimeSeriesData, TimeSeriesChangePoint
 from kats.detectors.detector import Detector
 from scipy.stats import norm, zscore  # @manual
 
 
-class RobustStatMetadata:
-    def __init__(self, index: int, metric: float) -> None:
+class RobustStatChangePoint(TimeSeriesChangePoint):
+    def __init__(
+        self,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        confidence: float,
+        index: int,
+        metric: float,
+    ) -> None:
+        super().__init__(start_time, end_time, confidence)
         self._metric = metric
         self._index = index
 
     @property
-    def metric(self):
+    def metric(self) -> float:
         return self._metric
 
     @property
-    def index(self):
+    def index(self) -> int:
         return self._index
 
 
@@ -44,7 +53,7 @@ class RobustStatDetector(Detector):
         p_value_cutoff: float = 1e-2,
         smoothing_window_size: int = 5,
         comparison_window: int = -2,
-    ) -> List[Tuple[TimeSeriesChangePoint, RobustStatMetadata]]:
+    ) -> Sequence[RobustStatChangePoint]:
         time_col_name = self.data.time.name
         val_col_name = self.data.value.name
 
@@ -76,21 +85,20 @@ class RobustStatDetector(Detector):
                 continue
 
             prev_idx = idx
-            cp = TimeSeriesChangePoint(
+            cp = RobustStatChangePoint(
                 start_time=data_df.index.values[idx],
                 end_time=data_df.index.values[idx],
                 # pyre-fixme[16]: `float` has no attribute `__getitem__`.
                 confidence=1 - p_values[idx],
+                index=idx,
+                metric=float(df_.iloc[idx]),
             )
-            metadata = RobustStatMetadata(index=idx, metric=float(df_.iloc[idx]))
 
-            change_points.append((cp, metadata))
+            change_points.append(cp)
 
         return change_points
 
-    def plot(
-        self, change_points: List[Tuple[TimeSeriesChangePoint, RobustStatMetadata]]
-    ) -> None:
+    def plot(self, change_points: Sequence[RobustStatChangePoint]) -> None:
         time_col_name = self.data.time.name
         val_col_name = self.data.value.name
 
@@ -103,6 +111,6 @@ class RobustStatDetector(Detector):
 
         for change in change_points:
             # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
-            plt.axvline(x=change[0].start_time, color="red")
+            plt.axvline(x=change.start_time, color="red")
 
         plt.show()

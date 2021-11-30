@@ -40,7 +40,7 @@ this use case.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -76,12 +76,16 @@ def _get_arg(name: str, **kwargs) -> Any:
     return kwargs.get(name, CUSUM_DEFAULT_ARGS[name])
 
 
-class CUSUMMetadata:
-    """CUSUM metadata
+class CUSUMChangePoint(TimeSeriesChangePoint):
+    """CUSUM change point.
 
-    This is the metadata of the changepoint returned by CusumDetectors
+    This is a changepoint detected by CUSUMDetector.
 
     Attributes:
+
+        start_time: Start time of the change.
+        end_time: End time of the change.
+        confidence: The confidence of the change point.
         direction: a str stand for the changepoint change direction 'increase'
             or 'decrease'.
         cp_index: an int for changepoint index.
@@ -99,6 +103,9 @@ class CUSUMMetadata:
 
     def __init__(
         self,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        confidence: float,
         direction: str,
         cp_index: int,
         mu0: Union[float, np.ndarray],
@@ -110,7 +117,8 @@ class CUSUMMetadata:
         stable_changepoint: bool,
         p_value: float,
         p_value_int: float,
-    ):
+    ) -> None:
+        super().__init__(start_time, end_time, confidence)
         self._direction = direction
         self._cp_index = cp_index
         self._mu0 = mu0
@@ -167,12 +175,15 @@ class CUSUMMetadata:
     def p_value_int(self) -> float:
         return self._p_value_int
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return (
-            f"CUSUMMetadata(direction: {self.direction}, index: {self.cp_index}"
-            f", delta: {self.delta}, regression_detected: "
-            f"{self.regression_detected}, stable_changepoint: "
-            f"{self.stable_changepoint})"
+            f"CUSUMChangePoint(start_time: {self._start_time}, end_time: "
+            f"{self._end_time}, confidence: {self._confidence}, direction: "
+            f"{self._direction}, index: {self._cp_index}, delta: {self._delta}, "
+            f"regression_detected: {self._regression_detected}, "
+            f"stable_changepoint: {self._stable_changepoint}, mu0: {self._mu0}, "
+            f"mu1: {self._mu1}, llr: {self._llr}, llr_int: {self._llr_int}, "
+            f"p_value: {self._p_value}, p_value_int: {self._p_value_int})"
         )
 
 
@@ -374,7 +385,7 @@ class CUSUMDetector(Detector):
         return magnitude
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    def detector(self, **kwargs) -> List[Tuple[TimeSeriesChangePoint, CUSUMMetadata]]:
+    def detector(self, **kwargs) -> Sequence[CUSUMChangePoint]:
         """
         Find the change point and calculate related statistics.
 
@@ -406,7 +417,7 @@ class CUSUMDetector(Detector):
                 found, even the insignificant ones.
 
         Returns:
-            A list of tuple of TimeSeriesChangePoint and CUSUMMetadata.
+            A list of CUSUMChangePoint.
         """
         # Extract all arg values or assign defaults from default vals constant
         threshold = _get_arg("threshold", **kwargs)
@@ -500,10 +511,10 @@ class CUSUMDetector(Detector):
         self,
         cusum_changepoints: Dict[str, Dict[str, Any]],
         return_all_changepoints: bool,
-    ) -> List[Tuple[TimeSeriesChangePoint, CUSUMMetadata]]:
+    ) -> List[CUSUMChangePoint]:
         """
         Convert the output from the other kats cusum algorithm into
-        TimeSeriesChangePoint type.
+        CUSUMChangePoint type.
         """
         converted = []
         detected_cps = cusum_changepoints
@@ -512,12 +523,10 @@ class CUSUMDetector(Detector):
             dir_cps = detected_cps[direction]
             if dir_cps["regression_detected"] or return_all_changepoints:
                 # we have a change point
-                change_point = TimeSeriesChangePoint(
+                change_point = CUSUMChangePoint(
                     start_time=dir_cps["changetime"],
                     end_time=dir_cps["changetime"],
                     confidence=1 - dir_cps["p_value"],
-                )
-                metadata = CUSUMMetadata(
                     direction=direction,
                     cp_index=dir_cps["changepoint"],
                     mu0=dir_cps["mu0"],
@@ -530,18 +539,15 @@ class CUSUMDetector(Detector):
                     p_value=dir_cps["p_value"],
                     p_value_int=dir_cps["p_value_int"],
                 )
-                converted.append((change_point, metadata))
+                converted.append(change_point)
 
         return converted
 
-    def plot(
-        self, change_points: List[Tuple[TimeSeriesChangePoint, CUSUMMetadata]]
-    ) -> None:
+    def plot(self, change_points: Sequence[CUSUMChangePoint]) -> None:
         """Plot detection results from CUSUM.
 
         Args:
-            change_points: A list of tuple of TimeSeriesChangePoint and
-            CUSUMMetadata.
+            change_points: A list of CUSUMChangePoint.
         """
         time_col_name = self.data.time.name
         val_col_name = self.data.value.name
@@ -554,9 +560,9 @@ class CUSUMDetector(Detector):
             logging.warning("No change points detected!")
 
         for change in change_points:
-            if change[1].regression_detected:
+            if change.regression_detected:
                 # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
-                plt.axvline(x=change[0].start_time, color="red")
+                plt.axvline(x=change.start_time, color="red")
 
         interest_window = self.interest_window
         if interest_window is not None:
@@ -585,7 +591,7 @@ class MultiCUSUMDetector(CUSUMDetector):
     def __init__(self, data: TimeSeriesData) -> None:
         super(MultiCUSUMDetector, self).__init__(data=data, is_multivariate=True)
 
-    def detector(self, **kwargs) -> List[Tuple[TimeSeriesChangePoint, CUSUMMetadata]]:
+    def detector(self, **kwargs) -> List[CUSUMChangePoint]:
         """
         Overwrite the detector method for MultiCUSUMDetector.
 
@@ -613,7 +619,7 @@ class MultiCUSUMDetector(CUSUMDetector):
 
         # We will always be looking for increases in the CUSUM values for
         # multivariate detection. We keep using change_direction = "increase"
-        # here to have consistent CUSUMMetadata with the univariate detector.
+        # here to be consistent with the univariate detector.
         for change_direction in ["increase"]:
 
             change_meta = self._get_change_point(

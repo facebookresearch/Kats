@@ -2,18 +2,16 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 Defines the base class for detectors.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Optional, Sequence
 
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData, TimeSeriesIterator
+from kats.consts import TimeSeriesChangePoint, TimeSeriesData, TimeSeriesIterator
 from kats.detectors.detector_consts import AnomalyResponse
 
 
@@ -25,7 +23,7 @@ class Detector(ABC):
     """
 
     iter: Optional[TimeSeriesIterator] = None
-    outliers: Optional[List[Any]] = None
+    outliers: Optional[Sequence[TimeSeriesChangePoint]] = None
 
     def __init__(self, data: TimeSeriesData) -> None:
         self.data = data
@@ -34,9 +32,8 @@ class Detector(ABC):
             self.data.time = pd.to_datetime(self.data.time)
 
     @abstractmethod
-    def detector(self, method: Optional[str] = None) -> Any:
-        # TODO
-        return
+    def detector(self, method: Optional[str] = None) -> Sequence[TimeSeriesChangePoint]:
+        raise NotImplementedError()
 
     def remover(self, interpolate: bool = False) -> TimeSeriesData:
         """Remove the outlier in time series
@@ -53,20 +50,18 @@ class Detector(ABC):
 
         df = []
         self.detector()
-        it = TimeSeriesIterator(self.data)
-        self.iter = it
-        i = 0
-        for ts in it:
-            ts.loc[outliers[i], "y"] = np.nan
+        count = 0
+        for count, ts in enumerate(TimeSeriesIterator(self.data)):
+            ts.loc[outliers[count], "y"] = np.nan
             df.append(ts)
-            i = i + 1
+
         # Need to make this a ts object
         df_final = pd.concat(df, axis=1)
 
         if interpolate:
             df_final.interpolate(method="linear", limit_direction="both", inplace=True)
         # may contain multiple time series y
-        df_final.columns = [f"y_{i}" for i in range(i)]
+        df_final.columns = [f"y_{i}" for i in range(count + 1)]
         df_final["time"] = df_final.index
         ts_out = TimeSeriesData(df_final)
         return ts_out
@@ -94,8 +89,7 @@ class DetectorModel(ABC):
 
     @abstractmethod
     def __init__(self, serialized_model: Optional[bytes]) -> None:
-        # TODO
-        return
+        raise NotImplementedError()
 
     """
     Serialize the model. It's required that the serialized model can be unserialized
@@ -107,8 +101,7 @@ class DetectorModel(ABC):
 
     @abstractmethod
     def serialize(self) -> bytes:
-        # TODO
-        return b""
+        raise NotImplementedError()
 
     """
     Fit the model with the data passes in and update the model's state.
@@ -121,8 +114,7 @@ class DetectorModel(ABC):
         historical_data: Optional[TimeSeriesData],
         **kwargs: Any,
     ) -> None:
-        # TODO
-        return
+        raise NotImplementedError()
 
     """
     Given the time series data, returns the anomaly score time series data with
@@ -136,8 +128,7 @@ class DetectorModel(ABC):
         historical_data: Optional[TimeSeriesData],
         **kwargs: Any,
     ) -> AnomalyResponse:
-        # TODO
-        return data
+        raise NotImplementedError()
 
     """
     This method will change the state and return the anomaly scores.
@@ -150,5 +141,4 @@ class DetectorModel(ABC):
         historical_data: Optional[TimeSeriesData],
         **kwargs: Any,
     ) -> AnomalyResponse:
-        # TODO
-        return data
+        raise NotImplementedError()

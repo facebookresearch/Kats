@@ -86,6 +86,7 @@ class ACFDetector(Detector):
 
     # pyre-fixme[14]: Inconsistent override [14]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Could not find parameter `method` in overriding signature.
     # pyre-fixme[14]: `kats.detectors.seasonality.ACFDetector.detector` overrides method defined in `Detector` inconsistently. Returned type `Dict[str, typing.Any]` is not a subtype of the overridden return `None`.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
         self, lags: Optional[int] = None, diff: int = 1, alpha: Optional[float] = 0.01
     ) -> Dict[str, Any]:
@@ -195,6 +196,7 @@ class FFTDetector(Detector):
             raise ValueError(msg)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(self, sample_spacing: float = 1.0, mad_threshold: float = 6.0) -> Dict:
         """Detect seasonality with FFT
 

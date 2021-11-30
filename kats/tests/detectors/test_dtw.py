@@ -7,10 +7,10 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData, TimeSeriesChangePoint
+from kats.consts import TimeSeriesData
 from kats.detectors.dtwcpd import (
     DTWCPDDetector,
-    DTWCPDMetadata,
+    DTWCPDChangePoint,
     DTWTimeSeriesTooSmallException,
 )
 
@@ -41,13 +41,11 @@ class DTWCPDTest(TestCase):
         cps = dtw_model.detector()
 
         expected_result = [
-            (
-                TimeSeriesChangePoint(
-                    start_time=pd.Timestamp("2021-03-02 00:00:00", freq="D"),
-                    end_time=pd.Timestamp("2021-04-20 00:00:00", freq="D"),
-                    confidence=1e9,
-                ),
-                DTWCPDMetadata("ts3"),
+            DTWCPDChangePoint(
+                start_time=pd.Timestamp("2021-03-02 00:00:00", freq="D"),
+                end_time=pd.Timestamp("2021-04-20 00:00:00", freq="D"),
+                confidence=1e9,
+                ts_name="ts3",
             )
         ]
 
@@ -97,13 +95,11 @@ class DTWCPDTest(TestCase):
         cps = dtw_model.detector()
 
         expected_result = [
-            (
-                TimeSeriesChangePoint(
-                    start_time=pd.Timestamp("2021-03-02 00:00:00", freq="D"),
-                    end_time=pd.Timestamp("2021-04-20 00:00:00", freq="D"),
-                    confidence=mock.ANY,
-                ),
-                DTWCPDMetadata("ts3"),
+            DTWCPDChangePoint(
+                start_time=pd.Timestamp("2021-03-02 00:00:00", freq="D"),
+                end_time=pd.Timestamp("2021-04-20 00:00:00", freq="D"),
+                confidence=mock.ANY,
+                ts_name="ts3",
             )
         ]
 

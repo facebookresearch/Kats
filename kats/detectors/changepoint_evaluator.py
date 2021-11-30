@@ -9,7 +9,7 @@ import json
 import re
 from abc import ABC, abstractmethod
 from collections import namedtuple
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Set, Sequence, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ from kats.utils.simulator import Simulator
 
 # defining some helper functions
 def get_cp_index(
-    changepoints: List[Tuple[TimeSeriesChangePoint, Any]], tsd: TimeSeriesData
+    changepoints: Sequence[TimeSeriesChangePoint], tsd: TimeSeriesData
 ) -> List[int]:
     """
     Accepts the output of the Detector.detector() method which is a list of
@@ -30,7 +30,7 @@ def get_cp_index(
     cp_list = []
     tsd_df = tsd.to_dataframe()
     tsd_df["time_index"] = list(range(tsd_df.shape[0]))
-    for cp, _ in changepoints:
+    for cp in changepoints:
         tsd_row = tsd_df[tsd_df.time == cp.start_time]
         this_cp = tsd_row["time_index"].values[0]
         cp_list.append(this_cp)

@@ -9,6 +9,8 @@ This file implements the Dynamic Time Warping (DTW) ChangePoint detector
 algorithm as a DetectorModel, to provide a common interface.
 """
 
+from __future__ import annotations
+
 import logging
 import typing
 
@@ -16,9 +18,10 @@ import typing
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Type
 
 import numpy as np
+import pandas as pd
 from kats.consts import (
     TimeSeriesData,
     TimeSeriesChangePoint,
@@ -26,41 +29,46 @@ from kats.consts import (
 from kats.detectors.detector import Detector
 
 
-class DTWCPDMetadata:
-    """Metadata for the Dynamic Time Warping (DTW) ChangePoint detector model.
+class DTWCPDChangePoint(TimeSeriesChangePoint):
+    """Changepoint detected by the Dynamic Time Warping (DTW) detector model.
 
-    This gives information about the type of detector, the name of the time series and
-    the model used for detection.
+    This gives information about the type of detector, and the name of the time
+    series.
 
     Attributes:
-        model: The kind of predictive model used.
+
+        start_time: Start time of the change.
+        end_time: End time of the change.
+        confidence: The confidence of the change point.
         ts_name: string, name of the time series for which the detector is
             is being run.
     """
 
-    def __init__(self, ts_name: Optional[str] = None):
+    def __init__(
+        self,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        confidence: float,
+        ts_name: Optional[str] = None,
+    ) -> None:
+        super().__init__(start_time, end_time, confidence)
         self._detector_type = DTWCPDDetector
         self._ts_name = ts_name
 
     @property
-    def detector_type(self):
+    def detector_type(self) -> Type:
         return self._detector_type
 
     @property
-    def ts_name(self):
+    def ts_name(self) -> Optional[str]:
         return self._ts_name
 
-    def __repr__(self):
-        return f"DTWCPDMetadata(ts_name={self._ts_name}, detector_type={self._detector_type})"
-
-    def __str__(self):
-        return self.__repr__()
-
-    def __eq__(self, other):
-        return isinstance(other, DTWCPDMetadata) and (self._ts_name == other._ts_name)
-
-    def __hash__(self):
-        return hash(f"tn({self._ts_name}/dt({self.detector_type}")
+    def __repr__(self) -> str:
+        return (
+            f"DTWCPDChangePoint(start_time: {self._start_time}, end_time: "
+            f"{self._end_time}, confidence: {self._confidence}, ts_name: "
+            f"{self._ts_name}, detector_type={self._detector_type})"
+        )
 
 
 class DTWTimeSeriesTooSmallException(Exception):
@@ -112,7 +120,7 @@ class DTWCPDDetector(Detector):
         self.MIN_TS_VALUE = min_value
         self.MAD_CUTOFF = mad_threshold
         self.MIN_VALUE = min_value
-        self.outliers = []  # type: List[Tuple[TimeSeriesChangePoint, DTWCPDMetadata]]
+        self.outliers = []  # type: List[DTWCPDChangePoint]
         self.skip_size = skip_size
         self.match_against_same_time_series = match_against_same_time_series
 
@@ -138,7 +146,7 @@ class DTWCPDDetector(Detector):
             )
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    def detector(self) -> List[Tuple[TimeSeriesChangePoint, DTWCPDMetadata]]:
+    def detector(self) -> Sequence[DTWCPDChangePoint]:
         """Overwrite the detector method for DTWCPDDetector.
 
         Returns:
@@ -160,15 +168,11 @@ class DTWCPDDetector(Detector):
             ts_name = list(all_non_flats_ts.keys())[0]
             min_index = min(all_non_flats_ts[ts_name].keys())
             self.outliers.append(
-                (
-                    TimeSeriesChangePoint(
-                        start_time=self.data.time[min_index],
-                        end_time=self.data.time[
-                            min_index + self.sliding_window_size - 1
-                        ],
-                        confidence=1e9,  # maximum confidence since its the only thing
-                    ),
-                    DTWCPDMetadata(ts_name),
+                DTWCPDChangePoint(
+                    start_time=self.data.time[min_index],
+                    end_time=self.data.time[min_index + self.sliding_window_size - 1],
+                    confidence=1e9,  # maximum confidence since its the only thing
+                    ts_name=ts_name,
                 )
             )
             return self.outliers  # We are done.
@@ -346,9 +350,7 @@ class DTWCPDDetector(Detector):
         max_min_dists = dict(max_min_dists)
         return max_min_dists
 
-    def _find_subsequences_anomalies(
-        self, max_min_dists
-    ) -> List[Tuple[TimeSeriesChangePoint, DTWCPDMetadata]]:
+    def _find_subsequences_anomalies(self, max_min_dists) -> List[DTWCPDChangePoint]:
         """
         Given a set of subsequences with at least one non-zero value,
         detect the ones that are significantly dissimilar from others.
@@ -364,15 +366,13 @@ class DTWCPDDetector(Detector):
             score = np.abs(med - t.distance) / mad
             if score > self.MAD_CUTOFF:
                 outliers.append(
-                    (
-                        TimeSeriesChangePoint(
-                            start_time=self.data.time[t.matching_ts_index],
-                            end_time=self.data.time[
-                                t.matching_ts_index + self.sliding_window_size - 1
-                            ],
-                            confidence=score,
-                        ),
-                        DTWCPDMetadata(ts_name),
+                    DTWCPDChangePoint(
+                        start_time=self.data.time[t.matching_ts_index],
+                        end_time=self.data.time[
+                            t.matching_ts_index + self.sliding_window_size - 1
+                        ],
+                        confidence=score,
+                        ts_name=ts_name,
                     )
                 )
         return outliers

@@ -20,7 +20,7 @@ statsmodels_ver = float(
 
 
 class UnivariateMKDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.window_size = 20
         self.time = pd.Series(
             pd.date_range(start="2020-01-01", end="2020-06-20", freq="1D")
@@ -42,7 +42,7 @@ class UnivariateMKDetectorTest(TestCase):
         self.detected_time_points_trend = self.d_trend.detector(
             window_size=self.window_size
         )
-        self.metadata_trend = self.detected_time_points_trend[0][1]
+        self.metadata_trend = self.detected_time_points_trend[0]
         results_trend = self.d_trend.get_MK_statistics()
         self.up_trend_detected_trend = self.d_trend.get_MK_results(
             results_trend, direction="up"
@@ -89,20 +89,20 @@ class UnivariateMKDetectorTest(TestCase):
         self.assertEqual(len(self.detected_time_points_no_trend), 0)
 
     # test for trend data
-    def test_detector_type(self):
+    def test_detector_type(self) -> None:
         self.assertIsInstance(self.d_trend, self.metadata_trend.detector_type)
 
-    def test_tau(self):
+    def test_tau(self) -> None:
         self.assertIsInstance(self.metadata_trend.Tau, float)
 
-    def test_is_univariate(self):
+    def test_is_univariate(self) -> None:
         self.assertFalse(self.metadata_trend.is_multivariate)
 
-    def test_incr_trend(self):
+    def test_incr_trend(self) -> None:
         self.assertEqual(self.metadata_trend.trend_direction, "increasing")
 
     @parameterized.expand([["up_trend_detected_trend"], ["up_trend_detected_seas"]])
-    def test_upward_after_start(self, up_trend_detected):
+    def test_upward_after_start(self, up_trend_detected) -> None:
         self.assertGreaterEqual(
             attrgetter(up_trend_detected)(self).iloc[0],
             self.time[0],
@@ -115,7 +115,7 @@ class UnivariateMKDetectorTest(TestCase):
             ["up_trend_detected_seas", "t_change_seas"],
         ]
     )
-    def test_upward_before_end(self, up_trend_detected, t_change):
+    def test_upward_before_end(self, up_trend_detected, t_change) -> None:
         self.assertLessEqual(
             attrgetter(up_trend_detected)(self).iloc[-1],
             self.time[attrgetter(t_change)(self)[0] + self.window_size],
@@ -128,7 +128,7 @@ class UnivariateMKDetectorTest(TestCase):
             ["down_trend_detected_seas", "t_change_seas"],
         ]
     )
-    def test_downward_after_start(self, down_trend_detected, t_change):
+    def test_downward_after_start(self, down_trend_detected, t_change) -> None:
         self.assertGreaterEqual(
             attrgetter(down_trend_detected)(self).iloc[0],
             self.time[attrgetter(t_change)(self)[0]],
@@ -143,7 +143,7 @@ class UnivariateMKDetectorTest(TestCase):
             ["down_trend_detected_seas2"],
         ]
     )
-    def test_downward_before_end(self, down_trend_detected):
+    def test_downward_before_end(self, down_trend_detected) -> None:
         self.assertEqual(
             attrgetter(down_trend_detected)(self).iloc[-1],
             self.time[len(self.time) - 1],
@@ -159,12 +159,12 @@ class UnivariateMKDetectorTest(TestCase):
             ["d_seas", "detected_time_points_seas2"],
         ]
     )
-    def test_plot(self, detector, detected_time_points):
+    def test_plot(self, detector, detected_time_points) -> None:
         attrgetter(detector)(self).plot(attrgetter(detected_time_points)(self))
 
 
 class MultivariateMKDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.window_size = 20
         self.time = pd.Series(
             pd.date_range(start="2020-01-01", end="2020-06-20", freq="1D")
@@ -212,7 +212,7 @@ class MultivariateMKDetectorTest(TestCase):
         self.d_no_trend.plot_heat_map()
 
     @parameterized.expand([["up_trend_detected_trend"], ["up_trend_detected_seas"]])
-    def test_upward_after_start(self, up_trend_detected):
+    def test_upward_after_start(self, up_trend_detected) -> None:
         self.assertGreaterEqual(
             attrgetter(up_trend_detected)(self).iloc[0],
             self.time[0],
@@ -225,7 +225,7 @@ class MultivariateMKDetectorTest(TestCase):
             ["up_trend_detected_seas", "t_change_seas"],
         ]
     )
-    def test_upward_before_end(self, up_trend_detected, t_change):
+    def test_upward_before_end(self, up_trend_detected, t_change) -> None:
         self.assertLessEqual(
             attrgetter(up_trend_detected)(self).iloc[-1],
             self.time[attrgetter(t_change)(self)[0] + self.window_size],
@@ -238,7 +238,7 @@ class MultivariateMKDetectorTest(TestCase):
             ["down_trend_detected_seas", "t_change_seas"],
         ]
     )
-    def test_downward_after_start(self, down_trend_detected, t_change):
+    def test_downward_after_start(self, down_trend_detected, t_change) -> None:
         self.assertGreaterEqual(
             attrgetter(down_trend_detected)(self).iloc[0],
             self.time[attrgetter(t_change)(self)[0]],
@@ -246,7 +246,7 @@ class MultivariateMKDetectorTest(TestCase):
         )
 
     @parameterized.expand([["down_trend_detected_trend"], ["down_trend_detected_seas"]])
-    def test_downward_before_end(self, down_trend_detected):
+    def test_downward_before_end(self, down_trend_detected) -> None:
         self.assertEqual(
             attrgetter(down_trend_detected)(self).iloc[-1],
             self.time[len(self.time) - 1],
@@ -260,5 +260,5 @@ class MultivariateMKDetectorTest(TestCase):
             ["d_seas", "detected_time_points_seas"],
         ]
     )
-    def test_plot(self, detector, detected_time_points):
+    def test_plot(self, detector, detected_time_points) -> None:
         attrgetter(detector)(self).plot(attrgetter(detected_time_points)(self))

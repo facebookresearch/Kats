@@ -39,7 +39,10 @@ from kats.consts import (
     DEFAULT_VALUE_NAME,
     TimeSeriesData,
 )
-from kats.detectors.cusum_detection import CUSUMDetector, CUSUM_DEFAULT_ARGS
+from kats.detectors.cusum_detection import (
+    CUSUMDetector,
+    CUSUM_DEFAULT_ARGS,
+)
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.utils.decomposition import TimeSeriesDecomposition
@@ -322,16 +325,16 @@ class CUSUMDetectorModel(DetectorModel):
                 change_directions=change_directions,
             )
             if len(changepoints) > 0:
-                cp, meta = sorted(changepoints, key=lambda x: x[0].start_time)[0]
+                cp = sorted(changepoints, key=lambda x: x.start_time)[0]
                 self.cps.append(int(cp.start_time.value / 1e9))
 
                 if len(self.cps) > MAX_CHANGEPOINT:
                     self.cps.pop(0)
 
                 self._set_alert_on(
-                    historical_data.value[: meta.cp_index + 1].mean(),
-                    historical_data.value[: meta.cp_index + 1].std(),
-                    meta.direction,
+                    historical_data.value[: cp.cp_index + 1].mean(),
+                    historical_data.value[: cp.cp_index + 1].std(),
+                    cp.direction,
                 )
         else:
             cur_mean = historical_data[scan_start_index:].value.mean()

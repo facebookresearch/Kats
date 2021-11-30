@@ -4,10 +4,12 @@
 
 # pyre-unsafe
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,10 +35,14 @@ any serial correlation.
 """
 
 
-class MKMetadata:
-    """Metadata object for changepoint of MKDetector
+class MKChangePoint(TimeSeriesChangePoint):
+    """Changepoint for MKDetector
 
     Attributes:
+
+        start_time: Start time of the change.
+        end_time: End time of the change.
+        confidence: The confidence of the change point.
         detector_type: Detector, Type of detector changepoint is for.  Right
             now, this is always MKDetector.
         is_multivariate: boolean, Whether this is a changepoint for a
@@ -49,8 +55,15 @@ class MKMetadata:
     """
 
     def __init__(
-        self, is_multivariate: bool, trend_direction: str, Tau: Union[float, Dict]
+        self,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        confidence: float,
+        is_multivariate: bool,
+        trend_direction: str,
+        Tau: Union[float, Dict],
     ):
+        super().__init__(start_time, end_time, confidence)
         if _no_mk:
             raise RuntimeError("requires pymannkendall to be installed")
         self._detector_type = MKDetector
@@ -59,26 +72,28 @@ class MKMetadata:
         self._Tau = Tau
 
     @property
-    def detector_type(self):
+    def detector_type(self) -> Type:
         return self._detector_type
 
     @property
-    def is_multivariate(self):
+    def is_multivariate(self) -> bool:
         return self._is_multivariate
 
     @property
-    def trend_direction(self):
+    def trend_direction(self) -> str:
         return self._trend_direction
 
     @property
-    def Tau(self):
+    def Tau(self) -> Union[float, Dict]:
         return self._Tau  # Tau is a dict in multivariate case
 
-    def __str__(self):
+    def __repr__(self) -> str:
         return (
-            f"MKDetector(detector_type: {self.detector_type},"
-            f"is_multivariate: {self.is_multivariate},"
-            f"trend_direction: {self.trend_direction}, Tau: {self.Tau})"
+            f"MKChangePoint(start_time: {self._start_time}, end_time: "
+            f"{self._end_time}, confidence: {self._confidence}, "
+            f"detector_type: {self._detector_type}, is_multivariate: "
+            f"{self._is_multivariate}, trend_direction: {self._trend_direction} "
+            f"Tau: {self._Tau})"
         )
 
 
@@ -344,7 +359,7 @@ class MKDetector(Detector):
         training_days: Optional[int] = None,
         direction: str = "both",
         freq: Optional[str] = None,
-    ) -> List[Tuple[TimeSeriesChangePoint, MKMetadata]]:
+    ) -> Sequence[MKChangePoint]:
         """Runs MK test sequentially.
 
         It finds the trend and calculates the related statistics for all time
@@ -479,25 +494,22 @@ class MKDetector(Detector):
         # pyre-fixme[61]: `MK_results` may not be initialized here.
         return MK_results
 
-    def _convert_detected_tps(
-        self, MK_results: pd.DataFrame
-    ) -> List[Tuple[TimeSeriesChangePoint, MKMetadata]]:
+    def _convert_detected_tps(self, MK_results: pd.DataFrame) -> List[MKChangePoint]:
         """Convert the dataframe of detected_tps and Tau into desired format."""
 
         converted = []
 
         for _index, row in MK_results.iterrows():
             t = row["ds"]
-            detected_time_point = TimeSeriesChangePoint(
-                start_time=t, end_time=t, confidence=1 - row["p"]
-            )
-
-            metadata = MKMetadata(
+            detected_time_point = MKChangePoint(
+                start_time=t,
+                end_time=t,
+                confidence=1 - row["p"],
                 is_multivariate=self.multivariate,
                 trend_direction=row["trend_direction"],
                 Tau=row["Tau"],
             )
-            converted.append((detected_time_point, metadata))
+            converted.append(detected_time_point)
 
         return converted
 
@@ -611,9 +623,7 @@ class MKDetector(Detector):
 
         return Tau_df, trend_df
 
-    def plot(
-        self, detected_time_points: List[Tuple[TimeSeriesChangePoint, MKMetadata]]
-    ) -> None:
+    def plot(self, detected_time_points: Sequence[MKChangePoint]) -> None:
         """Plots the original time series data, and the detected time points."""
         ts = self.ts
         if ts is None:
@@ -629,4 +639,4 @@ class MKDetector(Detector):
 
             for t in detected_time_points:
                 # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
-                plt.axvline(x=t[0].start_time, color="red")
+                plt.axvline(x=t.start_time, color="red")

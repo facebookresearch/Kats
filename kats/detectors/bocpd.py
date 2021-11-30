@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData, SearchMethodEnum
 from kats.detectors.detector import Detector
 from scipy.special import logsumexp  # @manual
@@ -46,20 +47,28 @@ class BOCPDModelType(Enum):
     POISSON_PROCESS_MODEL = 3
 
 
-class BOCPDMetadata:
-    """Metadata for the BOCPD model.
-
-    This gives information about
-    the type of detector, the name of the time series and
-    the model used for detection.
+class BOCPDChangePoint(TimeSeriesChangePoint):
+    """Changepoint for the BOCPD model.
 
     Attributes:
+
+        start_time: Start time of the change.
+        end_time: End time of the change.
+        confidence: The confidence of the change point.
         model: The kind of predictive model used.
         ts_name: string, name of the time series for which the detector is
             is being run.
     """
 
-    def __init__(self, model: BOCPDModelType, ts_name: Optional[str] = None):
+    def __init__(
+        self,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
+        confidence: float,
+        model: BOCPDModelType,
+        ts_name: Optional[str] = None,
+    ) -> None:
+        super().__init__(start_time, end_time, confidence)
         self._detector_type = BOCPDetector
         self._model = model
         self._ts_name = ts_name
@@ -75,6 +84,13 @@ class BOCPDMetadata:
     @property
     def ts_name(self) -> Optional[str]:
         return self._ts_name
+
+    def __repr__(self) -> str:
+        return (
+            f"BOCPDChangePoint(start_time: {self._start_time}, end_time: "
+            f"{self._end_time}, confidence: {self._confidence}, model: "
+            f"{self._model}, ts_name: {self._ts_name})"
+        )
 
 
 @dataclass
@@ -265,11 +281,10 @@ class BOCPDetector(Detector):
         threshold: float = 0.5,
         debug: bool = False,
         agg_cp: bool = True,
-    ) -> List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]:
+    ) -> Sequence[BOCPDChangePoint]:
         """The main detector method.
 
-        This function runs the BOCPD detector
-        and returns the list of changepoints, along with some metadata
+        This function runs the BOCPD detector and returns the list of changepoints.
 
         Args:
             model: This specifies the probabilistic model, that generates
@@ -319,11 +334,9 @@ class BOCPDetector(Detector):
                 maximum values diagonally.
 
         Returns:
-             List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]: Each element in this
-             list is a changepoint, an object of TimeSeriesChangepoint class. The start_time
-             gives the time that the change was detected. The metadata contains data about
-             the name of the time series (useful when multiple time series are run simultaneously),
-             and the predictive model used.
+             Sequence[BOCPDChangePoint]: Each element in this
+             list is a changepoint, an object of TimeSeriesChangepoint class.
+             The start_time gives the time that the change was detected.
         """
 
         assert (
@@ -389,23 +402,22 @@ class BOCPDetector(Detector):
 
             for cp_index in change_indices:
                 cp_time = self.data.time.values[cp_index]
-                cp = TimeSeriesChangePoint(
+                cp = BOCPDChangePoint(
                     start_time=cp_time,
                     end_time=cp_time,
                     confidence=change_probs[cp_index],
+                    model=model,
+                    ts_name=ts_name,
                 )
-                bocpd_metadata = BOCPDMetadata(model=model, ts_name=ts_name)
-                change_points.append((cp, bocpd_metadata))
+                change_points.append(cp)
 
-            logging.debug(
-                f"Returning {len(change_points)} change points to client in ts={ts_name}."
-            )
+            logging.debug(f"Found {len(change_points)} change points in ts={ts_name}.")
 
         return change_points
 
     def plot(
         self,
-        change_points: List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]],
+        change_points: Sequence[BOCPDChangePoint],
         ts_names: Optional[List[str]] = None,
     ) -> None:
         """Plots the change points, along with the time series.
@@ -440,7 +452,7 @@ class BOCPDetector(Detector):
 
             for change in ts_changepoints:
                 # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
-                plt.axvline(x=change[0].start_time, color="red")
+                plt.axvline(x=change.start_time, color="red")
 
             plt.show()
 
@@ -551,18 +563,16 @@ class BOCPDetector(Detector):
         return eval_fn
 
     def group_changepoints_by_timeseries(
-        self, change_points: List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]
-    ) -> Dict[str, List[Tuple[TimeSeriesChangePoint, BOCPDMetadata]]]:
+        self, change_points: Sequence[BOCPDChangePoint]
+    ) -> Dict[str, List[BOCPDChangePoint]]:
         """Helper function to group changepoints by time series.
 
         For multivariate inputs, all changepoints are output in
-        a list and the time series they correspond to is referenced
-        in the metadata. This function is a helper function to
-        group these changepoints by time series.
+        a list with the time series name on each changepoint. This function
+        groups these changepoints by time series.
 
         Args:
-            change_points: List of changepoints, with metadata containing the time
-                series names. This is the return value of the detector() method.
+            change_points: List of changepoints returned by detector().
 
         Returns:
             Dictionary, with time series names, and their corresponding changepoints.
@@ -579,7 +589,7 @@ class BOCPDetector(Detector):
         for ts_name in ts_names:
             change_points_per_ts[ts_name] = []
         for cp in change_points:
-            change_points_per_ts[cp[1].ts_name].append(cp)
+            change_points_per_ts[cp.ts_name].append(cp)
 
         return dict(change_points_per_ts)
 
@@ -706,6 +716,7 @@ class _BayesOnlineChangePoint(Detector):
         self._message_shape = (self.T, self.P)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
         self,
         model: Any,
