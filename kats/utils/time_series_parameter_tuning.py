@@ -362,8 +362,6 @@ class TimeSeriesParameterTuning(ABC):
         # We run the most recent batch trial as we only run candidate trials
         self._exp.trials[max(self._exp.trials)].run()
         self._trial_data = Data.from_multiple_data(
-            # pyre-fixme[6]: Expected `Iterable[ax.core.data.Data]` for 1st param
-            #  but got `Iterable[ax.core.abstract_data.AbstractDataFrameData]`.
             [
                 self._trial_data,
                 self._exp.fetch_trials_data(trial_indices=[max(self._exp.trials)]),
@@ -483,8 +481,6 @@ class TimeSeriesParameterTuning(ABC):
 
                 filtered_arms = filter_violating_arms(
                     list(self._exp.arms_by_name.values()),
-                    # pyre-fixme[6]: Expected `Data` for 2nd param but got
-                    #  `AbstractDataFrameData`.
                     self._exp.fetch_data(),
                     # pyre-fixme[6]: Expected `OptimizationConfig` for 3rd param but
                     #  got `Optional[ax.core.optimization_config.OptimizationConfig]`.
