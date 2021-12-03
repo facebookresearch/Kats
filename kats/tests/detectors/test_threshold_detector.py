@@ -28,10 +28,7 @@ class TestStaticThresholdModel(TestCase):
             df=df,
             time=df["time"],
         )
-        model = StaticThresholdModel(
-            upper_threshold=0.5,
-            lower_threshold=0.2,
-        )
+        model = StaticThresholdModel()
         self.anomaly_score = model.fit_predict(data=tsd)
 
     def test_streaming_length_match(self) -> None:

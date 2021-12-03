@@ -20,7 +20,7 @@ class StaticThresholdModel(DetectorModel):
     """Static threshold detection model.
 
     This model optimizes automatically the static thresholds. It implements the (very)
-    simple logic of a static threshold.
+    simple logic of copying of the time series.
 
     Attributes:
         serialized_model: json, representing data from a previously
@@ -32,15 +32,11 @@ class StaticThresholdModel(DetectorModel):
     def __init__(
         self,
         serialized_model: Optional[bytes] = None,
-        upper_threshold: float = 1,
-        lower_threshold: float = 0,
     ) -> None:
         if serialized_model:
             self.model = model_from_json(serialized_model)
         else:
             self.model = None
-        self.upper_threshold = upper_threshold
-        self.lower_threshold = lower_threshold
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -68,8 +64,7 @@ class StaticThresholdModel(DetectorModel):
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
     ) -> AnomalyResponse:
-        """Comprare the TimeSeriesData with the upper and lower threshold, and returns the
-        0 or 1 based on the value.
+        """Copy the TimeSeriesData.
 
         Returns the AnomalyResponse, when data is passed to it.
 
@@ -79,11 +74,10 @@ class StaticThresholdModel(DetectorModel):
                 the data begins.
 
         Returns:
-            AnomalyResponse object whose scores is a time series of 0 and 1. The length of this object is same as data.
+            AnomalyResponse object whose scores is a copy of the time series. The length of this object is same as data.
         """
         output_ts = self._zeros_ts(data)
-        output_ts.value.loc[data.value > self.upper_threshold] = 1
-        output_ts.value.loc[data.value < self.lower_threshold] = 1
+        output_ts.value = data.value
         return AnomalyResponse(
             scores=output_ts,
             confidence_band=None,
