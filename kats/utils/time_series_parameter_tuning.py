@@ -17,6 +17,7 @@ such as a factory that creates search strategy objects.
 """
 
 import logging
+import math
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -43,6 +44,16 @@ from kats.consts import SearchMethodEnum
 
 # Maximum number of worker processes used to evaluate trial arms in parallel
 MAX_NUM_PROCESSES = 50
+
+
+def compute_search_cardinality(params_space: List[Dict]):
+    """compute cardinality of search space params"""
+    # check if search space is infinite
+    is_infinite = any([param["type"] == "range" for param in params_space])
+    if is_infinite:
+        return math.inf
+    else:
+        return math.prod([len(param["values"]) for param in params_space])
 
 
 class Final(type):

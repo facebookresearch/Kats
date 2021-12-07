@@ -114,7 +114,8 @@ class ModelOptimizer(DetectorModelSet):
         if search_method == SearchMethodEnum.GRID_SEARCH:
             self.arm_count = -1
         else:
-            self.arm_count = arm_count
+            search_cardinality = tpt.compute_search_cardinality(self.parameters_space)
+            self.arm_count = min(arm_count, search_cardinality)
         self.parameter_tuner_grid = tpt.SearchMethodFactory.create_search_method(
             objective_name=optimization_metric,
             parameters=parameters_space,
