@@ -23,7 +23,7 @@ try:
 except ImportError:
     _no_prophet = True
 
-from kats.consts import TimeSeriesData
+from kats.consts import TimeSeriesData, DEFAULT_VALUE_NAME
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (
     AnomalyResponse,
@@ -306,3 +306,75 @@ class ProphetDetectorModel(DetectorModel):
         ts_df = ts_df[~is_outlier]
 
         return ts_df
+
+
+class ProphetTrendDetectorModel(DetectorModel):
+    """Prophet based trend detection model."""
+
+    def __init__(
+        self,
+        serialized_model: Optional[bytes] = None,
+        changepoint_range: float = 1.0,
+        weekly_seasonality: str = "auto",
+        changepoint_prior_scale: float = 0.01,
+    ):
+        if serialized_model:
+            self.model = model_from_json(serialized_model)
+        else:
+            self.model = None
+
+        self.changepoint_range = changepoint_range
+        self.weekly_seasonality = weekly_seasonality
+        self.changepoint_prior_scale = changepoint_prior_scale
+
+    def serialize(self):
+        """Serialize the model into a json.
+
+        So it can be loaded later.
+
+        Returns:
+            json containing information of the model.
+        """
+        return str.encode(model_to_json(self.model))
+
+    def _zeros_ts(self, data: pd.DataFrame) -> TimeSeriesData:
+        return TimeSeriesData(
+            time=data.ds,
+            value=pd.Series(
+                np.zeros(len(data)),
+                name=data.y.name if data.y.name else DEFAULT_VALUE_NAME,
+            ),
+        )
+
+    def fit_predict(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs,
+    ) -> AnomalyResponse:
+        self.model = Prophet(
+            changepoint_range=self.changepoint_range,
+            weekly_seasonality=self.weekly_seasonality,
+            changepoint_prior_scale=self.changepoint_prior_scale,
+        )
+        ts_p = pd.DataFrame({"ds": data.time.values, "y": data.value.values})
+        self.model.fit(ts_p)
+
+        output_ts = self._zeros_ts(ts_p)
+        output_ts.value.loc[self.model.changepoints.index.values] = np.abs(
+            np.nanmean(self.model.params["delta"], axis=0)
+        )
+
+        return AnomalyResponse(
+            scores=output_ts,
+            confidence_band=None,
+            predicted_ts=self._zeros_ts(ts_p),
+            anomaly_magnitude_ts=self._zeros_ts(ts_p),
+            stat_sig_ts=None,
+        )
+
+    def fit(self):
+        raise ValueError("fit is not implemented, call fit_predict() instead")
+
+    def predict(self):
+        raise ValueError("predict is not implemented, call fit_predict() instead")
