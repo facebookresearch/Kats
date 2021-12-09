@@ -624,21 +624,35 @@ class MKDetector(Detector):
         return Tau_df, trend_df
 
     def plot(
-        self, detected_time_points: Sequence[MKChangePoint], **kwargs: Any
+        self,
+        detected_time_points: Sequence[MKChangePoint],
+        ax: Optional[plt.Axes] = None,
+        figsize: Optional[Tuple[int, int]] = None,
+        changepoint_color: str = "red",
+        **kwargs: Any,
     ) -> plt.Axes:
-        """Plots the original time series data, and the detected time points."""
+        """Plots the original time series data and the detected time points.
+
+        Args:
+            detected_time_points: the detected change points.
+            ax: optional matplotlib Axes. If None, creates one.
+            figsize: optional figure size. If None, uses (14, 5).
+            changepoint_color: the color to use for changepoint vertical lines.
+        """
         ts = self.ts
         if ts is None:
             raise ValueError("detector() must be called before plot()")
 
         with pd.option_context("plotting.matplotlib.register_converters", True):
-            _, ax = plt.subplots(figsize=(14, 5))
+            if ax is None:
+                if figsize is None:
+                    figsize = (14, 5)
+                _, ax = plt.subplots(figsize=figsize)
 
             ax.plot(ts.index, ts.values)
 
-            if len(detected_time_points) == 0:
-                logging.warning("No trend detected!")
-
             for t in detected_time_points:
-                ax.axvline(x=t.start_time, color="red")
+                ax.axvline(x=t.start_time, color=changepoint_color)
+            else:
+                logging.warning("No trend detected!")
             return ax
