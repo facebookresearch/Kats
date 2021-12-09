@@ -13,7 +13,7 @@ This module contains two classes, including:
 
 import collections
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import joblib
 import matplotlib.pyplot as plt
@@ -694,7 +694,7 @@ class MetaLearnHPT:
         regression_ylabel: str = "MSE",
         use_legend: bool = True,
         legend: Optional[List[str]] = None,
-    ) -> np.ndarray:
+    ) -> Sequence[plt.Axes]:
         """Plot loss paths of classification/regression on both training and validation.
 
         Args:

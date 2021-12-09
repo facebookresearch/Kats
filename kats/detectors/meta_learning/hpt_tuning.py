@@ -15,8 +15,9 @@ before predicting, user needs to train the model:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Callable
+from typing import Any, Callable, Optional, Sequence
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 from ...models.metalearner.metalearner_hpt import MetaLearnHPT
@@ -104,10 +105,11 @@ class MetaDetectHptSelect:
     def _train_model(self, model: MetaLearnHPT, meta_learn_hpt_kwargs):
         model.train(**meta_learn_hpt_kwargs)
 
-    def plot(self):
-        if not self._meta_hpt_model:
+    def plot(self, **kwargs: Any) -> Sequence[plt.Axes]:
+        model = self._meta_hpt_model
+        if model is None:
             raise KatsDetectorHPTModelUsedBeforeTraining()
-        self._meta_hpt_model.plot()
+        return model.plot(**kwargs)
 
     def get_hpt(self, ts: pd.DataFrame):  # -> model_params:
         # get the hpt for a time series

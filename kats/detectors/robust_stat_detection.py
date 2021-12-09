@@ -2,10 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
-from typing import Sequence
+from typing import Any, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -98,19 +96,20 @@ class RobustStatDetector(Detector):
 
         return change_points
 
-    def plot(self, change_points: Sequence[RobustStatChangePoint]) -> None:
+    def plot(
+        self, change_points: Sequence[RobustStatChangePoint], **kwargs: Any
+    ) -> plt.Axes:
         time_col_name = self.data.time.name
         val_col_name = self.data.value.name
 
         data_df = self.data.to_dataframe()
 
-        plt.plot(data_df[time_col_name].to_numpy(), data_df[val_col_name].to_numpy())
-
-        if len(change_points) == 0:
-            logging.warning("No change points detected!")
+        _, ax = plt.subplots()
+        ax.plot(data_df[time_col_name].to_numpy(), data_df[val_col_name].to_numpy())
 
         for change in change_points:
-            # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
-            plt.axvline(x=change.start_time, color="red")
+            ax.axvline(x=change.start_time, color="red")
+        else:
+            logging.warning("No change points detected!")
 
-        plt.show()
+        return ax

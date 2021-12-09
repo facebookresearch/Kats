@@ -623,20 +623,22 @@ class MKDetector(Detector):
 
         return Tau_df, trend_df
 
-    def plot(self, detected_time_points: Sequence[MKChangePoint]) -> None:
+    def plot(
+        self, detected_time_points: Sequence[MKChangePoint], **kwargs: Any
+    ) -> plt.Axes:
         """Plots the original time series data, and the detected time points."""
         ts = self.ts
         if ts is None:
             raise ValueError("detector() must be called before plot()")
 
         with pd.option_context("plotting.matplotlib.register_converters", True):
-            plt.figure(figsize=(14, 5))
+            _, ax = plt.subplots(figsize=(14, 5))
 
-            plt.plot(ts.index, ts.values)
+            ax.plot(ts.index, ts.values)
 
             if len(detected_time_points) == 0:
                 logging.warning("No trend detected!")
 
             for t in detected_time_points:
-                # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
-                plt.axvline(x=t.start_time, color="red")
+                ax.axvline(x=t.start_time, color="red")
+            return ax

@@ -35,7 +35,7 @@ try:
 
     Figure = go.Figure
 except ImportError:
-    Figure = Any
+    Figure = object
 import scipy.fftpack as fp
 import statsmodels.api as sm
 from kats.consts import TimeSeriesData
@@ -132,22 +132,23 @@ class ACFDetector(Detector):
             "seasonalities": self.seasonality,
         }
 
-    def plot(self) -> None:
+    def plot(self, **kwargs: Any) -> Union[plt.Axes, Sequence[plt.Axes]]:
         """Plot detection results.
 
         Args:
             None
 
         Returns:
-            None
+            The matplotlib Axes.
         """
-        sm.graphics.tsa.plot_acf(self.ts_diff, lags=self.lags)
-        plt.show()
+        fig = sm.graphics.tsa.plot_acf(self.ts_diff, lags=self.lags)
+        ax1 = fig.gca()
         if self.decomposed:
             decompose = self.decompose
             assert decompose is not None
-            decompose.plot()
-        plt.show()
+            axs = decompose.plot()
+            return ax1, *axs
+        return ax1
 
     # pyre-fixme[14]: `kats.detectors.seasonality.ACFDetector.remover` overrides method defined in `Detector` inconsistently. Could not find parameter `interpolate` in overriding signature.
     # pyre-fixme[15]: `kats.detectors.seasonality.ACFDetector.remover` overrides method defined in `Detector` inconsistently. Returned type `Optional[Dict[str, typing.Any]]` is not a subtype of the overridden return `TimeSeriesData`.
@@ -229,13 +230,13 @@ class FFTDetector(Detector):
             "seasonalities": selected_seasonalities,
         }
 
-    # pyre-fixme[15]: `plot` overrides method defined in `Detector` inconsistently.
     def plot(
         self,
         time_unit: str,
         sample_spacing: float = 1.0,
         title: str = "FFT",
         mad_threshold: float = 6.0,
+        **kwargs: Any,
     ) -> Figure:
         """Plots an FFT plot as a plotly figure
 

@@ -543,37 +543,42 @@ class CUSUMDetector(Detector):
 
         return converted
 
-    def plot(self, change_points: Sequence[CUSUMChangePoint]) -> None:
+    def plot(
+        self, change_points: Sequence[CUSUMChangePoint], **kwargs: Any
+    ) -> plt.Axes:
         """Plot detection results from CUSUM.
 
         Args:
             change_points: A list of CUSUMChangePoint.
+            kwargs: other arguments to pass to subplots.
+
+        Returns:
+            The matplotlib Axes.
         """
         time_col_name = self.data.time.name
         val_col_name = self.data.value.name
 
         data_df = self.data.to_dataframe()
 
-        plt.plot(data_df[time_col_name].to_numpy(), data_df[val_col_name].to_numpy())
-
-        if len(change_points) == 0:
-            logging.warning("No change points detected!")
+        _, ax = plt.subplots(**kwargs)
+        ax.plot(data_df[time_col_name], data_df[val_col_name])
 
         for change in change_points:
             if change.regression_detected:
-                # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
-                plt.axvline(x=change.start_time, color="red")
+                ax.axvline(x=change.start_time, color="red")
+        else:
+            logging.warning("No change points detected!")
 
         interest_window = self.interest_window
         if interest_window is not None:
-            plt.axvspan(
+            ax.axvspan(
                 pd.to_datetime(self.data.time)[interest_window[0]],
                 pd.to_datetime(self.data.time)[interest_window[1] - 1],
                 alpha=0.3,
                 label="interets_window",
             )
 
-        plt.show()
+        return ax
 
 
 class MultiCUSUMDetector(CUSUMDetector):

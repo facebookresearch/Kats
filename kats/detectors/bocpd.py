@@ -419,7 +419,8 @@ class BOCPDetector(Detector):
         self,
         change_points: Sequence[BOCPDChangePoint],
         ts_names: Optional[List[str]] = None,
-    ) -> None:
+        **kwargs: Any,
+    ) -> Sequence[plt.Axes]:
         """Plots the change points, along with the time series.
 
         Use this function to visualize the results of the changepoint detection.
@@ -429,7 +430,7 @@ class BOCPDetector(Detector):
             ts_names: List of names of the time series, useful in case multiple time series are used.
 
         Returns:
-            None.
+            The matplotlib Axes.
         """
         time_col_name = self.data.time_col_name
 
@@ -439,22 +440,23 @@ class BOCPDetector(Detector):
 
         data_df = self.data.to_dataframe()
 
+        axs = []
         for ts_name in ts_names:
             ts_changepoints = change_points_per_ts[ts_name]
 
-            plt.plot(data_df[time_col_name].to_numpy(), data_df[ts_name].to_numpy())
-
+            _, ax = plt.subplots()
+            axs.append(ax)
             logging.info(
                 f"Plotting {len(ts_changepoints)} change points for {ts_name}."
             )
-            if len(ts_changepoints) == 0:
-                logging.warning("No change points detected!")
+            ax.plot(data_df[time_col_name], data_df[ts_name])
 
             for change in ts_changepoints:
-                # pyre-fixme[6]: Expected `int` for 1st param but got `Timestamp`.
-                plt.axvline(x=change.start_time, color="red")
+                ax.axvline(x=change.start_time, color="red")
+            else:
+                logging.warning(f"No change points detected for {ts_name}!")
 
-            plt.show()
+        return axs
 
     def _choose_priors(
         self, model: BOCPDModelType, params: BOCPDModelParameters
@@ -894,7 +896,8 @@ class _BayesOnlineChangePoint(Detector):
         threshold: Optional[Union[float, np.ndarray]] = None,
         lag: Optional[int] = None,
         ts_names: Optional[List[str]] = None,
-    ) -> None:
+        **kwargs: Any,
+    ) -> Sequence[plt.Axes]:
         """Plots the changepoints along with the timeseries.
 
         Args:
@@ -905,7 +908,7 @@ class _BayesOnlineChangePoint(Detector):
                 time series.
 
         Returns:
-            None.
+            The matplotlib Axes.
         """
         rt_posterior = self.rt_posterior
         next_pred_prob = self.next_pred_prob
@@ -926,6 +929,7 @@ class _BayesOnlineChangePoint(Detector):
         if ts_names is None:
             ts_names = self._ts_names
 
+        axs = []
         for ts_ix, ts_name in enumerate(ts_names):
             cp_output = cp_outputs[ts_name]
             change_points = cp_output["change_points"]
@@ -936,6 +940,7 @@ class _BayesOnlineChangePoint(Detector):
             # Plot the time series
             plt.figure(figsize=(10, 8))
             ax1 = plt.subplot(211)
+            axs.append(ax1)
 
             ax1.plot(list(range(self.T)), ts_values, "r-")
             ax1.set_xlabel("Time")
@@ -972,6 +977,7 @@ class _BayesOnlineChangePoint(Detector):
                 ax1.plot(x_debug, y_debug_lv, "k--")
 
             ax2 = plt.subplot(212, sharex=ax1)
+            axs.append(ax2)
 
             cp_plot_x = list(range(0, self.T - lag))
             cp_plot_y = np.copy(rt_posterior[lag : self.T, lag, ts_ix])
@@ -993,6 +999,7 @@ class _BayesOnlineChangePoint(Detector):
                 plt.xlabel("Time")
                 plt.ylabel("Log Prob. Density Function")
                 plt.title("Debugging: Predicted Probabilities")
+        return axs
 
     def _calc_agg_cppprob(self, t: int) -> np.ndarray:
         rt_posterior = self.rt_posterior

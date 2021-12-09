@@ -7,8 +7,15 @@ Defines the base class for detectors.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Sequence
+from typing import Any, Optional, Sequence, Union
 
+try:
+    import plotly.graph_objs as go
+
+    Figure = go.Figure
+except ImportError:
+    Figure = object
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData, TimeSeriesIterator
@@ -66,9 +73,8 @@ class Detector(ABC):
         ts_out = TimeSeriesData(df_final)
         return ts_out
 
-    def plot(self) -> None:
-        # TODO
-        return
+    def plot(self, **kwargs: Any) -> Union[plt.Axes, Sequence[plt.Axes], Figure]:
+        raise NotImplementedError()
 
 
 class DetectorModel(ABC):

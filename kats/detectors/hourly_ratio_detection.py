@@ -216,14 +216,14 @@ class HourlyRatioDetector(Detector):
         self.anomaly_dates = anomaly
         return anomaly
 
-    def plot(self, weekday: int = 0) -> None:
+    def plot(self, weekday: int = 0, **kwargs) -> plt.Axes:
         """plot the detection results.
 
         Args:
             weekday: Optional; An integer representing the weekday label, which should be in [0,6]. Default is 0.
 
         Returns:
-            None.
+            The matplotlib Axes.
         """
         if self.anomaly_dates is None:
             msg = "Please run detector method first."
@@ -239,12 +239,12 @@ class HourlyRatioDetector(Detector):
         )
         labs = [(t in anomaly_dates) for t in dates]
         logging.info("# of anomaly dates: {}".format(np.sum(labs)))
+        _, ax = plt.subplots()
         for i in range(len(obs)):
             if not labs[i]:
-                plt.plot(obs[i], "--", color="silver", alpha=0.5)
+                ax.plot(obs[i], "--", color="silver", alpha=0.5)
             else:
-                plt.plot(obs[i], "--", color="navy", label=str(dates[i]))
-        plt.title("Hourly Ratio Plot for Weeday {}".format(weekday))
-        plt.legend()
-        plt.show()
-        return
+                ax.plot(obs[i], "--", color="navy", label=str(dates[i]))
+        ax.set_title("Hourly Ratio Plot for Weeday {weekday}")
+        ax.legend()
+        return ax

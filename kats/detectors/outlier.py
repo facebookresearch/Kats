@@ -380,21 +380,35 @@ class MultivariateAnomalyDetector(Detector):
 
         return residual_scores_t[:top_k]
 
-    def plot(self):
+    def plot(
+        self, figsize: Optional[Tuple[int, int]] = None, **kwargs: Any
+    ) -> Tuple[plt.Axes, plt.Axes]:
         """
         Plot overall anomaly score of system of metrics at each instant.
         Useful for threshold selection
+
+        Args:
+            figsize: figure size. If None, use (15, 16).
+        Returns:
+            The matplotlib Axes.
         """
-        f, ax = plt.subplots(2, 1, sharex=True, figsize=(15, 8 * 2))
+        anomaly_score_df = self.anomaly_score_df
+        if anomaly_score_df is None:
+            raise ValueError("detector() must be called before get_anomalous_metrics()")
+
+        if figsize is None:
+            figsize = (15, 8 * 2)
+        _, axs = plt.subplots(2, 1, sharex=True, figsize=figsize)
         a = pd.merge(
             self.df,
-            self.anomaly_score_df["overall_anomaly_score"],
+            anomaly_score_df["overall_anomaly_score"],
             left_index=True,
             right_index=True,
             how="right",
         )
-        a.drop(columns=["overall_anomaly_score"]).plot(ax=ax[0])
-        ax[0].set_title("Input time series metrics")
+        axs[0].plot(a.drop(columns=["overall_anomaly_score"]))
+        axs[0].set_title("Input time series metrics")
 
-        a["overall_anomaly_score"].plot(legend=False, ax=ax[1])
-        ax[1].set_title("Overall Anomaly Score")
+        a["overall_anomaly_score"].plot(legend=False, ax=axs[1])
+        axs[1].set_title("Overall Anomaly Score")
+        return axs
