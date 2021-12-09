@@ -7,12 +7,11 @@
 import json
 import logging
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (
@@ -178,37 +177,67 @@ class StatSigDetectorModel(DetectorModel):
 
     def visualize(self) -> None:
         """Function to visualize the result of the StatSigDetectorModel."""
+        self.plot()
+
+    def plot(
+        self,
+        figsize: Optional[Tuple[int, int]] = None,
+        line_color: str = "k",
+        line_style: str = "-",
+        prediction_color: str = "r",
+        prediction_style: str = "--",
+        fill_color: Optional[str] = "blue",
+        response_color: str = "r",
+        response_style: str = "-",
+        **kwargs: Any,
+    ) -> Tuple[plt.Axes, plt.Axes]:
+        """Plot the results.
+
+        Args:
+            figsize: figsize to use. If None, use (10, 8).
+            line_color: color to use for the original data line.
+            line_style: linestyle to use for the original data.
+            prediction_color: color to use for the predicted data.
+            prediction_style: linestyle to use for the predicted data.
+            fill_color: color to use for the confidence interval. If None, don't
+                plot the confidence interval.
+            response_color: color to use for the response plot.
+            response_style: linestyle to use for the response plot.
+        """
         data = self.data
         if data is None:
             raise ValueError("Call fit_predict() before visualize()")
-        sns.set()
-        plt.figure(figsize=(10, 8))
-        ax1 = plt.subplot(211)
+        if figsize is None:
+            figsize = (10, 8)
+        _, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize)
         N_data = len(data)
 
-        ax1.plot(data.time, data.value.values, "k-")
+        ax1.plot(data.time, data.value.values, color=line_color, ls=line_style)
         ax1.plot(
             self.response.predicted_ts.time.iloc[-N_data:],
             self.response.predicted_ts.value.values[-N_data:],
-            "r--",
+            color=prediction_color,
+            ls=prediction_style,
         )
         upper_ci = self.response.confidence_band.upper
         lower_ci = self.response.confidence_band.lower
 
-        ax1.fill_between(
-            upper_ci.time.iloc[-N_data:],
-            lower_ci.value.values[-N_data:],
-            upper_ci.value.values[-N_data:],
-            facecolor="blue",
-            alpha=0.25,
-        )
+        if fill_color is not None:
+            ax1.fill_between(
+                upper_ci.time.iloc[-N_data:],
+                lower_ci.value.values[-N_data:],
+                upper_ci.value.values[-N_data:],
+                facecolor=fill_color,
+                alpha=0.25,
+            )
 
-        ax2 = plt.subplot(212, sharex=ax1)
         ax2.plot(
             self.response.scores.time.iloc[-N_data:],
             self.response.scores.value.values[-N_data:],
-            "r-",
+            color=response_color,
+            ls=response_style,
         )
+        return ax1, ax2
 
     def _set_time_unit(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData]
