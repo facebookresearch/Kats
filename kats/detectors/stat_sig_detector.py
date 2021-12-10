@@ -603,19 +603,20 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             }
         )
 
-        init_ts = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    **{"time": data.time},
-                    **{c: data.value[c].values for c in data.value.columns},
-                }
-            )
+        init_df = pd.DataFrame(
+            {
+                **{"time": data.time},
+                **{c: data.value[c].values for c in data.value.columns},
+            }
         )
 
         self.response = AnomalyResponse(
             scores=TimeSeriesData(zeros_df.copy()),
-            confidence_band=ConfidenceBand(upper=init_ts, lower=init_ts),
-            predicted_ts=init_ts,
+            confidence_band=ConfidenceBand(
+                upper=TimeSeriesData(init_df.copy()),
+                lower=TimeSeriesData(init_df.copy()),
+            ),
+            predicted_ts=TimeSeriesData(init_df.copy()),
             anomaly_magnitude_ts=TimeSeriesData(zeros_df.copy()),
             stat_sig_ts=TimeSeriesData(zeros_df.copy()),
         )
