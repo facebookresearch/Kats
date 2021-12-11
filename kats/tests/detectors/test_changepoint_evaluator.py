@@ -126,11 +126,25 @@ class GenerateData:
 class TestChangepointEvaluator(TestCase):
     def test_eval_agg(self) -> None:
         eval_1 = Evaluation(
-            dataset_name="eg_1", precision=0.3, recall=0.5, f_score=0.6, delay=-2
+            dataset_name="eg_1",
+            precision=0.3,
+            recall=0.5,
+            f_score=0.6,
+            delay=-2,
+            TP=3,
+            FN=3,
+            FP=7,
         )
 
         eval_2 = Evaluation(
-            dataset_name="eg_2", precision=0.3, recall=0.5, f_score=0.7, delay=1
+            dataset_name="eg_2",
+            precision=0.3,
+            recall=0.5,
+            f_score=0.7,
+            delay=1,
+            TP=3,
+            FN=3,
+            FP=7,
         )
 
         eval_agg_1 = EvalAggregate(eval_list=[eval_1, eval_2])

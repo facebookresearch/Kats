@@ -151,16 +151,35 @@ def measure(
 
     Remember that all CP locations are 0-based!
 
-    >>> measure({1: [10, 20], 2: [11, 20], 3: [10], 4: [0, 5]}, [10, 20])
-    1.0
-    >>> measure({1: [], 2: [10], 3: [50]}, [10])
-    0.9090909090909091
-    >>> measure({1: [], 2: [10], 3: [50]}, [])
-    0.8
+    >>> measure({1: [10, 20], 2: [11, 20], 3: [10], 4: [4, 5]}, [10, 20], margin=5, alpha=0.5)
+    {'f_score': 0.9565217391304348,
+    'precision': 1.0,
+    'recall': 0.9166666666666666,
+    'delay': 0.5416666666666666,
+    'TP': 3,
+    'FP': 0,
+    'FN': 0.2727272727272729}
+    >>> measure({1: [], 2: [10], 3: [50]}, [10], margin=5, alpha=0.5)
+    {'f_score': 0.9090909090909091,
+    'precision': 1.0,
+    'recall': 0.8333333333333333,
+    'delay': 0.0,
+    'TP': 2,
+    'FP': 0,
+    'FN': 0.4000000000000002}
+    >>> measure({1: [], 2: [10], 3: [50]}, [], margin=5, alpha=0.5)
+    {'f_score': 0.8,
+    'precision': 1.0,
+    'recall': 0.6666666666666666,
+    'delay': 0.0,
+    'TP': 1,
+    'FP': 0,
+    'FN': 0.5000000000000001}
 
     Args:
         annotations : dict from user_id to iterable of CP locations.
         predictions : iterable of predicted CP locations.
+        margin : maximum distance between a true positive and an annotation.
         alpha : value for the F-measure, alpha=0.5 gives the F1-measure.
     """
     # ensure 0 is in all the sets
@@ -178,15 +197,35 @@ def measure(
 
     K = len(Tks)
 
-    P = len(true_positives(Tstar, X, margin=margin)) / len(X)
-
+    # Total number of detection num_detect.
+    num_detect = len(X)
+    # Compute num of true positives TP.
+    TP = len(true_positives(Tstar, X, margin=margin))
+    # Compute the precision as TP / (TP + FP) = TP / num_detect.
+    P = TP / num_detect
+    # Compute num of False positive FP.
+    FP = num_detect - TP
+    # Compute the number of true positives per annotator.
     TPk = {k: true_positives(Tks[k], X, margin=margin) for k in Tks}
+    # Recall (From Turing) computed as the average of each annotator recall over all annotators: R = <Rk>.
     R = 1 / K * sum(len(TPk[k].keys()) / len(Tks[k]) for k in Tks)
+    # Compute the num of False Negative FN using the recall: R = TP / (TP + FN) -> FN = (1 - R) * TP / R.
+    # Should never be 0 as the recall != 0 (as there is always a detection in 0)
+    FN = (1 - R) * TP / R
+    # Delay computed as the average of each annotator delay over all annotators: D = <Dk>
     D = 1 / K * sum(np.mean(list(TPk[k].values())) for k in Tks)
-
+    # Compute F_score.
     F = P * R / (alpha * R + (1 - alpha) * P)
 
-    score_dict = {"f_score": F, "precision": P, "recall": R, "delay": D}
+    score_dict = {
+        "f_score": F,
+        "precision": P,
+        "recall": R,
+        "delay": D,
+        "TP": TP,
+        "FP": FP,
+        "FN": FN,
+    }
 
     return score_dict
 
@@ -230,7 +269,8 @@ class BenchmarkEvaluator(ABC):
 
 
 Evaluation = namedtuple(
-    "Evaluation", ["dataset_name", "precision", "recall", "f_score", "delay"]
+    "Evaluation",
+    ["dataset_name", "precision", "recall", "f_score", "delay", "TP", "FP", "FN"],
 )
 
 
@@ -250,6 +290,9 @@ class EvalAggregate:
                     "recall": this_eval.recall,
                     "f_score": this_eval.f_score,
                     "delay": this_eval.delay,
+                    "TP": this_eval.TP,
+                    "FP": this_eval.FP,
+                    "FN": this_eval.FN,
                 }
             )
 
@@ -281,6 +324,24 @@ class EvalAggregate:
             _ = self.get_eval_dataframe()
         avg_delay = np.mean(self.eval_df.delay)
         return avg_delay
+
+    def get_avg_tp(self) -> float:
+        if self.eval_df is None:
+            _ = self.get_eval_dataframe()
+        avg_TP = np.mean(self.eval_df.TP)
+        return avg_TP
+
+    def get_avg_fp(self) -> float:
+        if self.eval_df is None:
+            _ = self.get_eval_dataframe()
+        avg_FP = np.mean(self.eval_df.FP)
+        return avg_FP
+
+    def get_avg_fn(self) -> float:
+        if self.eval_df is None:
+            _ = self.get_eval_dataframe()
+        avg_FN = np.mean(self.eval_df.FN)
+        return avg_FN
 
 
 class TuringEvaluator(BenchmarkEvaluator):
@@ -402,9 +463,12 @@ class TuringEvaluator(BenchmarkEvaluator):
                     recall=eval_dict["recall"],
                     f_score=eval_dict["f_score"],
                     delay=eval_dict["delay"],
+                    TP=eval_dict["TP"],
+                    FP=eval_dict["FP"],
+                    FN=eval_dict["FN"],
                 )
             )
-            # break
+        # break
         self.eval_agg = EvalAggregate(eval_list)
         eval_df = self.eval_agg.get_eval_dataframe()
 
@@ -447,6 +511,9 @@ class TuringEvaluator(BenchmarkEvaluator):
                     recall=eval_dict["recall"],
                     f_score=eval_dict["f_score"],
                     delay=eval_dict["delay"],
+                    TP=eval_dict["TP"],
+                    FP=eval_dict["FP"],
+                    FN=eval_dict["FN"],
                 )
             )
             # break
