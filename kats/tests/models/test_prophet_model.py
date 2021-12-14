@@ -434,6 +434,44 @@ class ProphetModelTest(TestCase):
             ],
         )
 
+        # Testing extra regressors
+        params = ProphetParams(
+            extra_regressors=[
+                {
+                    "name": "reg1",
+                    "value": range(len(TEST_DATA["daily"]["ts"])),
+                    "prior_scale": 0.5,
+                    "mode": "multiplicative",
+                },
+                {
+                    "name": "reg2",
+                    "value": range(len(TEST_DATA["daily"]["ts"]), 0, -1),
+                },
+            ]
+        )
+
+        future_regressors = [
+            {
+                "name": "reg1",
+                "value": range(30),
+            },
+            {
+                "name": "reg2",
+                "value": range(30, 0, -1),
+            },
+        ]
+
+        params.validate_params()  # Validate params and ensure no errors raised.
+        m_daily = ProphetModel(TEST_DATA["daily"]["ts"], params)
+        m_daily.fit()
+        m_daily.predict(steps=30, freq="D", extra_regressors=future_regressors)
+        m_daily.plot()
+
+        m_daily.predict(
+            steps=30, include_history=True, freq="D", extra_regressors=future_regressors
+        )
+        m_daily.plot()
+
 
 if __name__ == "__main__":
     unittest.main()
