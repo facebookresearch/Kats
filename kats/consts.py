@@ -520,7 +520,6 @@ class TimeSeriesData:
 
         # Checking if time column is of type pandas datetime
         if not is_datetime(series):
-            # If we should use unix time
             if use_unix_time:
                 try:
                     if tz:
@@ -535,13 +534,13 @@ class TimeSeriesData:
                     else:
                         return pd.to_datetime(series, unit=unix_time_units)
                 except ValueError:
-                    logging.error("Failed to parse unix time")
-                    logging.debug(
-                        "Could not parse time column "
-                        + f"{list(series)} using unix units "
-                        + f"{unix_time_units}"
+                    msg = (
+                        "Failed to parse time column "
+                        f"{list(series)} using unix units "
+                        f"{unix_time_units}"
                     )
-                    raise ValueError("Unable to parse unix time")
+                    logging.error(msg)
+                    raise ValueError(msg)
             # Otherwise try to parse string
             else:
                 try:
@@ -557,14 +556,13 @@ class TimeSeriesData:
                     else:
                         return pd.to_datetime(series, format=date_format)
                 except ValueError:
-                    logging.error("Failed to parse time")
-                    logging.debug(
-                        "Could not parse time column "
-                        + f"{list(series)} automatically "
-                        + "or by using specified format "
-                        + f"{date_format}"
+                    msg = (
+                        "Failed to parse time column "
+                        f"{list(series)} using specified format "
+                        f"{date_format}"
                     )
-                    raise ValueError("Unable to parse time with format specified")
+                    logging.error(msg)
+                    raise ValueError(msg)
         else:
             return series
 
