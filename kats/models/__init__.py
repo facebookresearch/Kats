@@ -25,3 +25,4 @@ from . import sarima  # noqa
 from . import stlf  # noqa
 from . import theta  # noqa
 from . import var  # noqa
+from . import globalmodel # noqa
