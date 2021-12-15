@@ -335,27 +335,6 @@ class MetaLearnHPTTest(TestCase):
             mlhpt.pred_by_feature(feature1)
             mlhpt.pred_by_feature(feature2)
             mlhpt.pred_by_feature(feature3)
-            # Check prediction consistency:
-            dict1 = t2_preds.parameters[0]
-            t2.value /= t2.value.max()
-            dict2 = mlhpt.pred_by_feature(
-                pd.DataFrame([METALEARNING_TEST_T2_FEATURES])
-            )[0]
-            for elm in dict1:
-                if (
-                    isinstance(dict1[elm], float)
-                    and abs(dict1[elm] - dict2[elm]) <= 1e-5
-                ):
-                    pass
-                elif dict1[elm] == dict2[elm]:
-                    pass
-                else:
-                    msg = (
-                        "Predictions given by .pred and .pred_by_feature are different! The predictions are: .pred:"
-                        f"{dict1[elm]}, .pred_by_feature: {dict2[elm]}."
-                    )
-                    logging.error(msg)
-                    raise ValueError(msg)
         # Test if the target TimeSeriesData keeps its original value
         equals(t2_df, t2.to_dataframe())
         # Test if the features keep their original values
