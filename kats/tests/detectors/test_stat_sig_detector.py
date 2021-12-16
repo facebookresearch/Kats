@@ -15,13 +15,16 @@ from kats.consts import TimeSeriesData
 from kats.detectors.stat_sig_detector import (
     MultiStatSigDetectorModel,
     StatSigDetectorModel,
+    SeasonalityHandler,
 )
+from kats.utils.simulator import Simulator
 
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
 
 _SERIALIZED = b'{"n_control": 20, "n_test": 7, "time_unit": "s"}'
+_SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "s", "rem_season": false, "seasonal_period": "weekly"}'
 
 
 class TestStatSigDetector(TestCase):
@@ -79,12 +82,35 @@ class TestStatSigDetector(TestCase):
 
         self.assertTrue(pred_later2.scores.value.values.max() > 2.0)
 
+        # remove seasonality (with history)
+        ss_detect22 = StatSigDetectorModel(
+            n_control=20 * time_unit,
+            n_test=7 * time_unit,
+            time_unit="S",
+            rem_season=True,
+            seasonal_period="weekly",
+        )
+        pred_later22 = ss_detect22.fit_predict(historical_data=hist_ts, data=data_ts)
+        self.assertEqual(len(pred_later22.scores), len(data_ts))
+        self.assertTrue(pred_later22.scores.value.values.max() > 2.0)
+
         # case with no history
         ss_detect3 = StatSigDetectorModel(
             n_control=10 * time_unit, n_test=10 * time_unit, time_unit="S"
         )
         pred_later3 = ss_detect3.fit_predict(data=hist_ts)
         self.assertEqual(len(pred_later3.scores), len(hist_ts))
+
+        # remove seasonality (without history)
+        ss_detect33 = StatSigDetectorModel(
+            n_control=10 * time_unit,
+            n_test=10 * time_unit,
+            time_unit="S",
+            rem_season=True,
+            seasonal_period="weekly",
+        )
+        pred_later33 = ss_detect33.fit_predict(data=hist_ts)
+        self.assertEqual(len(pred_later33.scores), len(hist_ts))
 
     def test_no_historical_data(self) -> None:
         n = 35
@@ -170,10 +196,12 @@ class TestStatSigDetector(TestCase):
         self.assertEqual(detector.n_control, 20)
         self.assertEqual(detector.n_test, 7)
         self.assertEqual(detector.time_unit, "s")
+        self.assertEqual(detector.rem_season, False)
+        self.assertEqual(detector.seasonal_period, "weekly")
 
     def test_serialize(self) -> None:
         detector = StatSigDetectorModel(n_control=20, n_test=7, time_unit="s")
-        self.assertEqual(_SERIALIZED, detector.serialize())
+        self.assertEqual(_SERIALIZED2, detector.serialize())
 
     def test_missing_values(self) -> None:
         with self.assertRaises(ValueError):
@@ -215,6 +243,41 @@ class TestStatSigDetector(TestCase):
         detector = StatSigDetectorModel(n_control=20, n_test=7)
         detector.fit_predict(data=data, historical_data=self.ts_init)
         self.assertEqual("D", detector.time_unit)
+
+    def test_remove_season(self) -> None:
+        sim3 = Simulator(n=120, start="2018-01-01")
+        ts3 = sim3.level_shift_sim(
+            cp_arr=[60],
+            level_arr=[1.35, 1.05],
+            noise=0.05,
+            seasonal_period=7,
+            seasonal_magnitude=0.575,
+        )
+        n_control = 14 * 86400
+        n_test = 14 * 86400
+        ss_detect5 = StatSigDetectorModel(
+            n_control=n_control,
+            n_test=n_test,
+            time_unit="sec",
+            rem_season=True,
+            seasonal_period="biweekly",
+        )
+        anom3 = ss_detect5.fit_predict(data=ts3)
+        self.assertEqual(np.min(anom3.scores.value.values) < -5, True)
+
+    def test_season_handler(self) -> None:
+        sim3 = Simulator(n=120, start="2018-01-01")
+        ts3 = sim3.level_shift_sim(
+            cp_arr=[60],
+            level_arr=[1.35, 1.05],
+            noise=0.05,
+            seasonal_period=7,
+            seasonal_magnitude=0.575,
+        )
+        with self.assertRaises(ValueError):
+            SeasonalityHandler(data=ts3, seasonal_period="weekly", lpj_factor=0.1)
+        with self.assertRaises(ValueError):
+            SeasonalityHandler(data=ts3, seasonal_period="daily")
 
 
 class TestMultiStatSigDetector(TestCase):
@@ -432,3 +495,54 @@ class TestMultiStatSigDetector(TestCase):
     def test_multi_predict(self) -> None:
         with self.assertRaises(ValueError):
             self.ss_detect.predict(self.ts_later)
+
+    def test_remove_season_multi(self) -> None:
+        sim3 = Simulator(n=120, start="2018-01-01")
+        ts1 = sim3.level_shift_sim(
+            cp_arr=[60],
+            level_arr=[1.35, 1.05],
+            noise=0.05,
+            seasonal_period=7,
+            seasonal_magnitude=0.51,
+        )
+        ts2 = sim3.level_shift_sim(
+            cp_arr=[60],
+            level_arr=[1.35, 1.05],
+            noise=0.05,
+            seasonal_period=7,
+            seasonal_magnitude=0.575,
+        )
+
+        ts3 = sim3.level_shift_sim(
+            cp_arr=[60],
+            level_arr=[1.35, 1.05],
+            noise=0.05,
+            seasonal_period=7,
+            seasonal_magnitude=0.53,
+        )
+
+        ts4 = sim3.level_shift_sim(
+            cp_arr=[60],
+            level_arr=[1.35, 1.05],
+            noise=0.05,
+            seasonal_period=7,
+            seasonal_magnitude=0.55,
+        )
+        data_ts = TimeSeriesData(
+            time=ts3.time,
+            value=pd.DataFrame(
+                {
+                    "ts_1": list(ts1.value.values),
+                    "ts_2": list(ts2.value.values),
+                    "ts_3": list(ts3.value.values),
+                    "ts_4": list(ts4.value.values),
+                }
+            ),
+        )
+        n_control = 14 * 86400
+        n_test = 14 * 86400
+        ss_detect5 = MultiStatSigDetectorModel(
+            n_control=n_control, n_test=n_test, time_unit="sec"
+        )
+        anom3 = ss_detect5.fit_predict(data=data_ts, rem_season=True)
+        self._check_tsdata_nonnull(anom3.scores)

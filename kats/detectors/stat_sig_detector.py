@@ -20,6 +20,7 @@ from kats.detectors.detector_consts import (
     ConfidenceBand,
     PercentageChange,
 )
+from kats.utils.decomposition import TimeSeriesDecomposition
 
 """Statistical Significance Detector Module
 This module contains simple detectors that apply a t-test over a rolling window to compare
@@ -48,6 +49,8 @@ class StatSigDetectorModel(DetectorModel):
         serialized_model: serialized json containing the parameters
         time_units: units of time used to measure the intervals. If not provided
                     we infer it from the provided data.
+        rem_season: default value is False, if remove seasonality for historical data and data
+        seasonal_period: str, default value is 'weekly'. Other possible values: 'daily', 'biweekly', 'monthly', 'yearly'
 
     >>> # Example usage:
     >>> # history and ts_pt are TimeSeriesData objects and history is larger
@@ -74,6 +77,8 @@ class StatSigDetectorModel(DetectorModel):
         n_test: Optional[int] = None,
         serialized_model: Optional[bytes] = None,
         time_unit: Optional[str] = None,
+        rem_season: bool = False,
+        seasonal_period: str = "weekly",
     ) -> None:
 
         if serialized_model:
@@ -81,11 +86,17 @@ class StatSigDetectorModel(DetectorModel):
             self.n_test = model_dict["n_test"]
             self.n_control = model_dict["n_control"]
             self.time_unit = model_dict["time_unit"]
+            # for seasonality
+            self.rem_season = model_dict.get("rem_season", rem_season)
+            self.seasonal_period = model_dict.get("seasonal_period", seasonal_period)
 
         else:
             self.n_test = n_test
             self.n_control = n_control
             self.time_unit = time_unit
+            # for seasonality
+            self.rem_season = rem_season
+            self.seasonal_period = seasonal_period
 
         if (self.n_control is None) or (self.n_test is None):
             raise ValueError(
@@ -101,6 +112,9 @@ class StatSigDetectorModel(DetectorModel):
         self.last_N = 0  # this is the size of the last chunk of data we saw
         self.data_history = None
 
+        # for seasonality
+        self.data_season = None
+
     def serialize(self) -> bytes:
         """
         Serializes by putting model parameters in a json
@@ -109,14 +123,17 @@ class StatSigDetectorModel(DetectorModel):
             "n_control": self.n_control,
             "n_test": self.n_test,
             "time_unit": self.time_unit,
+            "rem_season": self.rem_season,
+            "seasonal_period": self.seasonal_period,
         }
 
         return json.dumps(model_dict).encode("utf-8")
 
-    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def fit_predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """
         This is the main working function.
@@ -127,6 +144,7 @@ class StatSigDetectorModel(DetectorModel):
         Args:
             data: TimeSeriesData, A univariate TimeSeriesData for which we are running the StatSigDetectorModel
             historical_data: Optional[TimeSeriesData] Historical data used to do detection for initial points in data
+
         """
 
         if not data.is_univariate():
@@ -152,6 +170,23 @@ class StatSigDetectorModel(DetectorModel):
             data=data,
             historical_data=historical_data,
         )
+
+        # remove seasonality
+        if self.rem_season:
+            sh_data = SeasonalityHandler(
+                data=data, seasonal_period=self.seasonal_period
+            )
+
+            self.data_season = sh_data.get_seasonality()
+            data = sh_data.remove_seasonality()
+
+            if historical_data:
+                sh_hist_data = SeasonalityHandler(
+                    data=historical_data,
+                    seasonal_period=self.seasonal_period,
+                )
+                historical_data = sh_hist_data.remove_seasonality()
+
         self.data = data
 
         # first initialize this with the historical data
@@ -173,6 +208,74 @@ class StatSigDetectorModel(DetectorModel):
             self._update_control_test(ts_pt)
             self._update_response(ts_pt.time.iloc[0])
 
+        # add seasonality back
+        if self.rem_season:
+            start_idx = len(self.response.scores) - len(self.data_season)
+            datatime = self.response.scores.time
+
+            self.response = AnomalyResponse(
+                scores=self.response.scores,
+                confidence_band=ConfidenceBand(
+                    upper=TimeSeriesData(
+                        time=datatime,
+                        value=pd.concat(
+                            [
+                                pd.Series(
+                                    self.response.confidence_band.upper.value.values[
+                                        :start_idx
+                                    ]
+                                ),
+                                pd.Series(
+                                    np.asarray(
+                                        self.response.confidence_band.upper.value.values[
+                                            start_idx:
+                                        ]
+                                    )
+                                    + np.asarray(self.data_season.value.values)
+                                ),
+                            ]
+                        ),
+                    ),
+                    lower=TimeSeriesData(
+                        time=datatime,
+                        value=pd.concat(
+                            [
+                                pd.Series(
+                                    self.response.confidence_band.lower.value.values[
+                                        :start_idx
+                                    ]
+                                ),
+                                pd.Series(
+                                    np.asarray(
+                                        self.response.confidence_band.lower.value.values[
+                                            start_idx:
+                                        ]
+                                    )
+                                    + np.asarray(self.data_season.value.values)
+                                ),
+                            ]
+                        ),
+                    ),
+                ),
+                predicted_ts=TimeSeriesData(
+                    time=datatime,
+                    value=pd.concat(
+                        [
+                            pd.Series(
+                                self.response.predicted_ts.value.values[:start_idx]
+                            ),
+                            pd.Series(
+                                np.asarray(
+                                    self.response.predicted_ts.value.values[start_idx:]
+                                )
+                                + np.asarray(self.data_season.value.values)
+                            ),
+                        ]
+                    ),
+                ),
+                anomaly_magnitude_ts=self.response.anomaly_magnitude_ts,
+                stat_sig_ts=self.response.stat_sig_ts,
+            )
         return self.response.get_last_n(self.last_N)
 
     def visualize(self) -> None:
@@ -321,9 +424,11 @@ class StatSigDetectorModel(DetectorModel):
 
         return data, historical_data
 
-    # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.
     def fit(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> None:
         """
         Fit can be called during priming. It's a noop for us.
@@ -443,10 +548,11 @@ class StatSigDetectorModel(DetectorModel):
             value=pd.concat([self.data_history.value, data.value]),
         )
 
-    # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """
         Predict is not implemented.
@@ -482,6 +588,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         method: str, indicates the FDR controlling method used for adjusting the p-values.
             Defaults to 'fdr_bh' for Benjamini-Hochberg.  Inputs for other FDR controlling methods
             can be found at https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html
+        rem_season: default value is False, if remove seasonality for historical data and data
+        seasonal_period: str, default value is 'weekly'. Other possible values: 'daily', 'biweekly', 'monthly', 'yearly'
 
     >>> # Example usage:
     >>> # history and ts_pt are TimeSeriesData objects and history is larger
@@ -523,16 +631,27 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         n_test: Optional[int] = None,
         serialized_model: Optional[bytes] = None,
         time_unit: Optional[str] = None,
+        rem_season: bool = False,
+        seasonal_period: str = "weekly",
         method: str = "fdr_bh",
     ) -> None:
 
         StatSigDetectorModel.__init__(
-            self, n_control, n_test, serialized_model, time_unit
+            self,
+            n_control,
+            n_test,
+            serialized_model,
+            time_unit,
+            rem_season,
+            seasonal_period,
         )
         self.method = method
 
     def fit_predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """
         This is the main working function.
@@ -570,6 +689,22 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         )
         self.data = data
 
+        # remove seasonality
+        if self.rem_season:
+            sh_data = SeasonalityHandler(
+                data=data, seasonal_period=self.seasonal_period
+            )
+
+            self.data_season = sh_data.get_seasonality()
+            data = sh_data.remove_seasonality()
+
+            if historical_data:
+                sh_hist_data = SeasonalityHandler(
+                    data=historical_data,
+                    seasonal_period=self.seasonal_period,
+                )
+                historical_data = sh_hist_data.remove_seasonality()
+
         # first initialize this with the historical data
         self._init_data(historical_data)
         self._init_control_test(data if historical_data is None else historical_data)
@@ -591,6 +726,77 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             self._update_data(ts_pt)
             self._update_control_test(ts_pt)
             self._update_response(ts_pt.time.iloc[0])
+
+        # add seasonality back
+        if self.rem_season:
+            start_idx = len(self.response.scores) - len(self.data_season)
+            datatime = self.response.scores.time
+
+            self.response = AnomalyResponse(
+                scores=self.response.scores,
+                confidence_band=ConfidenceBand(
+                    upper=TimeSeriesData(
+                        time=datatime,
+                        value=pd.concat(
+                            [
+                                pd.DataFrame(
+                                    self.response.confidence_band.upper.value.values[
+                                        :start_idx, :
+                                    ]
+                                ),
+                                pd.DataFrame(
+                                    np.asarray(
+                                        self.response.confidence_band.upper.value.values[
+                                            start_idx:, :
+                                        ]
+                                    )
+                                    + np.asarray(self.data_season.value.values)
+                                ),
+                            ]
+                        ),
+                    ),
+                    lower=TimeSeriesData(
+                        time=datatime,
+                        value=pd.concat(
+                            [
+                                pd.DataFrame(
+                                    self.response.confidence_band.lower.value.values[
+                                        :start_idx, :
+                                    ]
+                                ),
+                                pd.DataFrame(
+                                    np.asarray(
+                                        self.response.confidence_band.lower.value.values[
+                                            start_idx:, :
+                                        ]
+                                    )
+                                    + np.asarray(self.data_season.value.values)
+                                ),
+                            ]
+                        ),
+                    ),
+                ),
+                predicted_ts=TimeSeriesData(
+                    time=datatime,
+                    value=pd.concat(
+                        [
+                            pd.DataFrame(
+                                self.response.predicted_ts.value.values[:start_idx, :]
+                            ),
+                            pd.DataFrame(
+                                np.asarray(
+                                    self.response.predicted_ts.value.values[
+                                        start_idx:, :
+                                    ]
+                                )
+                                + np.asarray(self.data_season.value.values)
+                            ),
+                        ]
+                    ),
+                ),
+                anomaly_magnitude_ts=self.response.anomaly_magnitude_ts,
+                stat_sig_ts=self.response.stat_sig_ts,
+            )
 
         return self.response.get_last_n(self.last_N)
 
@@ -672,3 +878,147 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         self.test_interval.data = self.data_history
         self.control_interval = ChangePointInterval(control_start_dt, control_end_dt)
         self.control_interval.data = self.data_history
+
+
+class SeasonalityHandler:
+    """
+    SeasonalityHandler is a class that do timeseries STL decomposition for detecors
+    Attributes:
+        data: TimeSeriesData that need to be decomposed
+        seasonal_period: str, default value is 'weekly'. Other possible values: 'daily', 'biweekly', 'monthly', 'yearly'
+
+    >>> # Example usage:
+    >>> from kats.utils.simulator import Simulator
+    >>> sim = Simulator(n=120, start='2018-01-01')
+    >>> ts = sim.level_shift_sim(cp_arr = [60], level_arr=[1.35, 1.05], noise=0.05, seasonal_period=7, seasonal_magnitude=0.575)
+    >>> sh = SeasonalityHandler(data=ts, seasonal_period='weekly')
+    >>> sh.get_seasonality()
+    >>> sh.remove_seasonality()
+    """
+
+    def __init__(
+        self,
+        data: TimeSeriesData,
+        seasonal_period: str = "weekly",
+        **kwargs: Any,
+    ) -> None:
+        self.data = data
+
+        _map = {"daily": 1, "weekly": 7, "biweekly": 14, "monthly": 30, "yearly": 365}
+        if seasonal_period not in _map:
+            msg = "Invalid seasonal_period, possible values are 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
+            logging.error(msg)
+            raise ValueError(msg)
+        self.seasonal_period = _map[seasonal_period] * 24  # change to hours
+
+        self.low_pass_jump_factor = kwargs.get("lpj_factor", 0.15)
+        self.trend_jump_factor = kwargs.get("tj_factor", 0.15)
+
+        self.frequency = self.data.freq_to_timedelta()
+        self.decomposer_input = self.data.interpolate(self.frequency)
+        self.period = int(
+            self.seasonal_period * 60 * 60 / self.frequency.total_seconds()
+        )
+
+        if (
+            int((self.period + 1) * self.low_pass_jump_factor) < 1
+            or int((self.period + 1) * self.trend_jump_factor) < 1
+        ):
+            msg = "Invalid low_pass_jump or trend_jump_factor value, try a larger factor or try a larger seasonal_period"
+            logging.error(msg)
+            raise ValueError(msg)
+
+        self.decomp = None
+
+        self.ifmulti = False
+        # for multi-variate TS
+        if len(self.data.value.values.shape) != 1:
+            self.ifmulti = True
+            self.num_seq = self.data.value.values.shape[1]
+
+        self.data_season = TimeSeriesData(time=self.data.time, value=self.data.value)
+        self.data_nonseason = TimeSeriesData(time=self.data.time, value=self.data.value)
+
+    def _decompose(self) -> None:
+        if not self.ifmulti:
+            decomposer = TimeSeriesDecomposition(
+                self.decomposer_input,
+                period=self.period,
+                robust=True,
+                seasonal_deg=0,
+                trend_deg=1,
+                low_pass_deg=1,
+                low_pass_jump=int((self.period + 1) * self.low_pass_jump_factor),
+                seasonal_jump=1,
+                trend_jump=int((self.period + 1) * self.trend_jump_factor),
+            )
+
+            self.decomp = decomposer.decomposer()
+            return
+
+        self._decompose_multi()
+
+    def _decompose_multi(self) -> None:
+        self.decomp = {}
+        for i in range(self.num_seq):
+            temp_ts = TimeSeriesData(
+                time=self.decomposer_input.time,
+                value=pd.Series(self.decomposer_input.value.values[:, i]),
+            )
+            decomposer = TimeSeriesDecomposition(
+                temp_ts,
+                period=self.period,
+                robust=True,
+                seasonal_deg=0,
+                trend_deg=1,
+                low_pass_deg=1,
+                low_pass_jump=int((self.period + 1) * self.low_pass_jump_factor),
+                seasonal_jump=1,
+                trend_jump=int((self.period + 1) * self.trend_jump_factor),
+            )
+
+            self.decomp[i] = decomposer.decomposer()
+
+    def remove_seasonality(self) -> TimeSeriesData:
+        if self.decomp is None:
+            self._decompose()
+        if not self.ifmulti:
+            data_time_idx = self.decomp["rem"].time.isin(self.data_nonseason.time)
+            self.data_nonseason.value = pd.Series(
+                self.decomp["rem"][data_time_idx].value
+                + self.decomp["trend"][data_time_idx].value,
+                name=self.data_nonseason.value.name,
+            )
+            return self.data_nonseason
+
+        data_time_idx = self.decomp[0]["rem"].time.isin(self.data_nonseason.time)
+        for i in range(self.num_seq):
+            self.data_nonseason.value.iloc[:, i] = pd.Series(
+                self.decomp[i]["rem"][data_time_idx].value
+                + self.decomp[i]["trend"][data_time_idx].value,
+                name=self.data_nonseason.value.iloc[:, i].name,
+            )
+
+        return self.data_nonseason
+
+    def get_seasonality(self) -> TimeSeriesData:
+
+        if self.decomp is None:
+            self._decompose()
+
+        if not self.ifmulti:
+            data_time_idx = self.decomp["seasonal"].time.isin(self.data_season.time)
+            self.data_season.value = pd.Series(
+                self.decomp["seasonal"][data_time_idx].value,
+                name=self.data_season.value.name,
+            )
+            return self.data_season
+
+        data_time_idx = self.decomp[0]["seasonal"].time.isin(self.data_season.time)
+        for i in range(self.num_seq):
+            self.data_season.value.iloc[:, i] = pd.Series(
+                self.decomp[i]["seasonal"][data_time_idx].value,
+                name=self.data_season.value.iloc[:, i].name,
+            )
+
+        return self.data_season
