@@ -22926,10 +22926,12 @@ AIR_FCST_15_THETA_SM_12 = pd.DataFrame(
 
 AIR_FCST_15_THETA_INCL_HIST_SM_12 = pd.DataFrame(
     {
-        "time":
-        {t1:t2 for t1, t2 in zip(range(0, 159),
-            pd.date_range("1949-01-01", freq="MS", periods = 160)
-        )},
+        "time": {
+            t1: t2
+            for t1, t2 in zip(
+                range(0, 159), pd.date_range("1949-01-01", freq="MS", periods=160)
+            )
+        },
         "fcst": {
             0: 111.79670896456088,
             1: 119.78825978861222,

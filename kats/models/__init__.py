@@ -15,6 +15,7 @@ except ImportError:
     import logging
 
     logging.warning("kats.models.lstm requires torch be installed")
+from . import globalmodel  # noqa
 from . import metalearner  # noqa
 from . import model  # noqa
 from . import nowcasting  # noqa
@@ -25,4 +26,3 @@ from . import sarima  # noqa
 from . import stlf  # noqa
 from . import theta  # noqa
 from . import var  # noqa
-from . import globalmodel # noqa
