@@ -6,6 +6,7 @@
 
 # This file defines tests for the abstract Evaluator class
 
+import re
 import unittest
 import unittest.mock as mock
 
@@ -18,6 +19,7 @@ from kats.tests.test_backtester_dummy_data import (
 from kats.utils.testing import error_funcs
 from pandas.testing import assert_frame_equal
 
+pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])
 np.random.seed(42)
 
 # Constant Values
@@ -99,6 +101,14 @@ class EvaluatorTest(unittest.TestCase):
         eval_res = self.evaluator.evaluate(
             run_name="test_evaluate", metric_to_func=errs, labels=labels
         )
-        assert_frame_equal(
-            eval_res, FCST_EVALUATION_ERRORS, check_exact=False, check_less_precise=4
-        )
+        if pd_ver < 1.1:
+            assert_frame_equal(
+                eval_res,
+                FCST_EVALUATION_ERRORS,
+                check_exact=False,
+                check_less_precise=4,
+            )
+        else:
+            assert_frame_equal(
+                eval_res, FCST_EVALUATION_ERRORS, check_exact=False, atol=0.5, rtol=0.2
+            )
