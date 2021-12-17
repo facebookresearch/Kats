@@ -147,7 +147,7 @@ class ACFDetector(Detector):
             decompose = self.decompose
             assert decompose is not None
             axs = decompose.plot()
-            return ax1, *axs
+            return (ax1, *axs)
         return ax1
 
     # pyre-fixme[14]: `kats.detectors.seasonality.ACFDetector.remover` overrides method defined in `Detector` inconsistently. Could not find parameter `interpolate` in overriding signature.
