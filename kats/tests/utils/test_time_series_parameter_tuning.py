@@ -237,37 +237,37 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
         self.assertEqual(len(parameter_values_with_scores.index), 20)
 
-    def test_time_series_parameter_tuning_prophet_bayes_opt(self) -> None:
-        random_state = np.random.RandomState(seed=0)
+    # def test_time_series_parameter_tuning_prophet_bayes_opt(self) -> None:
+    #     random_state = np.random.RandomState(seed=0)
 
-        def prophet_evaluation_function(params):
-            error = random_state.random()
-            sem = 0.0  # standard error of the mean of model's estimation error.
-            return error, sem
+    #     def prophet_evaluation_function(params):
+    #         error = random_state.random()
+    #         sem = 0.0  # standard error of the mean of model's estimation error.
+    #         return error, sem
 
-        time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
-            parameters=ProphetModel.get_parameter_search_space(),
-            selected_search_method=SearchMethodEnum.BAYES_OPT,
-            evaluation_function=prophet_evaluation_function,
-            # objective_name='some_objective'
-        )
+    #     time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
+    #         parameters=ProphetModel.get_parameter_search_space(),
+    #         selected_search_method=SearchMethodEnum.BAYES_OPT,
+    #         evaluation_function=prophet_evaluation_function,
+    #         # objective_name='some_objective'
+    #     )
 
-        parameter_values_with_scores = (
-            time_series_parameter_tuner.list_parameter_value_scores()
-        )
+    #     parameter_values_with_scores = (
+    #         time_series_parameter_tuner.list_parameter_value_scores()
+    #     )
 
-        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
-        self.assertEqual(len(parameter_values_with_scores.index), 5)
-        for _ in range(5):
-            time_series_parameter_tuner.generate_evaluate_new_parameter_values(
-                evaluation_function=prophet_evaluation_function, arm_count=1
-            )
-        parameter_values_with_scores = (
-            time_series_parameter_tuner.list_parameter_value_scores()
-        )
-        # print(f'* * * {parameter_values_with_scores.to_string()}')
-        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
-        self.assertEqual(len(parameter_values_with_scores.index), 10)
+    #     self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+    #     self.assertEqual(len(parameter_values_with_scores.index), 5)
+    #     for _ in range(5):
+    #         time_series_parameter_tuner.generate_evaluate_new_parameter_values(
+    #             evaluation_function=prophet_evaluation_function, arm_count=1
+    #         )
+    #     parameter_values_with_scores = (
+    #         time_series_parameter_tuner.list_parameter_value_scores()
+    #     )
+    #     # print(f'* * * {parameter_values_with_scores.to_string()}')
+    #     self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+    #     self.assertEqual(len(parameter_values_with_scores.index), 10)
 
     # def test_outcome_constraint_without_filter(self) -> None:
     #     def run_model(x):
