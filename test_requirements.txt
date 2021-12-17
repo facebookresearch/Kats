@@ -1,9 +1,8 @@
 LunarCalendar>=0.0.9
-botorch==0.3.2
-ax-platform==0.1.18
+ax-platform
 fbprophet==0.7
-neuralprophet>=0.2.7
-gpytorch==1.2.1
+neuralprophet==0.2.8
+gpytorch
 holidays>=0.10.2
 numba>=0.52.0
 parameterized>=0.8.1
