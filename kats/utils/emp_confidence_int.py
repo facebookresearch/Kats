@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
-from kats.models.model import Model
 from kats.utils.backtesters import BackTesterRollingWindow
 from scipy import stats
 
@@ -67,7 +66,7 @@ class EmpConfidenceInt:
         test_percentage: float,
         sliding_steps: int,
         # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
-        model_class: Type[Model],
+        model_class: Type,
         multi: bool = True,
         confidence_level: float = 0.8,
     ) -> None:
