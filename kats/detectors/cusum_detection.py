@@ -193,7 +193,12 @@ class CUSUMDetector(Detector):
     magnitude_ratio: Optional[float] = None
     changes_meta: Optional[Dict[str, Dict[str, Any]]] = None
 
-    def __init__(self, data: TimeSeriesData, is_multivariate: bool = False) -> None:
+    def __init__(
+        self,
+        data: TimeSeriesData,
+        is_multivariate: bool = False,
+        is_vectorized: bool = False,
+    ) -> None:
         """Univariate CUSUM detector for level shifts
 
         Use cusum to detect changes, the algorithm is based on likelihood ratio
@@ -208,11 +213,11 @@ class CUSUMDetector(Detector):
                 MultiCUSUMDetector,
         """
         super(CUSUMDetector, self).__init__(data=data)
-        if not self.data.is_univariate() and not is_multivariate:
+        if not self.data.is_univariate() and not is_multivariate and not is_vectorized:
             msg = (
                 "CUSUMDetector only supports univariate time series, but got "
                 f"{type(self.data.value)}.  For multivariate time series, use "
-                "MultiCUSUMDetector"
+                "MultiCUSUMDetector or VectorizedCUSUMDetector"
             )
             logging.error(msg)
             raise ValueError(msg)
@@ -778,6 +783,176 @@ class MultiCUSUMDetector(CUSUMDetector):
             "sigma0": sigma0,
             "sigma1": sigma1,
             "changetime": self.data.time[changepoint],
+            "stable_changepoint": stable_changepoint,
+            "delta": mu1 - mu0,
+            "llr_int": llr_int,
+            "p_value_int": pval_int,
+            "delta_int": delta_int,
+        }
+
+
+class VectorizedCUSUMDetector(CUSUMDetector):
+    """
+    VectorizedCUSUM is the vecteorized version of CUSUM. It can take
+    multiple time series as an input and run CUSUM algorithm on each time series
+    in a vectorized manner.
+
+    Attributes:
+        data: The input time series data from TimeSeriesData
+    """
+
+    changes_meta_list: Optional[List[Dict[str, Dict[str, Any]]]] = None
+
+    def __init__(self, data: TimeSeriesData) -> None:
+        super(VectorizedCUSUMDetector, self).__init__(
+            data=data, is_multivariate=False, is_vectorized=True
+        )
+
+    def detector(self, **kwargs) -> Sequence[CUSUMChangePoint]:
+        msg = "VectorizedCUSUMDetector is in beta and please use detector_()"
+        logging.error(msg)
+        raise ValueError(msg)
+
+    def detector_(self, **kwargs) -> List[List[CUSUMChangePoint]]:
+        """
+        Detector method for vectorized version of CUSUM
+
+        Args:
+            threshold: Optional; float; significance level, default: 0.01.
+            max_iter: Optional; int, maximum iteration in finding the
+                changepoint.
+            change_directions: Optional; list<str>; a list contain either or
+                both 'increase' and 'decrease' to specify what type of change
+                want to detect.
+            return_all_changepoints: Optional; bool; return all the changepoints
+                found, even the insignificant ones.
+
+        Returns:
+            A list of tuple of TimeSeriesChangePoint and CUSUMMetadata.
+        """
+        # Extract all arg values or assign defaults from default vals constant
+        threshold = _get_arg("threshold", **kwargs)
+        max_iter = _get_arg("max_iter", **kwargs)
+        change_directions = _get_arg("change_directions", **kwargs)
+        return_all_changepoints = _get_arg("return_all_changepoints", **kwargs)
+
+        # Use array to store the data
+        ts_all = self.data.value.to_numpy()
+        ts_all = ts_all.astype("float64")
+        changes_meta_list = []
+
+        if change_directions is None:
+            change_directions = ["increase", "decrease"]
+
+        change_meta_all = {}
+        for change_direction in change_directions:
+            if change_direction not in {"increase", "decrease"}:
+                raise ValueError(
+                    "Change direction must be 'increase' or 'decrease.' "
+                    f"Got {change_direction}"
+                )
+
+            change_meta_all[change_direction] = self._get_change_point_multiple_ts(
+                ts_all,
+                max_iter=max_iter,
+                change_direction=change_direction,
+            )
+
+        ret = []
+        for col_idx in np.arange(ts_all.shape[1]):
+            ts = ts_all[:, col_idx]
+            changes_meta = {}
+            for change_direction in change_directions:
+                change_meta_ = change_meta_all[change_direction]
+                change_meta = {
+                    k: change_meta_[k][col_idx]
+                    if isinstance(change_meta_[k], np.ndarray)
+                    or isinstance(change_meta_[k], list)
+                    else change_meta_[k]
+                    for k in change_meta_
+                }
+                change_meta["llr"] = self._get_llr(ts, change_meta)
+                change_meta["p_value"] = 1 - chi2.cdf(change_meta["llr"], 2)
+                change_meta["regression_detected"] = change_meta["p_value"] < threshold
+                changes_meta[change_direction] = change_meta
+            changes_meta_list.append(changes_meta)
+            ret.append(
+                self._convert_cusum_changepoints(changes_meta, return_all_changepoints)
+            )
+        self.changes_meta_list = changes_meta_list
+        return ret
+
+    def _get_change_point_multiple_ts(
+        self, ts: np.ndarray, max_iter: int, change_direction: str
+    ) -> Dict[str, Any]:
+        """
+        Find change points in a list of time series
+        """
+        # locate the change point using cusum method
+        if change_direction == "increase":
+            changepoint_func = np.argmin
+            logging.debug("Detecting increase changepoint.")
+        else:
+            assert change_direction == "decrease"
+            changepoint_func = np.argmax
+            logging.debug("Detecting decrease changepoint.")
+
+        n_ts = ts.shape[1]
+        n_pts = ts.shape[0]
+        n = 0
+        # use the middle point as initial change point to estimate mu0 and mu1
+        ts_int = ts
+        tmp = ts_int - np.tile(np.mean(ts_int, axis=0), (n_pts, 1))
+        cusum_ts = np.cumsum(tmp, axis=0)
+        changepoint = np.minimum(changepoint_func(cusum_ts, axis=0), n_pts - 2)
+        mu0 = mu1 = None
+        stable_changepoint = [False] * len(changepoint)
+        # iterate until the changepoint converage
+        while n < max_iter:
+            mask = np.zeros((n_pts, n_ts), dtype=bool)
+            for i, c in enumerate(changepoint):
+                mask[: (c + 1), i] = True
+            n += 1
+            mu0 = np.divide(
+                np.sum(np.multiply(ts_int, mask), axis=0), np.sum(mask, axis=0)
+            )
+            mu1 = np.divide(
+                np.sum(np.multiply(ts_int, ~mask), axis=0), np.sum(~mask, axis=0)
+            )
+            mean = (mu0 + mu1) / 2
+            # here is where cusum is happening
+            tmp = ts_int - np.tile(mean, (n_pts, 1))
+            cusum_ts = np.cumsum(tmp, axis=0)
+            next_changepoint = np.maximum(
+                np.minimum(changepoint_func(cusum_ts, axis=0), n_pts - 2), 1
+            )
+            stable_changepoint = np.equal(changepoint, next_changepoint)
+            if all(stable_changepoint):
+                break
+            changepoint = next_changepoint
+
+        # llr in interest window, not supported yet
+        llr_int = np.inf
+        pval_int = np.NaN
+        delta_int = None
+
+        # full time changepoint and mean
+        mask = np.zeros((n_pts, n_ts), dtype=bool)
+        changetime = []
+        for i, c in enumerate(changepoint):
+            mask[: (c + 1), i] = True
+            changetime.append(self.data.time[c])
+
+        mu0 = np.divide(np.sum(np.multiply(ts_int, mask), axis=0), np.sum(mask, axis=0))
+        mu1 = np.divide(
+            np.sum(np.multiply(ts_int, ~mask), axis=0), np.sum(~mask, axis=0)
+        )
+
+        return {
+            "changepoint": changepoint,
+            "mu0": mu0,
+            "mu1": mu1,
+            "changetime": changetime,
             "stable_changepoint": stable_changepoint,
             "delta": mu1 - mu0,
             "llr_int": llr_int,

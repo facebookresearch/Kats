@@ -15,6 +15,7 @@ from kats.consts import TimeSeriesData
 from kats.detectors.cusum_detection import (
     CUSUMDetector,
     MultiCUSUMDetector,
+    VectorizedCUSUMDetector,
 )
 from parameterized.parameterized import parameterized
 from scipy.stats import chi2  # @manual
@@ -469,3 +470,53 @@ class MultiCUSUMDetectorTest(TestCase):
         timeseries_no_change = TimeSeriesData(df_no_change)
         change_points = MultiCUSUMDetector(timeseries_no_change).detector()
         self.assertEqual(len(change_points), 0)
+
+
+class VectorizedCUSUMDetectorTest(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(10)
+
+        # increasing with variance detection setup
+        df = pd.DataFrame(
+            {
+                "increase": np.concatenate(
+                    [np.random.normal(1, 0.2, 30), np.random.normal(1.5, 0.2, 30)]
+                ),
+                "decrease": np.concatenate(
+                    [np.random.normal(1, 0.2, 50), np.random.normal(0.5, 0.2, 10)]
+                ),
+            }
+        )
+        df["time"] = pd.Series(pd.date_range("2019-01-01", "2019-03-01"))
+
+        self.inc_change_points = CUSUMDetector(
+            TimeSeriesData(df[["increase", "time"]])
+        ).detector()
+        self.dec_change_points = CUSUMDetector(
+            TimeSeriesData(df[["decrease", "time"]])
+        ).detector()
+
+        timeseries = TimeSeriesData(df)
+        change_points_vectorized_ = VectorizedCUSUMDetector(timeseries).detector_()
+
+        # take the change points in all columns with the corresponding directions
+        change_points_vectorized = [[], []]
+        for i in range(len(change_points_vectorized_)):
+            for change_points_ts in change_points_vectorized_[i]:
+                if change_points_ts.direction == df.columns.values[i]:
+                    change_points_vectorized[i].append(change_points_ts)
+        # change points for the first column in the matrix
+        self.inc_change_points_vectorized = change_points_vectorized[0]
+        # change points for the second column in the matrix
+        self.dec_change_points_vectorized = change_points_vectorized[1]
+
+    def test_vectorized_results(self) -> None:
+        # check if vectorized CUSUM produces the same results with the original CUSUM
+        self.assertEqual(
+            self.inc_change_points[0].start_time,
+            self.inc_change_points_vectorized[0].start_time,
+        )
+        self.assertEqual(
+            self.dec_change_points[0].start_time,
+            self.dec_change_points_vectorized[0].start_time,
+        )
