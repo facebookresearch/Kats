@@ -174,6 +174,8 @@ class TSfeaturesTest(TestCase):
 
         # test there are 40 features in the feature vector now
         self.assertEqual(
+            # pyre-fixme[16]: Item `List` of `Union[Dict[str, float], List[Dict[str,
+            #  float]]]` has no attribute `values`.
             len(np.asarray(list(feature_vector.values()))) == 40,
             True,
         )
