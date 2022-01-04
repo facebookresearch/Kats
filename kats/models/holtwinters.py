@@ -2,7 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
 
 """The Holt Winters model is a time series forecast model that applies exponential smoothing three times, it serves as the extension of the simple exponential smoothing forecast model.
 
@@ -16,7 +15,7 @@ We rewrite the corresponding API to accommodate the Kats development style
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-from typing import Dict, List, Any
+from typing import Optional, Dict, List, Any
 
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
@@ -40,6 +39,11 @@ class HoltWintersParams(Params):
         seasonal: Optional; A string that specifies the type of seasonal component Can be 'add' and 'mul' or 'additive' and 'multiplicative'. Default is None
         seasonal_periods: Optional; An integer that specifies the period for the seasonal component, e.g. 4 for quarterly data and 7 for weekly seasonality of daily data. Default is None
     """
+
+    trend: Optional[str]
+    damped: Optional[bool]
+    seasonal: Optional[str]
+    seasonal_periods: Optional[int]
 
     __slots__ = ["trend", "damped", "seasonal", "seasonal_periods"]
 
@@ -71,7 +75,7 @@ class HoltWintersParams(Params):
             )
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         """Validate the types and values of the input parameters
         Args:
             None
@@ -93,7 +97,7 @@ class HoltWintersParams(Params):
             raise ValueError(msg)
 
 
-class HoltWintersModel(Model):
+class HoltWintersModel(Model[HoltWintersParams]):
     """Model class for the HoltWinters model
 
     Attributes:
@@ -102,6 +106,7 @@ class HoltWintersModel(Model):
     """
 
     def __init__(self, data: TimeSeriesData, params: HoltWintersParams) -> None:
+
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
@@ -110,7 +115,7 @@ class HoltWintersModel(Model):
             logging.error(msg)
             raise ValueError(msg)
 
-    def fit(self, **kwargs) -> None:
+    def fit(self, **kwargs: Any) -> None:
         """Fit the model with the specified input parameters"""
 
         logging.debug("Call fit() with parameters:{kwargs}".format(kwargs=kwargs))
@@ -127,7 +132,7 @@ class HoltWintersModel(Model):
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
-        self, steps: int, include_history: bool = False, **kwargs
+        self, steps: int, include_history: bool = False, **kwargs: Any
     ) -> pd.DataFrame:
         """Predict with fitted HoltWinters model
 
@@ -210,7 +215,7 @@ class HoltWintersModel(Model):
 
         return fcst
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "HoltWinters"
 
     @staticmethod
