@@ -10,6 +10,7 @@ from unittest import TestCase
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+import seaborn as sns
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.models.bayesian_var import BayesianVAR, BayesianVARParams
@@ -34,20 +35,45 @@ class testBayesianVARModel(TestCase):
         df["y_2"] = df.y * 2
 
         # Create correct DataFrame columns that model should produce
-        correct_columns = ["time", "y", "y_2"]
+        correct_columns = ["ds", "y", "y_2"]
 
         # Initialize model and test
         ts = TimeSeriesData(df=df, time_col_name="ds")
         m = BayesianVAR(ts, self.params)
         self.assertEqual(list(m.data.to_dataframe().columns), correct_columns)
 
-    @pytest.mark.mpl_image_compare
+    @pytest.mark.mpl_image_compare(remove_text=True)
     def test_plot(self) -> plt.Figure:
         params = BayesianVARParams(p=3)
         m = BayesianVAR(self.TSData_multi, params)
         m.fit()
         m.predict(steps=30, include_history=True)
-        m.plot()
+        with sns.color_palette(n_colors=8):
+            ax = m.plot()
+            self.assertIsNotNone(ax)
+        return plt.gcf()
+
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_plot_ax(self) -> plt.Figure:
+        params = BayesianVARParams(p=3)
+        m = BayesianVAR(self.TSData_multi, params)
+        m.fit()
+        m.predict(steps=30, include_history=True)
+        with sns.color_palette(n_colors=8):
+            _, ax = plt.subplots(figsize=(5, 4))
+            ax = m.plot(ax=ax)
+            self.assertIsNotNone(ax)
+        return plt.gcf()
+
+    @pytest.mark.mpl_image_compare(remove_text=True)
+    def test_plot_params(self) -> plt.Figure:
+        params = BayesianVARParams(p=3)
+        m = BayesianVAR(self.TSData_multi, params)
+        m.fit()
+        m.predict(steps=30, include_history=True)
+        with sns.color_palette(n_colors=8):
+            ax = m.plot(figsize=(8, 5), title="Test", ls=".")
+            self.assertIsNotNone(ax)
         return plt.gcf()
 
     def test_predict_error(self) -> None:
@@ -55,6 +81,11 @@ class testBayesianVARModel(TestCase):
         with self.assertRaises(ValueError):
             # Model needs to be fit before predict
             m.predict(10)
+
+    def test_predict_zero(self) -> None:
+        m = BayesianVAR(self.TSData_multi, self.params)
+        with self.assertRaises(ValueError):
+            m.predict(0)
 
     def test_plot_error(self) -> None:
         m = BayesianVAR(self.TSData_multi, self.params)
