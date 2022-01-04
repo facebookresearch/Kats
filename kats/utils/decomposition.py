@@ -2,10 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -37,13 +35,26 @@ class TimeSeriesDecomposition:
 
     freq: Optional[str] = None
     results: Optional[Dict[str, TimeSeriesData]] = None
+    decomposition: str
+    method: Callable[[pd.DataFrame], Dict[str, pd.DataFrame]]
+    period: Optional[int]
+    seasonal: int
+    trend: Optional[int]
+    low_pass: Optional[int]
+    seasonal_deg: int
+    trend_deg: int
+    low_pass_deg: int
+    robust: bool
+    seasonal_jump: int
+    trend_jump: int
+    low_pass_jump: int
 
     def __init__(
         self,
         data: TimeSeriesData,
         decomposition: str = "additive",
         method: str = "STL",
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not isinstance(data.value, pd.Series):
             msg = f"Only support univariate time series, but got {type(data.value)}."
@@ -203,11 +214,11 @@ class TimeSeriesDecomposition:
         linewidth: int = 3,
         xlabel: str = "Time",
         original_title: str = "Original Time Series",
-        trend_title="Trend",
-        seasonality_title="Seasonality",
-        residual_title="Residual",
+        trend_title: str = "Trend",
+        seasonality_title: str = "Seasonality",
+        residual_title: str = "Residual",
         subplot_kwargs: Optional[Dict[str, Any]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Tuple[plt.Axes, plt.Axes, plt.Axes, plt.Axes]:
         """Plot the original time series and the three decomposed components."""
         results = self.results
