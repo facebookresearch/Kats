@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """TsFeatures is a module for performing adhoc feature engineering on time series
 data using different statistics.
 
@@ -34,8 +32,8 @@ try:
 except ImportError:
     logging.warning("numba is not installed. jit compilation of tsfeatures is disabled")
 
-    def jit(**kwargs):
-        def jit_decorator(func):
+    def jit(**kwargs):  # type: ignore
+        def jit_decorator(func):  # type: ignore
             return func
 
         return jit_decorator
@@ -228,6 +226,9 @@ _FEATURE_GROUP_MAPPING: Dict[str, List[str]] = {
     ],
 }
 
+TSMethod = Callable[[TimeSeriesData], Dict[str, float]]
+ArrayMethod = Callable[[np.ndarray], Dict[str, float]]
+
 
 class TsFeatures:
     """Process time series data into features for machine learning models.
@@ -291,8 +292,8 @@ class TsFeatures:
     """
 
     _total_feature_len_: int = 0
-    _ts_methods: Dict[str, partial] = {}
-    _x_methods: Dict[str, partial] = {}
+    _ts_methods: Dict[str, TSMethod] = {}
+    _x_methods: Dict[str, ArrayMethod] = {}
 
     def __init__(
         self,
@@ -309,8 +310,8 @@ class TsFeatures:
         n_fast: int = 12,
         n_slow: int = 21,
         selected_features: Optional[List[str]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         # init hyper-parameters
         self.window_size = window_size
         self.spectral_freq = spectral_freq
@@ -327,7 +328,7 @@ class TsFeatures:
 
         # Mapping group features
         g2f = dict(_FEATURE_GROUP_MAPPING)
-        self.feature_group_mapping = dict(g2f)
+        self.feature_group_mapping: Dict[str, List[str]] = dict(g2f)
         f2g = self._compute_f2g(kwargs, g2f)
 
         # Higher level of features:
@@ -336,7 +337,7 @@ class TsFeatures:
         final_filter, default = self._compute_final_filter(
             selected_features, f2g, g2f, kwargs
         )
-        self.final_filter = final_filter
+        self.final_filter: Dict[str, bool] = final_filter
 
         self._set_defaults(kwargs, default)
         self._setup(spectral_freq, window_size, nbins, lag_size)
@@ -543,9 +544,10 @@ class TsFeatures:
                 func = self._x_methods.get(method, None)
                 if func is None:
                     func = self._ts_methods[method]
-                    more_features = func(ts, **params)
+                    assert func is not None
+                    more_features: Dict[str, float] = func(ts, **params)
                 else:
-                    more_features = func(x, **params)
+                    more_features: Dict[str, float] = func(x, **params)
                 logging.debug(f"...generated {more_features}")
                 features.update(more_features)
         return features
@@ -670,7 +672,7 @@ class TsFeatures:
     # @jit(forceobj=True)
     def get_statistics(
         x: np.ndarray,
-        dict_features: Optional[Dict[str, Callable]] = None,
+        dict_features: Optional[Dict[str, Callable[[np.ndarray], float]]] = None,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
     ) -> Dict[str, float]:
