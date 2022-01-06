@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 
 """
 This module implements the univariate Outlier Detection algorithm as a Detector Model.
@@ -27,8 +25,14 @@ class OutlierDetectorModel(DetectorModel):
     specified multiplier times the inter quartile range.
 
     Attributes:
-        serialized_model: json, representing data from a previously serialized model.
+        decomp: 'additive' or 'multiplicative' decomposition
+        iqr_mult: iqr_mult * inter quartile range is used to classify outliers
+        serialized_model: Optional; json, representing data from a previously serialized model.
     """
+
+    decomp: str
+    iqr_mult: float
+    model: Optional[OutlierDetector] = None
 
     def __init__(
         self,
@@ -43,8 +47,6 @@ class OutlierDetectorModel(DetectorModel):
         else:
             self.decomp = decomp
             self.iqr_mult = iqr_mult
-
-        self.model = None
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -69,8 +71,8 @@ class OutlierDetectorModel(DetectorModel):
 
         Args:
             data: TimeSeriesData on which detection is run.
-            historical_data: TimeSeriesData corresponding to history. History ends exactly where
-                the data begins.
+            historical_data: Optional; TimeSeriesData corresponding to history. History ends
+                exactly where the data begins.
 
         Returns:
             None.
@@ -98,8 +100,8 @@ class OutlierDetectorModel(DetectorModel):
 
         Args:
             data: TimeSeriesData on which detection is run
-            historical_data: TimeSeriesData corresponding to history. History ends exactly where
-                the data begins.
+            historical_data: Optional; TimeSeriesData corresponding to history. History ends
+                exactly where the data begins.
 
         Returns:
             AnomalyResponse object. The length of this obj.ect is same as data. The score property
@@ -108,7 +110,10 @@ class OutlierDetectorModel(DetectorModel):
         if self.model is None:
             self.fit(data=data, historical_data=historical_data)
 
+        assert self.model is not None
         output_scores_df = self.model.output_scores
+
+        assert output_scores_df is not None
         output_scores_df = output_scores_df[output_scores_df.index >= data.time.min()]
 
         zeros = np.zeros(shape=output_scores_df.shape)
@@ -143,8 +148,8 @@ class OutlierDetectorModel(DetectorModel):
 
         Args:
             data: TimeSeriesData on which detection is run.
-            historical_data: TimeSeriesData corresponding to history. History ends exactly where
-                the data begins.
+            historical_data: Optional; TimeSeriesData corresponding to history. History ends
+                exactly where the data begins.
 
         Returns:
             AnomalyResponse object. The length of this object is same as data. The score property
