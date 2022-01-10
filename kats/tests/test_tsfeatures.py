@@ -156,18 +156,14 @@ class TSfeaturesTest(TestCase):
         self.assertDictAlmostEqual(expected, features)
 
     def test_tsfeatures(self) -> None:
-        feature_vector = TsFeatures().transform(self.TSData)
+        feature_vector = cast(Dict[str, float], TsFeatures().transform(self.TSData))
 
         feature_vector_round = {
-            # pyre-fixme[6]: Expected `str` for 1st param but got `Union[Dict[str,
-            #  float], str]`.
-            key: round(feature_vector[key], 6)
-            for key in feature_vector
+            key: round(feature_vector[key], 6) for key in feature_vector
         }
 
         # test there is no nan in feature vector
         self.assertEqual(
-            # pyre-fixme[16]: `List` has no attribute `values`.
             np.isnan(np.asarray(list(feature_vector.values()))).any(),
             False,
         )
@@ -408,10 +404,11 @@ class TSfeaturesTest(TestCase):
 
     def test_others(self) -> None:
         # test there is nan in feature vector because the length of TS is too short
-        feature_vector = TsFeatures().transform(self.TSData_short)
+        feature_vector = cast(
+            Dict[str, float], TsFeatures().transform(self.TSData_short)
+        )
 
         self.assertEqual(
-            # pyre-fixme[16]: `List` has no attribute `values`.
             np.isnan(np.asarray(list(feature_vector.values()))).any(),
             True,
         )
@@ -477,9 +474,7 @@ class TSfeaturesTest(TestCase):
                 "hw_gamma",
             ]
         )
-        feats = ts_features.transform(ts)
-        # pyre-fixme[6]: Expected `str` for 1st param but got
-        #  `Union[typing.Dict[str, float], str]`.
+        feats = cast(Dict[str, float], ts_features.transform(ts))
         feats = {key: round(feats[key], 3) for key in feats}
         if statsmodels_ver < 0.12:
             self.assertEqual(

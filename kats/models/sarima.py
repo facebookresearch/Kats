@@ -2,12 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
-from typing import List, Dict, Optional, Tuple, Callable, Union, Any
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -16,6 +12,7 @@ from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import (
     get_default_sarima_parameter_search_space,
 )
+from statsmodels.tsa.statespace.mlemodel import MLEResults
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 ArrayLike = np.ndarray
@@ -24,7 +21,8 @@ ArrayLike = np.ndarray
 class SARIMAParams(Params):
     """Parameter class for SARIMA model
 
-    This is the parameter class for SARIMA model, it contains all necessary parameters as defined in SARIMA model implementation:
+    This is the parameter class for SARIMA model, it contains all necessary
+    parameters as defined in SARIMA model implementation:
     https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html.
 
     Attributes:
@@ -32,32 +30,52 @@ class SARIMAParams(Params):
         d: An integer for trend difference order.
         q: An integer for trend moving average (MA) order.
         exog: Optional; An array of exogenous regressors.
-        seasonal_order: Optional; A tuple for (P,D,Q,s) order of the seasonal component for AR order, difference order, MA order, and periodicity. Default is (0,0,0,0).
-        trend: Optional; A string or an iterable for deterministic trend. Can be 'c' (constant), 't' (linear trend with time), 'ct' (both constant and linear trend), or an iterable of integers defining the non-zero polynomial exponents to include. Default is None (not to include trend).
-        measurement_error: Optional; A boolean to specify whether or not to assume the observed time series were measured with error. Default is False.
-        time_varying_regression: Optional; A boolean to specify whether or not coefficients on the regressors (if provided) are allowed to vary over time. Default is False.
-        mle_regression: Optional; A boolean to specify whether or not to estimate coefficients of regressors as part of maximum likelihood estimation or through Kalman filter.
-                        If time_varying_regression is True, this must be set to False. Default is True.
-        simple_differencing: Optional; A boolean to specify whether or not to use partially conditional maximum likelihood estimation.
-                            See https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html for more details. Default is False.
-        enforce_stationarity: Optional; A boolean to specify whether or not to transform the AR parameters to enforce stationarity in AR component. Default is True.
-        enforce_invertibility: Optional; A boolean to specify whether or not to transform the MA parameters to enforce invertibility in MA component. Default is True.
-        hamilton_representation: Optional; A boolean to specify whether or not to use the Hamilton representation or the Harvey representation (if False). Default is False.
-        concentrate_scale: Optional; A boolean to specify whether or not to concentrate the scale (variance of the error term) out of the likelihood. Default is False.
-        trend_offset: Optional; An integer for the offset at which to start time trend value. Default is 1.
-        use_exact_diffuse: Optional; A boolean to specify whether or not to use exact diffuse initialization for non-stationary states. Default is False.
+        seasonal_order: Optional; A tuple for (P,D,Q,s) order of the seasonal component
+            for AR order, difference order, MA order, and periodicity. Default is
+            (0,0,0,0).
+        trend: Optional; A string or an iterable for deterministic trend. Can be 'c'
+            (constant), 't' (linear trend with time), 'ct' (both constant and linear
+            trend), or an iterable of integers defining the non-zero polynomial
+            exponents to include. Default is None (not to include trend).
+        measurement_error: Optional; A boolean to specify whether or not to assume the
+            observed time series were measured with error. Default is False.
+        time_varying_regression: Optional; A boolean to specify whether or not
+            coefficients on the regressors (if provided) are allowed to vary over time.
+            Default is False.
+        mle_regression: Optional; A boolean to specify whether or not to estimate
+            coefficients of regressors as part of maximum likelihood estimation or
+            through Kalman filter. If time_varying_regression is True, this must be
+            set to False. Default is True.
+        simple_differencing: Optional; A boolean to specify whether or not to use
+            partially conditional maximum likelihood estimation. See
+            https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html
+            for more details. Default is False.
+        enforce_stationarity: Optional; A boolean to specify whether or not to
+            transform the AR parameters to enforce stationarity in AR component.
+            Default is True.
+        enforce_invertibility: Optional; A boolean to specify whether or not to
+            transform the MA parameters to enforce invertibility in MA component.
+            Default is True.
+        hamilton_representation: Optional; A boolean to specify whether or not to
+            use the Hamilton representation or the Harvey representation (if False).
+            Default is False.
+        concentrate_scale: Optional; A boolean to specify whether or not to concentrate
+            the scale (variance of the error term) out of the likelihood. Default
+            is False.
+        trend_offset: Optional; An integer for the offset at which to start time
+            trend value. Default is 1.
+        use_exact_diffuse: Optional; A boolean to specify whether or not to use exact
+            diffuse initialization for non-stationary states. Default is False.
     """
-
-    __slots__ = ["p", "d", "q"]
 
     def __init__(
         self,
         p: int,
         d: int,
         q: int,
-        exog=None,
-        seasonal_order: Tuple = (0, 0, 0, 0),
-        trend=None,
+        exog: Optional[ArrayLike] = None,
+        seasonal_order: Tuple[int, ...] = (0, 0, 0, 0),
+        trend: Optional[str] = None,
         measurement_error: bool = False,
         time_varying_regression: bool = False,
         mle_regression: bool = True,
@@ -68,7 +86,7 @@ class SARIMAParams(Params):
         concentrate_scale: bool = False,
         trend_offset: int = 1,
         use_exact_diffuse: bool = False,
-        **kwargs
+        **kwargs: Any,
     ) -> None:
         super().__init__()
         self.p = p
@@ -89,19 +107,17 @@ class SARIMAParams(Params):
         self.use_exact_diffuse = use_exact_diffuse
         logging.debug(
             "Initialized SARIMAParams with parameters. "
-            "p:{p}, d:{d}, q:{q},seasonal_order:{seasonal_order}".format(
-                p=p, d=d, q=q, seasonal_order=seasonal_order
-            )
+            f"p:{p}, d:{d}, q:{q},seasonal_order:{seasonal_order}"
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         """Not implemented."""
 
         logging.info("Method validate_params() is not implemented.")
         pass
 
 
-class SARIMAModel(Model):
+class SARIMAModel(Model[SARIMAParams]):
     """Model class for SARIMA.
 
     This class provides fit, predict and plot methods for SARIMA model.
@@ -111,6 +127,31 @@ class SARIMAModel(Model):
         params: :class:`SARIMAParams` for model parameters.
     """
 
+    start_params: Optional[np.ndarray] = None
+    transformed: Optional[bool] = None
+    includes_fixed: Optional[bool] = None
+    cov_type: Optional[str] = None
+    cov_kwds: Optional[Dict[str, Any]] = None
+    method: Optional[str] = None
+    maxiter: Optional[int] = None
+    full_output: Optional[bool] = None
+    disp: Optional[bool] = None
+    callback: Optional[Callable[[np.ndarray], None]] = None
+    return_params: Optional[bool] = None
+    optim_score: Optional[str] = None
+    optim_complex_step: Optional[bool] = None
+    optim_hessian: Optional[str] = None
+    low_memory: Optional[bool] = None
+    model: Optional[MLEResults] = None
+    include_history: bool = False
+    alpha: float = 0.05
+    fcst_df: Optional[pd.DataFrame] = None
+    freq: Optional[float] = None
+    y_fcst: Optional[np.ndarray] = None
+    y_fcst_lower: Optional[np.ndarray] = None
+    y_fcst_upper: Optional[np.ndarray] = None
+    dates: Optional[pd.DatetimeIndex] = None
+
     def __init__(
         self,
         data: TimeSeriesData,
@@ -118,31 +159,9 @@ class SARIMAModel(Model):
     ) -> None:
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.Series):
-            msg = "Only support univariate time series, but get {type}.".format(
-                type=type(self.data.value)
-            )
+            msg = "Only support univariate time series, but get {self.data.value}."
             logging.error(msg)
             raise ValueError(msg)
-        self.start_params = None
-        self.transformed = None
-        self.includes_fixed = None
-        self.cov_type = None
-        self.cov_kwds = None
-        self.method = None
-        self.maxiter = None
-        self.full_output = None
-        self.disp = None
-        self.callback = None
-        self.return_params = None
-        self.optim_score = None
-        self.optim_complex_step = None
-        self.optim_hessian = None
-        self.low_memory = None
-        self.model = None
-        self.include_history = False
-        self.alpha = 0.05
-        self.fcst_df = None
-        self.freq = None
 
     def fit(
         self,
@@ -150,12 +169,12 @@ class SARIMAModel(Model):
         transformed: bool = True,
         includes_fixed: bool = False,
         cov_type: Optional[str] = None,
-        cov_kwds: Optional[Dict] = None,
+        cov_kwds: Optional[Dict[str, Any]] = None,
         method: str = "lbfgs",
         maxiter: int = 50,
         full_output: bool = True,
         disp: bool = False,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[[np.ndarray], None]] = None,
         return_params: bool = False,
         optim_score: Optional[str] = None,
         optim_complex_step: bool = True,
@@ -164,25 +183,52 @@ class SARIMAModel(Model):
     ) -> None:
         """Fit SARIMA model by maximum likelihood via Kalman filter.
 
-        See reference https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.fit.html#statsmodels.tsa.statespace.sarimax.SARIMAX.fit for more details.
+        See reference
+        https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.fit.html#statsmodels.tsa.statespace.sarimax.SARIMAX.fit
+        for more details.
 
         Args:
-            start_params: Optional; An array_like object for the initial guess of the solution for the loglikelihood maximization.
-            transformed: Optional; A boolean to specify whether or not start_params is already transformed. Default is True.
-            includes_fixed: Optional; A boolean to specify whether or not start_params includes the fixed parameters in addition to the free parameters. Default is False.
-            cov_type: Optional; A string for the method for calculating the covariance matrix of parameter estimates. Can be 'opg' (outer product of gradient estimator), 'oim' (observed information matrix estimato),
-                      'approx' (observed information matrix estimator), 'robust' (approximate (quasi-maximum likelihood) covariance matrix), or 'robust_approx'. Default is 'opg' when memory conservation is not used, otherwise default is ‘approx’.
-            cov_kwds: Optional; A dictionary of arguments for covariance matrix computation. See reference for more details.
-            method: Optional; A string for solver from scipy.optimize to be used. Can be 'newton', 'nm', 'bfgs', 'lbfgs', 'powell', 'cg', 'ncg' or 'basinhopping'. Default is 'lbfgs'.
-            maxiter: Optional; An integer for the maximum number of iterations to perform. Default is 50.
-            full_output: Optional; A boolean to specify whether or not to have all available output in the Results object’s mle_retvals attribute. Default is True.
-            disp: Optional; A boolean to specify whether or not to print convergence messages. Default is False.
-            callback: Optional; A callable object to be called after each iteration. Default is None.
-            return_params: Optional; A boolean to specify whether or not to return only the array of maximizing parameters. Default is False.
-            optim_score: Optional; A string for the method by which the score vector is calculated. Can be 'harvey', 'approx' or None. Default is None.
-            optim_complex_step: Optional; A boolean to specify whether or not to use complex step differentiation when approximating the score. Default is True.
-            optim_hessian: Optional; A string for the method by which the Hessian is numerically approximated. Can be 'opg', 'oim', 'approx'. Default is None.
-            low_memory: Optional; A boolean to specify whether or not to reduce memory usage. If True, some features of the results object will not be available. Default is False.
+            start_params: Optional; An array_like object for the initial guess of the
+                solution for the loglikelihood maximization.
+            transformed: Optional; A boolean to specify whether or not start_params
+                is already transformed. Default is True.
+            includes_fixed: Optional; A boolean to specify whether or not start_params
+                includes the fixed parameters in addition to the free parameters.
+                Default is False.
+            cov_type: Optional; A string for the method for calculating the covariance
+                matrix of parameter estimates. Can be 'opg' (outer product of gradient
+                estimator), 'oim' (observed information matrix estimator), 'approx'
+                (observed information matrix estimator), 'robust' (approximate
+                (quasi-maximum likelihood) covariance matrix), or 'robust_approx'.
+                Default is 'opg' when memory conservation is not used, otherwise
+                default is ‘approx’.
+            cov_kwds: Optional; A dictionary of arguments for covariance matrix
+                computation. See reference for more details.
+            method: Optional; A string for solver from scipy.optimize to be used.
+                Can be 'newton', 'nm', 'bfgs', 'lbfgs', 'powell', 'cg', 'ncg' or
+                'basinhopping'. Default is 'lbfgs'.
+            maxiter: Optional; An integer for the maximum number of iterations to
+                perform. Default is 50.
+            full_output: Optional; A boolean to specify whether or not to have all
+                available output in the Results object’s mle_retvals attribute.
+                Default is True.
+            disp: Optional; A boolean to specify whether or not to print convergence
+                messages. Default is False.
+            callback: Optional; A callable object to be called after each iteration.
+                Default is None.
+            return_params: Optional; A boolean to specify whether or not to return
+                only the array of maximizing parameters. Default is False.
+            optim_score: Optional; A string for the method by which the score vector
+                is calculated. Can be 'harvey', 'approx' or None. Default is None.
+            optim_complex_step: Optional; A boolean to specify whether or not to use
+                complex step differentiation when approximating the score. Default
+                is True.
+            optim_hessian: Optional; A string for the method by which the Hessian is
+                numerically approximated. Can be 'opg', 'oim', 'approx'. Default is
+                None.
+            low_memory: Optional; A boolean to specify whether or not to reduce memory
+                usage. If True, some features of the results object will not be
+                available. Default is False.
 
         Returns:
             None.
@@ -249,50 +295,56 @@ class SARIMAModel(Model):
         exog: Optional[ArrayLike] = None,
         include_history: bool = False,
         alpha: float = 0.05,
-        **kwargs
+        **kwargs: Any,
     ) -> pd.DataFrame:
         """Predict with fitted SARIMA model.
 
         Args:
             steps: An integer for forecast steps.
-            include_history: Optional; A boolearn to specify whether to include historical data. Default is False.
+            include_history: Optional; A boolearn to specify whether to include
+                historical data. Default is False.
             alpha: A float for confidence level. Default is 0.05.
             exog: A numpy array of exogenous values to be passed to forecast
 
         Returns:
             A :class:`pandas.DataFrame` of forecasts and confidence intervals.
         """
-        logging.debug(
-            "Call predict() with parameters. "
-            "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
-        )
+        model = self.model
+        if model is None:
+            msg = "Call fit() before predict()."
+            logging.error(msg)
+            raise ValueError(msg)
+        if (self.params.exog is not None) and (exog is None):
+            msg = (
+                "SARIMA model was initialized with exogenous variables. Exogenous "
+                "variables must be used to predict. use `exog=`"
+            )
+            logging.error(msg)
+            raise ValueError(msg)
+
+        logging.debug(f"Call predict() with parameters. steps:{steps}, kwargs:{kwargs}")
         self.include_history = include_history
         self.freq = kwargs.get("freq", self.data.infer_freq_robust())
         self.alpha = alpha
 
-        if (self.params.exog is not None) and (exog is None):
-            msg = "SARIMA model was initialized with exogenous variables. Exogenous variables must be used to predict. use `exog=`"
-            logging.error(msg)
-            raise ValueError(msg)
-
-        fcst = self.model.get_forecast(steps, exog=exog)
+        fcst = model.get_forecast(steps, exog=exog)
 
         logging.info("Generated forecast data from SARIMA model.")
-        logging.debug("Forecast data: {fcst}".format(fcst=fcst))
+        logging.debug(f"Forecast data: {fcst}")
 
         if fcst.predicted_mean.isna().sum() == steps:
-            msg = "SARIMA model fails to generate forecasts, i.e., all forecasts are NaNs."
+            msg = (
+                "SARIMA model fails to generate forecasts, i.e., all forecasts are "
+                "NaNs."
+            )
             logging.error(msg)
             raise ValueError(msg)
 
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst`.
         self.y_fcst = fcst.predicted_mean
         pred_interval = fcst.conf_int(alpha=self.alpha)
 
         if pred_interval.iloc[0, 0] < pred_interval.iloc[0, 1]:
-            # pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst_lower`.
             self.y_fcst_lower = np.array(pred_interval.iloc[:, 0])
-            # pyre-fixme[16]: `SARIMAModel` has no attribute `y_fcst_upper`.
             self.y_fcst_upper = np.array(pred_interval.iloc[:, 1])
         else:
             self.y_fcst_lower = np.array(pred_interval.iloc[:, 1])
@@ -301,12 +353,11 @@ class SARIMAModel(Model):
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
 
-        # pyre-fixme[16]: `SARIMAModel` has no attribute `dates`.
         self.dates = dates[dates != last_date]  # Return correct number of periods
 
         if include_history:
             # generate historical fit
-            history_fcst = self.model.get_prediction(0)
+            history_fcst = model.get_prediction(0)
             history_ci = history_fcst.conf_int()
             if ("lower" in history_ci.columns[0]) and (
                 "upper" in history_ci.columns[1]
@@ -321,7 +372,7 @@ class SARIMAModel(Model):
                 )
                 logging.error(msg)
                 raise ValueError(msg)
-            self.fcst_df = pd.DataFrame(
+            self.fcst_df = fcst_df = pd.DataFrame(
                 {
                     "time": np.concatenate(
                         (pd.to_datetime(self.data.time), self.dates)
@@ -345,9 +396,9 @@ class SARIMAModel(Model):
                 + 1
             )
 
-            self.fcst_df.loc[0:k, ["fcst", "fcst_lower", "fcst_upper"]] = np.nan
+            fcst_df.loc[0:k, ["fcst", "fcst_lower", "fcst_upper"]] = np.nan
         else:
-            self.fcst_df = pd.DataFrame(
+            self.fcst_df = fcst_df = pd.DataFrame(
                 {
                     "time": self.dates,
                     "fcst": self.y_fcst,
@@ -356,14 +407,14 @@ class SARIMAModel(Model):
                 }
             )
 
-        logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
-        return self.fcst_df
+        logging.debug(f"Return forecast data: {fcst_df}")
+        return fcst_df
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "SARIMA"
 
     @staticmethod
-    def get_parameter_search_space() -> List[Dict[str, Union[List[Any], bool, str]]]:
+    def get_parameter_search_space() -> List[Dict[str, Any]]:
         """Get default SARIMA parameter search space.
 
         Returns:

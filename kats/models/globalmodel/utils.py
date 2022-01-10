@@ -418,7 +418,6 @@ class DilatedRNNStack(torch.nn.Module):
                         cell = S2Cell(tmp_input_size, h_size, state_size)
                 else:
                     cell = torch.nn.LSTMCell(tmp_input_size, state_size)
-                # pyre-fixme[29]: `Union[Tensor, torch.nn.Module]` is not a function.
                 self.add_module("Cell_{}".format(layer), cell)
                 self.cells.append(cell)
                 layer += 1

@@ -2,7 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
 
 """ARIMA (Auto Regressive Integrated Moving Average) for time series data.
 
@@ -46,9 +45,14 @@ class ARIMAParams(Params):
         freq: Optional; frequency of a given time series
     """
 
-    __slots__ = ["p", "d", "q"]
+    p: int
+    d: int
+    q: int
+    exog: Optional[np.ndarray] = None
+    dates: Optional[pd.DatetimeIndex] = None
+    freq: Optional[str] = None
 
-    def __init__(self, p: int, d: int, q: int, **kwargs) -> None:
+    def __init__(self, p: int, d: int, q: int, **kwargs: Any) -> None:
         super().__init__()
         self.p = p
         self.d = d
@@ -61,12 +65,12 @@ class ARIMAParams(Params):
             f"p:{p}, d:{d}, q:{q}, kwargs:{kwargs}"
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         logging.info("Method validate_params() is not implemented.")
         pass
 
 
-class ARIMAModel(Model):
+class ARIMAModel(Model[ARIMAParams]):
     """Model class for ARIMA model
 
     Attributes:
@@ -92,7 +96,7 @@ class ARIMAModel(Model):
     maxiter: Optional[int] = None
     full_output: bool = False
     disp: Optional[int] = None
-    callback: Optional[Callable] = None
+    callback: Optional[Callable[[np.ndarray], None]] = None
     start_ar_lags: Optional[int] = None
     dates: Optional[pd.DatetimeIndex] = None
 
@@ -116,9 +120,9 @@ class ARIMAModel(Model):
         maxiter: int = 500,
         full_output: bool = True,
         disp: int = 5,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[[np.ndarray], None]] = None,
         start_ar_lags: Optional[int] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Fit ARIMA model with given parameters
 
@@ -187,7 +191,7 @@ class ARIMAModel(Model):
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
-        self, steps: int, include_history: bool = False, **kwargs
+        self, steps: int, include_history: bool = False, **kwargs: Any
     ) -> pd.DataFrame:
         """Predict with fitted ARIMA model
 
@@ -248,7 +252,7 @@ class ARIMAModel(Model):
         logging.debug(f"Return forecast data: {fcst_df}")
         return fcst_df
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "ARIMA"
 
     @staticmethod

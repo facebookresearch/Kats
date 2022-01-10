@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """Base I/O code for time series data in Kats
 
 This is a base implementation to load datasets for test and evaluation/benchmarking
@@ -22,13 +20,19 @@ purposes. We currently support the following data sets:
 import io
 import os
 import pkgutil
+import sys
+from typing import Union, overload
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 import pandas as pd
 from kats.consts import TimeSeriesData
-from scipy.special import expit  # @manual
 
 
-def load_data(file_name):
+def load_data(file_name: str) -> pd.DataFrame:
     """load data for tests and tutorial notebooks"""
     ROOT = "kats"
     if "kats" in os.getcwd().lower():
@@ -36,10 +40,21 @@ def load_data(file_name):
     else:
         path = "kats/data/"
     data_object = pkgutil.get_data(ROOT, path + file_name)
+    assert data_object is not None
     return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
-def load_air_passengers(return_ts=True):
+@overload
+def load_air_passengers(return_ts: Literal[True]) -> TimeSeriesData:
+    ...
+
+
+@overload
+def load_air_passengers(return_ts: Literal[False] = ...) -> pd.DataFrame:
+    ...
+
+
+def load_air_passengers(return_ts: bool = True) -> Union[pd.DataFrame, TimeSeriesData]:
     """Load and return air passengers time series dataset
 
     ==============================

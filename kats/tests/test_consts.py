@@ -729,6 +729,8 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             True,
         )
         self.assertEqual(
+            # pyre-fixme[16]: Item `float` of `Union[float, Series]` has no
+            #  attribute `equals`.
             self.ts_from_df_multi.max.equals(
                 self.ts_from_df_multi.value.max(skipna=True)
             ),
@@ -762,22 +764,32 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         )
         ts_from_df_multi_new.value = pd.DataFrame(new_val_multi)
         self.assertEqual(
-            ts_from_df_multi_new.min.equals(pd.DataFrame(new_val_multi).min()), True
+            # pyre-fixme[16]: Item `float` of `Union[float, Series]` has no
+            #  attribute `equals`.
+            ts_from_df_multi_new.min.equals(pd.DataFrame(new_val_multi).min()),
+            True,
         )
         self.assertEqual(
-            ts_from_df_multi_new.max.equals(pd.DataFrame(new_val_multi).max()), True
+            # pyre-fixme[16]: Item `float` of `Union[float, Series]` has no
+            #  attribute `equals`.
+            ts_from_df_multi_new.max.equals(pd.DataFrame(new_val_multi).max()),
+            True,
         )
 
         # test min/max changes if values are re-assigned with NaNs for multivariate
         new_val_multi[0] = np.nan
         ts_from_df_multi_new.value = pd.DataFrame(new_val_multi)
         self.assertEqual(
+            # pyre-fixme[16]: Item `float` of `Union[float, Series]` has no
+            #  attribute `equals`.
             ts_from_df_multi_new.min.equals(
                 pd.DataFrame(new_val_multi).min(skipna=True)
             ),
             True,
         )
         self.assertEqual(
+            # pyre-fixme[16]: Item `float` of `Union[float, Series]` has no
+            #  attribute `equals`.
             ts_from_df_multi_new.max.equals(
                 pd.DataFrame(new_val_multi).max(skipna=True)
             ),

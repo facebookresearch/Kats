@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
  Bayesian estimation of Vector Autoregressive Model using
  Minnesota prior on the coefficient matrix. This version is
@@ -17,16 +15,16 @@
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 import kats.models.model as m
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData, _log_error
-from numpy.linalg import inv  # @manual
-from scipy.linalg import block_diag  # @manual
+from numpy.linalg import inv
+from scipy.linalg import block_diag
 
 
 @dataclass
@@ -67,7 +65,7 @@ class BayesianVARParams(Params):
             raise ValueError(f"phi_3 must be positive, but got {self.phi_3}")
 
 
-class BayesianVAR(m.Model):
+class BayesianVAR(m.Model[BayesianVARParams]):
     """
     Model class for bayesian VAR
 
@@ -81,104 +79,96 @@ class BayesianVAR(m.Model):
     sigma_ols: Optional[np.ndarray] = None
     v_posterior: Optional[np.ndarray] = None
     mu_posterior: Optional[np.ndarray] = None
-    resid: Optional[np.ndarray] = None
+    resid: Optional[pd.DataFrame] = None
     forecast: Optional[Dict[str, TimeSeriesData]] = None
     forecast_max_time: Optional[datetime] = None
-    start_date: datetime
+    data: TimeSeriesData
+    time_freq: str
+    X: np.ndarray
+    Y: np.ndarray
+    m: int
+    T: int
+    r: int
+    p: int
+    phi_0: float
+    phi_1: float
+    phi_2: float
+    phi_3: float
+    N: int
+    num_mu_coefficients: int
+    fitted: bool = False
+    forecast_vals: Optional[List[np.ndarray]] = None
 
     def __init__(self, data: TimeSeriesData, params: BayesianVARParams) -> None:
-        # Ensure time series is multivariate
         if data.is_univariate():
             msg = "Bayesian VAR Model only accepts multivariate time series."
             raise _log_error(msg)
 
-        # Ignore the input time column and re-index to 0...T
-        copy_data = data.to_dataframe()
-
-        # If time_col_name is different than 'time', change it
-        if data.time_col_name != "time":
-            time_data = copy_data.pop(data.time_col_name)  # Drop column
-            # pyre-fixme[6]: Incompatible parameter type...
-            copy_data.insert(0, "time", time_data)  # Move to first column
-
-        self.start_date = copy_data.time[0]
-        copy_data.time = pd.RangeIndex(0, len(copy_data))
-        copy_data = TimeSeriesData(copy_data)
-
-        self.time_freq = BayesianVAR._check_get_freq(
-            copy_data
-        )  # check for consistent frequency
-        self.data = copy_data
-
-        self.X, self.Y = BayesianVAR._convert_timeseries_np(copy_data)
+        self.data = data
+        self.time_freq = BayesianVAR._check_get_freq(data)
+        self.X, self.Y = BayesianVAR._convert_timeseries_np(data)
         assert (
             self.X.shape[1] == self.Y.shape[1]
         ), "Expected same amount of data on time axis for X and Y"
 
         self.m, self.T = self.Y.shape
         self.r = self.X.shape[0]
-
         self.p = params.p
         self.phi_0 = params.phi_0
         self.phi_1 = params.phi_1
         self.phi_2 = params.phi_2
         self.phi_3 = params.phi_3
-
         self.N = (self.m * self.p) + self.r + 1
         self.num_mu_coefficients = self.m * self.N
 
-        self.fitted = False
+        logging.info(f"Initializing Bayesian VAR model with: {self}")
 
-        logging.info(
-            "Initializing Bayesian VAR model with: "
-            f"BVAR(p={self.p}, m={self.m}, r={self.r}, T={self.T}, N={self.N}, "
-            f"phi_0={self.phi_0}, phi_1={self.phi_1}, "
+    def __str__(self) -> str:
+        return (
+            f"BayesianVAR(p={self.p}, m={self.m}, r={self.r}, T={self.T}, "
+            f"N={self.N}, phi_0={self.phi_0}, phi_1={self.phi_1}, "
             f"phi_2={self.phi_2}, phi_3={self.phi_3})"
         )
 
     @staticmethod
-    def _check_get_freq(data) -> None:
-        time_diff = data.time.diff().dropna()
-        diff_unique = time_diff.unique()
-
-        if len(diff_unique) != 1:
+    def _check_get_freq(data: TimeSeriesData) -> str:
+        """Checks for consistent time frequency."""
+        freq = pd.infer_freq(data.time)
+        if freq is None:
             raise ValueError(
-                f"Frequency of metrics is not constant: {diff_unique}. "
-                "Please check for missing or duplicate values."
+                "Unable to infer time series frequency. Please check for "
+                "missing or duplicate times or irregularly-spaced times."
             )
 
-        return diff_unique.item()
+        return freq
 
     @staticmethod
     def _convert_timeseries_np(
         timeseries: TimeSeriesData,
     ) -> Tuple[np.ndarray, np.ndarray]:
         data_df = timeseries.to_dataframe()
-        Y = data_df.drop(columns=["time"]).to_numpy().T
-
-        m, T = Y.shape
+        Y = data_df.drop(columns=[timeseries.time_col_name]).to_numpy().T
         X = np.expand_dims(pd.RangeIndex(0, len(timeseries)), axis=0)
-
         return X, Y
 
-    def _get_training_residuals(self):
-        times = []
+    def _get_training_residuals(self) -> pd.DataFrame:
         residuals = []
 
-        logging.info(
-            "Performing one-step ahead forecasting on history from "
-            f"t={self.p} to t={self.T-1}."
-        )
         # create dataframe with each column corresponding to the residual
-        for t in range(self.p, self.T):
+        p = self.p
+        T = self.T
+        times = self.data.time.iloc[p:T]
+        self.forecast_vals = forecast_vals = []
+        if times.empty:
+            logging.info(
+                "Performing one-step ahead forecasting on history from step "
+                f"{self.p} to {self.T-1} (t={times[0]} to {times[-1]}) inclusive."
+            )
+        for t in range(p, T):
             point_pred = self._evaluate_point_t(self.X, self.Y, t)
-            time = self.X[:, t].item()
-            times.append(time)
+            forecast_vals.append(point_pred)
             residuals.append(self.Y[:, t] - point_pred)
-        times_new = [self.start_date + timedelta(days=x) for x in times]
-        df_resid = pd.DataFrame(
-            residuals, index=times_new, columns=self.data.value.columns
-        )
+        df_resid = pd.DataFrame(residuals, index=times, columns=self.data.value.columns)
 
         return df_resid
 
@@ -242,7 +232,7 @@ class BayesianVAR(m.Model):
         self.resid = self._get_training_residuals()
         self.fitted = True
 
-    def _construct_z(self, X, Y, t: int) -> np.ndarray:
+    def _construct_z(self, X: np.ndarray, Y: np.ndarray, t: int) -> np.ndarray:
         assert t >= self.p, f"Need t={t} >= p={self.p}."
         assert self.r == X.shape[0]
         assert self.m == Y.shape[0]
@@ -256,7 +246,7 @@ class BayesianVAR(m.Model):
 
         return z
 
-    def _construct_Zt(self, X, Y, t: int) -> np.ndarray:
+    def _construct_Zt(self, X: np.ndarray, Y: np.ndarray, t: int) -> np.ndarray:
         z = self._construct_z(X, Y, t)
         Z_t = block_diag(*([z] * self.m))
 
@@ -296,19 +286,28 @@ class BayesianVAR(m.Model):
 
         return sse / float(self.T - (self.m * self.p) - 1)
 
-    def _sigma_ijl(self, i, j, lag, variance, is_exogenous) -> float:
+    def _sigma_ijl(
+        self,
+        i: int,
+        j: Optional[int],
+        lag: Optional[int],
+        variance: np.ndarray,
+        is_exogenous: bool,
+    ) -> float:
         """
         Taken from page 5 of http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf
         """
 
-        def h(x):
+        def h(x: float) -> float:
             return x ** self.phi_3
 
         if i == j:
+            assert lag is not None
             return self.phi_0 / h(lag)
         elif is_exogenous:
             return self.phi_0 * self.phi_2
         else:  # endogenous variable j
+            assert lag is not None
             return self.phi_0 * (self.phi_1 / h(lag)) * (variance[j] / variance[i])
 
     def _construct_v_prior(self) -> np.ndarray:
@@ -345,7 +344,9 @@ class BayesianVAR(m.Model):
 
         return cov  # shape: [m * (m * p + r + 1)] x [m * (m * p + r + 1)] matrix
 
-    def _evaluate_point_t(self, X_new, Y_new, t) -> np.ndarray:
+    def _evaluate_point_t(
+        self, X_new: np.ndarray, Y_new: np.ndarray, t: int
+    ) -> np.ndarray:
         assert t >= self.p, f"Need t={t} > p={self.p}."
 
         Z_t = self._construct_Zt(X_new, Y_new, t)
@@ -355,7 +356,7 @@ class BayesianVAR(m.Model):
 
         return point_prediction
 
-    def _look_ahead_step(self, X_ahead, Y_curr) -> np.ndarray:
+    def _look_ahead_step(self, X_ahead: np.ndarray, Y_curr: np.ndarray) -> np.ndarray:
         # Y_curr has one less element than X_ahead
         assert Y_curr.shape[1] + 1 == X_ahead.shape[1]
         t_ahead = X_ahead.shape[1] - 1  # -1 for 0-indexed array
@@ -369,7 +370,7 @@ class BayesianVAR(m.Model):
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
-        self, steps: int, include_history=False, verbose=False
+        self, steps: int, include_history: bool = False, verbose: bool = False
     ) -> Dict[str, TimeSeriesData]:
         """Predict with the fitted VAR model.
 
@@ -384,69 +385,71 @@ class BayesianVAR(m.Model):
         """
         if not self.fitted:
             raise ValueError("Must call fit() before predict().")
-
-        times = []
-        forecast_vals = []
-
-        if include_history:
-            logging.info(
-                "Performing one-step ahead forecasting on history from "
-                f"t={self.p} to t={self.T-1}."
-            )
-
-            for t in range(self.p, self.T):
-                point_pred = self._evaluate_point_t(self.X, self.Y, t)
-                time = self.X[:, t].item()
-
-                if verbose:
-                    logging.info(
-                        "Performing one-step ahead forecasting with history on "
-                        f"t={time}."
-                    )
-
-                times.append(time)
-                forecast_vals.append(point_pred)
-
-        # future forecasting -- X_ahead is one time step ahead of Y_curr
-        X_ahead = self.X
-        Y_curr = self.Y
-        T = self.T
-
-        logging.info(f"Performing future forecasting from t={T} to t={T+steps-1}.")
-
-        for _t in range(T, T + steps):
-            ahead_time = X_ahead[np.newaxis, :, -1] + self.time_freq
-            X_ahead = np.concatenate([X_ahead, ahead_time], axis=1)
-            look_ahead_pred = self._look_ahead_step(X_ahead, Y_curr)
-            time = ahead_time.item()
-
-            if verbose:
-                logging.info(f"Performing future forecasting with t={time}.")
-
-            times.append(time)
-            forecast_vals.append(look_ahead_pred)
-
-            Y_curr = np.concatenate([Y_curr, look_ahead_pred[:, np.newaxis]], axis=1)
-
-        if not times:
+        if not steps and not include_history:
             raise ValueError(
                 "Forecast produced no values. Please set steps > 0 or "
                 "include_history=True."
             )
 
-        indiv_forecasts: Dict[str, TimeSeriesData] = {}
+        X_ahead = self.X
+        Y_curr = self.Y
+        T = self.T
+
+        if include_history:
+            times = self.data.time.iloc[self.p : T].tolist()
+            forecast_vals = self.forecast_vals
+            assert forecast_vals is not None
+        else:
+            times = []
+            forecast_vals = []
+
+        if steps:
+            # future forecasting -- X_ahead is one time step ahead of Y_curr
+            ahead_times = pd.date_range(
+                start=self.data.time.iloc[-1], periods=steps + 1, freq=self.time_freq
+            )[1:]
+            logging.info(
+                f"Performing future forecasting from step {T} to {T+steps-1} ("
+                f"t={ahead_times[0]} to t={ahead_times[-1]}) inclusive."
+            )
+            assert len(ahead_times) == steps
+
+            ahead_time = X_ahead[np.newaxis, :, -1]
+            for step, time in zip(range(T, T + steps), ahead_times):
+                X_ahead = np.concatenate([X_ahead, ahead_time + step], axis=1)
+                look_ahead_pred = self._look_ahead_step(X_ahead, Y_curr)
+
+                if verbose:
+                    logging.info(
+                        f"Performing future forecasting at t={time}, step={step}."
+                    )
+
+                forecast_vals.append(look_ahead_pred)
+
+                Y_curr = np.concatenate(
+                    [Y_curr, look_ahead_pred[:, np.newaxis]], axis=1
+                )
+
+            times += ahead_times
+
         forecast_length = len(times)
+
+        assert forecast_length == len(
+            forecast_vals
+        ), f"{forecast_length} != {len(forecast_vals)}"
+
+        self.forecast = indiv_forecasts = {}
+        self.forecast_max_time = times[-1]
 
         logging.warning(
             "Upper and lower confidence intervals of forecast not yet implemented "
             "for Bayesian VAR model."
         )
-        times_new = [self.start_date + timedelta(days=x) for x in times]
 
         for i, c in enumerate(self.data.value.columns.tolist()):
             c_forecast = pd.DataFrame(
                 {
-                    "time": times_new,
+                    "time": times,
                     "fcst": [forecast_vals[f_t][i] for f_t in range(forecast_length)],
                     "fcst_lower": [-1] * forecast_length,
                     "fcst_upper": [-1] * forecast_length,
@@ -454,33 +457,33 @@ class BayesianVAR(m.Model):
             )
             indiv_forecasts[c] = TimeSeriesData(c_forecast)
 
-        self.forecast = indiv_forecasts
-        self.forecast_max_time = max(times_new)
-
         return indiv_forecasts
 
     def plot(
         self,
         ax: Optional[plt.Axes] = None,
         figsize: Optional[Tuple[int, int]] = None,
-        **kwargs,
+        title: Optional[str] = "Input Timeseries & Forecast",
+        ls: str = "--",
+        **kwargs: Any,
     ) -> plt.Axes:
         """Plot forecasted results from Bayesian VAR model"""
         forecast = self.forecast
-        data = self.data
         if forecast is None:
             raise ValueError("Must call predict() before plot()")
+        data = self.data
 
         if ax is None:
             if figsize is None:
                 figsize = (20, 6)
             _, ax = plt.subplots(figsize=figsize)
-        ax.set_title("Input Timeseries & Forecast")
 
-        for i, c in enumerate(self.data.value.columns):
+        ax.set_title(title)
+
+        for i, c in enumerate(data.value.columns):
             color = f"C{i}"
             ax.plot(data.time, data.value[c], c=color)
-            ax.plot(forecast[c].time, forecast[c].value, "--", c=color)
+            ax.plot(forecast[c].time, forecast[c].value, ls, c=color)
 
         return ax
 

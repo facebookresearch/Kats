@@ -2,10 +2,9 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import re
 import unittest
+from typing import cast, Any, Dict
 from unittest import TestCase
 
 import pandas as pd
@@ -16,31 +15,43 @@ from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_HW_1,  # first param combination results
     AIR_FCST_HW_2,
 )
-from pandas.util.testing import assert_frame_equal
-from parameterized import parameterized
-
-TEST_DATA = {
-    "monthly": {
-        "ts": load_air_passengers(),
-        "freq": "MS",
-        "res_1": AIR_FCST_HW_1,
-        "res_2": AIR_FCST_HW_2,
-    },
-}
+from pandas.testing import assert_frame_equal
+from parameterized.parameterized import parameterized
 
 pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])
 
+ADD_PARAMS = HoltWintersParams(
+    trend="add",
+    seasonal="add",
+    seasonal_periods=7,
+)
+MUL_PARAMS = HoltWintersParams(
+    trend="mul",
+    seasonal="mul",
+    seasonal_periods=7,
+)
+TS: TimeSeriesData = cast(TimeSeriesData, load_air_passengers())
+
 
 class HoltWintersModelTest(TestCase):
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
-                "monthly",
-                TEST_DATA["monthly"]["ts"],
-                TEST_DATA["monthly"]["freq"],
-                TEST_DATA["monthly"]["res_1"],
-                TEST_DATA["monthly"]["res_2"],
+                "monthly_addiitive",
+                TS,
+                "MS",
+                ADD_PARAMS,
+                {"freq": "MS", "include_history": True},
+                AIR_FCST_HW_1,
+            ],
+            [
+                "monthly_multiplicative",
+                TS,
+                "MS",
+                MUL_PARAMS,
+                {"alpha": 0.9},
+                AIR_FCST_HW_2,
             ],
         ]
     )
@@ -49,42 +60,22 @@ class HoltWintersModelTest(TestCase):
         name: str,
         ts: TimeSeriesData,
         freq: str,
-        truth_1: pd.DataFrame,
-        truth_2: pd.DataFrame,
-    ):
-        # Set up params
-        params_1 = HoltWintersParams(
-            trend="add",
-            seasonal="add",
-            seasonal_periods=7,
-        )
-        params_2 = HoltWintersParams(
-            trend="mul",
-            seasonal="mul",
-            seasonal_periods=7,
-        )
+        params: HoltWintersParams,
+        predict_args: Dict[str, Any],
+        truth: pd.DataFrame,
+    ) -> None:
+        params.validate_params()
 
-        params_1.validate_params()
-        params_2.validate_params()
         # Fit forecast
-        m_1 = HoltWintersModel(ts, params_1)
-        m_2 = HoltWintersModel(ts, params_2)
-        m_1.fit()
-        m_2.fit()
-        res_1 = m_1.predict(steps=30, freq=freq, include_history=True)
-        res_2 = m_2.predict(steps=30, alpha=0.9)
+        m = HoltWintersModel(ts, params)
+        m.fit()
+        res = m.predict(steps=30, **predict_args)
 
         # Test result
         if pd_ver < 1.1:
-            # pyre-fixme
-            assert_frame_equal(truth_1, res_1, check_less_precise=1)
-            # pyre-fixme
-            assert_frame_equal(truth_2, res_2, check_less_precise=1)
+            assert_frame_equal(truth, res, check_like=False, check_less_precise=0)
         else:
-            # pyre-fixme
-            assert_frame_equal(truth_1, res_1, rtol=1)
-            # pyre-fixme
-            assert_frame_equal(truth_2, res_2, rtol=1)
+            assert_frame_equal(truth, res, check_like=False, rtol=1)
 
     def test_invalid_params(self) -> None:
         self.assertRaises(
@@ -111,27 +102,21 @@ class HoltWintersModelTest(TestCase):
             params=params,
         )
 
-    def test_exec_plot(self):
-        # Set up params
-        params = HoltWintersParams(
-            trend="add",
-            seasonal="add",
-            seasonal_periods=7,
-        )
+    def test_exec_plot(self) -> None:
         # Fit forecast
-        m = HoltWintersModel(TEST_DATA["monthly"]["ts"], params)
+        m = HoltWintersModel(TS, ADD_PARAMS)
         m.fit()
-        _ = m.predict(steps=2, freq=TEST_DATA["monthly"]["freq"])
+        _ = m.predict(steps=2, freq="MS")
 
         # Test plotting
         m.plot()
 
-    def test_name(self):
-        m = HoltWintersModel(TEST_DATA["monthly"]["ts"], None)
+    def test_name(self) -> None:
+        m = HoltWintersModel(TS, ADD_PARAMS)
         self.assertEqual(m.__str__(), "HoltWinters")
 
-    def test_search_space(self):
-        m = HoltWintersModel(TEST_DATA["monthly"]["ts"], None)
+    def test_search_space(self) -> None:
+        m = HoltWintersModel(TS, ADD_PARAMS)
         self.assertEqual(
             m.get_parameter_search_space(),
             [

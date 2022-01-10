@@ -49,7 +49,7 @@ from parameterized.parameterized import parameterized
 statsmodels_ver = float(
     re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
 )
-
+pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])
 
 TEST_DATA = {
     "nonseasonal": {
@@ -360,8 +360,17 @@ class ProphetModelTest(TestCase):
         m = ProphetModel(data=ts, params=params)
         m.fit()
         forecast_df = m.predict(steps=steps, include_history=include_history, **kwargs)
-
-        assert_frame_equal(forecast_df, truth, check_exact=False)
+        if pd_ver < 1.1:
+            assert_frame_equal(
+                forecast_df,
+                truth,
+                check_exact=False,
+            )
+        else:
+            # pyre-fixme[28] Unexpected keyword...
+            assert_frame_equal(
+                forecast_df, truth, check_exact=False, atol=0.5, rtol=0.05
+            )
 
     def test_multivar(self) -> None:
         # Prophet model does not support multivariate time series data
