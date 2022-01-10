@@ -422,6 +422,7 @@ class GMBackTester:
                 evl = eval_func(ensemble_fcst, tmp_actuals)
                 evl["step"] = j
                 evl["type"] = "ensemble"
+                evl["idx"] = k
                 ans.append(evl)
         return pd.DataFrame(ans)
 
