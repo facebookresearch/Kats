@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 This file implements the Dynamic Time Warping (DTW) ChangePoint detector
 algorithm as a DetectorModel, to provide a common interface.
@@ -12,7 +10,6 @@ algorithm as a DetectorModel, to provide a common interface.
 from __future__ import annotations
 
 import logging
-import typing
 
 # Put code into Kats class
 
@@ -56,7 +53,7 @@ class DTWCPDChangePoint(TimeSeriesChangePoint):
         self._ts_name = ts_name
 
     @property
-    def detector_type(self) -> Type:
+    def detector_type(self) -> Type[Detector]:
         return self._detector_type
 
     @property
@@ -110,9 +107,9 @@ class DTWCPDDetector(Detector):
         data: TimeSeriesData,
         sliding_window_size: int,
         skip_size: int,  # Step increment when sliding window moves
-        mad_threshold=1,  # Controls sensitivity.
-        min_value=1e-9,  # Controls when a value is considered to be zero
-        match_against_same_time_series=False,  # Whether to allow historical matches in the same time series.
+        mad_threshold: float = 1,  # Controls sensitivity.
+        min_value: float = 1e-9,  # Controls when a value is considered to be zero
+        match_against_same_time_series: bool = False,  # Whether to allow historical matches in the same time series.
     ) -> None:
 
         self.data = data
@@ -278,9 +275,9 @@ class DTWCPDDetector(Detector):
         return np.sqrt(LB_sum)
 
     def _calculate_distances_for_all_subsequences(
-        self, ts2list_of_non_zero_subsequences: Dict[typing.Any, Dict[int, List[float]]]
-    ):
-        max_min_dists = defaultdict(list)
+        self, ts2list_of_non_zero_subsequences: Dict[str, Dict[int, List[float]]]
+    ) -> Dict[str, DTWSubsequenceMatch]:
+        max_min_dists = defaultdict()
         for c, (ts_name_a, subsequences_a) in enumerate(
             ts2list_of_non_zero_subsequences.items()
         ):
@@ -350,7 +347,9 @@ class DTWCPDDetector(Detector):
         max_min_dists = dict(max_min_dists)
         return max_min_dists
 
-    def _find_subsequences_anomalies(self, max_min_dists) -> List[DTWCPDChangePoint]:
+    def _find_subsequences_anomalies(
+        self, max_min_dists: Dict[str, DTWSubsequenceMatch]
+    ) -> List[DTWCPDChangePoint]:
         """
         Given a set of subsequences with at least one non-zero value,
         detect the ones that are significantly dissimilar from others.
