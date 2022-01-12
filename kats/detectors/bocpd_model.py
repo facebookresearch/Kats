@@ -2,15 +2,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 This file implements the Bayesian Online Changepoint Detection
 algorithm as a DetectorModel, to provide a common interface.
 """
 
 import json
-from typing import Optional
+from typing import Any, Optional
 
 import pandas as pd
 from kats.consts import TimeSeriesData
@@ -46,7 +44,11 @@ class BocpdDetectorModel(DetectorModel):
         serialized_model: Optional[bytes] = None,
         slow_drift: bool = False,
         threshold: Optional[float] = None,
-    ):
+    ) -> None:
+        self.slow_drift: bool = False
+        self.threshold: Optional[float] = None
+        self.response: Optional[AnomalyResponse] = None
+        self.last_N: int = 0
         if serialized_model is None:
             self.slow_drift = slow_drift
             self.threshold = threshold
@@ -115,10 +117,12 @@ class BocpdDetectorModel(DetectorModel):
 
         return data
 
-    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
     #  inconsistently.
     def fit_predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """Finds changepoints and returns score.
 
@@ -137,7 +141,6 @@ class BocpdDetectorModel(DetectorModel):
             the object is the same as the length of the data.
         """
 
-        # pyre-fixme[16]: `BocpdDetectorModel` has no attribute `last_N`.
         self.last_N = len(data)
 
         # if there is historical data
@@ -186,7 +189,6 @@ class BocpdDetectorModel(DetectorModel):
         default_ts = TimeSeriesData(time=data.time, value=pd.Series(N * [0.0]))
         score_ts = TimeSeriesData(time=data.time, value=pd.Series(change_prob))
 
-        # pyre-fixme[16]: `BocpdDetectorModel` has no attribute `response`.
         self.response = AnomalyResponse(
             scores=score_ts,
             confidence_band=ConfidenceBand(upper=data, lower=data),
@@ -197,19 +199,22 @@ class BocpdDetectorModel(DetectorModel):
 
         return self.response.get_last_n(self.last_N)
 
-    # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """
         predict is not implemented
         """
         raise ValueError("predict is not implemented, call fit_predict() instead")
 
-    # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.
     def fit(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> None:
         """
         fit can be called during priming. It's a noop for us.
