@@ -2,13 +2,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, cast
 
 import attr
 import numpy as np
@@ -170,12 +168,19 @@ class ChangePointInterval:
 
 # Percentage Change Object
 class PercentageChange:
+
+    upper: Optional[Union[float, np.ndarray]]
+    lower: Optional[Union[float, np.ndarray]]
+    _t_score: Optional[Union[float, np.ndarray]]
+    _p_value: Optional[Union[float, np.ndarray]]
+    num_series: int
+
     def __init__(
         self,
         current: ChangePointInterval,
         previous: ChangePointInterval,
-        method="fdr_bh",
-    ):
+        method: str = "fdr_bh",
+    ) -> None:
         self.current = current
         self.previous = previous
 
@@ -200,13 +205,13 @@ class PercentageChange:
     def perc_change_upper(self) -> float:
         if self.upper is None:
             self._delta_method()
-        return (self.upper - 1) * 100.0
+        return (cast(Union[float, np.ndarray], self.upper) - 1) * 100.0
 
     @property
     def perc_change_lower(self) -> float:
         if self.lower is None:
             self._delta_method()
-        return (self.lower - 1) * 100.0
+        return (cast(Union[float, np.ndarray], self.lower) - 1) * 100.0
 
     @property
     def direction(self) -> Union[str, ArrayLike]:
@@ -224,26 +229,30 @@ class PercentageChange:
         if self.num_series > 1:
             return np.array(
                 [
-                    False if self.upper[i] > 1.0 and self.lower[i] < 1 else True
+                    False
+                    if cast(np.ndarray, self.upper)[i] > 1.0
+                    and cast(np.ndarray, self.lower)[i] < 1
+                    else True
                     for i in range(self.current.num_series)
                 ]
             )
         # not stat sig e.g. [0.88, 1.55]
-        return not (self.upper > 1.0 and self.lower < 1.0)
+        return not (
+            cast(Union[float, np.ndarray], self.upper) > 1.0
+            and cast(Union[float, np.ndarray], self.lower) < 1.0
+        )
 
     @property
     def score(self) -> float:
         if self._t_score is None:
             self._ttest()
-
-        return self._t_score
+        return cast(float, self._t_score)
 
     @property
     def p_value(self) -> float:
         if self._p_value is None:
             self._ttest()
-
-        return self._p_value
+        return cast(float, self._p_value)
 
     @property
     def mean_previous(self) -> Union[float, np.ndarray]:
@@ -384,11 +393,15 @@ class PercentageChange:
         )
         self._t_score = np.zeros(num_series)
         # We are using a two-sided test here, so we take inverse_tcdf(self._p_value / 2) with df = len(self.current) + len(self.previous) - 2
+
+        _t_score: np.ndarray = self._t_score
+        _p_value: np.ndarray = cast(np.ndarray, self._p_value)
         for i in range(self.current.num_series):
             if t_value_start[i] < 0:
-                self._t_score[i] = t.ppf(self._p_value[i] / 2, self._get_df())
+                _t_score[i] = t.ppf(_p_value[i] / 2, self._get_df())
             else:
-                self._t_score[i] = t.ppf(1 - self._p_value[i] / 2, self._get_df())
+                _t_score[i] = t.ppf(1 - _p_value[i] / 2, self._get_df())
+        self._t_score = _t_score
 
     def _calc_cov(self) -> float:
         """
@@ -438,6 +451,10 @@ class ConfidenceBand:
 
 
 class AnomalyResponse:
+
+    key_mapping: List[str]
+    num_series: int
+
     def __init__(
         self,
         scores: TimeSeriesData,
@@ -445,7 +462,7 @@ class AnomalyResponse:
         predicted_ts: Optional[TimeSeriesData],
         anomaly_magnitude_ts: TimeSeriesData,
         stat_sig_ts: Optional[TimeSeriesData],
-    ):
+    ) -> None:
         self.scores = scores
         self.confidence_band = confidence_band
         self.predicted_ts = predicted_ts
