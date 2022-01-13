@@ -31,7 +31,6 @@ from kats.models.theta import ThetaModel
 from kats.tests.models.test_models_dummy_data import (
     METALEARNING_TEST_T1,
     METALEARNING_TEST_T2,
-    METALEARNING_TEST_T2_FEATURES,
     METALEARNING_TEST_FEATURES,
     METALEARNING_TEST_MULTI,
 )
@@ -331,7 +330,6 @@ class MetaLearnHPTTest(TestCase):
             mlhpt.train()
             # Test case for time series with nan features
             _ = (mlhpt.pred(t1).parameters[0],)
-            t2_preds = mlhpt.pred(t2)
             mlhpt.pred_by_feature(feature1)
             mlhpt.pred_by_feature(feature2)
             mlhpt.pred_by_feature(feature3)
