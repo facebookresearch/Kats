@@ -290,7 +290,6 @@ class ThetaModelTest(TestCase):
         with patch.object(
             m, "deseasonalize", (lambda self: self.data).__get__(m)
         ), patch.object(m, "check_seasonality"):
-            m.n = None
             m.seasonal = True
             m.decomp = None
             self.assertRaises(ValueError, m.fit)
