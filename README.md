@@ -137,9 +137,27 @@ features = TsFeatures().transform(air_passengers_ts)
 
 ## Changelog
 
+### Version 0.2.0
+* Forecasting
+    * Added global model, a neural network forecasting model
+    * Added global model tutorial
+    * Consolidated backtesting APIs and some minor bug fixes
+* Detection
+    * Added model optimizer for anomaly/ changepoint detection
+    * Added evaluators for anomaly/changepoint detection
+    * Improved simulators, to build synthetic data and inject anomalies
+    * Added new detectors: ProphetTrendDetector, Dynamic Time Warping based detectors
+    * Support for meta-learning, to recommend anomaly detection algorithms and parameters for your dataset
+    * Standardizing API for some of our legacy detectors: OutlierDetector, MKDetector
+    * Support for Seasonality Removal in StatSigDetector
+* TsFeatures
+    * No change from 0.1.0 version
+* Others
+    * Bug fixes, code coverage improvement, etc.
+
 ### Version 0.1.0
 
-- Initial release
+* Initial release
 
 ## Contributors
 
