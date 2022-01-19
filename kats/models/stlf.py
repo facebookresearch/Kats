@@ -163,6 +163,8 @@ class STLFModel(Model[STLFParams]):
             params = quadratic_model.QuadraticModelParams()
             model = quadratic_model.QuadraticModel(data=data, params=params)
             model.fit()
+        # pyre-fixme[8]: Attribute has type `Optional[Model[STLFParams]]`; used as
+        #  `Union[LinearModel, ProphetModel, QuadraticModel, ThetaModel]`.
         self.model = model
         return self
 
