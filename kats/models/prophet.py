@@ -2,10 +2,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -15,7 +13,7 @@ try:
     _no_prophet = False
 except ImportError:
     _no_prophet = True
-    Prophet = dict  # for Pyre
+    Prophet = Dict[str, Any]  # for Pyre
 
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
@@ -84,27 +82,47 @@ class ProphetParams(Params):
             is a dict with keys "name" and "value"
     """
 
+    growth: str
+    changepoints: Optional[List[float]]
+    n_changepoints: int
+    changepoint_range: float
+    yearly_seasonality: str
+    weekly_seasonality: str
+    daily_seasonality: str
+    holidays: Optional[pd.DataFrame]
+    seasonality_mode: str
+    seasonality_prior_scale: float
+    holidays_prior_scale: float
+    changepoint_prior_scale: float
+    mcmc_samples: int
+    interval_width: float
+    uncertainty_samples: int
+    cap: Optional[float]
+    floor: Optional[float]
+    custom_seasonalities: List[Dict[str, Any]]
+    extra_regressors: List[Dict[str, Any]]
+
     def __init__(
         self,
-        growth="linear",
-        changepoints=None,
-        n_changepoints=25,
-        changepoint_range=0.8,
-        yearly_seasonality="auto",
-        weekly_seasonality="auto",
-        daily_seasonality="auto",
-        holidays=None,
-        seasonality_mode="additive",
-        seasonality_prior_scale=10.0,
-        holidays_prior_scale=10.0,
-        changepoint_prior_scale=0.05,
-        mcmc_samples=0,
-        interval_width=0.80,
-        uncertainty_samples=1000,
-        cap=None,
-        floor=None,
-        custom_seasonalities: Optional[List[Dict]] = None,
-        extra_regressors: Optional[List[Dict]] = None,
+        growth: str = "linear",
+        changepoints: Optional[List[float]] = None,
+        n_changepoints: int = 25,
+        changepoint_range: float = 0.8,
+        yearly_seasonality: str = "auto",
+        weekly_seasonality: str = "auto",
+        daily_seasonality: str = "auto",
+        holidays: Optional[pd.DataFrame] = None,
+        seasonality_mode: str = "additive",
+        seasonality_prior_scale: float = 10.0,
+        holidays_prior_scale: float = 10.0,
+        changepoint_prior_scale: float = 0.05,
+        mcmc_samples: int = 0,
+        interval_width: float = 0.80,
+        uncertainty_samples: int = 1000,
+        cap: Optional[float] = None,
+        floor: Optional[float] = None,
+        custom_seasonalities: Optional[List[Dict[str, Any]]] = None,
+        extra_regressors: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         if _no_prophet:
             raise RuntimeError("requires fbprophet to be installed")
@@ -175,7 +193,7 @@ class ProphetParams(Params):
             )
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         """validate Prophet parameters
 
         This method validates some key parameters including growth rate
@@ -213,7 +231,7 @@ class ProphetParams(Params):
         pass
 
 
-class ProphetModel(Model):
+class ProphetModel(Model[ProphetParams]):
     """Model class for Prophet
 
     This class provides fit, predict, and plot methods for Prophet model
@@ -222,6 +240,9 @@ class ProphetModel(Model):
         data: the input time series data as in :class:`kats.consts.TimeSeriesData`
         params: the parameter class definied with `ProphetParams`
     """
+
+    model: Optional[Prophet] = None
+    freq: Optional[str] = None
 
     def __init__(self, data: TimeSeriesData, params: ProphetParams) -> None:
         super().__init__(data, params)
@@ -234,7 +255,7 @@ class ProphetModel(Model):
             logging.error(msg)
             raise ValueError(msg)
 
-    def fit(self, **kwargs) -> None:
+    def fit(self, **kwargs: Any) -> None:
         """fit Prophet model
 
         Args:
@@ -328,12 +349,12 @@ class ProphetModel(Model):
                 )
                 df[regressor["name"]] = pd.Series(regressor["value"], index=df.index)
 
-        # pyre-fixme[16]: `ProphetModel` has no attribute `model`.
         self.model = prophet.fit(df=df)
         logging.info("Fitted Prophet model. ")
 
-    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
-    def predict(self, steps, include_history=False, **kwargs) -> pd.DataFrame:
+    def predict(
+        self, steps: int, *args: Any, include_history: bool = False, **kwargs: Any
+    ) -> pd.DataFrame:
         """predict with fitted Prophet model
 
         Args:
@@ -344,21 +365,21 @@ class ProphetModel(Model):
             The predicted dataframe with following columns:
                 `time`, `fcst`, `fcst_lower`, and `fcst_upper`
         """
+        model = self.model
+        if model is None:
+            raise ValueError("Call fit() before predict().")
+
         logging.debug(
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
-        # pyre-fixme[16]: `ProphetModel` has no attribute `freq`.
-        # pyre-fixme[16]: `ProphetModel` has no attribute `data`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
         self.include_history = include_history
         # prepare future for Prophet.predict
         future = kwargs.get("future")
         raw = kwargs.get("raw", False)
         if future is None:
-            # pyre-fixme[16]: `ProphetModel` has no attribute `model`.
-            # pyre-fixme[16]: `Params` has no attribute `cap`.
-            future = self.model.make_future_dataframe(
+            future = model.make_future_dataframe(
                 periods=steps, freq=self.freq, include_history=self.include_history
             )
             if self.params.growth == "logistic":
@@ -391,7 +412,7 @@ class ProphetModel(Model):
                 regressor_value.index = future.index
                 future[regressor["name"]] = regressor_value
 
-        fcst = self.model.predict(future)
+        fcst = model.predict(future)
         if raw:
             return fcst.tail(steps)
 
@@ -410,7 +431,7 @@ class ProphetModel(Model):
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return fcst_df
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Prophet"
 
     @staticmethod
