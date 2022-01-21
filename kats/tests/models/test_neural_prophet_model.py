@@ -64,7 +64,7 @@ class NeuralProphetModelTest(TestCase):
             seasonality_mode="additive",
             seasonality_reg=0,
             n_forecasts=1,
-            n_lags=0.0,
+            n_lags=0,
             num_hidden_layers=0,
             d_hidden=None,
             ar_sparsity=None,
