@@ -2,15 +2,14 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 This module contains code to implement the Prophet algorithm
 as a Detector Model.
 """
 
+import logging
 from enum import Enum
-from typing import Optional
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -65,7 +64,7 @@ def deviation_from_predicted_val(
     predict_df: pd.DataFrame,
     ci_threshold: Optional[float] = None,
     uncertainty_samples: Optional[float] = None,
-):
+) -> Union[pd.Series, pd.DataFrame]:
     return (data.value - predict_df[PROPHET_YHAT_COLUMN]) / predict_df[
         PROPHET_YHAT_COLUMN
     ].abs()
@@ -76,7 +75,7 @@ def z_score(
     predict_df: pd.DataFrame,
     ci_threshold: float = 0.8,
     uncertainty_samples: float = 50,
-):
+) -> Union[pd.Series, pd.DataFrame]:
     # asymmetric confidence band => points above the prediction use upper bound in calculation, points below the prediction use lower bound
 
     actual_upper_std = (
@@ -113,7 +112,7 @@ class ProphetScoreFunction(Enum):
     z_score = "z_score"
 
 
-SCORE_FUNC_DICT = {
+SCORE_FUNC_DICT: Dict[str, Any] = {
     ProphetScoreFunction.deviation_from_predicted_val.value: deviation_from_predicted_val,
     ProphetScoreFunction.z_score.value: z_score,
 }
@@ -136,12 +135,14 @@ class ProphetDetectorModel(DetectorModel):
             serialized model.
     """
 
+    model: Optional[Prophet] = None
+
     def __init__(
         self,
         serialized_model: Optional[bytes] = None,
         score_func: ProphetScoreFunction = ProphetScoreFunction.deviation_from_predicted_val,
         scoring_confidence_interval: float = 0.8,
-        remove_outliers=False,
+        remove_outliers: bool = False,
         outlier_threshold: float = 0.99,
         uncertainty_samples: float = 50,
     ) -> None:
@@ -216,18 +217,17 @@ class ProphetDetectorModel(DetectorModel):
             historical_data.extend(data)
             total_data = historical_data
 
-        # No incremental training. Create a model and train from scratch
-        self.model = Prophet(
-            interval_width=self.scoring_confidence_interval,
-            uncertainty_samples=self.uncertainty_samples,
-        )
-
         data_df = timeseries_to_prophet_df(total_data)
 
         if self.remove_outliers:
             data_df = self._remove_outliers(data_df, self.outlier_threshold)
 
-        self.model.fit(data_df)
+        # No incremental training. Create a model and train from scratch
+        model = Prophet(
+            interval_width=self.scoring_confidence_interval,
+            uncertainty_samples=self.uncertainty_samples,
+        )
+        self.model = model.fit(data_df)
 
     # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
     #  inconsistently.
@@ -249,8 +249,14 @@ class ProphetDetectorModel(DetectorModel):
             AnomalyResponse object. The length of this obj.ect is same as data. The score property
             gives the score for anomaly.
         """
+        model = self.model
+        if model is None:
+            msg = "Call fit() before predict()."
+            logging.error(msg)
+            raise ValueError(msg)
+
         time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time})
-        predict_df = self.model.predict(time_df)
+        predict_df = model.predict(time_df)
         zeros = np.zeros(len(data))
         response = AnomalyResponse(
             scores=TimeSeriesData(
@@ -258,7 +264,7 @@ class ProphetDetectorModel(DetectorModel):
                 value=SCORE_FUNC_DICT[self.score_func.value](
                     data=data,
                     predict_df=predict_df,
-                    ci_threshold=self.model.interval_width,
+                    ci_threshold=model.interval_width,
                     uncertainty_samples=self.uncertainty_samples,
                 ),
             ),
@@ -311,13 +317,15 @@ class ProphetDetectorModel(DetectorModel):
 class ProphetTrendDetectorModel(DetectorModel):
     """Prophet based trend detection model."""
 
+    model: Optional[Prophet] = None
+
     def __init__(
         self,
         serialized_model: Optional[bytes] = None,
         changepoint_range: float = 1.0,
         weekly_seasonality: str = "auto",
         changepoint_prior_scale: float = 0.01,
-    ):
+    ) -> None:
         if serialized_model:
             self.model = model_from_json(serialized_model)
         else:
@@ -327,7 +335,7 @@ class ProphetTrendDetectorModel(DetectorModel):
         self.weekly_seasonality = weekly_seasonality
         self.changepoint_prior_scale = changepoint_prior_scale
 
-    def serialize(self):
+    def serialize(self) -> bytes:
         """Serialize the model into a json.
 
         So it can be loaded later.
@@ -350,19 +358,20 @@ class ProphetTrendDetectorModel(DetectorModel):
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> AnomalyResponse:
-        self.model = Prophet(
+        model = Prophet(
             changepoint_range=self.changepoint_range,
             weekly_seasonality=self.weekly_seasonality,
             changepoint_prior_scale=self.changepoint_prior_scale,
         )
         ts_p = pd.DataFrame({"ds": data.time.values, "y": data.value.values})
-        self.model.fit(ts_p)
+        model = model.fit(ts_p)
+        self.model = model
 
         output_ts = self._zeros_ts(ts_p)
-        output_ts.value.loc[self.model.changepoints.index.values] = np.abs(
-            np.nanmean(self.model.params["delta"], axis=0)
+        output_ts.value.loc[model.changepoints.index.values] = np.abs(
+            np.nanmean(model.params["delta"], axis=0)
         )
 
         return AnomalyResponse(
@@ -373,8 +382,20 @@ class ProphetTrendDetectorModel(DetectorModel):
             stat_sig_ts=None,
         )
 
-    def fit(self):
-        raise ValueError("fit is not implemented, call fit_predict() instead")
+    def fit(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData],
+        **kwargs: Any,
+    ) -> None:
+        raise NotImplementedError("fit is not implemented, call fit_predict() instead")
 
-    def predict(self):
-        raise ValueError("predict is not implemented, call fit_predict() instead")
+    def predict(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData],
+        **kwargs: Any,
+    ) -> AnomalyResponse:
+        raise NotImplementedError(
+            "predict is not implemented, call fit_predict() instead"
+        )

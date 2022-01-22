@@ -159,7 +159,7 @@ class SARIMAModel(Model[SARIMAParams]):
     ) -> None:
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.Series):
-            msg = "Only support univariate time series, but get {self.data.value}."
+            msg = f"Only support univariate time series, but get {self.data.value}."
             logging.error(msg)
             raise ValueError(msg)
 
