@@ -21,7 +21,7 @@ from __future__ import (
 import logging
 import math
 from copy import copy
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -32,7 +32,11 @@ from kats.models import (
     quadratic_model,
     theta,
 )
+from kats.models.linear_model import LinearModel
 from kats.models.model import Model
+from kats.models.prophet import ProphetModel
+from kats.models.quadratic_model import QuadraticModel
+from kats.models.theta import ThetaModel
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.parameter_tuning_utils import get_default_stlf_parameter_search_space
 
@@ -83,7 +87,7 @@ class STLFModel(Model[STLFParams]):
     decomp: Optional[Dict[str, TimeSeriesData]] = None
     sea_data: Optional[TimeSeriesData] = None
     desea_data: Optional[TimeSeriesData] = None
-    model: Optional[Model[STLFParams]] = None
+    model: Optional[Union[LinearModel, ProphetModel, QuadraticModel, ThetaModel]] = None
     freq: Optional[str] = None
     alpha: Optional[float] = None
     y_fcst: Optional[np.ndarray] = None
@@ -163,8 +167,6 @@ class STLFModel(Model[STLFParams]):
             params = quadratic_model.QuadraticModelParams()
             model = quadratic_model.QuadraticModel(data=data, params=params)
             model.fit()
-        # pyre-fixme[8]: Attribute has type `Optional[Model[STLFParams]]`; used as
-        #  `Union[LinearModel, ProphetModel, QuadraticModel, ThetaModel]`.
         self.model = model
         return self
 
