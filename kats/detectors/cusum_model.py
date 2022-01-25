@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """CUSUMDetectorModel is a wraper of CUSUMDetector to detect multiple change points
 
 Typical usage example:
@@ -31,7 +29,7 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional, Union
+from typing import Dict, cast, Any, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -49,7 +47,7 @@ from kats.utils.decomposition import TimeSeriesDecomposition
 
 
 NORMAL_TOLERENCE = 1  # number of window
-CHANGEPOINT_RETENTION = 7 * 24 * 60 * 60  # in seconds
+CHANGEPOINT_RETENTION: int = 7 * 24 * 60 * 60  # in seconds
 MAX_CHANGEPOINT = 10
 
 
@@ -99,13 +97,14 @@ class CusumScoreFunction(Enum):
 
 
 # Score Function Constants
+# pyre-fixme
 SCORE_FUNC_DICT = {
     CusumScoreFunction.change.value: change,
     CusumScoreFunction.percentage_change.value: percentage_change,
     CusumScoreFunction.z_score.value: z_score,
 }
-DEFAULT_SCORE_FUNCTION = CusumScoreFunction.change
-STR_TO_SCORE_FUNC = {  # Used for param tuning
+DEFAULT_SCORE_FUNCTION: CusumScoreFunction = CusumScoreFunction.change
+STR_TO_SCORE_FUNC: Dict[str, CusumScoreFunction] = {  # Used for param tuning
     "change": CusumScoreFunction.change,
     "percentage_change": CusumScoreFunction.percentage_change,
     "z_score": CusumScoreFunction.z_score,
@@ -152,38 +151,40 @@ class CUSUMDetectorModel(DetectorModel):
         change_directions: List[str] = CUSUM_DEFAULT_ARGS["change_directions"],
         score_func: Union[str, CusumScoreFunction] = DEFAULT_SCORE_FUNCTION,
         remove_seasonality: bool = CUSUM_DEFAULT_ARGS["remove_seasonality"],
-    ):
+    ) -> None:
         if serialized_model:
             previous_model = json.loads(serialized_model)
-            self.cps = previous_model["cps"]
-            self.alert_fired = previous_model["alert_fired"]
-            self.pre_mean = previous_model["pre_mean"]
-            self.pre_std = previous_model["pre_std"]
-            self.number_of_normal_scan = previous_model["number_of_normal_scan"]
-            self.alert_change_direction = previous_model["alert_change_direction"]
-            self.scan_window = scan_window = previous_model["scan_window"]
-            self.historical_window = previous_model["historical_window"]
-            self.step_window = step_window = previous_model["step_window"]
-            self.threshold = previous_model["threshold"]
-            self.delta_std_ratio = previous_model["delta_std_ratio"]
-            self.magnitude_quantile = previous_model["magnitude_quantile"]
-            self.magnitude_ratio = previous_model["magnitude_ratio"]
-            self.change_directions = previous_model["change_directions"]
-            self.score_func = previous_model["score_func"]
+            self.cps: List[int] = previous_model["cps"]
+            self.alert_fired: bool = previous_model["alert_fired"]
+            self.pre_mean: float = previous_model["pre_mean"]
+            self.pre_std: float = previous_model["pre_std"]
+            self.number_of_normal_scan: int = previous_model["number_of_normal_scan"]
+            self.alert_change_direction: str = previous_model["alert_change_direction"]
+            self.scan_window: int = previous_model["scan_window"]
+            scan_window = previous_model["scan_window"]
+            self.historical_window: int = previous_model["historical_window"]
+            self.step_window: int = previous_model["step_window"]
+            step_window = previous_model["step_window"]
+            self.threshold: float = previous_model["threshold"]
+            self.delta_std_ratio: float = previous_model["delta_std_ratio"]
+            self.magnitude_quantile: float = previous_model["magnitude_quantile"]
+            self.magnitude_ratio: float = previous_model["magnitude_ratio"]
+            self.change_directions: List[str] = previous_model["change_directions"]
+            self.score_func: CusumScoreFunction = previous_model["score_func"]
             if "remove_seasonality" in previous_model:
-                self.remove_seasonality = previous_model["remove_seasonality"]
+                self.remove_seasonality: bool = previous_model["remove_seasonality"]
             else:
-                self.remove_seasonality = remove_seasonality
+                self.remove_seasonality: bool = remove_seasonality
         elif scan_window is not None and historical_window is not None:
             self.cps = []
             self.alert_fired = False
             self.pre_mean = 0
             self.pre_std = 1
             self.number_of_normal_scan = 0
-            self.alert_change_direction = None
+            self.alert_change_direction: Union[str, None] = None
             self.scan_window = scan_window
             self.historical_window = historical_window
-            self.step_window = step_window
+            self.step_window = cast(int, step_window)
             self.threshold = threshold
             self.delta_std_ratio = delta_std_ratio
             self.magnitude_quantile = magnitude_quantile
@@ -210,7 +211,7 @@ class CUSUMDetectorModel(DetectorModel):
                 "have overlap for scan windows."
             )
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, CUSUMDetectorModel):
             return (
                 self.cps == other.cps
@@ -276,7 +277,7 @@ class CUSUMDetectorModel(DetectorModel):
         self,
         data: TimeSeriesData,
         historical_data: TimeSeriesData,
-        scan_window: int,
+        scan_window: Union[int, pd.Timedelta],
         threshold: float = CUSUM_DEFAULT_ARGS["threshold"],
         delta_std_ratio: float = CUSUM_DEFAULT_ARGS["delta_std_ratio"],
         magnitude_quantile: float = CUSUM_DEFAULT_ARGS["magnitude_quantile"],
@@ -392,12 +393,11 @@ class CUSUMDetectorModel(DetectorModel):
             ),
         )
 
-    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def fit_predict(
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """
         This function combines fit and predict and return anomaly socre for data. It
@@ -564,8 +564,7 @@ class CUSUMDetectorModel(DetectorModel):
             self._fit(
                 in_data,
                 in_hist,
-                # pyre-fixme[6]: Expected `int` for 3rd param but got `Timedelta`.
-                scan_window=scan_window,
+                scan_window=cast(Union[int, pd.Timedelta], scan_window),
                 threshold=threshold,
                 delta_std_ratio=delta_std_ratio,
                 magnitude_quantile=magnitude_quantile,
@@ -595,9 +594,7 @@ class CUSUMDetectorModel(DetectorModel):
             self._fit(
                 in_data,
                 in_hist,
-                # pyre-fixme[6]: Expected `ConfidenceBand` for 2nd param but got `None`.
-                # pyre-fixme[6]: Expected `int` for 3rd param but got `Timedelta`.
-                scan_window=scan_window,
+                scan_window=cast(Union[int, pd.Timedelta], scan_window),
                 threshold=threshold,
                 delta_std_ratio=delta_std_ratio,
                 magnitude_quantile=magnitude_quantile,
@@ -633,18 +630,19 @@ class CUSUMDetectorModel(DetectorModel):
         else:
             raise ValueError("direction can only be right or left")
 
-    # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.
     def fit(
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> None:
         self.fit_predict(data, historical_data)
 
-    # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """
         predict is not implemented
