@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 # Forecasting with simple linear regression model
 #
 # In the simplest case, the regression model explores a linear relationship
@@ -13,7 +11,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-from typing import List, Dict
+from typing import List, Optional, Any, Dict, Union
 
 import numpy as np
 import pandas as pd
@@ -32,14 +30,14 @@ class LinearModelParams(Params):
         alpha: The alpha level for the confidence interval. The default alpha = 0.05 returns a 95% confidence interval
     """
 
-    def __init__(self, alpha=0.05, **kwargs) -> None:
+    def __init__(self, alpha: float = 0.05) -> None:
         super().__init__()
         self.alpha = alpha
         logging.debug(
             "Initialized LinearModel parameters. " "alpha:{alpha}".format(alpha=alpha)
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         """Validate Linear Model Parameters
 
         Since the linear model does not require key parameters to be defined this is not required for this class
@@ -48,7 +46,7 @@ class LinearModelParams(Params):
         pass
 
 
-class LinearModel(Model):
+class LinearModel(Model[LinearModelParams]):
     """Model class for Linear Model.
 
     This class provides the fit, predict and plot methods for the Linear Model
@@ -66,6 +64,16 @@ class LinearModel(Model):
             )
             logging.error(msg)
             raise ValueError(msg)
+        self.model: Optional[sm.OLS] = None
+        self.fcst_df = pd.DataFrame(data=None)
+        self.freq: Optional[str] = None
+        self._X_future: Optional[List[int]] = None
+        self.past_length: int = len(data.time)
+        self.dates: Optional[pd.DatetimeIndex] = None
+        self.y_fcst: Optional[Union[pd.Series, np.ndarray]] = None
+        self.sdev: Optional[Union[np.ndarray, float]] = None
+        self.y_fcst_lower: Optional[Union[pd.Series, np.ndarray, float]] = None
+        self.y_fcst_upper: Optional[Union[pd.Series, np.ndarray, float]] = None
 
     def fit(self) -> None:
         """fit Linear Model."""
@@ -75,17 +83,15 @@ class LinearModel(Model):
         )
 
         # prepare X and y for linear model
-        # pyre-fixme[16]: `LinearModel` has no attribute `past_length`.
-        # pyre-fixme[16]: `LinearModel` has no attribute `data`.
-        self.past_length = len(self.data.time)
         _X = list(range(self.past_length))
         X = sm.add_constant(_X)
         y = self.data.value
         lm = sm.OLS(y, X)
-        # pyre-fixme[16]: `LinearModel` has no attribute `model`.
         self.model = lm.fit()
 
-    def predict(self, steps, include_history=False, **kwargs):
+    def predict(
+        self, steps: int, include_history: bool = False, *args: Any, **kwargs: Any
+    ) -> pd.DataFrame:
         """predict with fitted linear model.
 
         Args:
@@ -109,7 +115,11 @@ class LinearModel(Model):
             self._X_future = list(range(self.past_length, self.past_length + steps))
 
         X_fcst = sm.add_constant(self._X_future)
-        y_fcst = self.model.predict(X_fcst)
+        if self.model is None:
+            raise ValueError("Call fit() before predict()")
+        else:
+            y_fcst = self.model.predict(X_fcst)
+
         self.sdev, self.y_fcst_lower, self.y_fcst_upper = wls_prediction_std(
             self.model, exog=X_fcst, alpha=self.params.alpha
         )
@@ -137,11 +147,11 @@ class LinearModel(Model):
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return self.fcst_df
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Linear Model"
 
     @staticmethod
-    def get_parameter_search_space() -> List[Dict[str, object]]:
+    def get_parameter_search_space() -> List[Dict[str, Any]]:
         """get default parameter search space for Linear model."""
         return [
             {
