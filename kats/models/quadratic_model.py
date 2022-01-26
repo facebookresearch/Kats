@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """Forecasting with quadratic model
 
 The quadratic (non-linear) regression model explores a linear relationship
@@ -12,7 +10,7 @@ variables `x` and `x^2`, where `x` is the time.
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -31,7 +29,7 @@ class QuadraticModelParams(Params):
         0.05 returns a 95% confidence interval
     """
 
-    def __init__(self, alpha=0.05, **kwargs) -> None:
+    def __init__(self, alpha: float = 0.05, **kwargs: Any) -> None:
         super().__init__()
         self.alpha = alpha
         logging.debug(
@@ -39,7 +37,7 @@ class QuadraticModelParams(Params):
             "alpha:{alpha}".format(alpha=alpha)
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         """Validate Quadratic Model Parameters
 
         Since the quadratic model does not require key parameters to be defined
@@ -49,7 +47,7 @@ class QuadraticModelParams(Params):
         pass
 
 
-class QuadraticModel(Model):
+class QuadraticModel(Model[QuadraticModelParams]):
     """Model class for Quadratic Model.
 
     This class provides the fit, predict and plot methods for the Quadratic Model
@@ -60,7 +58,7 @@ class QuadraticModel(Model):
     """
 
     past_length: Optional[int] = None
-    model: Optional[Model] = None
+    model: Optional[Model[QuadraticModelParams]] = None
     freq: Optional[str] = None
     _X_future: Optional[List[int]] = None
     sdev: Optional[float] = None
@@ -97,7 +95,9 @@ class QuadraticModel(Model):
         self.model = quad_model.fit()
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
-    def predict(self, steps: int, include_history=False, **kwargs) -> pd.DataFrame:
+    def predict(
+        self, steps: int, include_history: bool = False, **kwargs: Any
+    ) -> pd.DataFrame:
         """predict with fitted quadratic model.
 
         Args:
@@ -156,7 +156,7 @@ class QuadraticModel(Model):
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return fcst_df
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Quadratic"
 
     @staticmethod
