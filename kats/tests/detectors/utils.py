@@ -26,6 +26,7 @@ from scipy.special import expit  # @manual
 
 
 def gen_no_trend_data_ndim(time: pd.Series, ndim: int = 1):
+    np.random.seed(20)
     n_days = len(time)
     data = np.ones((n_days, ndim)) * np.random.randint(1000, size=(1, ndim))
     no_trend_data = pd.DataFrame(data)
