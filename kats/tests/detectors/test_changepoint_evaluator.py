@@ -1,16 +1,11 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
-
-import re
 from datetime import datetime, timedelta
 from unittest import TestCase, mock
 
 import numpy as np
 import pandas as pd
-import statsmodels
 
 # from kats.detectors.bocpd_model import BocpdDetectorModel
 from kats.detectors.changepoint_evaluator import (
@@ -26,15 +21,14 @@ from kats.detectors.cusum_model import (
 from kats.detectors.detector import Detector
 
 
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
-
-
 class GenerateData:
     """
     Generate the data used to evaluate the parsing and the detector.
     """
+
+    len_ts: int
+    eg_df: pd.DataFrame
+    num_secs_in_day: int = 3600 * 24
 
     def __init__(self, monthly: bool = True) -> None:
         self.eg_anno = {"1": [2, 6, 10], "2": [3, 6]}
@@ -80,7 +74,6 @@ class GenerateData:
             )
         else:
             eg_start_unix_time = 1613764800
-            self.num_secs_in_day = 3600 * 24
 
             date_range_daily = pd.date_range(
                 start="2020-03-01", end="2020-03-31", freq="D"
@@ -355,6 +348,8 @@ class TestChangepointEvaluator(TestCase):
         )
         eval_agg_9_df = turing_9.evaluate(
             data=eg_df,
+            # pyre-fixme[6]: For 2nd param expected `Optional[Dict[str, float]]` but
+            #  got `Dict[str, Union[List[str], CusumScoreFunction, float]]`.
             model_params=cusum_model_params,
             alert_style_cp=True,
             threshold_low=-0.1,

@@ -2,15 +2,12 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import re
 from operator import attrgetter
+from typing import Optional
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.cusum_detection import (
     CUSUMDetector,
@@ -20,10 +17,6 @@ from kats.detectors.cusum_detection import (
 from parameterized.parameterized import parameterized
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix
-
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
 
 
 class CUSUMDetectorTest(TestCase):
@@ -157,6 +150,7 @@ class CUSUMDetectorTest(TestCase):
         self.no_reg_detector = CUSUMDetector(timeseries)
         self.no_reg_change_points = self.no_reg_detector.detector(start_point=20)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["inc_change_points", 1],
@@ -167,27 +161,33 @@ class CUSUMDetectorTest(TestCase):
             ["no_season_change_points", 0],
         ]
     )
-    def test_cp_len(self, cp_name, expected) -> None:
+    def test_cp_len(self, cp_name: str, expected: int) -> None:
         self.assertEqual(len(attrgetter(cp_name)(self)), expected)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata", 29],
+    #  ["dec_metadata", 49]])`.
     @parameterized.expand(
         [
             ["inc_metadata", 29],
             ["dec_metadata", 49],
         ]
     )
-    def test_cp_index(self, metadata_name, expected) -> None:
+    def test_cp_index(self, metadata_name: str, expected: int) -> None:
         self.assertLessEqual(
             abs(attrgetter(metadata_name)(self).cp_index - expected), 1
         )
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata", "increase"],
+    #  ["dec_metadata", "decrease"]])`.
     @parameterized.expand(
         [
             ["inc_metadata", "increase"],
             ["dec_metadata", "decrease"],
         ]
     )
-    def test_direction(self, metadata_name, expected) -> None:
+    def test_direction(self, metadata_name: str, expected: str) -> None:
         self.assertEqual(attrgetter(metadata_name)(self).direction, expected)
 
     def test_increasing_mu(self) -> None:
@@ -201,13 +201,14 @@ class CUSUMDetectorTest(TestCase):
     def test_increasing_regression(self) -> None:
         self.assertTrue(self.inc_metadata.regression_detected)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["season_metadata.p_value_int", "season_metadata.llr_int"],
             ["inc_metadata.p_value", "inc_metadata.llr"],
         ]
     )
-    def test_p_val(self, pval_name, llr_name) -> None:
+    def test_p_val(self, pval_name: str, llr_name: str) -> None:
         self.assertEqual(
             attrgetter(pval_name)(self),
             1 - chi2.cdf(attrgetter(llr_name)(self), 2),
@@ -222,6 +223,7 @@ class CUSUMDetectorTest(TestCase):
     def test_increasing_stable_changepoint(self) -> None:
         self.assertTrue(self.inc_metadata.stable_changepoint)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["inc_detector", "inc_change_points"],
@@ -232,13 +234,16 @@ class CUSUMDetectorTest(TestCase):
             ["no_season_detector", "no_season_change_points"],
         ]
     )
-    def test_plot(self, detector_name, cp_name) -> None:
+    def test_plot(self, detector_name: str, cp_name: str) -> None:
         attrgetter(detector_name)(self).plot(attrgetter(cp_name)(self))
 
     @staticmethod
     def simulate_seasonal_term(
-        periodicity, total_cycles, noise_std=1.0, harmonics=None
-    ):
+        periodicity: int,
+        total_cycles: int,
+        noise_std: float = 1.0,
+        harmonics: Optional[float] = None,
+    ) -> np.ndarray:
         duration = periodicity * total_cycles
         assert duration == int(duration)
         duration = int(duration)
@@ -254,6 +259,7 @@ class CUSUMDetectorTest(TestCase):
         for t in range(total_timesteps):
             gamma_jtp1 = np.zeros_like(gamma_jt)
             gamma_star_jtp1 = np.zeros_like(gamma_star_jt)
+            # pyre-ignore[6]: For 2nd param expected `SupportsIndex` but got `float`.
             for j in range(1, harmonics + 1):
                 cos_j = np.cos(lambda_p * j)
                 sin_j = np.sin(lambda_p * j)
@@ -295,12 +301,16 @@ class CUSUMDetectorTest(TestCase):
             timeseries = TimeSeriesData(df_multi_var)
             CUSUMDetector(timeseries)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["WARNING", 0.900000],
+    #  ["DEBUG", None]])`.
     @parameterized.expand(
         [
             ["WARNING", 0.9],
             ["DEBUG", None],
         ]
     )
+    # pyre-ignore[2]: Parameter must be annotated.
     def test_logging_neg_magnitude(self, level, mag_q) -> None:
         # test logging setup - negative in magnitude
         np.random.seed(10)
@@ -368,93 +378,123 @@ class MultiCUSUMDetectorTest(TestCase):
         self.dec_change_points = MultiCUSUMDetector(timeseries_decrease).detector()
         self.dec_metadata = self.dec_change_points[0]
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_change_points"],
+    #  ["dec_change_points"]])`.
     @parameterized.expand(
         [
             ["inc_change_points"],
             ["dec_change_points"],
         ]
     )
-    def test_cp_len(self, cp_name) -> None:
+    def test_cp_len(self, cp_name: str) -> None:
         self.assertEqual(len(attrgetter(cp_name)(self)), 1)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata"],
+    #  ["dec_metadata"]])`.
     @parameterized.expand(
         [
             ["inc_metadata"],
             ["dec_metadata"],
         ]
     )
-    def test_cp_index(self, cp_name) -> None:
+    def test_cp_index(self, cp_name: str) -> None:
         self.assertLessEqual(abs(attrgetter(cp_name)(self).cp_index - 59), 1)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata.mu0",
+    #  "inc_metadata.mu1"], ["dec_metadata.mu1", "dec_metadata.mu0"]])`.
     @parameterized.expand(
         [
             ["inc_metadata.mu0", "inc_metadata.mu1"],
             ["dec_metadata.mu1", "dec_metadata.mu0"],
         ]
     )
-    def test_mu(self, m1_name, m2_name) -> None:
+    def test_mu(self, m1_name: str, m2_name: str) -> None:
         for m1, m2 in zip(attrgetter(m1_name)(self), attrgetter(m2_name)(self)):
             self.assertLess(m1, m2)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata",
+    #  "inc_metadata.mu0", "inc_metadata.mu1"], ["dec_metadata", "dec_metadata.mu0",
+    #  "dec_metadata.mu1"]])`.
     @parameterized.expand(
         [
             ["inc_metadata", "inc_metadata.mu0", "inc_metadata.mu1"],
             ["dec_metadata", "dec_metadata.mu0", "dec_metadata.mu1"],
         ]
     )
-    def test_correct_delta(self, metadata_name, mu0_name, mu1_name) -> None:
+    def test_correct_delta(
+        self, metadata_name: str, mu0_name: str, mu1_name: str
+    ) -> None:
         for d, diff in zip(
             attrgetter(metadata_name)(self).delta,
             attrgetter(mu1_name)(self) - attrgetter(mu0_name)(self),
         ):
             self.assertEqual(d, diff)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata"],
+    #  ["dec_metadata"]])`.
     @parameterized.expand(
         [
             ["inc_metadata"],
             ["dec_metadata"],
         ]
     )
-    def test_regression(self, metadata_name) -> None:
+    def test_regression(self, metadata_name: str) -> None:
         self.assertTrue(attrgetter(metadata_name)(self).regression_detected)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata"],
+    #  ["dec_metadata"]])`.
     @parameterized.expand(
         [
             ["inc_metadata"],
             ["dec_metadata"],
         ]
     )
-    def test_p_val(self, metadata_name) -> None:
+    def test_p_val(self, metadata_name: str) -> None:
         self.assertEqual(
             attrgetter(metadata_name)(self).p_value,
             1 - chi2.cdf(attrgetter(metadata_name)(self).llr, self.D + 1),
         )
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata"],
+    #  ["dec_metadata"]])`.
     @parameterized.expand(
         [
             ["inc_metadata"],
             ["dec_metadata"],
         ]
     )
-    def test_gaussian_increase_p_val_nan(self, metadata_name) -> None:
+    def test_gaussian_increase_p_val_nan(self, metadata_name: str) -> None:
         self.assertTrue(np.isnan(attrgetter(metadata_name)(self).p_value_int))
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata"],
+    #  ["dec_metadata"]])`.
     @parameterized.expand(
         [
             ["inc_metadata"],
             ["dec_metadata"],
         ]
     )
-    def test_gaussian_increase_llr_int(self, metadata_name) -> None:
+    def test_gaussian_increase_llr_int(self, metadata_name: str) -> None:
         self.assertEqual(attrgetter(metadata_name)(self).llr_int, np.inf)
 
+    # pyre-ignore[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["inc_metadata"],
+    #  ["dec_metadata"]])`.
     @parameterized.expand(
         [
             ["inc_metadata"],
             ["dec_metadata"],
         ]
     )
-    def test_gaussian_increase_stable_changepoint(self, metadata_name) -> None:
+    def test_gaussian_increase_stable_changepoint(self, metadata_name: str) -> None:
         self.assertTrue(attrgetter(metadata_name)(self).stable_changepoint)
 
     def test_no_changepoint(self) -> None:

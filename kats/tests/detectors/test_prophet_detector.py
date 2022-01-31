@@ -1,20 +1,17 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
-
 import random
-import re
 import unittest
 from datetime import timedelta
+from typing import Tuple
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
+from kats.detectors.detector_consts import AnomalyResponse
 from kats.detectors.prophet_detector import (
     ProphetDetectorModel,
     ProphetTrendDetectorModel,
@@ -23,13 +20,11 @@ from kats.detectors.prophet_detector import (
 from kats.utils.simulator import Simulator
 from parameterized.parameterized import parameterized
 
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
-
 
 class TestProphetDetector(TestCase):
-    def create_random_ts(self, seed, length, magnitude, slope_factor):
+    def create_random_ts(
+        self, seed: int, length: int, magnitude: float, slope_factor: float
+    ) -> TimeSeriesData:
         np.random.seed(seed)
         sim = Simulator(n=length, freq="1D", start=pd.to_datetime("2020-01-01"))
 
@@ -43,8 +38,13 @@ class TestProphetDetector(TestCase):
         return sim.stl_sim()
 
     def create_ts(
-        self, seed=0, length=100, magnitude=10, signal_to_noise_ratio=0.1, freq="1D"
-    ):
+        self,
+        seed: int = 0,
+        length: int = 100,
+        magnitude: float = 10,
+        signal_to_noise_ratio: float = 0.1,
+        freq: str = "1D",
+    ) -> TimeSeriesData:
         np.random.seed(seed)
         sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
 
@@ -53,8 +53,14 @@ class TestProphetDetector(TestCase):
         return sim.stl_sim()
 
     def create_multi_seasonality_ts(
-        self, seed, length, freq, min_val, max_val, signal_to_noise_ratio
-    ):
+        self,
+        seed: int,
+        length: int,
+        freq: str,
+        min_val: float,
+        max_val: float,
+        signal_to_noise_ratio: float,
+    ) -> TimeSeriesData:
         np.random.seed(seed)
 
         sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
@@ -81,7 +87,14 @@ class TestProphetDetector(TestCase):
 
         return sim_ts
 
-    def add_smooth_anomaly(self, ts, seed, start_index, length, magnitude):
+    def add_smooth_anomaly(
+        self,
+        ts: TimeSeriesData,
+        seed: int,
+        start_index: int,
+        length: int,
+        magnitude: float,
+    ) -> None:
         # Add an anomaly that is half of a sine wave
         # start time and freq don't matter, since we only care about the values
         np.random.seed(seed)
@@ -94,12 +107,14 @@ class TestProphetDetector(TestCase):
         for i in range(0, length):
             ts.value.iloc[start_index + i] += anomaly_ts.value[i]
 
-    def truncate(self, ts, start_index, end_index):
+    def truncate(self, ts: TimeSeriesData, start_index: int, end_index: int) -> None:
         # Set all values outside the range [start_index, end_index) to 0
         ts.value.iloc[:start_index] *= 0
         ts.value.iloc[end_index:] *= 0
 
-    def add_trend_shift(self, ts, length, freq, magnitude):
+    def add_trend_shift(
+        self, ts: TimeSeriesData, length: int, freq: str, magnitude: float
+    ) -> None:
         ts_df = ts.to_dataframe()
         sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
         elevation = sim.trend_shift_sim(
@@ -119,14 +134,14 @@ class TestProphetDetector(TestCase):
         elevated_ts = TimeSeriesData(df=ts_df_elevated)
         ts.value = elevated_ts.value
 
-    def horiz_translate(self, ts, periods):
+    def horiz_translate(self, ts: TimeSeriesData, periods: int) -> None:
         ts.value = ts.value.shift(periods=periods, fill_value=0)
 
-    def add_multiplicative_noise(self, ts, magnitude):
+    def add_multiplicative_noise(self, ts: TimeSeriesData, magnitude: float) -> None:
         # Multiply all the values in ts by a number in the range [1-magnitude, 1+magnitude]
         ts.value *= np.random.rand(len(ts)) * magnitude * 2 + 1 - magnitude
 
-    def merge_ts(self, ts1, ts2):
+    def merge_ts(self, ts1: TimeSeriesData, ts2: TimeSeriesData) -> TimeSeriesData:
         ts1_df, ts2_df = ts1.to_dataframe(), ts2.to_dataframe()
         merged_df = (ts1_df.set_index("time") + ts2_df.set_index("time")).reset_index()
         merged_ts = TimeSeriesData(df=merged_df)
@@ -134,18 +149,17 @@ class TestProphetDetector(TestCase):
 
     def add_multi_event(
         self,
-        baseline_ts,
-        seed,
-        length,
-        freq,
-        min_val,
-        max_val,
-        signal_to_noise_ratio,
-        event_start_ratio,
-        event_end_ratio,
-        event_relative_magnitude,
-    ):
-
+        baseline_ts: TimeSeriesData,
+        seed: int,
+        length: int,
+        freq: str,
+        min_val: float,
+        max_val: float,
+        signal_to_noise_ratio: float,
+        event_start_ratio: float,
+        event_end_ratio: float,
+        event_relative_magnitude: float,
+    ) -> TimeSeriesData:
         np.random.seed(seed)
         sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
 
@@ -177,13 +191,13 @@ class TestProphetDetector(TestCase):
         # create event ts
 
         event1_ts = sim.level_shift_sim(
-            seasonal_period=event1_duration / 2,
+            seasonal_period=event1_duration // 2,
             seasonal_magnitude=event1_magnitude,
             noise=signal_to_noise_ratio * magnitude,
         )
 
         event2_ts = sim.level_shift_sim(
-            seasonal_period=event2_duration / 2,
+            seasonal_period=event2_duration // 2,
             seasonal_magnitude=event2_magnitude,
             noise=signal_to_noise_ratio * magnitude,
         )
@@ -220,7 +234,9 @@ class TestProphetDetector(TestCase):
 
         return merged_ts
 
-    def calc_stds(self, predicted_val, upper_bound, lower_bound):
+    def calc_stds(
+        self, predicted_val: float, upper_bound: float, lower_bound: float
+    ) -> Tuple[float, float]:
         actual_upper_std = (50 ** 0.5) * (upper_bound - predicted_val) / 0.8
         actual_lower_std = (50 ** 0.5) * (predicted_val - lower_bound) / 0.8
 
@@ -229,7 +245,13 @@ class TestProphetDetector(TestCase):
 
         return upper_std, lower_std
 
-    def calc_z_score(self, actual_val, predicted_val, upper_bound, lower_bound):
+    def calc_z_score(
+        self,
+        actual_val: float,
+        predicted_val: float,
+        upper_bound: float,
+        lower_bound: float,
+    ) -> float:
         upper_std, lower_std = self.calc_stds(predicted_val, upper_bound, lower_bound)
 
         if actual_val > predicted_val:
@@ -237,7 +259,9 @@ class TestProphetDetector(TestCase):
         else:
             return (actual_val - predicted_val) / lower_std
 
-    def scenario_results(self, seed, include_anomaly, use_serialized_model):
+    def scenario_results(
+        self, seed: int, include_anomaly: bool, use_serialized_model: bool
+    ) -> AnomalyResponse:
         """Prediction results for common data and model test scenarios"""
         ts = self.create_random_ts(seed, 100, 10, 2)
 
@@ -256,29 +280,43 @@ class TestProphetDetector(TestCase):
     # Alternate between using the current model and using serialized model
     SEED_AND_SERIALIZATIONS = [[0, True], [1, False], [2, True], [3, False], [4, True]]
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(SEED_AND_SERIALIZATIONS)
-    def test_no_anomaly_prediction_length(self, seed, use_serialized_model) -> None:
+    def test_no_anomaly_prediction_length(
+        self, seed: int, use_serialized_model: bool
+    ) -> None:
         include_anomaly = False
         res = self.scenario_results(seed, include_anomaly, use_serialized_model)
         self.assertEqual(len(res.scores), 10)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(SEED_AND_SERIALIZATIONS)
-    def test_anomaly_prediction_length(self, seed, use_serialized_model) -> None:
+    def test_anomaly_prediction_length(
+        self, seed: int, use_serialized_model: bool
+    ) -> None:
         include_anomaly = True
         res = self.scenario_results(seed, include_anomaly, use_serialized_model)
         self.assertEqual(len(res.scores), 10)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(SEED_AND_SERIALIZATIONS)
-    def test_finds_no_anomaly_when_no_anomoly(self, seed, use_serialized_model) -> None:
+    def test_finds_no_anomaly_when_no_anomoly(
+        self, seed: int, use_serialized_model: bool
+    ) -> None:
         # Prophet should not find any anomalies on a well formed synthetic time series
         include_anomaly = False
         res = self.scenario_results(seed, include_anomaly, use_serialized_model)
         anomaly_found = res.scores.min < -0.3 or res.scores.max > 0.3
         self.assertFalse(anomaly_found)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(SEED_AND_SERIALIZATIONS)
     def test_finds_anomaly_when_anomaly_present(
-        self, seed, use_serialized_model
+        self, seed: int, use_serialized_model: bool
     ) -> None:
         # Prophet should find anomalies
         include_anomaly = True
@@ -299,8 +337,11 @@ class TestProphetDetector(TestCase):
 
         self.assertEqual(res0.scores.value.to_list(), res1.scores.value.to_list())
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["moderate", 0.990000],
+    #  ["aggressive", 0.800000]])`.
     @parameterized.expand([["moderate", 0.99], ["aggressive", 0.8]])
-    def test_outlier_removal_threshold(self, name, threshold):
+    def test_outlier_removal_threshold(self, name: str, threshold: float) -> None:
         ts = self.create_random_ts(0, 365, 10, 2)
         ts_df = pd.DataFrame({"ds": ts.time, "y": ts.value})
 
@@ -310,6 +351,7 @@ class TestProphetDetector(TestCase):
 
         self.assertGreaterEqual(len(ts_df), len(filtered_ts_df))
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["early event", 0.1, 0.15, 0.3, 1.5],
@@ -321,12 +363,12 @@ class TestProphetDetector(TestCase):
     )
     def test_outlier_removal_efficacy(
         self,
-        name,
-        signal_to_noise_ratio,
-        event_start_ratio,
-        event_end_ratio,
-        event_relative_magnitude,
-    ):
+        name: str,
+        signal_to_noise_ratio: float,
+        event_start_ratio: float,
+        event_end_ratio: float,
+        event_relative_magnitude: float,
+    ) -> None:
         seed = 0
         length = 960
         freq = "15min"
@@ -378,7 +420,7 @@ class TestProphetDetector(TestCase):
             "Expected removing outliers when training model to lower prediction RMSE",
         )
 
-    def test_default_score_func(self):
+    def test_default_score_func(self) -> None:
         """Test that 'deviation_from_predicted_val' is used by default
 
         This test verifies that the default implementation of
@@ -395,12 +437,13 @@ class TestProphetDetector(TestCase):
         self.assertEqual(
             deviation_response.scores.value[5],
             abs(
+                # pyre-fixme[16]: Optional type has no attribute `value`.
                 (ts.value[95] - deviation_response.predicted_ts.value[5])
                 / deviation_response.predicted_ts.value[5]
             ),
         )
 
-    def test_score_func_parameter_as_z_score(self):
+    def test_score_func_parameter_as_z_score(self) -> None:
         """Test that score_func parameter can be set to z_score
 
         This test verifies that passing ProphetScoreFunction.z_score as the
@@ -416,16 +459,22 @@ class TestProphetDetector(TestCase):
         z_score_response = z_score_model.fit_predict(ts[90:], ts[:90])
         actual_z_score = self.calc_z_score(
             ts.value[95],
+            # pyre-fixme[16]: Optional type has no attribute `value`.
             z_score_response.predicted_ts.value[5],
+            # pyre-fixme[16]: Optional type has no attribute `upper`.
             z_score_response.confidence_band.upper.value[5],
+            # pyre-fixme[16]: Optional type has no attribute `lower`.
             z_score_response.confidence_band.lower.value[5],
         )
         self.assertAlmostEqual(
             z_score_response.scores.value[5], actual_z_score, places=15
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["no anomaly", 0], ["with
+    #  anomaly", 100]])`.
     @parameterized.expand([["no anomaly", 0], ["with anomaly", 100]])
-    def test_flat_signal(self, name, anomaly_magnitude):
+    def test_flat_signal(self, name: str, anomaly_magnitude: float) -> None:
         """Tests the behavior of the z-score strategy on flat signals.
 
         This test verifies that the model's z_scores of flat signals
@@ -441,14 +490,20 @@ class TestProphetDetector(TestCase):
         response = model.fit_predict(ts[90:], ts[:90])
         actual_z_score = self.calc_z_score(
             ts.value[95],
+            # pyre-fixme[16]: Optional type has no attribute `value`.
             response.predicted_ts.value[5],
+            # pyre-fixme[16]: Optional type has no attribute `upper`.
             response.confidence_band.upper.value[5],
+            # pyre-fixme[16]: Optional type has no attribute `lower`.
             response.confidence_band.lower.value[5],
         )
         self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["no anomaly", 0], ["with
+    #  anomaly", 100]])`.
     @parameterized.expand([["no anomaly", 0], ["with anomaly", 100]])
-    def test_zero_noise_signal(self, name, anomaly_magnitude):
+    def test_zero_noise_signal(self, name: str, anomaly_magnitude: float) -> None:
         """Tests the behavior of the z-score strategy on zero-noise signals.
 
         This test verifies that the model's z_scores of zero-noise signals
@@ -464,8 +519,11 @@ class TestProphetDetector(TestCase):
         response = model.fit_predict(ts[90:], ts[:90])
         actual_z_score = self.calc_z_score(
             ts.value[95],
+            # pyre-fixme[16]: Optional type has no attribute `value`.
             response.predicted_ts.value[5],
+            # pyre-fixme[16]: Optional type has no attribute `upper`.
             response.confidence_band.upper.value[5],
+            # pyre-fixme[16]: Optional type has no attribute `lower`.
             response.confidence_band.lower.value[5],
         )
         self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
@@ -473,7 +531,7 @@ class TestProphetDetector(TestCase):
     @unittest.skip(
         "Prophet doesn't learn heteroskedastic seasonality with params used by ProphetDetectorModel"
     )
-    def test_heteroskedastic_noise_signal(self):
+    def test_heteroskedastic_noise_signal(self) -> None:
         """Tests the z-score strategy on signals with heteroskedastic noise
 
         This test creates synthetic data with heteroskedastic noise. Then, it adds
@@ -494,12 +552,13 @@ class TestProphetDetector(TestCase):
         ts.value[93 * 24] += 100
         ts.value[96 * 24] += 100
 
+        # pyre-fixme[6]: For 1st param expected `ProphetScoreFunction` but got `str`.
         model = ProphetDetectorModel(score_func="z_score")
         response = model.fit_predict(ts[90 * 24 :], ts[: 90 * 24])
 
         self.assertGreater(response.scores.value[3 * 24], response.scores.value[6 * 24])
 
-    def test_z_score_proportional_to_anomaly_magnitude(self):
+    def test_z_score_proportional_to_anomaly_magnitude(self) -> None:
         """Tests the z-score strategy on signals with different-sized anomalies
 
         This test verifies that larger anomalies result in higher z-scores awhen all
@@ -515,8 +574,11 @@ class TestProphetDetector(TestCase):
 
         self.assertGreater(response.scores.value[3 * 24], response.scores.value[6 * 24])
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([[3.__mul__(24)],
+    #  [6.__mul__(24)]])`.
     @parameterized.expand([[3 * 24], [6 * 24]])
-    def test_asymmetric_noise_signal(self, test_index):
+    def test_asymmetric_noise_signal(self, test_index: int) -> None:
         """Tests the z-score strategy on signals with asymmetric noise
 
         This test verifies that the asymmetric z-scores function as expected when
@@ -553,7 +615,7 @@ class TestProphetDetector(TestCase):
 
 
 class TestProphetTrendDetectorModel(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.data = load_air_passengers(return_ts=False)
         self.trend_detector = ProphetTrendDetectorModel()
 

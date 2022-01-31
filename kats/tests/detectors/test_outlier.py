@@ -2,15 +2,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import re
 from operator import attrgetter
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.detectors.outlier import (
@@ -22,14 +18,10 @@ from kats.models.bayesian_var import BayesianVARParams
 from kats.models.var import VARParams
 from parameterized import parameterized
 
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
-
 
 # Anomaly detection tests
 class OutlierDetectionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         data = load_air_passengers(return_ts=False)
         self.ts_data = TimeSeriesData(data)
         data_2 = data.copy()
@@ -121,7 +113,7 @@ class OutlierDetectionTest(TestCase):
 
 
 class MultivariateVARDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
         DATA_multi2 = pd.concat([DATA_multi, DATA_multi])
@@ -151,7 +143,7 @@ class MultivariateVARDetectorTest(TestCase):
             ["d_bayes"],
         ]
     )
-    def test_detector_count_equal(self, attribute) -> None:
+    def test_detector_count_equal(self, attribute: str) -> None:
         np.random.seed(10)
 
         d = attrgetter(attribute)(self)
@@ -169,7 +161,7 @@ class MultivariateVARDetectorTest(TestCase):
             ["d_bayes"],
         ]
     )
-    def test_detector_plot(self, attribute) -> None:
+    def test_detector_plot(self, attribute: str) -> None:
         np.random.seed(10)
 
         d = attrgetter(attribute)(self)
@@ -183,7 +175,7 @@ class MultivariateVARDetectorTest(TestCase):
             ["d_bayes"],
         ]
     )
-    def test_detector_get_anomalous_metrics(self, attribute) -> None:
+    def test_detector_get_anomalous_metrics(self, attribute: str) -> None:
         np.random.seed(10)
 
         d = attrgetter(attribute)(self)
@@ -199,7 +191,7 @@ class MultivariateVARDetectorTest(TestCase):
             ["TSData_multi3"],
         ]
     )
-    def test_runtime_errors(self, attribute) -> None:
+    def test_runtime_errors(self, attribute: str) -> None:
         with self.assertRaises(RuntimeError):
             d = MultivariateAnomalyDetector(
                 attrgetter(attribute)(self), self.params_var, training_days=60

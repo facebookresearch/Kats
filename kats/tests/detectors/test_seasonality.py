@@ -1,27 +1,18 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
-
-import re
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.detectors.seasonality import ACFDetector, FFTDetector
 from kats.models.harmonic_regression import HarmonicRegressionModel
 
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
-
 
 class ACFDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         daily_data = load_data("peyton_manning.csv")
         daily_data.columns = ["time", "y"]
         self.ts_data_daily = TimeSeriesData(daily_data)
@@ -53,7 +44,7 @@ class ACFDetectorTest(TestCase):
 
 
 class FFTDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         times = pd.to_datetime(
             np.arange(start=1576195200, stop=1577836801, step=60 * 60), unit="s"
         )

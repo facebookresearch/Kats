@@ -1,16 +1,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
 import random
-import re
 import unittest.mock as mock
 from datetime import datetime, timedelta
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.stat_sig_detector import (
     MultiStatSigDetectorModel,
@@ -18,10 +15,6 @@ from kats.detectors.stat_sig_detector import (
     SeasonalityHandler,
 )
 from kats.utils.simulator import Simulator
-
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
 
 _SERIALIZED = b'{"n_control": 20, "n_test": 7, "time_unit": "s"}'
 _SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "s", "rem_season": false, "seasonal_period": "weekly"}'

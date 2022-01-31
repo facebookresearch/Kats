@@ -1,22 +1,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
-
-import re
 from operator import attrgetter
 from unittest import TestCase
 
 import pandas as pd
-import statsmodels
 from kats.detectors.trend_mk import MKDetector
 from kats.tests.detectors.utils import gen_no_trend_data_ndim, gen_trend_data_ndim
 from parameterized.parameterized import parameterized
-
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
 
 
 class UnivariateMKDetectorTest(TestCase):
@@ -101,40 +92,55 @@ class UnivariateMKDetectorTest(TestCase):
     def test_incr_trend(self) -> None:
         self.assertEqual(self.metadata_trend.trend_direction, "increasing")
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["up_trend_detected_trend"],
+    #  ["up_trend_detected_seas"]])`.
     @parameterized.expand([["up_trend_detected_trend"], ["up_trend_detected_seas"]])
-    def test_upward_after_start(self, up_trend_detected) -> None:
+    def test_upward_after_start(self, up_trend_detected: str) -> None:
         self.assertGreaterEqual(
             attrgetter(up_trend_detected)(self).iloc[0],
             self.time[0],
             msg=f"The first {self.window_size}-days upward trend was not detected after it starts.",
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["up_trend_detected_trend",
+    #  "t_change"], ["up_trend_detected_seas", "t_change_seas"]])`.
     @parameterized.expand(
         [
             ["up_trend_detected_trend", "t_change"],
             ["up_trend_detected_seas", "t_change_seas"],
         ]
     )
-    def test_upward_before_end(self, up_trend_detected, t_change) -> None:
+    def test_upward_before_end(self, up_trend_detected: str, t_change: str) -> None:
         self.assertLessEqual(
             attrgetter(up_trend_detected)(self).iloc[-1],
             self.time[attrgetter(t_change)(self)[0] + self.window_size],
             msg=f"The last {self.window_size}-days upward trend was not detected before it ends.",
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["down_trend_detected_trend",
+    #  "t_change"], ["down_trend_detected_seas", "t_change_seas"]])`.
     @parameterized.expand(
         [
             ["down_trend_detected_trend", "t_change"],
             ["down_trend_detected_seas", "t_change_seas"],
         ]
     )
-    def test_downward_after_start(self, down_trend_detected, t_change) -> None:
+    def test_downward_after_start(
+        self, down_trend_detected: str, t_change: str
+    ) -> None:
         self.assertGreaterEqual(
             attrgetter(down_trend_detected)(self).iloc[0],
             self.time[attrgetter(t_change)(self)[0]],
             msg=f"The first {self.window_size}-days downward trend was not detected after it starts.",
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["down_trend_detected_trend"],
+    #  ["down_trend_detected_trend2"], ["down_trend_detected_seas"],
+    #  ["down_trend_detected_seas2"]])`.
     @parameterized.expand(
         [
             ["down_trend_detected_trend"],
@@ -143,13 +149,14 @@ class UnivariateMKDetectorTest(TestCase):
             ["down_trend_detected_seas2"],
         ]
     )
-    def test_downward_before_end(self, down_trend_detected) -> None:
+    def test_downward_before_end(self, down_trend_detected: str) -> None:
         self.assertEqual(
             attrgetter(down_trend_detected)(self).iloc[-1],
             self.time[len(self.time) - 1],
             msg=f"The last {self.window_size}-days downward trend was not detected before it ends.",
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["d_no_trend", "detected_time_points_no_trend"],
@@ -159,7 +166,7 @@ class UnivariateMKDetectorTest(TestCase):
             ["d_seas", "detected_time_points_seas2"],
         ]
     )
-    def test_plot(self, detector, detected_time_points) -> None:
+    def test_plot(self, detector: str, detected_time_points: str) -> None:
         attrgetter(detector)(self).plot(attrgetter(detected_time_points)(self))
 
 
@@ -211,48 +218,66 @@ class MultivariateMKDetectorTest(TestCase):
     def test_heatmap(self) -> None:
         self.d_no_trend.plot_heat_map()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["up_trend_detected_trend"],
+    #  ["up_trend_detected_seas"]])`.
     @parameterized.expand([["up_trend_detected_trend"], ["up_trend_detected_seas"]])
-    def test_upward_after_start(self, up_trend_detected) -> None:
+    def test_upward_after_start(self, up_trend_detected: str) -> None:
         self.assertGreaterEqual(
             attrgetter(up_trend_detected)(self).iloc[0],
             self.time[0],
             msg=f"The first {self.window_size}-days upward trend was not detected after it starts.",
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["up_trend_detected_trend",
+    #  "t_change"], ["up_trend_detected_seas", "t_change_seas"]])`.
     @parameterized.expand(
         [
             ["up_trend_detected_trend", "t_change"],
             ["up_trend_detected_seas", "t_change_seas"],
         ]
     )
-    def test_upward_before_end(self, up_trend_detected, t_change) -> None:
+    def test_upward_before_end(self, up_trend_detected: str, t_change: str) -> None:
         self.assertLessEqual(
             attrgetter(up_trend_detected)(self).iloc[-1],
             self.time[attrgetter(t_change)(self)[0] + self.window_size],
             msg=f"The last {self.window_size}-days upward trend was not detected before it ends.",
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["down_trend_detected_trend",
+    #  "t_change"], ["down_trend_detected_seas", "t_change_seas"]])`.
     @parameterized.expand(
         [
             ["down_trend_detected_trend", "t_change"],
             ["down_trend_detected_seas", "t_change_seas"],
         ]
     )
-    def test_downward_after_start(self, down_trend_detected, t_change) -> None:
+    def test_downward_after_start(
+        self, down_trend_detected: str, t_change: str
+    ) -> None:
         self.assertGreaterEqual(
             attrgetter(down_trend_detected)(self).iloc[0],
             self.time[attrgetter(t_change)(self)[0]],
             msg=f"The first {self.window_size}-days downward trend was not detected after it starts.",
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["down_trend_detected_trend"],
+    #  ["down_trend_detected_seas"]])`.
     @parameterized.expand([["down_trend_detected_trend"], ["down_trend_detected_seas"]])
-    def test_downward_before_end(self, down_trend_detected) -> None:
+    def test_downward_before_end(self, down_trend_detected: str) -> None:
         self.assertEqual(
             attrgetter(down_trend_detected)(self).iloc[-1],
             self.time[len(self.time) - 1],
             msg=f"The last {self.window_size}-days downward trend was not detected before it ends.",
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["d_no_trend",
+    #  "detected_time_points_no_trend"], ["d_trend", "detected_time_points_trend"],
+    #  ["d_seas", "detected_time_points_seas"]])`.
     @parameterized.expand(
         [
             ["d_no_trend", "detected_time_points_no_trend"],
@@ -260,5 +285,5 @@ class MultivariateMKDetectorTest(TestCase):
             ["d_seas", "detected_time_points_seas"],
         ]
     )
-    def test_plot(self, detector, detected_time_points) -> None:
+    def test_plot(self, detector: str, detected_time_points: str) -> None:
         attrgetter(detector)(self).plot(attrgetter(detected_time_points)(self))

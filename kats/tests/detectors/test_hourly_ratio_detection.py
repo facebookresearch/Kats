@@ -1,26 +1,18 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
-
-import re
+from typing import cast
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.detectors.hourly_ratio_detection import HourlyRatioDetector
 
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
-
 
 class HourlyRatioDectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         daily_data = load_data("peyton_manning.csv")
         daily_data.columns = ["time", "y"]
         self.ts_data_daily = TimeSeriesData(daily_data)
@@ -30,7 +22,9 @@ class HourlyRatioDectorTest(TestCase):
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
 
-    def data_generation(self, freq="H", drop: bool = True, frac: float = 0.95):
+    def data_generation(
+        self, freq: str = "H", drop: bool = True, frac: float = 0.95
+    ) -> TimeSeriesData:
         time = pd.date_range("2018-01-01", "2020-01-01", freq=freq)
         n = len(time)
         x = np.arange(n)
@@ -38,9 +32,7 @@ class HourlyRatioDectorTest(TestCase):
         df = pd.DataFrame(values, columns=["value"])
         df["time"] = time
         if drop:
-            df = df.sample(frac=frac, replace=False)
-        # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st param
-        #  but got `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
+            df = cast(pd.DataFrame, df.sample(frac=frac, replace=False))
         return TimeSeriesData(df)
 
     def test_detector(self) -> None:
