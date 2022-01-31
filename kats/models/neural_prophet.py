@@ -10,19 +10,13 @@ Facebook Prophet and AR-Net, built on PyTorch.
 """
 
 import logging
-import typing
-from typing import Optional, Union, List
+from typing import Callable, Optional, Union, List
 
 import numpy
 import torch
+from neuralprophet import NeuralProphet  # noqa
 
-try:
-    from neuralprophet import NeuralProphet
-
-    _no_neural_prophet = False
-except ImportError:
-    _no_neural_prophet = True
-    NeuralProphet = None  # for Pyre
+TorchLoss = torch.nn.modules.loss._Loss
 
 from kats.consts import Params
 
@@ -98,7 +92,7 @@ class NeuralProphetParams(Params):
               default: None: Automatically sets the batch_size based on dataset size.
               For best results also leave epochs to None.
               For manual values, try ~1-512.
-          loss_func (str, torch.nn.modules.loss._Loss, 'typing.Callable'):
+          loss_func (str, torch.nn.modules.loss._Loss, 'Callable'):
               Type of loss to use: str ['Huber', 'MSE'],
               or torch loss or callable for custom loss, eg. asymmetric Huber loss
           train_speed (int, float) a quick setting to speed up or slow down
@@ -125,7 +119,7 @@ class NeuralProphetParams(Params):
         # import numpy.typing as npt
         # replace 'numpy.ndarray' by npt.NDArray['numpy.datetime64']
         changepoints: Optional[
-            Union[List[str], List["numpy.datetime64"], "numpy.ndarray"]
+            Union[List[str], List[numpy.datetime64], numpy.ndarray]
         ] = None,
         n_changepoints: int = 10,
         changepoints_range: float = 0.9,
@@ -144,9 +138,7 @@ class NeuralProphetParams(Params):
         learning_rate: Optional[float] = None,
         epochs: Optional[int] = None,
         batch_size: Optional[int] = None,
-        loss_func: Union[
-            str, torch.nn.modules.loss._Loss, typing.Callable[..., float]
-        ] = "Huber",
+        loss_func: Union[str, TorchLoss, Callable[..., float]] = "Huber",
         optimizer: str = "AdamW",
         train_speed: Optional[Union[int, float]] = None,
         normalize: str = "auto",
@@ -177,8 +169,6 @@ class NeuralProphetParams(Params):
         self.train_speed = train_speed
         self.normalize = normalize
         self.impute_missing = impute_missing
-        if _no_neural_prophet:
-            raise RuntimeError("requires neuralprophet to be installed")
 
         logging.debug(
             "Initialized Neural Prophet with parameters. "

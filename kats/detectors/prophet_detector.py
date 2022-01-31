@@ -13,15 +13,8 @@ from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
-
-try:
-    from fbprophet import Prophet
-    from fbprophet.serialize import model_from_json, model_to_json
-
-    _no_prophet = False
-except ImportError:
-    _no_prophet = True
-
+from fbprophet import Prophet
+from fbprophet.serialize import model_from_json, model_to_json
 from kats.consts import TimeSeriesData, DEFAULT_VALUE_NAME
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (
@@ -146,8 +139,6 @@ class ProphetDetectorModel(DetectorModel):
         outlier_threshold: float = 0.99,
         uncertainty_samples: float = 50,
     ) -> None:
-        if _no_prophet:
-            raise RuntimeError("requires fbprophet to be installed")
         if serialized_model:
             self.model = model_from_json(serialized_model)
         else:

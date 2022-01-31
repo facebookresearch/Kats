@@ -34,12 +34,11 @@ class NeuralProphetModelTest(TestCase):
         del sys.modules["kats.models.neural_prophet"]
 
         with self.mock_imports:
-            from kats.models.neural_prophet import NeuralProphetParams
+            with self.assertRaises(ImportError):
+                from kats.models.neural_prophet import NeuralProphetParams
 
-            self.assertRaises(RuntimeError, NeuralProphetParams)
+                NeuralProphetParams()
 
-        # Restore the neural_prophet module
-        del sys.modules["kats.models.neural_prophet"]
         from kats.models.neural_prophet import NeuralProphetParams
 
         # Confirm that the module has been properly reloaded -- should not
