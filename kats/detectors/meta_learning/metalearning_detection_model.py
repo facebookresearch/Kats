@@ -10,7 +10,7 @@ from typing import List, Dict
 import pandas as pd
 from kats.models.metalearner.metalearner_modelselect import MetaLearnModelSelect
 
-NUM_SECS_IN_DAY = 3600 * 24
+NUM_SECS_IN_DAY: int = 3600 * 24
 PARAMS_TO_SCALE_DOWN = {"n_control", "n_test", "historical_window", "scan_window"}
 
 

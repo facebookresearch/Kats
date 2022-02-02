@@ -32,7 +32,7 @@ except ImportError:
     _no_ax = True
 
 _MIN_POINTS = 10
-_LOG_SQRT2PI = 0.5 * np.log(2 * np.pi)
+_LOG_SQRT2PI: float = 0.5 * np.log(2 * np.pi)
 
 
 class BOCPDModelType(Enum):

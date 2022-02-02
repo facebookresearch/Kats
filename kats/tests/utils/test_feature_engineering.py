@@ -37,7 +37,7 @@ class FeatureEngineeringTest(TestCase):
             else:
                 self.assertEqual(v, features[k], msg=f"{k} differ")
 
-    def test_datetime_features(self):
+    def test_datetime_features(self) -> None:
         dates = pd.date_range("2021-01-22", "2021-01-31", tz="US/Pacific").tolist()
         dates += pd.date_range("2022-01-30", "2022-02-04", tz="US/Pacific").tolist()
         values = [10, 2, 11, 5, 13, 18, 4, 14, 17, 9] + [np.nan] * 6
@@ -79,7 +79,7 @@ class FeatureEngineeringTest(TestCase):
         result = fe.datetime_features(pd.Series(values, index=dates, name="val"))
         pdt.assert_frame_equal(expected, result)
 
-    def test_date_features(self):
+    def test_date_features(self) -> None:
         dates = pd.date_range("2021-01-22", "2021-01-31", tz="US/Pacific").tolist()
         dates += pd.date_range("2022-01-30", "2022-02-04", tz="US/Pacific").tolist()
         values = [10, 2, 11, 5, 13, 18, 4, 14, 17, 9] + [np.nan] * 6
@@ -110,7 +110,7 @@ class FeatureEngineeringTest(TestCase):
         result = fe.date_features(pd.Series(values, index=dates, name="val"))
         pdt.assert_frame_equal(expected, result)
 
-    def test_time_features(self):
+    def test_time_features(self) -> None:
         dates = pd.date_range("2021-01-22", "2021-01-31", tz="US/Pacific").tolist()
         dates += pd.date_range("2022-01-30", "2022-02-04", tz="US/Pacific").tolist()
         values = [10, 2, 11, 5, 13, 18, 4, 14, 17, 9] + [np.nan] * 6
@@ -135,7 +135,7 @@ class FeatureEngineeringTest(TestCase):
         result = fe.time_features(pd.Series(values, index=dates, name="val"))
         pdt.assert_frame_equal(expected, result)
 
-    def test_timestamp_time_features(self):
+    def test_timestamp_time_features(self) -> None:
         t = pd.Timestamp("2021-01-01T02:03:04.5678", tz="US/Pacific")
         expected = {
             "year": 2021,
@@ -165,7 +165,7 @@ class FeatureEngineeringTest(TestCase):
         result = fe.timestamp_datetime_features(t)
         self.assertDictAlmostEqual(expected, result)
 
-    def test_timestamp_time_features_notz(self):
+    def test_timestamp_time_features_notz(self) -> None:
         t = pd.Timestamp("2021-01-01T02:03:04.5678")
         expected = {
             "year": 2021,
@@ -195,7 +195,7 @@ class FeatureEngineeringTest(TestCase):
         result = fe.timestamp_datetime_features(t)
         self.assertDictAlmostEqual(expected, result)
 
-    def test_circle_encode(self):
+    def test_circle_encode(self) -> None:
         s32 = np.sqrt(3) / 2
         expected = pd.DataFrame(
             {
@@ -206,7 +206,7 @@ class FeatureEngineeringTest(TestCase):
         result = fe.circle_encode(pd.DataFrame({"x": [10, 11, 12, 1]}), {"x": 12})
         pdt.assert_frame_equal(expected, result)
 
-    def test_circle_encode_modulo(self):
+    def test_circle_encode_modulo(self) -> None:
         s32 = np.sqrt(3) / 2
         expected = pd.DataFrame(
             {

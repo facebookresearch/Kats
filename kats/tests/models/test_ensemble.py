@@ -63,7 +63,7 @@ def get_fake_preds(
 
 
 class testBaseEnsemble(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.TSData = load_air_passengers()
 
         DATA_daily = load_data("peyton_manning.csv")
@@ -78,7 +78,7 @@ class testBaseEnsemble(TestCase):
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
-    def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
+    def test_fit_forecast(self, ts_data_name, steps: int, freq: str) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
         params = EnsembleParams(
@@ -180,7 +180,7 @@ class testBaseEnsemble(TestCase):
 
 
 class testMedianEnsemble(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.TSData = load_air_passengers()
 
         DATA_daily = load_data("peyton_manning.csv")
@@ -195,7 +195,7 @@ class testMedianEnsemble(TestCase):
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
-    def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
+    def test_fit_forecast(self, ts_data_name, steps: int, freq: str) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
             ["time", "fcst"]
@@ -267,7 +267,7 @@ class testMedianEnsemble(TestCase):
 
 
 class testWeightedAvgEnsemble(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.TSData = load_air_passengers()
 
         DATA_daily = load_data("peyton_manning.csv")
@@ -282,7 +282,7 @@ class testWeightedAvgEnsemble(TestCase):
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
-    def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
+    def test_fit_forecast(self, ts_data_name, steps: int, freq: str) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
             ["time", "fcst"]
@@ -355,14 +355,14 @@ class testWeightedAvgEnsemble(TestCase):
 
 
 class testKatsEnsemble(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.TSData = load_air_passengers()
         self.TSData_dummy = TSData_dummy
 
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
-    def test_fit_median_forecast(self, ts_data_name, steps, freq) -> None:
+    def test_fit_median_forecast(self, ts_data_name, steps: int, freq: str) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
         model_params = EnsembleParams(
@@ -415,7 +415,9 @@ class testKatsEnsemble(TestCase):
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
-    def test_fit_weightedavg_forecast(self, ts_data_name, steps, freq) -> None:
+    def test_fit_weightedavg_forecast(
+        self, ts_data_name, steps: int, freq: str
+    ) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
         model_params = EnsembleParams(

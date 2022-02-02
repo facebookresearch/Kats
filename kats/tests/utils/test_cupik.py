@@ -21,7 +21,7 @@ statsmodels_ver = float(
 
 
 class cupikTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.TSData = load_air_passengers()
 
     def test_mkdetector(self) -> None:

@@ -20,7 +20,7 @@ from kats.utils.simulator import Simulator
 
 
 class DecompositionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         data = load_air_passengers(return_ts=False)
         self.ts_data = TimeSeriesData(data)
 

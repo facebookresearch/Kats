@@ -85,11 +85,13 @@ def compute_errors_list(
 
 class SimpleBackTesterTest(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         # Setting up data
         DATA = load_air_passengers(return_ts=False)
         cls.TSData = load_air_passengers()
         cls.train_data = cls.TSData[: len(cls.TSData) - TIMESTEPS]
+        # pyre-fixme[6]: For 1st param expected `Optional[DataFrame]` but got
+        #  `Union[DataFrame, Series]`.
         cls.test_data = TimeSeriesData(DATA.tail(TIMESTEPS))
 
     def prophet_predict_side_effect(self, *args, **kwargs):
@@ -153,7 +155,7 @@ class SimpleBackTesterTest(unittest.TestCase):
 
 class ExpandingWindowBackTesterTest(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         # Setting up data
         DATA = load_air_passengers(return_ts=False)
         cls.TSData = load_air_passengers()
@@ -333,7 +335,7 @@ class ExpandingWindowBackTesterTest(unittest.TestCase):
 
 class RollingWindowBackTesterTest(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         # Setting up data
         DATA = load_air_passengers(return_ts=False)
         cls.TSData = load_air_passengers()
@@ -507,13 +509,15 @@ class RollingWindowBackTesterTest(unittest.TestCase):
 
 class FixedWindowBackTesterTest(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         # Setting up data
         DATA = load_air_passengers(return_ts=False)
         cls.TSData = load_air_passengers()
 
         # Creating folds
         cls.train_data = cls.TSData[: len(cls.TSData) - (TIMESTEPS * 2)]
+        # pyre-fixme[6]: For 1st param expected `Optional[DataFrame]` but got
+        #  `Union[DataFrame, Series]`.
         cls.test_data = TimeSeriesData(DATA.tail(TIMESTEPS))
 
     def prophet_predict_side_effect(self, *args, **kwargs):
@@ -578,7 +582,7 @@ class FixedWindowBackTesterTest(unittest.TestCase):
 
 class CrossValidationTest(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         # Setting up data
         cls.TSData = load_air_passengers()
 

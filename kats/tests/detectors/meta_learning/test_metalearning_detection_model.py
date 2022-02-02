@@ -29,11 +29,11 @@ def generate_meta_data(n):
 
 
 class MetaDetectModelSelectTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.df = generate_meta_data(np.random.randint(35, 100))
         self.meta_detector = MetaDetectModelSelect(self.df)
 
-    def test_initialize(self):
+    def test_initialize(self) -> None:
         self.assertRaises(
             ValueError,
             MetaDetectModelSelect,
@@ -62,7 +62,7 @@ class MetaDetectModelSelectTest(TestCase):
             generate_meta_data(40)[["hpt_res", "features"]],
         )
 
-    def test_preprocess(self):
+    def test_preprocess(self) -> None:
         preprocessed_data = self.meta_detector.preprocess()
         self.assertEqual(len(preprocessed_data), len(self.df))
         for elem in preprocessed_data:
@@ -70,19 +70,19 @@ class MetaDetectModelSelectTest(TestCase):
             self.assertIn("features", elem)
             self.assertIn("best_model", elem)
 
-    def test_train(self):
+    def test_train(self) -> None:
         res = self.meta_detector.train()
         for elem in ["fit_error", "pred_error", "clf_accuracy"]:
             self.assertIn(elem, res)
 
-    def test_report_metrics(self):
+    def test_report_metrics(self) -> None:
         summary = self.meta_detector.report_metrics()
         self.assertIsInstance(summary, pd.DataFrame)
         for model in base_models:
             self.assertIn(model, summary)
         self.assertIn("meta-learn", summary)
 
-    def test_predict(self):
+    def test_predict(self) -> None:
         self.assertRaises(
             ValueError,
             self.meta_detector.predict,

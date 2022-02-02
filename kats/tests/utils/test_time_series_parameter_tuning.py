@@ -364,7 +364,7 @@ class GridSearchTest(TestCase):
 
 
 class TestSearchForMultipleSpaces(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.parameters = {
             "space1": [
                 {

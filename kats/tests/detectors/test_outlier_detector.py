@@ -15,7 +15,7 @@ from kats.detectors.outlier_detector import OutlierDetectorModel
 
 
 class TestOutlierDetectorModel(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.data = load_air_passengers(return_ts=False)
         self.outlier_detector = OutlierDetectorModel()
 

@@ -16,7 +16,7 @@ from kats.models.neural_prophet import NeuralProphetParams
 
 class NeuralProphetModelTest(TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         original_import_fn = builtins.__import__
 
         def mock_neural_prophet_import(module, *args, **kwargs):

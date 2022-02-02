@@ -37,7 +37,8 @@ FCST_EVALUATION_ERRORS = pd.DataFrame(
 class EvaluatorTest(unittest.TestCase):
     @classmethod
     @mock.patch.multiple(Evaluator, __abstractmethods__=set())
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
+        # pyre-fixme[45]: Cannot instantiate abstract class `Evaluator`.
         cls.evaluator = Evaluator()
 
     def test_create_evaluation_run(self) -> None:
@@ -68,7 +69,7 @@ class EvaluatorTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.evaluator.delete_evaluation_run(run_name="delete_invalid_run")
 
-    def test_get_evaluation_run(self):
+    def test_get_evaluation_run(self) -> None:
         self.evaluator.create_evaluation_run(run_name="retrieve_run")
         self.assertEqual(
             self.evaluator.get_evaluation_run(run_name="retrieve_run"),
@@ -79,7 +80,7 @@ class EvaluatorTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.evaluator.get_evaluation_run(run_name="invalid_retrieve_run")
 
-    def test_evaluate(self):
+    def test_evaluate(self) -> None:
         # Set up data
         PROPHET_0_108_FCST_DUMMY_DATA["rand_fcst"] = (
             np.random.randint(1, 6, PROPHET_0_108_FCST_DUMMY_DATA.shape[0])

@@ -13,7 +13,7 @@ from kats.data.utils import load_air_passengers
 
 
 class DataValidationTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.TSData = load_air_passengers()
 
     def test_data_validation(self) -> None:

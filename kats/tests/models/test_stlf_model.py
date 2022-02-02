@@ -13,7 +13,7 @@ from kats.models.stlf import STLFModel, STLFParams
 
 
 class testSTLFModel(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.TSData = load_air_passengers()
 
         DATA_daily = load_data("peyton_manning.csv")

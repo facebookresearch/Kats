@@ -54,7 +54,7 @@ SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
 
 
 class TSfeaturesTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         DATA = load_air_passengers(return_ts=False)
         self.TSData = TimeSeriesData(DATA)
 
