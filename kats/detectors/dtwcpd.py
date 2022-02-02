@@ -117,7 +117,7 @@ class DTWCPDDetector(Detector):
         self.MIN_TS_VALUE = min_value
         self.MAD_CUTOFF = mad_threshold
         self.MIN_VALUE = min_value
-        self.outliers = []  # type: List[DTWCPDChangePoint]
+        self.outliers: "List[DTWCPDChangePoint]" = []
         self.skip_size = skip_size
         self.match_against_same_time_series = match_against_same_time_series
 
