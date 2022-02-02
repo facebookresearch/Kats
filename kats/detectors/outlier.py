@@ -2,8 +2,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 Module with generic outlier detection models. Supports a univariate algorithm that
 treates each metric separately to identify outliers and a multivariate detection
@@ -17,13 +15,15 @@ import traceback
 from datetime import datetime
 from enum import Enum
 from importlib import import_module
-from typing import Tuple, Any, Dict, List, Optional
+from typing import Tuple, Any, Dict, List, Optional, Union, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData, TimeSeriesIterator
 from kats.detectors.detector import Detector
+from kats.models.bayesian_var import BayesianVAR
+from kats.models.var import VARModel
 from scipy import stats
 from scipy.spatial import distance
 from statsmodels.tsa.seasonal import seasonal_decompose
@@ -40,10 +40,10 @@ class OutlierDetector(Detector):
         iqr_mult : iqr_mult * inter quartile range is used to classify outliers
     """
 
-    # pyre-fixme[15]: `outliers` overrides attribute defined in `Detector`
-    #  inconsistently.
+    # pyre-fixme
     outliers: Optional[List[List]] = None
     output_scores: Optional[pd.DataFrame] = None
+    decomp: str
 
     def __init__(
         self, data: TimeSeriesData, decomp: str = "additive", iqr_mult: float = 3.0
@@ -70,21 +70,15 @@ class OutlierDetector(Detector):
         original.index = pd.to_datetime(original.index)
 
         if pd.infer_freq(original.index) is None:
-            # pyre-fixme[9]: original has type `DataFrame`; used as
-            #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
-            original = original.asfreq("D")
+            original = original.asfreq("D").to_dataframe()
             logging.info("Setting frequency to Daily since it cannot be inferred")
 
-        # pyre-fixme[9]: original has type `DataFrame`; used as `Union[None,
-        #  pd.core.frame.DataFrame, pd.core.series.Series]`.
         original = original.interpolate(
             method="polynomial", limit_direction="both", order=3
         )
 
         # This is a hack since polynomial interpolation is not working here
         if sum((np.isnan(x) for x in original["y"])):
-            # pyre-fixme[9]: original has type `DataFrame`; used as `Union[None,
-            #  pd.core.frame.DataFrame, pd.core.series.Series]`.
             original = original.interpolate(method="linear", limit_direction="both")
 
         # Once our own decomposition is ready, we can directly use it here
@@ -108,32 +102,33 @@ class OutlierDetector(Detector):
 
         return outliers_index, output_scores
 
-    def detector(self):
+    # pyre-fixme
+    def detector(self, method: Optional[str] = None) -> None:
         """
         Detects outliers and stores in self.outliers
         """
 
-        self.iter = TimeSeriesIterator(self.data)
+        self.iter = ts_iter = TimeSeriesIterator(self.data)
         column_names = [
             col
             for col in self.data.to_dataframe().columns
             if col != self.data.time_col_name
         ]
-        self.outliers = []
+        self.outliers = outliers = []
         output_scores_dict = {}
         logging.Logger("Detecting Outliers")
 
-        for ts, col in zip(self.iter, column_names):
+        for ts, col in zip(ts_iter, column_names):
             try:
                 outliers_index, output_scores = self.__clean_ts__(ts)
-                self.outliers.append(outliers_index)
+                outliers.append(outliers_index)
                 output_scores_dict[col] = output_scores
             except BaseException:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
                 logging.error("".join("!! " + line for line in lines))
                 logging.error("Outlier Detection Failed")
-                self.outliers.append([])
+                outliers.append([])
 
         if output_scores_dict:
             self.output_scores = pd.DataFrame(output_scores_dict, index=self.data.time)
@@ -158,8 +153,8 @@ class MultivariateAnomalyDetector(Detector):
         model_type: The type of multivariate anomaly detector (currently 'BAYESIAN_VAR' and 'VAR' options available)
     """
 
-    resid: Optional[pd.DataFrame] = None
-    sigma_u: Optional[pd.DataFrame] = None
+    resid: Optional[np.ndarray] = None
+    sigma_u: Optional[np.ndarray] = None
     anomaly_score_df: Optional[pd.DataFrame] = None
 
     def __init__(
@@ -171,16 +166,16 @@ class MultivariateAnomalyDetector(Detector):
     ) -> None:
         super().__init__(data)
         df = data.to_dataframe().set_index("time")
-        self.df = df
+        self.df: pd.DataFrame = df
 
         params.validate_params()
         self.params = params
 
-        # pyre-fixme[16]: `Optional` has no attribute `diff`.
+        # pyre-fixme
         time_diff = data.time.sort_values().diff().dropna()
         if len(time_diff.unique()) == 1:  # check constant frequenccy
             freq = time_diff.unique()[0].astype("int")
-            self.granularity_days = freq / (24 * 3600 * (10 ** 9))
+            self.granularity_days: float = freq / (24 * 3600 * (10 ** 9))
         else:
             raise RuntimeError(
                 "Frequency of metrics is not constant."
@@ -201,9 +196,7 @@ class MultivariateAnomalyDetector(Detector):
         """
 
         z_score_threshold = 3
-        # pyre-fixme[6]: Expected `Union[typing.Sequence[typing.Sequence[float]],
-        #  typing.Sequence[float], np.ndarray, pd.core.series.Series]` for 1st param
-        #  but got `DataFrame`.
+        # pyre-fixme
         zscore_df = stats.zscore(df)
         non_outlier_flag = zscore_df < z_score_threshold
         df_clean = df.where(non_outlier_flag, np.nan)
@@ -224,7 +217,9 @@ class MultivariateAnomalyDetector(Detector):
         """
         return np.all(np.linalg.eigvals(mat) > 0)
 
-    def _create_model(self, data: TimeSeriesData, params: Params) -> Any:
+    def _create_model(
+        self, data: TimeSeriesData, params: Params
+    ) -> Union[VARModel, BayesianVAR]:
         model_name = f"kats.models.{self.detector_model.value}"
         module_name, model_name = model_name.rsplit(".", 1)
         return getattr(import_module(module_name), model_name)(data, params)
@@ -251,8 +246,9 @@ class MultivariateAnomalyDetector(Detector):
         model.fit()
         lag_order = model.k_ar
         logging.info(f"Fitted VAR model of order {lag_order}")
-        self.resid = model.resid
-        self.sigma_u = sigma_u = model.sigma_u
+        # model.resid and model.sigma_u set in model.fit(), cast from Optional[np.ndarray] to np.ndarray
+        self.resid = cast(np.ndarray, model.resid)
+        self.sigma_u = sigma_u = cast(np.ndarray, model.sigma_u)
         if ~(self._is_pos_def(sigma_u)):
             msg = f"Fitted Covariance matrix at time {t} is not positive definite"
             logging.error(msg)
@@ -302,13 +298,12 @@ class MultivariateAnomalyDetector(Detector):
         residual_score["overall_anomaly_score"] = overall_anomaly_score
         # calculate p-values
         dof = len(self.df.columns)
-        # pyre-fixme[28]: Unexpected keyword argument `df`.
+        # pyre-fixme
         residual_score["p_value"] = stats.chi2.sf(overall_anomaly_score, df=dof)
 
         return residual_score
 
-    # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
+    # pyre-fixme
     def detector(self) -> pd.DataFrame:
         """
         Fit the detection model and return the results
@@ -333,7 +328,7 @@ class MultivariateAnomalyDetector(Detector):
         self.anomaly_score_df = anomaly_score_df
         return anomaly_score_df
 
-    def get_anomaly_timepoints(self, alpha: float) -> List:
+    def get_anomaly_timepoints(self, alpha: float) -> List[pd.DatetimeIndex]:
         """
         Helper function to get anomaly timepoints based on the significance level
 
