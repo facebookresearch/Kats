@@ -2,9 +2,6 @@
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
-
 from __future__ import annotations
 
 import logging
@@ -62,8 +59,8 @@ class MKChangePoint(TimeSeriesChangePoint):
         confidence: float,
         is_multivariate: bool,
         trend_direction: str,
-        Tau: Union[float, Dict],
-    ):
+        Tau: Union[float, Dict[str, Any]],
+    ) -> None:
         super().__init__(start_time, end_time, confidence)
         if _no_mk:
             raise RuntimeError("requires pymannkendall to be installed")
@@ -73,7 +70,7 @@ class MKChangePoint(TimeSeriesChangePoint):
         self._Tau = Tau
 
     @property
-    def detector_type(self) -> Type:
+    def detector_type(self) -> Type[MKDetector]:
         return self._detector_type
 
     @property
@@ -85,7 +82,7 @@ class MKChangePoint(TimeSeriesChangePoint):
         return self._trend_direction
 
     @property
-    def Tau(self) -> Union[float, Dict]:
+    def Tau(self) -> Union[float, Dict[str, Any]]:
         return self._Tau  # Tau is a dict in multivariate case
 
     def __repr__(self) -> str:
@@ -245,7 +242,7 @@ class MKDetector(Detector):
             x = x[~np.isnan(x).any(axis=1)]
         return x, len(x)
 
-    def _apply_threshold(self, trend, Tau):
+    def _apply_threshold(self, trend: str, Tau: float) -> str:
         if abs(Tau) <= self.threshold:
             return "no trend"
         return trend
@@ -282,7 +279,7 @@ class MKDetector(Detector):
 
     def multivariate_MKtest(
         self, ts: pd.DataFrame
-    ) -> Tuple[datetime, str, float, Dict]:
+    ) -> Tuple[datetime, str, float, Dict[str, Any]]:
         """Performs the Multivariate Mann-Kendall (MK) test.
 
         Proposed by R. M. Hirsch and J. R. Slack (1984).
