@@ -11,6 +11,7 @@ algorithm as a DetectorModel, to provide a common interface.
 import json
 from typing import Any, Optional
 
+import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.detectors.bocpd import (
@@ -22,6 +23,7 @@ from kats.detectors.detector_consts import (
     AnomalyResponse,
     ConfidenceBand,
 )
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 
 class BocpdDetectorModel(DetectorModel):
@@ -221,3 +223,79 @@ class BocpdDetectorModel(DetectorModel):
         fit can be called during priming. It's a noop for us.
         """
         return
+
+
+class BocpdTrendDetectorModel(DetectorModel):
+    def __init__(self, alpha: float = 0.1, beta: float = 0.1) -> None:
+        self.alpha = alpha
+        self.beta = beta
+
+    def serialize(self) -> bytes:
+        """Serialize the model into a json.
+
+        So it can be loaded later.
+
+        Returns:
+            json containing information of the model.
+        """
+        model_dict = {"slow_drift": True}
+        return json.dumps(model_dict).encode("utf-8")
+        # return str.encode(model_to_json(self.model))
+
+    def _holt_winter_fit(
+        self,
+        data_ts: TimeSeriesData,
+        m: int = 7,
+        alpha: float = 0.1,
+        beta: float = 0.1,
+        gamma: float = 0.1,
+    ) -> TimeSeriesData:
+        exp_smooth = ExponentialSmoothing(
+            endog=data_ts.value, trend="add", seasonal="add", seasonal_periods=m
+        )
+        fit1 = exp_smooth.fit(
+            smoothing_level=alpha, smoothing_slope=beta, smoothing_seasonal=gamma
+        )
+
+        level_arr = fit1.level
+        trend_arr = fit1.slope
+        fit_arr = [x + y for x, y in zip(level_arr, trend_arr)]
+        fit_diff = np.diff(fit_arr)
+        fit_diff = np.concatenate(([fit_diff[0]], fit_diff))
+        trend_ts = TimeSeriesData(time=data_ts.time, value=pd.Series(fit_diff))
+        return trend_ts
+
+    def fit_predict(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
+    ) -> AnomalyResponse:
+        trend_ts = self._holt_winter_fit(data)
+        detector = BocpdDetectorModel()
+        anom_obj = detector.fit_predict(trend_ts)
+        return anom_obj
+
+    def predict(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
+    ) -> AnomalyResponse:
+        """
+        predict is not implemented
+        """
+        raise NotImplementedError(
+            "predict is not implemented, call fit_predict() instead"
+        )
+
+    def fit(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
+    ) -> None:
+        """
+        fit can be called during priming. It's a noop for us.
+        """
+        raise NotImplementedError("fit is not implemented, call fit_predict() instead")

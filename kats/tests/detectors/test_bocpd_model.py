@@ -9,7 +9,11 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.detectors.bocpd_model import BocpdDetectorModel
+from kats.data.utils import load_air_passengers
+from kats.detectors.bocpd_model import (
+    BocpdDetectorModel,
+    BocpdTrendDetectorModel,
+)
 from kats.utils.simulator import Simulator
 from parameterized import parameterized
 
@@ -239,3 +243,35 @@ class BocpdDetectorModelTest(TestCase):
         anom = bocpd_detector.fit_predict(historical_data=history, data=data)
 
         self.assertEqual(len(anom.scores), len(data))
+
+
+class TestBocpdTrendDetectorModel(TestCase):
+    def setUp(self) -> None:
+        self.data = load_air_passengers(return_ts=False)
+        self.trend_detector = BocpdTrendDetectorModel()
+
+    def test_response_shape_for_single_series(self) -> None:
+        single_ts = TimeSeriesData(self.data)
+        response_single_ts = self.trend_detector.fit_predict(
+            data=single_ts, historical_data=None
+        )
+
+        self.assertEqual(response_single_ts.scores.time.shape, single_ts.time.shape)
+
+        self.assertEqual(response_single_ts.scores.value.shape, single_ts.value.shape)
+
+        self.assertEqual(
+            # pyre-fixme[16]: Optional type has no attribute `value`.
+            response_single_ts.predicted_ts.value.shape,
+            single_ts.value.shape,
+        )
+
+    def test_response_shape_with_historical_data(self) -> None:
+        single_ts = TimeSeriesData(self.data)
+        historical_ts = TimeSeriesData(self.data)
+        single_ts.time = single_ts.time + pd.tseries.offsets.DateOffset(
+            months=len(self.data)
+        )
+        response = self.trend_detector.fit_predict(single_ts, historical_ts)
+
+        self.assertTrue(np.array_equal(response.scores.time, single_ts.time))
