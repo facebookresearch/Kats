@@ -80,8 +80,8 @@ def plot_scatter_with_confints(
 def make_fourier_plot(
     fft: pd.DataFrame,
     threshold: float,
-    orig_peaks: List[float],
-    peaks: List[float],
+    orig_peaks: pd.DataFrame,
+    peaks: pd.DataFrame,
     xlabel: str = "",
     ylabel: str = "PSD(dB)",
     title: str = "DFT Plot",
@@ -112,21 +112,13 @@ def make_fourier_plot(
                     name="Outlier Threshold",
                 ),
                 go.Scatter(
-                    # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got
-                    #  `str`.
                     x=orig_peaks["freq"],
-                    # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got
-                    #  `str`.
                     y=orig_peaks["ampl"],
                     mode="markers",
                     name="Original peaks",
                 ),
                 go.Scatter(
-                    # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got
-                    #  `str`.
                     x=peaks["freq"],
-                    # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got
-                    #  `str`.
                     y=peaks["ampl"],
                     mode="markers",
                     name="Selected peaks",

@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """This module is for seasonality detection.
 
 We provide two seasonality detector: ACFDetector and FFTDetector. ACFDetector uses
@@ -67,7 +65,7 @@ class ACFDetector(Detector):
     seasonality_detected: bool = False
     decompose: Optional[TimeSeriesDecomposition] = None
 
-    def __init__(self, data: TimeSeriesData):
+    def __init__(self, data: TimeSeriesData) -> None:
         super().__init__(data=data)
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
@@ -155,7 +153,7 @@ class ACFDetector(Detector):
     # pyre-fixme[15]: `kats.detectors.seasonality.ACFDetector.remover` overrides method defined in `Detector` inconsistently. Returned type `Optional[Dict[str, typing.Any]]` is not a subtype of the overridden return `TimeSeriesData`.
     def remover(
         self,
-        decom: Type = TimeSeriesDecomposition,
+        decom: Type[TimeSeriesDecomposition] = TimeSeriesDecomposition,
         model: str = "additive",
         decompose_any_way: bool = False,
     ) -> Optional[Dict[str, Any]]:
@@ -190,7 +188,7 @@ class FFTDetector(Detector):
         data: The input time series data from TimeSeriesData.
     """
 
-    def __init__(self, data: TimeSeriesData):
+    def __init__(self, data: TimeSeriesData) -> None:
         super().__init__(data=data)
         if not self.data.is_univariate():
             msg = "The provided time series data is not univariate."
@@ -199,7 +197,9 @@ class FFTDetector(Detector):
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
     # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
-    def detector(self, sample_spacing: float = 1.0, mad_threshold: float = 6.0) -> Dict:
+    def detector(
+        self, sample_spacing: float = 1.0, mad_threshold: float = 6.0
+    ) -> Dict[str, Any]:
         """Detect seasonality with FFT
 
         Args:
@@ -216,14 +216,9 @@ class FFTDetector(Detector):
 
         fft = self.get_fft(sample_spacing)
         _, orig_peaks, peaks = self.get_fft_peaks(fft, mad_threshold)
-        # pyre-fixme[6]: Expected `Sized` for 1st param but got
-        #  `BoundMethod[typing.Callable(list.index)[[Named(self, List[float]), float,
-        #  int, default, int, default], int], List[float]]`.
         seasonality_presence = len(peaks.index) > 0
         selected_seasonalities = []
         if seasonality_presence:
-            # pyre-fixme[16]: `float` has no attribute `transform`.
-            # pyre-fixme[6]: Expected `_SupportsIndex` for 1st param but got `str`.
             selected_seasonalities = peaks["freq"].transform(lambda x: 1 / x).tolist()
 
         return {
@@ -283,7 +278,7 @@ class FFTDetector(Detector):
 
     def get_fft_peaks(
         self, fft: pd.DataFrame, mad_threshold: float = 6.0
-    ) -> Tuple[float, List[float], List[float]]:
+    ) -> Tuple[float, pd.DataFrame, pd.DataFrame]:
         """Computes peaks in fft, selects the highest peaks (outliers) and
             removes the harmonics (multiplies of the base harmonics found)
 
