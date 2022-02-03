@@ -3,14 +3,9 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import inspect
-import io
-import os
-import pkgutil
 import unittest
-from typing import Any, Dict, cast
+from typing import Any, Dict, List, cast
 from unittest import mock, TestCase
 
 import kats.utils.emp_confidence_int  # noqa
@@ -20,13 +15,14 @@ import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.models.model import Model
-from kats.utils.emp_confidence_int import EmpConfidenceInt
+from kats.utils.emp_confidence_int import EmpConfidenceInt, BackTesterRollingWindow
 
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
-def get_default_arguments(method):
+# pyre-fixme[2]: Parameter must be annotated.
+def get_default_arguments(method) -> Dict[str, Any]:
     sig = inspect.signature(method)
     return {
         k: v.default
@@ -35,7 +31,7 @@ def get_default_arguments(method):
     }
 
 
-def get_name(funcname: str, num: int, kwargs: Dict[str, Any]):
+def get_name(funcname: str, num: int, kwargs: Dict[str, Any]) -> str:
     testname = kwargs.get("testname", "")
     return f"{funcname}_{num}_{testname}"
 
@@ -120,7 +116,7 @@ _FROZEN_DATA = pd.DataFrame(
 # backtester.run_backtest()
 # _RAW_ERRORS = backtester.raw_errors
 # fmt: off
-_RAW_ERRORS = [
+_RAW_ERRORS: List[np.ndarray] = [
     np.array([
         1.33793031e01, 1.56117160e00, -3.43035881e-02, 1.59373281e01,
         1.00730540e01, 3.66296231e01, 4.33868022e01, 3.67005869e01,
@@ -238,17 +234,16 @@ class FakeParams(Params):
     pass
 
 
-class MyFakeModel(Model):
+class MyFakeModel(Model[FakeParams]):
     unfit: bool = True
 
-    def __init__(self, data: TimeSeriesData, params: FakeParams):
+    def __init__(self, data: TimeSeriesData, params: FakeParams) -> None:
         self.unfit = True
 
-    def fit(self, **kwargs) -> None:
+    def fit(self, *_args: Any, **_kwargs: Any) -> None:
         self.unfit = False
 
-    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
-    def predict(self, steps, include_history=False, **kwargs) -> pd.DataFrame:
+    def predict(self, steps: int, include_history: bool=False, *_args: Any, **_kwargs: Any) -> pd.DataFrame:
         if self.unfit:
             raise ValueError("Model hasn't been fit")
         return _FROZEN_DATA
@@ -256,7 +251,7 @@ class MyFakeModel(Model):
 
 class testEmpConfidenceInt(TestCase):
     @mock.patch("kats.utils.emp_confidence_int.BackTesterRollingWindow")
-    def setUp(self, backtester):
+    def setUp(self, backtester: BackTesterRollingWindow) -> None:
         backtester.raw_errors = _RAW_ERRORS
         self.TSData = load_air_passengers()
 
@@ -298,7 +293,7 @@ class testEmpConfidenceInt(TestCase):
         self.ci_plot.get_eci(steps=10, freq="MS")
 
     @mock.patch("kats.utils.emp_confidence_int.BackTesterRollingWindow")
-    def test_empConfInt_Prophet(self, backtester) -> None:
+    def test_empConfInt_Prophet(self, backtester: BackTesterRollingWindow) -> None:
         backtester.raw_errors = _RAW_ERRORS
         result = self.ci.get_eci(steps=10, freq="MS")
         expected = _FROZEN_DATA.copy()
