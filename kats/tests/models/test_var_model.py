@@ -14,24 +14,37 @@ from kats.data.utils import load_data
 from kats.models.var import VARModel, VARParams
 from parameterized.parameterized import parameterized
 
+
 TEST_DATA = {
     "multivariate": {
-        "ts": TimeSeriesData(load_data("multivariate_anomaly_simulated_data.csv"))
+        "ts": TimeSeriesData(load_data("multivariate_anomaly_simulated_data.csv")),
     },
-    "multivariate_2": {"ts": TimeSeriesData(load_data("multi_ts.csv"))},
+    "multivariate_2": {
+        "ts": TimeSeriesData(load_data("multi_ts.csv")),
+    },
 }
 
 
 class testVARModel(TestCase):
-    # pyre-fixme[56]
-    @parameterized.expand(
-        [[TEST_DATA["multivariate"]["ts"]], [TEST_DATA["multivariate_2"]["ts"]]]
-    )
-    def test_fit_forecast(self, ts: TimeSeriesData) -> None:
+    def test_fit_forecast(self, steps: int = 5) -> None:
+        ts = TEST_DATA["multivariate_2"]["ts"]
         params = VARParams()
-        m = VARModel(ts, params)
+        train, truth = ts[:-steps], ts[-steps:]
+        m = VARModel(train, params)
         m.fit()
-        m.predict(steps=30, include_history=True)
+        pred = m.predict(steps=steps)
+
+        # check whether the time indices of each forecasted feature are the same
+        index = [v.to_dataframe().time for _, v in pred.items()]
+        self.assertTrue(all(x.equals(index[0]) for x in index))
+
+        # check whether the values are close and shapes are correct
+        truth = truth.to_dataframe().iloc[:, 1:]
+        pred_forecast = pd.concat(
+            [v["fcst"].to_dataframe().iloc[:, 1:2] for _, v in pred.items()], axis=1
+        )
+        pred_forecast.columns = truth.columns
+        self.assertTrue(truth.subtract(pred_forecast).values.max() < 5)
 
     def test_invalid_params(self) -> None:
         params = VARParams()
@@ -56,7 +69,10 @@ class testVARModel(TestCase):
 
     # pyre-fixme[56]
     @parameterized.expand(
-        [[TEST_DATA["multivariate"]["ts"]], [TEST_DATA["multivariate_2"]["ts"]]]
+        [
+            [TEST_DATA["multivariate"]["ts"]],
+            [TEST_DATA["multivariate_2"]["ts"]],
+        ]
     )
     def test_predict_unfit(self, ts: TimeSeriesData) -> None:
         with self.assertRaises(ValueError):
@@ -65,7 +81,10 @@ class testVARModel(TestCase):
 
     # pyre-fixme[56]
     @parameterized.expand(
-        [[TEST_DATA["multivariate"]["ts"]], [TEST_DATA["multivariate_2"]["ts"]]]
+        [
+            [TEST_DATA["multivariate"]["ts"]],
+            [TEST_DATA["multivariate_2"]["ts"]],
+        ]
     )
     def test_search_space(self, ts: TimeSeriesData) -> None:
         params = VARParams()
