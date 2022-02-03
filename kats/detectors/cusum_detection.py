@@ -3,7 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
 
 """
 CUSUM stands for cumulative sum, it is a changepoint detection algorithm.
@@ -57,7 +56,7 @@ from scipy.stats import chi2  # @manual
 pd.options.plotting.matplotlib.register_converters = True
 
 # Constants
-CUSUM_DEFAULT_ARGS = {
+CUSUM_DEFAULT_ARGS: Dict[str, Optional[Any]] = {
     "threshold": 0.01,
     "max_iter": 10,
     "delta_std_ratio": 1.0,
@@ -72,8 +71,8 @@ CUSUM_DEFAULT_ARGS = {
     "remove_seasonality": False,
 }
 
-
-def _get_arg(name: str, **kwargs) -> Any:
+# pyre-ignore [3]: Return type must be specified as type that does not contain `Any`.
+def _get_arg(name: str, **kwargs: Any) -> Any:
     return kwargs.get(name, CUSUM_DEFAULT_ARGS[name])
 
 
@@ -301,7 +300,7 @@ class CUSUMDetector(Detector):
             "delta_int": delta_int,
         }
 
-    def _get_llr(self, ts: np.ndarray, change_meta: Dict[str, Any]):
+    def _get_llr(self, ts: np.ndarray, change_meta: Dict[str, Any]) -> float:
         """
         Calculate the log likelihood ratio
         """
@@ -391,7 +390,7 @@ class CUSUMDetector(Detector):
         return magnitude
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    def detector(self, **kwargs) -> Sequence[CUSUMChangePoint]:
+    def detector(self, **kwargs: Any) -> Sequence[CUSUMChangePoint]:
         """
         Find the change point and calculate related statistics.
 
@@ -602,7 +601,7 @@ class MultiCUSUMDetector(CUSUMDetector):
     def __init__(self, data: TimeSeriesData) -> None:
         super(MultiCUSUMDetector, self).__init__(data=data, is_multivariate=True)
 
-    def detector(self, **kwargs) -> List[CUSUMChangePoint]:
+    def detector(self, **kwargs: Any) -> List[CUSUMChangePoint]:
         """
         Overwrite the detector method for MultiCUSUMDetector.
 
@@ -652,7 +651,7 @@ class MultiCUSUMDetector(CUSUMDetector):
 
         return self._convert_cusum_changepoints(changes_meta, return_all_changepoints)
 
-    def _get_llr(self, ts: np.ndarray, change_meta: Dict[str, Any]):
+    def _get_llr(self, ts: np.ndarray, change_meta: Dict[str, Any]) -> float:
         mu0: float = change_meta["mu0"]
         mu1: float = change_meta["mu1"]
         sigma0: float = change_meta["sigma0"]
@@ -686,7 +685,7 @@ class MultiCUSUMDetector(CUSUMDetector):
         sigma0: Union[float, np.ndarray],
         mu1: Union[float, np.ndarray],
         sigma1: Union[float, np.ndarray],
-    ):
+    ) -> float:
         try:
             sigma0_inverse = np.linalg.inv(sigma0)
             sigma1_inverse = np.linalg.inv(sigma1)
@@ -809,12 +808,12 @@ class VectorizedCUSUMDetector(CUSUMDetector):
             data=data, is_multivariate=False, is_vectorized=True
         )
 
-    def detector(self, **kwargs) -> Sequence[CUSUMChangePoint]:
+    def detector(self, **kwargs: Any) -> Sequence[CUSUMChangePoint]:
         msg = "VectorizedCUSUMDetector is in beta and please use detector_()"
         logging.error(msg)
         raise ValueError(msg)
 
-    def detector_(self, **kwargs) -> List[List[CUSUMChangePoint]]:
+    def detector_(self, **kwargs: Any) -> List[List[CUSUMChangePoint]]:
         """
         Detector method for vectorized version of CUSUM
 
