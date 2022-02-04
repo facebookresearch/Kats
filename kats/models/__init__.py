@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -14,10 +15,17 @@ try:
 except ImportError:
     import logging
 
-    logging.warning("kats.models.lstm requires torch be installed")
+    logging.warning("kats.models.lstm not available (requires torch)")
 from . import globalmodel  # noqa
 from . import metalearner  # noqa
 from . import model  # noqa
+
+try:
+    from . import neuralprophet  # noqa
+except ImportError:
+    import logging
+
+    logging.warning("kats.models.neuralprophet not available (requires neuralprophet)")
 from . import nowcasting  # noqa
 from . import prophet  # noqa
 from . import quadratic_model  # noqa

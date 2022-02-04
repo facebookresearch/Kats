@@ -1,15 +1,25 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
 
 import copy
 import json
 import re
 from abc import ABC, abstractmethod
-from collections import namedtuple
-from typing import Any, Dict, List, Optional, Set, Sequence, Tuple, Type, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    NamedTuple,
+)
 
 import numpy as np
 import pandas as pd
@@ -256,28 +266,33 @@ def generate_from_simulator(
 
 
 class BenchmarkEvaluator(ABC):
-    def __init__(self, detector: Union[Type[Detector], Type[DetectorModel]]):
+    def __init__(self, detector: Union[Type[Detector], Type[DetectorModel]]) -> None:
         self.detector = detector
 
     @abstractmethod
-    def evaluate(self):
+    def evaluate(self) -> Union[pd.DataFrame, Dict[str, float]]:
         pass
 
     @abstractmethod
-    def load_data(self):
+    def load_data(self) -> pd.DataFrame:
         pass
 
 
-Evaluation = namedtuple(
-    "Evaluation",
-    ["dataset_name", "precision", "recall", "f_score", "delay", "TP", "FP", "FN"],
-)
+class Evaluation(NamedTuple):
+    dataset_name: str
+    precision: float
+    recall: float
+    f_score: float
+    delay: float
+    TP: float
+    FP: float
+    FN: float
 
 
 class EvalAggregate:
-    def __init__(self, eval_list: List[Evaluation]):
+    def __init__(self, eval_list: List[Evaluation]) -> None:
         self.eval_list = eval_list
-        self.eval_df = None
+        self.eval_df: Optional[pd.DataFrame] = None
 
     def get_eval_dataframe(self) -> pd.DataFrame:
         df_list = []
@@ -299,49 +314,44 @@ class EvalAggregate:
         self.eval_df = pd.DataFrame(df_list)
         return self.eval_df
 
-    def get_avg_precision(self) -> float:
+    def _ensure_eval_df(self) -> None:
         if self.eval_df is None:
             _ = self.get_eval_dataframe()
-        avg_precision = np.mean(self.eval_df.precision)
 
-        return avg_precision
+    def get_avg_precision(self) -> float:
+        self._ensure_eval_df()
+        assert self.eval_df is not None, "Evaluation DataFrame is missing."
+        return np.mean(self.eval_df.precision)
 
     def get_avg_recall(self) -> float:
-        if self.eval_df is None:
-            _ = self.get_eval_dataframe()
-        avg_recall = np.mean(self.eval_df.recall)
-
-        return avg_recall
+        self._ensure_eval_df()
+        assert self.eval_df is not None, "Evaluation DataFrame is missing."
+        return np.mean(self.eval_df.recall)
 
     def get_avg_f_score(self) -> float:
-        if self.eval_df is None:
-            _ = self.get_eval_dataframe()
-        avg_f_score = np.mean(self.eval_df.f_score)
-        return avg_f_score
+        self._ensure_eval_df()
+        assert self.eval_df is not None, "Evaluation DataFrame is missing."
+        return np.mean(self.eval_df.f_score)
 
     def get_avg_delay(self) -> float:
-        if self.eval_df is None:
-            _ = self.get_eval_dataframe()
-        avg_delay = np.mean(self.eval_df.delay)
-        return avg_delay
+        self._ensure_eval_df()
+        assert self.eval_df is not None, "Evaluation DataFrame is missing."
+        return np.mean(self.eval_df.delay)
 
     def get_avg_tp(self) -> float:
-        if self.eval_df is None:
-            _ = self.get_eval_dataframe()
-        avg_TP = np.mean(self.eval_df.TP)
-        return avg_TP
+        self._ensure_eval_df()
+        assert self.eval_df is not None, "Evaluation DataFrame is missing."
+        return np.mean(self.eval_df.TP)
 
     def get_avg_fp(self) -> float:
-        if self.eval_df is None:
-            _ = self.get_eval_dataframe()
-        avg_FP = np.mean(self.eval_df.FP)
-        return avg_FP
+        self._ensure_eval_df()
+        assert self.eval_df is not None, "Evaluation DataFrame is missing."
+        return np.mean(self.eval_df.FP)
 
     def get_avg_fn(self) -> float:
-        if self.eval_df is None:
-            _ = self.get_eval_dataframe()
-        avg_FN = np.mean(self.eval_df.FN)
-        return avg_FN
+        self._ensure_eval_df()
+        assert self.eval_df is not None, "Evaluation DataFrame is missing."
+        return np.mean(self.eval_df.FN)
 
 
 class TuringEvaluator(BenchmarkEvaluator):
@@ -380,12 +390,12 @@ class TuringEvaluator(BenchmarkEvaluator):
         self,
         detector: Union[Type[Detector], Type[DetectorModel]],
         is_detector_model: bool = False,
-    ):
+    ) -> None:
         super(TuringEvaluator, self).__init__(detector=detector)
         self.detector = detector
-        self.eval_agg = None
         self.is_detector_model = is_detector_model
-        self.cp_dict = {}
+        self.eval_agg: Optional[EvalAggregate] = None
+        self.cp_dict: Dict[str, List[int]] = {}
 
     def evaluate(
         self,
@@ -522,11 +532,12 @@ class TuringEvaluator(BenchmarkEvaluator):
 
         return eval_df
 
-    def get_eval_aggregate(self):
+    def get_eval_aggregate(self) -> EvalAggregate:
         """
         returns the EvalAggregate object, which can then be used for
         for further processing
         """
+        assert self.eval_agg is not None, "EvalAggregate object is missing"
         return self.eval_agg
 
     def load_data(self) -> pd.DataFrame:
@@ -558,7 +569,9 @@ class TuringEvaluator(BenchmarkEvaluator):
 
         return eg_df
 
-    def _parse_data(self, df_row: Any):
+    def _parse_data(
+        self, df_row: pd.Series
+    ) -> Tuple[str, TimeSeriesData, Dict[str, List[int]]]:
         this_dataset = df_row["dataset_name"]
         this_ts = df_row["time_series"]
         this_anno = df_row["annotation"]

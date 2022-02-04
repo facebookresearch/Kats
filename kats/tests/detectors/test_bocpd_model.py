@@ -1,32 +1,29 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import re
 from operator import attrgetter
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
-from kats.detectors.bocpd_model import BocpdDetectorModel
+from kats.data.utils import load_air_passengers
+from kats.detectors.bocpd_model import (
+    BocpdDetectorModel,
+    BocpdTrendDetectorModel,
+)
 from kats.utils.simulator import Simulator
 from parameterized import parameterized
 
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
-
 
 class BocpdDetectorModelTest(TestCase):
-    first_cp_begin = 100
-    first_cp_end = 200
-    second_cp_begin = 350
+    first_cp_begin: int = 100
+    first_cp_end: int = 200
+    second_cp_begin: int = 350
 
-    def setUp(self):
+    def setUp(self) -> None:
         sim = Simulator(n=450, start="2018-01-01")
 
         cp_array_input = [
@@ -115,7 +112,7 @@ class BocpdDetectorModelTest(TestCase):
             [345, 355],  # Interval 3
         ]
     )
-    def test_no_history_threshold(self, from_interval, to_interval) -> None:
+    def test_no_history_threshold(self, from_interval: int, to_interval: int) -> None:
         anom = self.no_history_model
         threshold = 0.4
 
@@ -127,6 +124,7 @@ class BocpdDetectorModelTest(TestCase):
             np.max(anom.scores.value.values[from_interval:to_interval]) > threshold
         )
 
+    # pyre-fixme[16]: Module `parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [
@@ -147,8 +145,8 @@ class BocpdDetectorModelTest(TestCase):
         ]
     )
     def test_scores_length_validation(
-        self, name, attribute_predicted, attribute_actual
-    ):
+        self, name: str, attribute_predicted: str, attribute_actual: str
+    ) -> None:
         self.assertEqual(
             len(attrgetter(attribute_predicted)(self)),
             attrgetter(attribute_actual)(self),
@@ -161,7 +159,7 @@ class BocpdDetectorModelTest(TestCase):
             [245, 255],  # Interval 2
         ]
     )
-    def test_history_threshold(self, from_interval, to_interval) -> None:
+    def test_history_threshold(self, from_interval: int, to_interval: int) -> None:
         threshold = 0.4
         # we test for the two changepoints in 200, 350, but shifted by 100
         # since that is the length of the history
@@ -245,3 +243,35 @@ class BocpdDetectorModelTest(TestCase):
         anom = bocpd_detector.fit_predict(historical_data=history, data=data)
 
         self.assertEqual(len(anom.scores), len(data))
+
+
+class TestBocpdTrendDetectorModel(TestCase):
+    def setUp(self) -> None:
+        self.data = load_air_passengers(return_ts=False)
+        self.trend_detector = BocpdTrendDetectorModel()
+
+    def test_response_shape_for_single_series(self) -> None:
+        single_ts = TimeSeriesData(self.data)
+        response_single_ts = self.trend_detector.fit_predict(
+            data=single_ts, historical_data=None
+        )
+
+        self.assertEqual(response_single_ts.scores.time.shape, single_ts.time.shape)
+
+        self.assertEqual(response_single_ts.scores.value.shape, single_ts.value.shape)
+
+        self.assertEqual(
+            # pyre-fixme[16]: Optional type has no attribute `value`.
+            response_single_ts.predicted_ts.value.shape,
+            single_ts.value.shape,
+        )
+
+    def test_response_shape_with_historical_data(self) -> None:
+        single_ts = TimeSeriesData(self.data)
+        historical_ts = TimeSeriesData(self.data)
+        single_ts.time = single_ts.time + pd.tseries.offsets.DateOffset(
+            months=len(self.data)
+        )
+        response = self.trend_detector.fit_predict(single_ts, historical_ts)
+
+        self.assertTrue(np.array_equal(response.scores.time, single_ts.time))

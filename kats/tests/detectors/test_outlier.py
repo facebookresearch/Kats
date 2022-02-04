@@ -1,15 +1,13 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import re
+from operator import attrgetter
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.detectors.outlier import (
@@ -19,15 +17,12 @@ from kats.detectors.outlier import (
 )
 from kats.models.bayesian_var import BayesianVARParams
 from kats.models.var import VARParams
-
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
+from parameterized import parameterized
 
 
 # Anomaly detection tests
 class OutlierDetectionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         data = load_air_passengers(return_ts=False)
         self.ts_data = TimeSeriesData(data)
         data_2 = data.copy()
@@ -87,7 +82,17 @@ class OutlierDetectionTest(TestCase):
             m = OutlierDetector(ts_data_new)
             m.detector()
 
-    def test_output_scores_shape(self) -> None:
+    def test_output_scores_not_nan(self) -> None:
+        m = OutlierDetector(self.ts_data, "additive")
+        m.detector()
+        output_scores = m.output_scores
+
+        # test that there are not any nan values in output score
+        self.assertIsNotNone(output_scores)
+        if output_scores is not None:
+            self.assertFalse(output_scores["y"].isnull().any())
+
+    def test_output_scores_shape_one_series(self) -> None:
         # test for a single time series
         m = OutlierDetector(self.ts_data, "additive")
         m.detector()
@@ -97,8 +102,7 @@ class OutlierDetectionTest(TestCase):
         if output_scores is not None:
             self.assertEqual(output_scores.shape[0], m.data.value.shape[0])
 
-        # test that there are not any nan values in output score
-        self.assertFalse(output_scores["y"].isnull().any())
+    def test_output_scores_shape_two_series(self) -> None:
         # test for more than 1 time series
         m2 = OutlierDetector(self.ts_data_2, "additive")
         m2.detector()
@@ -110,61 +114,87 @@ class OutlierDetectionTest(TestCase):
 
 
 class MultivariateVARDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-
-    def test_var_detector(self) -> None:
-        np.random.seed(10)
-
-        params = VARParams(maxlags=2)
-        d = MultivariateAnomalyDetector(self.TSData_multi, params, training_days=60)
-        anomaly_score_df = d.detector()
-        self.assertCountEqual(
-            list(anomaly_score_df.columns),
-            list(self.TSData_multi.value.columns)
-            + ["overall_anomaly_score", "p_value"],
-        )
-        d.plot()
-        alpha = 0.05
-        anomalies = d.get_anomaly_timepoints(alpha)
-        d.get_anomalous_metrics(anomalies[0], top_k=3)
-
-    def test_bayesian_detector(self) -> None:
-        np.random.seed(10)
-
-        params = BayesianVARParams(p=2)
-        d = MultivariateAnomalyDetector(
-            self.TSData_multi,
-            params,
-            training_days=60,
-            model_type=MultivariateAnomalyDetectorType.BAYESIAN_VAR,
-        )
-        anomaly_score_df = d.detector()
-        self.assertCountEqual(
-            list(anomaly_score_df.columns),
-            list(self.TSData_multi.value.columns)
-            + ["overall_anomaly_score", "p_value"],
-        )
-        d.plot()
-        alpha = 0.05
-        anomalies = d.get_anomaly_timepoints(alpha)
-        d.get_anomalous_metrics(anomalies[0], top_k=3)
-
-    def test_runtime_errors(self) -> None:
-        DATA_multi = self.TSData_multi.to_dataframe()
         DATA_multi2 = pd.concat([DATA_multi, DATA_multi])
-        TSData_multi2 = TimeSeriesData(DATA_multi2)
-        params = VARParams(maxlags=2)
-
-        with self.assertRaises(RuntimeError):
-            d = MultivariateAnomalyDetector(TSData_multi2, params, training_days=60)
-            d.detector()
-
+        self.TSData_multi2 = TimeSeriesData(DATA_multi2)
         DATA_multi3 = pd.merge(
             DATA_multi, DATA_multi, how="inner", on="time", suffixes=("_1", "_2")
         )
-        TSData_multi3 = TimeSeriesData(DATA_multi3)
+        self.TSData_multi3 = TimeSeriesData(DATA_multi3)
+
+        self.params_var = VARParams(maxlags=2)
+        self.d_var = MultivariateAnomalyDetector(
+            self.TSData_multi, self.params_var, training_days=60
+        )
+
+        self.params_bayes = BayesianVARParams(p=2)
+        self.d_bayes = MultivariateAnomalyDetector(
+            self.TSData_multi,
+            self.params_bayes,
+            training_days=60,
+            model_type=MultivariateAnomalyDetectorType.BAYESIAN_VAR,
+        )
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["d_var"],
+            ["d_bayes"],
+        ]
+    )
+    def test_detector_count_equal(self, attribute: str) -> None:
+        np.random.seed(10)
+
+        d = attrgetter(attribute)(self)
+        anomaly_score_df = d.detector()
+        self.assertCountEqual(
+            list(anomaly_score_df.columns),
+            list(self.TSData_multi.value.columns)
+            + ["overall_anomaly_score", "p_value"],
+        )
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["d_var"],
+            ["d_bayes"],
+        ]
+    )
+    def test_detector_plot(self, attribute: str) -> None:
+        np.random.seed(10)
+
+        d = attrgetter(attribute)(self)
+        d.detector()
+        d.plot()
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["d_var"],
+            ["d_bayes"],
+        ]
+    )
+    def test_detector_get_anomalous_metrics(self, attribute: str) -> None:
+        np.random.seed(10)
+
+        d = attrgetter(attribute)(self)
+        d.detector()
+        alpha = 0.05
+        anomalies = d.get_anomaly_timepoints(alpha)
+        d.get_anomalous_metrics(anomalies[0], top_k=3)
+
+    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
+    @parameterized.expand(
+        [
+            ["TSData_multi2"],
+            ["TSData_multi3"],
+        ]
+    )
+    def test_runtime_errors(self, attribute: str) -> None:
         with self.assertRaises(RuntimeError):
-            d2 = MultivariateAnomalyDetector(TSData_multi3, params, training_days=60)
-            d2.detector()
+            d = MultivariateAnomalyDetector(
+                attrgetter(attribute)(self), self.params_var, training_days=60
+            )
+            d.detector()

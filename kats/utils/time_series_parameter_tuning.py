@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -46,7 +47,7 @@ from kats.consts import SearchMethodEnum
 MAX_NUM_PROCESSES = 50
 
 
-def compute_search_cardinality(params_space: List[Dict]):
+def compute_search_cardinality(params_space: List[Dict]) -> float:
     """compute cardinality of search space params"""
     # check if search space is infinite
     is_infinite = any([param["type"] == "range" for param in params_space])

@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -28,14 +29,14 @@ class EvaluationObject:
 
 
 class Evaluator(ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         self.runs: Dict[str, EvaluationObject] = {}
 
     def create_evaluation_run(self, run_name: str) -> None:
         self._check_if_valid_run_name(run_name=run_name, should_exist=False)
         self.runs[run_name] = EvaluationObject(None, None, None, None, None)
 
-    def delete_evaluation_run(self, run_name: str):
+    def delete_evaluation_run(self, run_name: str) -> None:
         self._check_if_valid_run_name(run_name=run_name)
         del self.runs[run_name]
 
@@ -60,7 +61,7 @@ class Evaluator(ABC):
         run_name: str,
         model: Type,
         model_params: Optional[Union[Params, Dict[str, float]]],
-        tune_params=False,
+        tune_params: bool = False,
     ) -> ArrayLike:
         pass
 

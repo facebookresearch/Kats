@@ -1,8 +1,7 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
 
 """STLF forecasting model
 
@@ -12,12 +11,18 @@ it re-seasonalizes the forecasted results with seasonal data to produce the fina
 forecasting results.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (
+    absolute_import,
+    annotations,
+    division,
+    print_function,
+    unicode_literals,
+)
 
 import logging
 import math
 from copy import copy
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -28,7 +33,11 @@ from kats.models import (
     quadratic_model,
     theta,
 )
+from kats.models.linear_model import LinearModel
 from kats.models.model import Model
+from kats.models.prophet import ProphetModel
+from kats.models.quadratic_model import QuadraticModel
+from kats.models.theta import ThetaModel
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.parameter_tuning_utils import get_default_stlf_parameter_search_space
 
@@ -59,14 +68,14 @@ class STLFParams(Params):
         self.m = m
         logging.debug("Initialized STFLParams instance.")
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         """Validate the parameters for STLF model"""
 
         logging.info("Method validate_params() is not implemented.")
         pass
 
 
-class STLFModel(Model):
+class STLFModel(Model[STLFParams]):
     """Model class for STLF
 
     This class provides fit, predict, and plot methods for STLF model
@@ -79,7 +88,7 @@ class STLFModel(Model):
     decomp: Optional[Dict[str, TimeSeriesData]] = None
     sea_data: Optional[TimeSeriesData] = None
     desea_data: Optional[TimeSeriesData] = None
-    model: Optional[Model] = None
+    model: Optional[Union[LinearModel, ProphetModel, QuadraticModel, ThetaModel]] = None
     freq: Optional[str] = None
     alpha: Optional[float] = None
     y_fcst: Optional[np.ndarray] = None
@@ -96,14 +105,14 @@ class STLFModel(Model):
             )
             logging.error(msg)
             raise ValueError(msg)
-        self.n = self.data.value.shape[0]
+        self.n: int = self.data.value.shape[0]
 
         if self.params.m > self.n:
             msg = "The seasonality length m must be smaller than the length of time series"
             logging.error(msg)
             raise ValueError(msg)
 
-    def deseasonalize(self) -> "STLFModel":
+    def deseasonalize(self) -> STLFModel:
         """De-seasonalize the time series data
 
         Args:
@@ -123,7 +132,7 @@ class STLFModel(Model):
         desea_data.value = desea_data.value / decomp["seasonal"].value
         return self
 
-    def fit(self, **kwargs) -> "STLFModel":
+    def fit(self, **kwargs: Any) -> STLFModel:
         """Fit STLF model
 
         Args:
@@ -162,8 +171,9 @@ class STLFModel(Model):
         self.model = model
         return self
 
-    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
-    def predict(self, steps: int, include_history=False, **kwargs) -> pd.DataFrame:
+    def predict(
+        self, steps: int, *args: Any, include_history: bool = False, **kwargs: Any
+    ) -> pd.DataFrame:
         """predict with the fitted STLF model
 
         Args:
@@ -228,7 +238,7 @@ class STLFModel(Model):
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=fcst_df))
         return fcst_df
 
-    def __str__(self):
+    def __str__(self) -> str:
         """AR net moddel as a string
 
         Args:

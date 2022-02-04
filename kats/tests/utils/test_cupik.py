@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -21,7 +22,7 @@ statsmodels_ver = float(
 
 
 class cupikTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.TSData = load_air_passengers()
 
     def test_mkdetector(self) -> None:

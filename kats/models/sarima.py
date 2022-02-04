@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -159,7 +160,7 @@ class SARIMAModel(Model[SARIMAParams]):
     ) -> None:
         super().__init__(data, params)
         if not isinstance(self.data.value, pd.Series):
-            msg = "Only support univariate time series, but get {self.data.value}."
+            msg = f"Only support univariate time series, but get {self.data.value}."
             logging.error(msg)
             raise ValueError(msg)
 

@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -18,18 +19,18 @@ from parameterized.parameterized import parameterized
 
 
 class testBayesianVARModel(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
         self.params = BayesianVARParams()
 
-    def test_univariate_data(self):
+    def test_univariate_data(self) -> None:
         univ_df = load_data("air_passengers.csv")
         univ_ts = TimeSeriesData(df=univ_df, time_col_name="ds")
         with self.assertRaises(ValueError):
             _ = BayesianVAR(univ_ts, self.params)
 
-    def test_diff_time_name(self):
+    def test_diff_time_name(self) -> None:
         # Create multivariate time series without 'time' as time column name
         df = load_data("air_passengers.csv")
         df["y_2"] = df.y * 2
@@ -146,7 +147,9 @@ class testBayesianVARModel(TestCase):
             ("zero_phi_3", 1, 1, 1, 1, 0),
         ]
     )
-    def test_bad_params(self, name, p, phi0, phi1, phi2, phi3) -> None:
+    def test_bad_params(
+        self, name, p: int, phi0: float, phi1: float, phi2: float, phi3: float
+    ) -> None:
         params = BayesianVARParams()
         params.p = p
         params.phi_0 = phi0

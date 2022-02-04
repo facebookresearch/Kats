@@ -1,8 +1,7 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
 
 """VAR forecasting Model
 
@@ -52,23 +51,23 @@ class VARParams(Params):
             “n”/“nc” - no constant, no trend
     """
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__()
-        self.maxlags = kwargs.get("maxlags", None)
-        self.method = kwargs.get("method", "ols")
-        self.ic = kwargs.get("ic", None)
-        self.verbose = kwargs.get("verbose", False)
-        self.trend = kwargs.get("trend", "c")
+        self.maxlags: int = kwargs.get("maxlags", None)
+        self.method: str = kwargs.get("method", "ols")
+        self.ic: str = kwargs.get("ic", None)
+        self.verbose: bool = kwargs.get("verbose", False)
+        self.trend: str = kwargs.get("trend", "c")
         logging.debug("Initialized VARParam instance.:{kwargs}".format(kwargs=kwargs))
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         """Validate the parameters for VAR model"""
 
         logging.info("Method validate_params() is not implemented.")
         pass
 
 
-class VARModel(Model):
+class VARModel(Model[VARParams]):
     """Model class for VAR
 
     This class provides fit, predict, and plot methods for VAR model
@@ -96,7 +95,7 @@ class VARModel(Model):
             logging.error(msg)
             raise ValueError(msg)
 
-    def fit(self, **kwargs) -> None:
+    def fit(self, **kwargs: Any) -> None:
         """Fit VAR model"""
 
         logging.debug("Call fit()")
@@ -123,7 +122,7 @@ class VARModel(Model):
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
-        self, steps: int, include_history: bool = False, **kwargs
+        self, steps: int, include_history: bool = False, **kwargs: Any
     ) -> Dict[str, TimeSeriesData]:
         """Predict with the fitted VAR model
 
@@ -212,7 +211,7 @@ class VARModel(Model):
         history_color: str = "k",
         grid: bool = True,
         xlabel: str = "time",
-        **kwargs,
+        **kwargs: Any,
     ) -> plt.Axes:
         """Plot forecasted results from VAR model"""
         fcst_dict = self.fcst_dict
@@ -249,7 +248,7 @@ class VARModel(Model):
         fig.set_tight_layout(True)
         return axes
 
-    def __str__(self):
+    def __str__(self) -> str:
         """VAR model as a string
 
         Returns:

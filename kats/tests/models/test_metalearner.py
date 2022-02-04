@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -15,7 +16,7 @@ from ax.modelbridge.registry import Models, SearchSpace
 from ax.service.utils.instantiation import parameter_from_json
 from kats.consts import TimeSeriesData
 from kats.models.arima import ARIMAModel
-from kats.models.holtwinters import HoltWintersModel
+from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
 from kats.models.metalearner.get_metadata import GetMetaData
 from kats.models.metalearner.metalearner_hpt import MetaLearnHPT
 from kats.models.metalearner.metalearner_modelselect import (
@@ -24,14 +25,13 @@ from kats.models.metalearner.metalearner_modelselect import (
 from kats.models.metalearner.metalearner_predictability import (
     MetaLearnPredictability,
 )
-from kats.models.prophet import ProphetModel
-from kats.models.sarima import SARIMAModel
-from kats.models.stlf import STLFModel
-from kats.models.theta import ThetaModel
+from kats.models.prophet import ProphetModel, ProphetParams
+from kats.models.sarima import SARIMAModel, SARIMAParams
+from kats.models.stlf import STLFModel, STLFParams
+from kats.models.theta import ThetaModel, ThetaParams
 from kats.tests.models.test_models_dummy_data import (
     METALEARNING_TEST_T1,
     METALEARNING_TEST_T2,
-    METALEARNING_TEST_T2_FEATURES,
     METALEARNING_TEST_FEATURES,
     METALEARNING_TEST_MULTI,
 )
@@ -76,6 +76,7 @@ base_models = {
     "stlf": STLFModel,
     "theta": ThetaModel,
 }
+
 
 t1 = TimeSeriesData(METALEARNING_TEST_T1)
 t2 = TimeSeriesData(METALEARNING_TEST_T2)
@@ -138,6 +139,22 @@ METALEARNING_METADATA_BY_MODEL = {
     for t in ["arima", "holtwinters", "sarima", "theta", "stlf", "prophet"]
 }
 
+candidate_models = {
+    "holtwinters": HoltWintersModel,
+    "prophet": ProphetModel,
+    "theta": ThetaModel,
+    "stlf": STLFModel,
+    "sarima": SARIMAModel,
+}
+
+candidate_params = {
+    "holtwinters": HoltWintersParams,
+    "prophet": ProphetParams,
+    "theta": ThetaParams,
+    "stlf": STLFParams,
+    "sarima": SARIMAParams,
+}
+
 
 def equals(v1, v2):
     # check whether v1 and v2 are equal
@@ -159,19 +176,25 @@ def equals(v1, v2):
 class testMetaLearner(TestCase):
     def test_get_meta_data(self) -> None:
         # test GetMetaData using a simple case
-        metadata = GetMetaData(data=t1, num_trials=1, num_arms=1)
+        metadata = GetMetaData(
+            data=t1,
+            num_trials=1,
+            num_arms=1,
+            all_models=candidate_models,
+            all_params=candidate_params,
+        )
         res = metadata.get_meta_data()
 
         # test meta data output
         self.assertEqual(
-            list(res.keys()),
-            ["hpt_res", "features", "best_model", "search_method", "error_method"],
+            set(res.keys()),
+            {"hpt_res", "features", "best_model", "search_method", "error_method"},
         )
 
         # test meta data output - HPT part
         self.assertEqual(
-            list(res["hpt_res"].keys()),
-            ["arima", "holtwinters", "prophet", "theta", "stlf", "sarima"],
+            set(res["hpt_res"].keys()),
+            set(candidate_models.keys()),
         )
 
     def test_inputdata_errors(self) -> None:
@@ -192,9 +215,6 @@ class testMetaLearner(TestCase):
 
         # test input data error (time series contains inf)
         self.assertRaises(ValueError, GetMetaData, TSData_inf)
-
-        # test input data error (time series doesn't have constant freq)
-        self.assertRaises(ValueError, GetMetaData, TSData_gap)
 
 
 class MetaLearnModelSelectTest(TestCase):
@@ -331,7 +351,7 @@ class MetaLearnHPTTest(TestCase):
             mlhpt.train()
             # Test case for time series with nan features
             _ = (mlhpt.pred(t1).parameters[0],)
-            t2_preds = mlhpt.pred(t2)
+            _ = mlhpt.pred(t2)
             mlhpt.pred_by_feature(feature1)
             mlhpt.pred_by_feature(feature2)
             mlhpt.pred_by_feature(feature3)

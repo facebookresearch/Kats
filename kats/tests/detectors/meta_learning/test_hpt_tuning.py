@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -23,26 +24,26 @@ from parameterized.parameterized import parameterized
 
 class TestMetaDetectHptSelect(TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls._synth_data_read = SynthMetadataReader()
 
     @staticmethod
-    def _get_valid_alg_name():
+    def _get_valid_alg_name() -> str:
         supported_algos = list(MetaDetectHptSelect.DETECTION_ALGO.keys())
         return supported_algos[random.randint(0, len(supported_algos) - 1)]
 
     @classmethod
-    def _get_valid_metadata(cls, algorithm_name):
+    def _get_valid_metadata(cls, algorithm_name: str):
         return cls._synth_data_read.get_metadata(algorithm_name)
 
     @parameterized.expand(MetaDetectHptSelect.DETECTION_ALGO.keys())
-    def test_legal_run(self, algorithm_name):
+    def test_legal_run(self, algorithm_name) -> None:
         MetaDetectHptSelect(
             **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
         ).train()
 
     @parameterized.expand(["blabla", "mumu"])
-    def test_not_supportted_algo(self, algorithm_name):
+    def test_not_supportted_algo(self, algorithm_name) -> None:
         with self.assertRaises(KatsDetectorUnsupportedAlgoName):
             MetaDetectHptSelect(
                 **self._get_valid_metadata(self._get_valid_alg_name()),
@@ -50,7 +51,7 @@ class TestMetaDetectHptSelect(TestCase):
             )
 
     @parameterized.expand(MetaDetectHptSelect.DETECTION_ALGO.keys())
-    def test_illegal_hyper_parameter(self, algo_name):
+    def test_illegal_hyper_parameter(self, algo_name) -> None:
         metadata = self._get_valid_metadata(algo_name)
         data_y = metadata["data_y"]
         corrupted_col = data_y.columns[random.randint(0, len(data_y.columns) - 1)]
@@ -59,7 +60,7 @@ class TestMetaDetectHptSelect(TestCase):
         with self.assertRaises(KatsDetectorHPTIllegalHyperParameter):
             MetaDetectHptSelect(metadata["data_x"], corrupted_data_y, algo_name)
 
-    def test_training_error(self):
+    def test_training_error(self) -> None:
         algorithm_name = self._get_valid_alg_name()
         model = MetaDetectHptSelect(
             **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
@@ -68,14 +69,14 @@ class TestMetaDetectHptSelect(TestCase):
         with self.assertRaises(KatsDetectorHPTTrainError):
             model.train()
 
-    def test_legal_plot(self):
+    def test_legal_plot(self) -> None:
         algorithm_name = self._get_valid_alg_name()
         model = MetaDetectHptSelect(
             **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
         ).train()
         model.plot()
 
-    def test_plot_before_train(self):
+    def test_plot_before_train(self) -> None:
         algorithm_name = self._get_valid_alg_name()
         model = MetaDetectHptSelect(
             **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
@@ -83,7 +84,7 @@ class TestMetaDetectHptSelect(TestCase):
         with self.assertRaises(KatsDetectorHPTModelUsedBeforeTraining):
             model.plot()
 
-    def test_get_hpt(self):
+    def test_get_hpt(self) -> None:
         algorithm_name = self._get_valid_alg_name()
         model = MetaDetectHptSelect(
             **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
@@ -91,7 +92,7 @@ class TestMetaDetectHptSelect(TestCase):
         with self.assertRaises(KatsDetectorsUnimplemented):
             model.get_hpt(pd.DataFrame())
 
-    def test_save_model(self):
+    def test_save_model(self) -> None:
         algorithm_name = self._get_valid_alg_name()
         model = MetaDetectHptSelect(
             **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
@@ -99,7 +100,7 @@ class TestMetaDetectHptSelect(TestCase):
         with self.assertRaises(KatsDetectorsUnimplemented):
             model.save_model()
 
-    def test_load_model(self):
+    def test_load_model(self) -> None:
         algorithm_name = self._get_valid_alg_name()
         model = MetaDetectHptSelect(
             **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name

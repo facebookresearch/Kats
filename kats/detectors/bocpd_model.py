@@ -1,8 +1,7 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
 
 """
 This file implements the Bayesian Online Changepoint Detection
@@ -10,8 +9,9 @@ algorithm as a DetectorModel, to provide a common interface.
 """
 
 import json
-from typing import Optional
+from typing import Any, Optional
 
+import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.detectors.bocpd import (
@@ -23,6 +23,7 @@ from kats.detectors.detector_consts import (
     AnomalyResponse,
     ConfidenceBand,
 )
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 
 class BocpdDetectorModel(DetectorModel):
@@ -46,7 +47,11 @@ class BocpdDetectorModel(DetectorModel):
         serialized_model: Optional[bytes] = None,
         slow_drift: bool = False,
         threshold: Optional[float] = None,
-    ):
+    ) -> None:
+        self.slow_drift: bool = False
+        self.threshold: Optional[float] = None
+        self.response: Optional[AnomalyResponse] = None
+        self.last_N: int = 0
         if serialized_model is None:
             self.slow_drift = slow_drift
             self.threshold = threshold
@@ -115,10 +120,12 @@ class BocpdDetectorModel(DetectorModel):
 
         return data
 
-    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
     #  inconsistently.
     def fit_predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """Finds changepoints and returns score.
 
@@ -137,7 +144,6 @@ class BocpdDetectorModel(DetectorModel):
             the object is the same as the length of the data.
         """
 
-        # pyre-fixme[16]: `BocpdDetectorModel` has no attribute `last_N`.
         self.last_N = len(data)
 
         # if there is historical data
@@ -186,7 +192,6 @@ class BocpdDetectorModel(DetectorModel):
         default_ts = TimeSeriesData(time=data.time, value=pd.Series(N * [0.0]))
         score_ts = TimeSeriesData(time=data.time, value=pd.Series(change_prob))
 
-        # pyre-fixme[16]: `BocpdDetectorModel` has no attribute `response`.
         self.response = AnomalyResponse(
             scores=score_ts,
             confidence_band=ConfidenceBand(upper=data, lower=data),
@@ -197,21 +202,100 @@ class BocpdDetectorModel(DetectorModel):
 
         return self.response.get_last_n(self.last_N)
 
-    # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """
         predict is not implemented
         """
         raise ValueError("predict is not implemented, call fit_predict() instead")
 
-    # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.
     def fit(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> None:
         """
         fit can be called during priming. It's a noop for us.
         """
         return
+
+
+class BocpdTrendDetectorModel(DetectorModel):
+    def __init__(self, alpha: float = 0.1, beta: float = 0.1) -> None:
+        self.alpha = alpha
+        self.beta = beta
+
+    def serialize(self) -> bytes:
+        """Serialize the model into a json.
+
+        So it can be loaded later.
+
+        Returns:
+            json containing information of the model.
+        """
+        model_dict = {"slow_drift": True}
+        return json.dumps(model_dict).encode("utf-8")
+        # return str.encode(model_to_json(self.model))
+
+    def _holt_winter_fit(
+        self,
+        data_ts: TimeSeriesData,
+        m: int = 7,
+        alpha: float = 0.1,
+        beta: float = 0.1,
+        gamma: float = 0.1,
+    ) -> TimeSeriesData:
+        exp_smooth = ExponentialSmoothing(
+            endog=data_ts.value, trend="add", seasonal="add", seasonal_periods=m
+        )
+        fit1 = exp_smooth.fit(
+            smoothing_level=alpha, smoothing_slope=beta, smoothing_seasonal=gamma
+        )
+
+        level_arr = fit1.level
+        trend_arr = fit1.slope
+        fit_arr = [x + y for x, y in zip(level_arr, trend_arr)]
+        fit_diff = np.diff(fit_arr)
+        fit_diff = np.concatenate(([fit_diff[0]], fit_diff))
+        trend_ts = TimeSeriesData(time=data_ts.time, value=pd.Series(fit_diff))
+        return trend_ts
+
+    def fit_predict(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
+    ) -> AnomalyResponse:
+        trend_ts = self._holt_winter_fit(data)
+        detector = BocpdDetectorModel()
+        anom_obj = detector.fit_predict(trend_ts)
+        return anom_obj
+
+    def predict(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
+    ) -> AnomalyResponse:
+        """
+        predict is not implemented
+        """
+        raise NotImplementedError(
+            "predict is not implemented, call fit_predict() instead"
+        )
+
+    def fit(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
+    ) -> None:
+        """
+        fit can be called during priming. It's a noop for us.
+        """
+        raise NotImplementedError("fit is not implemented, call fit_predict() instead")

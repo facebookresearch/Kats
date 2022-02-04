@@ -1,8 +1,7 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
 
 """Base I/O code for time series data in Kats
 
@@ -19,13 +18,15 @@ purposes. We currently support the following data sets:
 8. multivariate anomaly simulated data
 """
 
+from typing import List, Tuple
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from scipy.special import expit  # @manual
 
 
-def gen_no_trend_data_ndim(time: pd.Series, ndim: int = 1):
+def gen_no_trend_data_ndim(time: pd.Series, ndim: int = 1) -> TimeSeriesData:
+    np.random.seed(20)
     n_days = len(time)
     data = np.ones((n_days, ndim)) * np.random.randint(1000, size=(1, ndim))
     no_trend_data = pd.DataFrame(data)
@@ -39,7 +40,7 @@ def gen_trend_data_ndim(
     seasonality: float = 0.00,
     change_smoothness: float = 5.0,
     ndim: int = 1,
-):
+) -> Tuple[TimeSeriesData, List[float]]:
     np.random.seed(20)
 
     n_days = len(time)

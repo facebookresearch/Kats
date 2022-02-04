@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -36,7 +37,7 @@ from kats.models.globalmodel.utils import (
 )
 
 
-def get_ts(n, start_time, seed=560, freq="D", has_nans=True):
+def get_ts(n, start_time, seed: int = 560, freq: str = "D", has_nans: bool = True):
     """
     Helper function for generating TimeSeriesData.
     """
@@ -51,7 +52,7 @@ def get_ts(n, start_time, seed=560, freq="D", has_nans=True):
 
 
 def _gm_mock_predict_func(
-    TSs, steps, fcst_window, len_quantile, raw=True, test_batch_size=500
+    TSs, steps, fcst_window, len_quantile, raw: bool = True, test_batch_size: int = 500
 ):
     """
     Helper function for building predict method for mock GMModel.
@@ -342,7 +343,7 @@ class DilatedRNNStackTest(TestCase):
             ValueError, DilatedRNNStack, [[1, 2]], "S2Cell", 20, 50, -5, 10
         )
 
-    def test_encoder_decoder(self):
+    def test_encoder_decoder(self) -> None:
         x = torch.randn(5, 20)
         encoder = DilatedRNNStack(
             [[1], [3]],
@@ -557,7 +558,7 @@ class GMBatchTest(TestCase):
                 batch = GMBatch(**batch_param)
                 self._valid(batch, gmparam)
 
-    def _valid(self, batch, params):
+    def _valid(self, batch, params) -> None:
         seasonality = params.seasonality
         # valid tensors
         for name in ["x", "init_seasonality"]:
@@ -915,7 +916,7 @@ class GMEnsembleTest(TestCase):
         )
         self._test_sinle_ensemble(gme, TSs, valid_TSs)
 
-    def _test_sinle_ensemble(self, gme, TSs, test_TSs):
+    def _test_sinle_ensemble(self, gme, TSs, test_TSs) -> None:
         # mock each single GMModel object
         gme.gm_models = [get_gmmodel_mock(gme.params) for _ in range(gme.model_num)]
         # test train
@@ -1019,7 +1020,7 @@ class GMEnsembleTest(TestCase):
 
 
 class GMBackTesterExpandingWindowTest(TestCase):
-    def test_GMBTEW(self):
+    def test_GMBTEW(self) -> None:
 
         gmparam = GMParam(
             input_window=10, fcst_window=7, seasonality=6, fcst_step_num=2, freq="D"
@@ -1128,7 +1129,7 @@ class HelperFunctionsTest(TestCase):
 
 
 class SerializeTest(TestCase):
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         models = []
         for model_type in ["rnn", "s2s"]:
             gmparam = GMParam(

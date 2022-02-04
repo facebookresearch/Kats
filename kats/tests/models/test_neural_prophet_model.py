@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -16,7 +17,7 @@ from kats.models.neural_prophet import NeuralProphetParams
 
 class NeuralProphetModelTest(TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         original_import_fn = builtins.__import__
 
         def mock_neural_prophet_import(module, *args, **kwargs):
@@ -34,12 +35,11 @@ class NeuralProphetModelTest(TestCase):
         del sys.modules["kats.models.neural_prophet"]
 
         with self.mock_imports:
-            from kats.models.neural_prophet import NeuralProphetParams
+            with self.assertRaises(ImportError):
+                from kats.models.neural_prophet import NeuralProphetParams
 
-            self.assertRaises(RuntimeError, NeuralProphetParams)
+                NeuralProphetParams()
 
-        # Restore the neural_prophet module
-        del sys.modules["kats.models.neural_prophet"]
         from kats.models.neural_prophet import NeuralProphetParams
 
         # Confirm that the module has been properly reloaded -- should not
@@ -64,7 +64,7 @@ class NeuralProphetModelTest(TestCase):
             seasonality_mode="additive",
             seasonality_reg=0,
             n_forecasts=1,
-            n_lags=0.0,
+            n_lags=0,
             num_hidden_layers=0,
             d_hidden=None,
             ar_sparsity=None,

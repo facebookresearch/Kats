@@ -1,17 +1,15 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import re
 from datetime import datetime, timedelta
 from operator import attrgetter
+from typing import cast
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.detector_consts import (
     AnomalyResponse,
@@ -21,10 +19,6 @@ from kats.detectors.detector_consts import (
     SingleSpike,
 )
 from parameterized.parameterized import parameterized
-
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
 
 
 class SingleSpikeTest(TestCase):
@@ -107,6 +101,7 @@ class UnivariateChangePointIntervalTest(TestCase):
     def test_interval_seq_length(self) -> None:
         self.assertEqual(len(self.previous_int), len(self.previous_seq))
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["start_time", "current_start"],
@@ -119,7 +114,7 @@ class UnivariateChangePointIntervalTest(TestCase):
         ]
     )
     # check all the properties
-    def test_properties(self, attribute, initial_object) -> None:
+    def test_properties(self, attribute: str, initial_object: str) -> None:
         self.assertEqual(
             attrgetter(attribute)(self.current_int), attrgetter(initial_object)(self)
         )
@@ -262,15 +257,19 @@ class MultivariateChangePointIntervalTest(TestCase):
         # test extending the data to include the whole sequence except the last point
         self.assertEqual(len(self.previous_int) + 1, len(self.previous_seq))
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["previous_int2"],
+    #  ["previous_int3"]])`.
     @parameterized.expand(
         [
             ["previous_int2"],
             ["previous_int3"],
         ]
     )
-    def test_extend_length(self, attribute) -> None:
+    def test_extend_length(self, attribute: str) -> None:
         self.assertEqual(len(attrgetter(attribute)(self)), len(self.previous_seq))
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["start_time", "current_start"],
@@ -281,28 +280,34 @@ class MultivariateChangePointIntervalTest(TestCase):
             ["previous_interval", "previous_int"],
         ]
     )
-    def check_current_int_properties(self, attribute, initial_object) -> None:
+    def check_current_int_properties(self, attribute: str, initial_object: str) -> None:
         # check all the properties
         self.assertEqual(
             attrgetter(attribute)(self.current_int), attrgetter(initial_object)(self)
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["mean_val",
+    #  "current_values_mean"], ["variance_val", "current_values_variance"]])`.
     @parameterized.expand(
         [
             ["mean_val", "current_values_mean"],
             ["variance_val", "current_values_variance"],
         ]
     )
-    def check_current_int_mean_var(self, attribute, initial_object) -> None:
+    def check_current_int_mean_var(self, attribute: str, initial_object: str) -> None:
         self.assertEqual(
             attrgetter(attribute)(self.current_int).tolist(),
             attrgetter(initial_object)(self),
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["current_int",
+    #  "current_length"], ["spike_array", "num_seq"]])`.
     @parameterized.expand(
         [["current_int", "current_length"], ["spike_array", "num_seq"]]
     )
-    def check_length(self, attribute, initial_object) -> None:
+    def check_length(self, attribute: str, initial_object: str) -> None:
         self.assertEqual(
             len(attrgetter(attribute)(self)), attrgetter(initial_object)(self)
         )
@@ -321,7 +326,7 @@ class MultivariateChangePointIntervalTest(TestCase):
 
 class UnivariatePercentageChangeTest(TestCase):
     # test for univariate time series
-    def setUp(self):
+    def setUp(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -386,14 +391,23 @@ class UnivariatePercentageChangeTest(TestCase):
             current=current_int_2, previous=previous_int
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["perc_change_1", True],
+    #  ["perc_change_2", False]])`.
     @parameterized.expand([["perc_change_1", True], ["perc_change_2", False]])
-    def test_stat_sig(self, obj, ans):
+    def test_stat_sig(self, obj: str, ans: bool) -> None:
         self.assertEqual(attrgetter(obj)(self).stat_sig, ans)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["perc_change_1", True],
+    #  ["perc_change_2", False]])`.
     @parameterized.expand([["perc_change_1", True], ["perc_change_2", False]])
-    def test_p_value(self, obj, ans):
+    def test_p_value(self, obj: str, ans: bool) -> None:
         self.assertEqual(attrgetter(obj)(self).p_value < 0.05, ans)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["perc_change_1", True],
+    #  ["perc_change_2", False], ["perc_change_3", True]])`.
     @parameterized.expand(
         [
             ["perc_change_1", True],
@@ -401,19 +415,19 @@ class UnivariatePercentageChangeTest(TestCase):
             ["perc_change_3", True],
         ]
     )
-    def test_score(self, obj, ans):
+    def test_score(self, obj: str, ans: bool) -> None:
         self.assertEqual(attrgetter(obj)(self).score > 1.96, ans)
 
-    def test_ratio_estimate(self):
+    def test_ratio_estimate(self) -> None:
         self.assertEqual(self.perc_change_1.ratio_estimate, self.ratio_val_1)
 
-    def test_approx_ratio_estimate(self):
-        self.assertAlmostEqual(self.perc_change_1.ratio_estimate, 10.0, 0)
+    def test_approx_ratio_estimate(self) -> None:
+        self.assertAlmostEqual(cast(float, self.perc_change_1.ratio_estimate), 10.0, 0)
 
-    def test_direction(self):
+    def test_direction(self) -> None:
         self.assertEqual(self.perc_change_1.direction, "up")
 
-    def test_perc_change(self):
+    def test_perc_change(self) -> None:
         self.assertEqual(self.perc_change_1.perc_change, (self.ratio_val_1 - 1) * 100)
 
     # TODO delta method tests
@@ -545,6 +559,10 @@ class MultivariatePercentageChangeTest(TestCase):
             current=current_int_single_point, previous=previous_int
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["perc_change_1", True],
+    #  ["perc_change_2", False], ["perc_change_3", True], ["perc_change_single_point",
+    #  True]])`.
     @parameterized.expand(
         [
             ["perc_change_1", True],
@@ -553,22 +571,30 @@ class MultivariatePercentageChangeTest(TestCase):
             ["perc_change_single_point", True],
         ]
     )
-    def test_p_value(self, obj, ans):
+    def test_p_value(self, obj: str, ans: bool) -> None:
         self.assertListEqual(
-            (attrgetter(obj)(self).p_value < 0.05).tolist(), [ans] * self.num_seq
+            # pyre-fixme[16]: `bool` has no attribute `tolist`.
+            (attrgetter(obj)(self).p_value < 0.05).tolist(),
+            [ans] * self.num_seq,
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["perc_change_1", True],
+    #  ["perc_change_2", False]])`.
     @parameterized.expand(
         [
             ["perc_change_1", True],
             ["perc_change_2", False],
         ]
     )
-    def test_stat_sig(self, obj, ans):
+    def test_stat_sig(self, obj: str, ans: bool) -> None:
         self.assertListEqual(
             (attrgetter(obj)(self).stat_sig).tolist(), [ans] * self.num_seq
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["perc_change_1", True],
+    #  ["perc_change_2", False], ["perc_change_single_point", True]])`.
     @parameterized.expand(
         [
             ["perc_change_1", True],
@@ -576,33 +602,42 @@ class MultivariatePercentageChangeTest(TestCase):
             ["perc_change_single_point", True],
         ]
     )
-    def test_score(self, obj, ans):
+    def test_score(self, obj: str, ans: bool) -> None:
         self.assertListEqual(
-            (attrgetter(obj)(self).score > 1.96).tolist(), [ans] * self.num_seq
+            # pyre-fixme[16]: `bool` has no attribute `tolist`.
+            (attrgetter(obj)(self).score > 1.96).tolist(),
+            [ans] * self.num_seq,
         )
 
-    def test_score_negative(self):
+    def test_score_negative(self) -> None:
         self.assertListEqual(
-            (self.perc_change_3.score < -1.96).tolist(), [True] * self.num_seq
+            # pyre-fixme[16]: `bool` has no attribute `tolist`.
+            (self.perc_change_3.score < -1.96).tolist(),
+            [True] * self.num_seq,
         )
 
-    def test_approx_ratio_estimate(self):
+    def test_approx_ratio_estimate(self) -> None:
+        # pyre-fixme[16]: Item `float` of `Union[float, ndarray]` has no attribute
+        #  `__iter__`.
         for r in self.perc_change_1.ratio_estimate:
             self.assertAlmostEqual(r, 10.0, 0)
 
-    def test_direction(self):
+    def test_direction(self) -> None:
+        # pyre-fixme[16]: Item `str` of `Union[ndarray, str]` has no attribute `tolist`.
         self.assertEqual(self.perc_change_1.direction.tolist(), ["up"] * self.num_seq)
 
-    def test_perc_change(self):
+    def test_perc_change(self) -> None:
         self.assertListEqual(
+            # pyre-fixme[16]: `float` has no attribute `tolist`.
             self.perc_change_1.perc_change.tolist(),
+            # pyre-fixme[16]: `int` has no attribute `tolist`.
             ((self.ratio_val_1 - 1) * 100).tolist(),
         )
 
 
 class TestUnivariateAnomalyResponse(TestCase):
     # test anomaly response for univariate time series
-    def setUp(self):
+    def setUp(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -668,10 +703,14 @@ class TestUnivariateAnomalyResponse(TestCase):
             stat_sig=0,
         )
 
-    def test_response_univariate(self):
+    def test_response_univariate(self) -> None:
         #  Ensure that num_series is properly populated - this response object is univariate
         self.assertEqual(self.response.num_series, 1)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["scores"],
+    #  ["confidence_band.upper"], ["confidence_band.lower"], ["predicted_ts"],
+    #  ["anomaly_magnitude_ts"], ["stat_sig_ts"]])`.
     @parameterized.expand(
         [
             ["scores"],
@@ -682,10 +721,14 @@ class TestUnivariateAnomalyResponse(TestCase):
             ["stat_sig_ts"],
         ]
     )
-    def test_update_response_preserves_length(self, attribute) -> None:
+    def test_update_response_preserves_length(self, attribute: str) -> None:
         # assert that all the lengths of the time series are preserved
         self.assertEqual(len(attrgetter(attribute)(self.response)), self.N)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["scores"],
+    #  ["confidence_band.upper"], ["confidence_band.lower"], ["predicted_ts"],
+    #  ["anomaly_magnitude_ts"], ["stat_sig_ts"]])`.
     @parameterized.expand(
         [
             ["scores"],
@@ -696,11 +739,12 @@ class TestUnivariateAnomalyResponse(TestCase):
             ["stat_sig_ts"],
         ]
     )
-    def test_get_last_n_length(self, attribute) -> None:
+    def test_get_last_n_length(self, attribute: str) -> None:
         n_val = 10
         response_last_n = self.response.get_last_n(n_val)
         self.assertEqual(len(attrgetter(attribute)(response_last_n)), n_val)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["scores", "score_ts"],
@@ -711,12 +755,15 @@ class TestUnivariateAnomalyResponse(TestCase):
             ["stat_sig_ts", "stat_sig_ts"],
         ]
     )
-    def test_update_one_point_forward(self, attribute, initial_object):
+    def test_update_one_point_forward(
+        self, attribute: str, initial_object: str
+    ) -> None:
         self.assertEqual(
             attrgetter(attribute)(self.response).value[0],
             attrgetter(initial_object)(self).value[1],
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["scores", 1.23],  # common_val
@@ -727,7 +774,7 @@ class TestUnivariateAnomalyResponse(TestCase):
             ["stat_sig_ts", 0],  # not stat sig
         ]
     )
-    def test_last_point(self, attribute, new_value) -> None:
+    def test_last_point(self, attribute: str, new_value: float) -> None:
         # assert that a new point has been added to the end
         self.assertEqual(
             attrgetter(attribute)(self.response).value.values[-1], new_value
@@ -747,7 +794,7 @@ class TestUnivariateAnomalyResponse(TestCase):
 class TestMultivariateAnomalyResponse(TestCase):
     # test anomaly response for multivariate time series
 
-    def setUp(self):
+    def setUp(self) -> None:
         np.random.seed(100)
 
         date_start_str = "2020-03-01"
@@ -854,10 +901,14 @@ class TestMultivariateAnomalyResponse(TestCase):
 
         self.N = len(previous_seq)
 
-    def test_response_num_series(self):
+    def test_response_num_series(self) -> None:
         # Ensure that num_series is properly populated
         self.assertEqual(self.response.num_series, self.num_seq)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["scores"],
+    #  ["confidence_band.upper"], ["confidence_band.lower"], ["predicted_ts"],
+    #  ["anomaly_magnitude_ts"], ["stat_sig_ts"]])`.
     @parameterized.expand(
         [
             ["scores"],
@@ -868,10 +919,11 @@ class TestMultivariateAnomalyResponse(TestCase):
             ["stat_sig_ts"],
         ]
     )
-    def test_update_response_preserves_length(self, attribute) -> None:
+    def test_update_response_preserves_length(self, attribute: str) -> None:
         # assert that all the lengths of the time series are preserved
         self.assertEqual(len(attrgetter(attribute)(self.response)), self.N)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["scores", "score_ts"],
@@ -882,12 +934,15 @@ class TestMultivariateAnomalyResponse(TestCase):
             ["stat_sig_ts", "stat_sig_ts"],
         ]
     )
-    def test_update_one_point_forward(self, attribute, initial_object):
+    def test_update_one_point_forward(
+        self, attribute: str, initial_object: str
+    ) -> None:
         self.assertEqual(
             attrgetter(attribute)(self.response).value.iloc[0].tolist(),
             attrgetter(initial_object)(self).value.iloc[1].tolist(),
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["scores", 1.23],  # common_val
@@ -898,13 +953,17 @@ class TestMultivariateAnomalyResponse(TestCase):
             ["stat_sig_ts", 0],  # not stat sig
         ]
     )
-    def test_last_point(self, attribute, new_value) -> None:
+    def test_last_point(self, attribute: str, new_value: float) -> None:
         # assert that a new point has been added to the end
         self.assertEqual(
             attrgetter(attribute)(self.response).value.iloc[-1].tolist(),
-            (new_value * np.ones(self.num_seq)).tolist(),
+            (np.ones(self.num_seq) * new_value).tolist(),
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["scores"],
+    #  ["confidence_band.upper"], ["confidence_band.lower"], ["predicted_ts"],
+    #  ["anomaly_magnitude_ts"], ["stat_sig_ts"]])`.
     @parameterized.expand(
         [
             ["scores"],
@@ -915,7 +974,7 @@ class TestMultivariateAnomalyResponse(TestCase):
             ["stat_sig_ts"],
         ]
     )
-    def test_get_last_n_length(self, attribute) -> None:
+    def test_get_last_n_length(self, attribute: str) -> None:
         n_val = 10
         response_last_n = self.response.get_last_n(n_val)
         self.assertEqual(len(attrgetter(attribute)(response_last_n)), n_val)

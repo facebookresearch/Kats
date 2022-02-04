@@ -1,9 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
 # pyre-unsafe
-
 import sys
 import unittest
 import unittest.mock as mock
@@ -39,8 +39,6 @@ DATA_dummy = pd.DataFrame(
         "y": [x + np.random.randint(20) for x in range(365)],
     }
 )
-TSData_dummy = TimeSeriesData(DATA_dummy)
-
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
@@ -62,257 +60,244 @@ def get_fake_preds(
     )
 
 
-class testBaseEnsemble(TestCase):
-    def setUp(self):
-        self.TSData = load_air_passengers()
+def get_predict_model(m, model_name, steps, freq):
+    """Get model prediction based on model_name."""
+    if model_name == "BaseEnsemble":
+        return m._predict_all(steps=steps, freq=freq)
+    else:
+        return m.predict(steps=steps, freq=freq)
 
-        DATA_daily = load_data("peyton_manning.csv")
-        DATA_daily.columns = ["time", "y"]
-        self.TSData_daily = TimeSeriesData(DATA_daily)
 
-        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
-        self.TSData_multi = TimeSeriesData(DATA_multi)
-
-        self.TSData_dummy = TSData_dummy
-
-    @parameterized.expand(
-        [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
-    )
-    def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
-        ts_data = getattr(self, ts_data_name)
-        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
-        params = EnsembleParams(
-            [
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-                BaseModelParams(
-                    "sarima",
-                    sarima.SARIMAParams(
-                        p=2,
-                        d=1,
-                        q=1,
-                        trend="ct",
-                        seasonal_order=(1, 0, 1, 12),
-                        enforce_invertibility=False,
-                        enforce_stationarity=False,
-                    ),
-                ),
-                BaseModelParams("prophet", prophet.ProphetParams()),
-                BaseModelParams("linear", linear_model.LinearModelParams()),
-                BaseModelParams(
-                    "quadratic",
-                    quadratic_model.QuadraticModelParams(),
-                ),
-            ]
+def get_ensemble_param(ts_param):
+    """Returns EnsembleParams based on which base_models are included."""
+    base_model_list = [
+        BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1))
+        if ts_param["arima"]
+        else "",
+        BaseModelParams("holtwinters", holtwinters.HoltWintersParams())
+        if ts_param["holtwinters"]
+        else "",
+        BaseModelParams(
+            "sarima",
+            sarima.SARIMAParams(
+                p=2,
+                d=1,
+                q=1,
+                trend="ct",
+                seasonal_order=(1, 0, 1, 12),
+                enforce_invertibility=False,
+                enforce_stationarity=False,
+            ),
         )
-        m = BaseEnsemble(ts_data, params)
+        if ts_param["sarima"]
+        else "",
+        BaseModelParams("prophet", prophet.ProphetParams())
+        if ts_param["prophet"]
+        else "",
+        BaseModelParams("linear", linear_model.LinearModelParams())
+        if ts_param["linear"]
+        else "",
+        BaseModelParams("quadratic", quadratic_model.QuadraticModelParams())
+        if ts_param["quadratic"]
+        else "",
+        BaseModelParams("theta", theta.ThetaParams(m=12)) if ts_param["theta"] else "",
+    ]
+    return EnsembleParams(
+        [base_model for base_model in base_model_list if base_model != ""]
+    )
 
-        with mock.patch("kats.models.ensemble.ensemble.Pool") as mock_pooled:
-            mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
-            mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
 
-            # fit the ensemble model
-            m.fit()
-            mock_pooled.assert_called()
-            mock_fit_model.assert_called()
+# test params, True or False means that base_emodel is included in this ensemble_model_param or not.
+# params_base is being used for the BaseEnsemble model, and similarly the same for the KatsEnsemble
+TEST_PARAM = {
+    "params_base": {
+        "arima": True,
+        "holtwinters": True,
+        "sarima": True,
+        "prophet": True,
+        "linear": True,
+        "quadratic": True,
+        "theta": False,
+    },
+    "params_multivariate_data": {
+        "arima": True,
+        "holtwinters": True,
+        "sarima": False,
+        "prophet": False,
+        "linear": False,
+        "quadratic": False,
+        "theta": False,
+    },
+    "params_kats": {
+        "arima": True,
+        "holtwinters": False,
+        "sarima": True,
+        "prophet": True,
+        "linear": True,
+        "quadratic": True,
+        "theta": True,
+    },
+}
 
-            # no predictions should be made yet
-            mock_fit_model.return_value.predict.assert_not_called()
 
-            # now run predict for each of the component models
-            m._predict_all(steps=steps, freq=freq)
+TEST_DATA = {
+    "monthly": {
+        "ts": load_air_passengers(),
+        "params": {
+            "base": get_ensemble_param(TEST_PARAM["params_base"]),
+            "kats": get_ensemble_param(TEST_PARAM["params_kats"]),
+        },
+    },
+    "daily": {
+        "ts": TimeSeriesData(
+            load_data("peyton_manning.csv").set_axis(["time", "y"], axis=1)
+        ),
+        "params": {
+            "base": get_ensemble_param(TEST_PARAM["params_base"]),
+            "kats": get_ensemble_param(TEST_PARAM["params_kats"]),
+        },
+    },
+    "multivariate": {
+        "ts": TimeSeriesData(load_data("multivariate_anomaly_simulated_data.csv")),
+        "params": get_ensemble_param(TEST_PARAM["params_multivariate_data"]),
+    },
+    "dummy": {
+        "ts": TimeSeriesData(DATA_dummy),
+        "params": {
+            "base": get_ensemble_param(TEST_PARAM["params_base"]),
+            "kats": get_ensemble_param(TEST_PARAM["params_kats"]),
+        },
+    },
+}
 
-            # now predict should have been called
-            mock_fit_model.return_value.predict.assert_called_with(
-                steps, freq=f"{freq}"
-            )
 
-            self.assertEqual(m.__str__(), "Ensemble")
+class testEnsembleModels(TestCase):
+    """Test Three models BaseEnsemble, MedianEnsembleModel and WeightedAvgEnsemble."""
 
-    def test_others(self) -> None:
+    def test_valid_params_base_params(self) -> None:
+        """Check using a valid model params for BaseModelParams."""
         # test validate_param in base params
         base_param = BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1))
         base_param.validate_params()
 
-        params = EnsembleParams(
-            [
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-                BaseModelParams(
-                    "sarima",
-                    sarima.SARIMAParams(
-                        p=2,
-                        d=1,
-                        q=1,
-                        trend="ct",
-                        seasonal_order=(1, 0, 1, 12),
-                        enforce_invertibility=False,
-                        enforce_stationarity=False,
-                    ),
-                ),
-                BaseModelParams("prophet", prophet.ProphetParams()),
-                BaseModelParams("linear", linear_model.LinearModelParams()),
-                BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
-            ]
-        )
-
-        self.assertRaises(
-            ValueError,
-            BaseEnsemble,
-            self.TSData_multi,
-            params,
-        )
-
+    def test_invalid_params_in_ensemble_params(self) -> None:
+        """Check using a non-valid model name in EnsembleParams results in error."""
         # validate params in EnsembleParams
+        TSData = TEST_DATA["monthly"]["ts"]
         params = EnsembleParams(
             [
                 BaseModelParams("random_model_name", arima.ARIMAParams(p=1, d=1, q=1)),
                 BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
             ]
         )
-
         self.assertRaises(
             ValueError,
             BaseEnsemble,
-            self.TSData,
+            TSData,
             params,
         )
 
-
-class testMedianEnsemble(TestCase):
-    def setUp(self):
-        self.TSData = load_air_passengers()
-
-        DATA_daily = load_data("peyton_manning.csv")
-        DATA_daily.columns = ["time", "y"]
-        self.TSData_daily = TimeSeriesData(DATA_daily)
-
-        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
-        self.TSData_multi = TimeSeriesData(DATA_multi)
-
-        self.TSData_dummy = TSData_dummy
-
     @parameterized.expand(
-        [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
+        [
+            [
+                "BaseEnsemble_monthly",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["params"]["base"],
+                30,
+                "MS",
+                BaseEnsemble,
+                False,
+            ],
+            [
+                "BaseEnsemble_daily",
+                TEST_DATA["daily"]["ts"],
+                TEST_DATA["daily"]["params"]["base"],
+                30,
+                "D",
+                BaseEnsemble,
+                False,
+            ],
+            [
+                "BaseEnsemble_dummy",
+                TEST_DATA["dummy"]["ts"],
+                TEST_DATA["dummy"]["params"]["base"],
+                30,
+                "D",
+                BaseEnsemble,
+                False,
+            ],
+            [
+                "MedianEnsembleModel_monthly",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["params"]["base"],
+                30,
+                "MS",
+                MedianEnsembleModel,
+                False,
+            ],
+            [
+                "MedianEnsembleModel_daily",
+                TEST_DATA["daily"]["ts"],
+                TEST_DATA["daily"]["params"]["base"],
+                30,
+                "D",
+                MedianEnsembleModel,
+                False,
+            ],
+            [
+                "MedianEnsembleModel_dummy",
+                TEST_DATA["dummy"]["ts"],
+                TEST_DATA["dummy"]["params"]["base"],
+                30,
+                "D",
+                MedianEnsembleModel,
+                False,
+            ],
+            [
+                "WeightedAvgEnsemble_monthly",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["params"]["base"],
+                30,
+                "MS",
+                WeightedAvgEnsemble,
+                False,
+            ],
+            [
+                "WeightedAvgEnsemble_daily",
+                TEST_DATA["daily"]["ts"],
+                TEST_DATA["daily"]["params"]["base"],
+                30,
+                "D",
+                WeightedAvgEnsemble,
+                False,
+            ],
+            [
+                "WeightedAvgEnsemble_dummy",
+                TEST_DATA["dummy"]["ts"],
+                TEST_DATA["dummy"]["params"]["base"],
+                30,
+                "D",
+                WeightedAvgEnsemble,
+                True,
+            ],
+        ]
     )
-    def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
-        ts_data = getattr(self, ts_data_name)
+    def test_forecast(
+        self,
+        ts_data_name: str,
+        ts_data: TimeSeriesData,
+        params,
+        steps: int,
+        freq,
+        model,
+        backtester: bool,
+    ) -> None:
+        """Test forecast."""
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
             ["time", "fcst"]
         ]
-        params = EnsembleParams(
-            [
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-                BaseModelParams(
-                    "sarima",
-                    sarima.SARIMAParams(
-                        p=2,
-                        d=1,
-                        q=1,
-                        trend="ct",
-                        seasonal_order=(1, 0, 1, 12),
-                        enforce_invertibility=False,
-                        enforce_stationarity=False,
-                    ),
-                ),
-                BaseModelParams("prophet", prophet.ProphetParams()),
-                BaseModelParams("linear", linear_model.LinearModelParams()),
-                BaseModelParams(
-                    "quadratic",
-                    quadratic_model.QuadraticModelParams(),
-                ),
-            ]
-        )
-        m = MedianEnsembleModel(data=ts_data, params=params)
 
-        with mock.patch("kats.models.ensemble.ensemble.Pool") as mock_pooled:
-            mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
-            mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
-
-            # fit the ensemble model
-            m.fit()
-
-            mock_pooled.assert_called()
-            mock_fit_model.assert_called()
-
-            # no predictions should be made yet
-            mock_fit_model.return_value.predict.assert_not_called()
-
-            # now run predict on the ensemble model
-            m.predict(steps=steps, freq=freq)
-            mock_fit_model.return_value.predict.assert_called_with(
-                steps, freq=f"{freq}"
-            )
-            m.plot()
-
-            # test __str__ method
-            self.assertEqual(m.__str__(), "Median Ensemble")
-
-    def test_others(self) -> None:
-        # validate params in EnsembleParams
-        params = EnsembleParams(
-            [
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-            ]
-        )
-
-        self.assertRaises(
-            ValueError,
-            MedianEnsembleModel,
-            self.TSData_multi,
-            params,
-        )
-
-
-class testWeightedAvgEnsemble(TestCase):
-    def setUp(self):
-        self.TSData = load_air_passengers()
-
-        DATA_daily = load_data("peyton_manning.csv")
-        DATA_daily.columns = ["time", "y"]
-        self.TSData_daily = TimeSeriesData(DATA_daily)
-
-        DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
-        self.TSData_multi = TimeSeriesData(DATA_multi)
-
-        self.TSData_dummy = TSData_dummy
-
-    @parameterized.expand(
-        [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
-    )
-    def test_fit_forecast(self, ts_data_name, steps, freq) -> None:
-        ts_data = getattr(self, ts_data_name)
-        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
-            ["time", "fcst"]
-        ]
-        params = EnsembleParams(
-            [
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-                BaseModelParams(
-                    "sarima",
-                    sarima.SARIMAParams(
-                        p=2,
-                        d=1,
-                        q=1,
-                        trend="ct",
-                        seasonal_order=(1, 0, 1, 12),
-                        enforce_invertibility=False,
-                        enforce_stationarity=False,
-                    ),
-                ),
-                BaseModelParams(
-                    "prophet",
-                    prophet.ProphetParams(seasonality_mode="multiplicative"),
-                ),
-                BaseModelParams("linear", linear_model.LinearModelParams()),
-                BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
-            ]
-        )
-
-        m = WeightedAvgEnsemble(ts_data, params=params)
+        m = model(data=ts_data, params=params)
 
         with mock.patch("kats.models.ensemble.ensemble.Pool") as mock_pooled:
             mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
@@ -322,75 +307,193 @@ class testWeightedAvgEnsemble(TestCase):
             m.fit()
             mock_pooled.assert_called()
 
-            with mock.patch(
-                "kats.models.ensemble.weighted_avg_ensemble.Pool"
-            ) as mock_weighted_pooled:
-                mock_backtest = (
-                    mock_weighted_pooled.return_value.apply_async.return_value.get
+            if backtester:
+                with mock.patch(
+                    "kats.models.ensemble.weighted_avg_ensemble.Pool"
+                ) as mock_weighted_pooled:
+                    mock_backtest = (
+                        mock_weighted_pooled.return_value.apply_async.return_value.get
+                    )
+                    # the backtester should just return a random number here
+                    mock_backtest.return_value = np.random.rand()
+                    m.predict(steps=steps, freq=freq)
+                    mock_backtest.assert_called()
+            else:
+                mock_fit_model.assert_called()
+                # no predictions should be made yet
+                mock_fit_model.return_value.predict.assert_not_called()
+
+    @parameterized.expand(
+        [
+            [
+                "BaseEnsemble",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["params"]["base"],
+                30,
+                "MS",
+                BaseEnsemble,
+                False,
+                False,
+            ],
+            [
+                "MedianEnsembleModel",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["params"]["base"],
+                30,
+                "MS",
+                MedianEnsembleModel,
+                False,
+                True,
+            ],
+            [
+                "WeightedAvgEnsemble",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["params"]["base"],
+                30,
+                "MS",
+                WeightedAvgEnsemble,
+                True,
+                True,
+            ],
+        ]
+    )
+    def test_predict_plot(
+        self,
+        ts_model_name: str,
+        ts_data: TimeSeriesData,
+        params,
+        steps: int,
+        freq,
+        model,
+        backtester: bool,
+        plot: bool,
+    ) -> None:
+        m = model(data=ts_data, params=params)
+        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
+            ["time", "fcst"]
+        ]
+        with mock.patch("kats.models.ensemble.ensemble.Pool") as mock_pooled:
+            mock_fit_model = mock_pooled.return_value.apply_async.return_value.get
+            mock_fit_model.return_value.predict = mock.MagicMock(return_value=preds)
+
+            # fit the ensemble model
+            m.fit()
+            mock_pooled.assert_called()
+            if backtester:
+                with mock.patch(
+                    "kats.models.ensemble.weighted_avg_ensemble.Pool"
+                ) as mock_weighted_pooled:
+                    mock_backtest = (
+                        mock_weighted_pooled.return_value.apply_async.return_value.get
+                    )
+                    # the backtester should just return a random number here
+                    mock_backtest.return_value = np.random.rand()
+                    m.predict(steps=steps, freq=freq)
+                    mock_backtest.assert_called()
+                    if plot:
+                        m.plot()
+            else:
+                mock_fit_model.assert_called()
+                # no predictions should be made yet
+                mock_fit_model.return_value.predict.assert_not_called()
+                # now run predict on the ensemble model
+                get_predict_model(m, ts_model_name, steps=steps, freq=freq)
+                mock_fit_model.return_value.predict.assert_called_with(
+                    steps, freq=f"{freq}"
                 )
-                # the backtester should just return a random number here
-                mock_backtest.return_value = np.random.rand()
-                m.predict(steps=steps, freq=freq)
-                mock_backtest.assert_called()
-                m.plot()
+                if plot:
+                    m.plot()
 
-            # test __str__ method
-            self.assertEqual(m.__str__(), "Weighted Average Ensemble")
-
-    def test_others(self) -> None:
-        # validate params in EnsembleParams
-        params = EnsembleParams(
+    @parameterized.expand(
+        [
             [
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                BaseModelParams("holtwinters", holtwinters.HoltWintersParams()),
-            ]
-        )
+                "BaseEnsemble",
+                BaseEnsemble,
+                "Ensemble",
+            ],
+            [
+                "MedianEnsembleModel",
+                MedianEnsembleModel,
+                "Median Ensemble",
+            ],
+            [
+                "WeightedAvgEnsemble",
+                WeightedAvgEnsemble,
+                "Weighted Average Ensemble",
+            ],
+        ]
+    )
+    def test_name(self, ts_model_name: str, model, model_name: str):
+        """Test name of the model according to the model used."""
+        # test __str__ method
+        m = model(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"]["base"])
+        self.assertEqual(m.__str__(), model_name)
+
+    @parameterized.expand(
+        [
+            [
+                "BaseEnsemble",
+                BaseEnsemble,
+            ],
+            [
+                "MedianEnsembleModel",
+                MedianEnsembleModel,
+            ],
+            [
+                "WeightedAvgEnsemble",
+                WeightedAvgEnsemble,
+            ],
+        ]
+    )
+    def test_invalid_params_ensemble_params(self, ts_model_name: str, model) -> None:
+        # validate params in EnsembleParams
+        TSData_multi = TEST_DATA["multivariate"]["ts"]
+        params = TEST_DATA["multivariate"]["params"]
 
         self.assertRaises(
             ValueError,
-            WeightedAvgEnsemble,
-            self.TSData_multi,
+            model,
+            TSData_multi,
             params,
         )
 
 
 class testKatsEnsemble(TestCase):
-    def setUp(self):
-        self.TSData = load_air_passengers()
-        self.TSData_dummy = TSData_dummy
-
     @parameterized.expand(
-        [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
-    )
-    def test_fit_median_forecast(self, ts_data_name, steps, freq) -> None:
-        ts_data = getattr(self, ts_data_name)
-        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
-        model_params = EnsembleParams(
+        [
             [
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                BaseModelParams(
-                    "sarima",
-                    sarima.SARIMAParams(
-                        p=2,
-                        d=1,
-                        q=1,
-                        trend="ct",
-                        seasonal_order=(1, 0, 1, 12),
-                        enforce_invertibility=False,
-                        enforce_stationarity=False,
-                    ),
-                ),
-                BaseModelParams("prophet", prophet.ProphetParams()),
-                BaseModelParams("linear", linear_model.LinearModelParams()),
-                BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
-                BaseModelParams("theta", theta.ThetaParams(m=12)),
-            ]
-        )
+                "monthly_kats",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["params"]["kats"],
+                30,
+                "MS",
+            ],
+            [
+                "daily_kats",
+                TEST_DATA["daily"]["ts"],
+                TEST_DATA["daily"]["params"]["kats"],
+                30,
+                "D",
+            ],
+            [
+                "dummy_kats",
+                TEST_DATA["dummy"]["ts"],
+                TEST_DATA["dummy"]["params"]["kats"],
+                30,
+                "D",
+            ],
+        ]
+    )
+    def test_fit_median_forecast(
+        self, ts_data_name: str, ts_data: TimeSeriesData, params, steps: int, freq
+    ) -> None:
+        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
+
         decomps = ["additive", "multiplicative"]
 
         for decomp in decomps:
             KatsEnsembleParam = {
-                "models": model_params,
+                "models": params,
                 "aggregation": "median",
                 "seasonality_length": 12,
                 "decomposition_method": decomp,
@@ -413,37 +516,40 @@ class testKatsEnsemble(TestCase):
                 m.plot()
 
     @parameterized.expand(
-        [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
-    )
-    def test_fit_weightedavg_forecast(self, ts_data_name, steps, freq) -> None:
-        ts_data = getattr(self, ts_data_name)
-        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
-        model_params = EnsembleParams(
+        [
             [
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                BaseModelParams(
-                    "sarima",
-                    sarima.SARIMAParams(
-                        p=2,
-                        d=1,
-                        q=1,
-                        trend="ct",
-                        seasonal_order=(1, 0, 1, 12),
-                        enforce_invertibility=False,
-                        enforce_stationarity=False,
-                    ),
-                ),
-                BaseModelParams("prophet", prophet.ProphetParams()),
-                BaseModelParams("linear", linear_model.LinearModelParams()),
-                BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
-                BaseModelParams("theta", theta.ThetaParams(m=12)),
-            ]
-        )
+                "monthly",
+                TEST_DATA["monthly"]["ts"],
+                TEST_DATA["monthly"]["params"]["kats"],
+                30,
+                "MS",
+            ],
+            [
+                "daily",
+                TEST_DATA["daily"]["ts"],
+                TEST_DATA["daily"]["params"]["kats"],
+                30,
+                "D",
+            ],
+            [
+                "dummy",
+                TEST_DATA["dummy"]["ts"],
+                TEST_DATA["dummy"]["params"]["kats"],
+                30,
+                "D",
+            ],
+        ]
+    )
+    def test_fit_weightedavg_forecast(
+        self, ts_data_name: str, ts_data: TimeSeriesData, params, steps: int, freq
+    ) -> None:
+        preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
+
         decomps = ["additive", "multiplicative"]
 
         for decomp in decomps:
             KatsEnsembleParam = {
-                "models": model_params,
+                "models": params,
                 "aggregation": "weightedavg",
                 "seasonality_length": 12,
                 "decomposition_method": decomp,
@@ -489,47 +595,24 @@ class testKatsEnsemble(TestCase):
                 )
 
                 # now run predict on the ensemble model
-                # m.predict(steps=steps)
+                m.predict(steps=steps)
                 mock_fit_model.return_value.predict.assert_called_with(steps)
                 m.aggregate()
                 m.plot()
 
-    def test_others(self) -> None:
-        model_params = EnsembleParams(
-            [
-                BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1)),
-                BaseModelParams(
-                    "sarima",
-                    sarima.SARIMAParams(
-                        p=2,
-                        d=1,
-                        q=1,
-                        trend="ct",
-                        seasonal_order=(1, 0, 1, 12),
-                        enforce_invertibility=False,
-                        enforce_stationarity=False,
-                    ),
-                ),
-                BaseModelParams("prophet", prophet.ProphetParams()),
-                BaseModelParams("linear", linear_model.LinearModelParams()),
-                BaseModelParams("quadratic", quadratic_model.QuadraticModelParams()),
-                BaseModelParams("theta", theta.ThetaParams(m=12)),
-            ]
-        )
-
+    def test_invalid_decomposition_method(self) -> None:
         KatsEnsembleParam = {
-            "models": model_params,
+            "models": get_ensemble_param(TEST_PARAM["params_kats"]),
             "aggregation": "median",
             "seasonality_length": 12,
             "decomposition_method": "random_decomp",
         }
-        # test invalid decomposition method
-        m = KatsEnsemble(data=self.TSData, params=KatsEnsembleParam)
+        m = KatsEnsemble(data=TEST_DATA["monthly"]["ts"], params=KatsEnsembleParam)
         m.validate_params()
 
-        # test invalid seasonality length
+    def test_invalid_seasonality_length(self) -> None:
         KatsEnsembleParam = {
-            "models": model_params,
+            "models": get_ensemble_param(TEST_PARAM["params_kats"]),
             "aggregation": "median",
             "seasonality_length": 1000000,
             "decomposition_method": "additive",
@@ -538,13 +621,13 @@ class testKatsEnsemble(TestCase):
         self.assertRaises(
             ValueError,
             KatsEnsemble,
-            self.TSData,
+            TEST_DATA["monthly"]["ts"],
             KatsEnsembleParam,
         )
 
-        # test logging with default executors
+    def test_logging_default_executors(self) -> None:
         KatsEnsembleParam = {
-            "models": model_params,
+            "models": get_ensemble_param(TEST_PARAM["params_kats"]),
             "aggregation": "median",
             "seasonality_length": 12,
             "decomposition_method": "random_decomp",
@@ -552,11 +635,11 @@ class testKatsEnsemble(TestCase):
             "forecastExecutor": None,
         }
         with self.assertLogs(level="INFO"):
-            m = KatsEnsemble(data=self.TSData, params=KatsEnsembleParam)
+            KatsEnsemble(data=TEST_DATA["monthly"]["ts"], params=KatsEnsembleParam)
 
-        # test non-seasonal data
+    def test_non_seasonal_data(self) -> None:
         KatsEnsembleParam = {
-            "models": model_params,
+            "models": get_ensemble_param(TEST_PARAM["params_kats"]),
             "aggregation": "median",
             "seasonality_length": 12,
             "decomposition_method": "additive",
@@ -566,7 +649,7 @@ class testKatsEnsemble(TestCase):
             time=pd.date_range(start="2020-01-01", end="2020-05-31", freq="D"),
             value=pd.Series(list(range(152))),
         )
-        m = KatsEnsemble(data=dummy_ts, params=KatsEnsembleParam)
+        KatsEnsemble(data=dummy_ts, params=KatsEnsembleParam)
 
 
 if __name__ == "__main__":

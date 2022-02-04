@@ -1,27 +1,20 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-
-import re
 from operator import attrgetter
+from typing import Callable
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
 from kats.detectors.cusum_model import (
     CUSUMDetectorModel,
     CusumScoreFunction,
 )
 from parameterized.parameterized import parameterized
-
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
 
 
 class TestIncreaseCUSUMDetectorModel(TestCase):
@@ -62,6 +55,7 @@ class TestIncreaseCUSUMDetectorModel(TestCase):
 
         self.serialized_model = self.model.serialize()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ("increase_length_match", len, "score_tsd", "test_data_window"),
@@ -108,7 +102,13 @@ class TestIncreaseCUSUMDetectorModel(TestCase):
             ),
         ]
     )
-    def test_score_tsd(self, name, func_, attr1, attr2) -> None:
+    def test_score_tsd(
+        self,
+        name: str,
+        func_: Callable[[TimeSeriesData], float],
+        attr1: str,
+        attr2: str,
+    ) -> None:
         self.assertEqual(func_(attrgetter(attr1)(self)), attrgetter(attr2)(self))
 
     def test_serialized_model(self) -> None:
@@ -165,6 +165,7 @@ class TestDecreaseCUSUMDetectorModel(TestCase):
             data=data, score_func=CusumScoreFunction.z_score.value
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ("decrease_length_match", len, "score_tsd"),
@@ -199,7 +200,9 @@ class TestDecreaseCUSUMDetectorModel(TestCase):
             ),
         ]
     )
-    def test_score_tsd(self, name, func_, attr) -> None:
+    def test_score_tsd(
+        self, name: str, func_: Callable[[TimeSeriesData], float], attr: str
+    ) -> None:
         self.assertEqual(func_(attrgetter(attr)(self)), self.test_data_window)
 
 
@@ -246,6 +249,7 @@ class TestAdhocCUSUMDetectorModel(TestCase):
             data=self.tsd[-8:]
         ).scores
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ("adhoc", len, "score_tsd", len, "tsd"),
@@ -306,7 +310,14 @@ class TestAdhocCUSUMDetectorModel(TestCase):
             ),
         ]
     )
-    def test_score_tsd(self, name, func_1, attr1, func_2, attr2) -> None:
+    def test_score_tsd(
+        self,
+        name: str,
+        func_1: Callable[[TimeSeriesData], float],
+        attr1: str,
+        func_2: Callable[[TimeSeriesData], float],
+        attr2: str,
+    ) -> None:
         self.assertEqual(
             func_1(attrgetter(attr1)(self)), func_2(attrgetter(attr2)(self))
         )
@@ -427,6 +438,7 @@ class TestDecomposingSeasonalityCUSUMDetectorModel(TestCase):
             data=self.tsd,
         ).scores
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             (
@@ -477,7 +489,15 @@ class TestDecomposingSeasonalityCUSUMDetectorModel(TestCase):
             ),
         ]
     )
-    def test_score_tsd(self, name, func_1, attr1, func_2, attr2, func_sup) -> None:
+    def test_score_tsd(
+        self,
+        name: str,
+        func_1: Callable[[TimeSeriesData], float],
+        attr1: str,
+        func_2: Callable[[TimeSeriesData], float],
+        attr2: str,
+        func_sup: Callable[[float, float], bool],
+    ) -> None:
         self.assertTrue(
             func_sup(func_1(attrgetter(attr1)(self)), func_2(attrgetter(attr2)(self)))
         )

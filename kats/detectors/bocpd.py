@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -32,7 +33,7 @@ except ImportError:
     _no_ax = True
 
 _MIN_POINTS = 10
-_LOG_SQRT2PI = 0.5 * np.log(2 * np.pi)
+_LOG_SQRT2PI: float = 0.5 * np.log(2 * np.pi)
 
 
 class BOCPDModelType(Enum):

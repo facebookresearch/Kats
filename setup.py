@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -28,7 +28,7 @@ if not os.environ.get("MINIMAL_KATS", False):
 setup(
     name="kats",
     packages=find_packages(),
-    version="0.1.0",
+    version="0.2.0",
     license="MIT",
     description="kats: kit to analyze time series",
     author="facebook",

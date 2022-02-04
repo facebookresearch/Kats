@@ -1,27 +1,18 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
 
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Optional, Tuple
+from numbers import Real
+from typing import Any, Optional, Tuple, Callable
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-try:
-    import plotly.graph_objs as go
-
-    _no_plotly = False
-    Figure = go.Figure
-except ImportError:
-    _no_plotly = True
-    Figure = Any
 from kats.consts import Params, TimeSeriesData
-from kats.graphics.plots import plot_fitted_harmonics
 from kats.models.model import Model
 from scipy import optimize
 
@@ -46,7 +37,7 @@ class HarmonicRegressionParams(Params):
             raise ValueError(msg)
 
 
-class HarmonicRegressionModel(Model):
+class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
     params: Optional[np.ndarray] = None
     harms: Optional[np.ndarray] = None
 
@@ -58,10 +49,10 @@ class HarmonicRegressionModel(Model):
             raise ValueError(msg)
         self.regression_params = params
 
-    def setup_data(self):
+    def setup_data(self) -> None:
         pass
 
-    def validate_inputs(self):
+    def validate_inputs(self) -> None:
         pass
 
     def fit(self) -> None:
@@ -72,8 +63,9 @@ class HarmonicRegressionModel(Model):
             self.regression_params.period, self.regression_params.fourier_order
         )
 
-    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
-    def predict(self, dates: pd.Series) -> pd.DataFrame:
+    def predict(
+        self, dates: pd.Series, *_args: Optional[Any], **_kwargs: Optional[Any]
+    ) -> pd.DataFrame:
         """Predicts with harmonic regression values.
          Call fit before calling this function.
         Parameters
@@ -94,9 +86,13 @@ class HarmonicRegressionModel(Model):
         result = np.sum(self.params * harmonics, axis=1)
         return pd.DataFrame({"time": dates, "fcst": result.tolist()})
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[15]: `plot` overrides method defined in `Model` inconsistently.
-    def plot(self) -> Tuple[Figure, pd.DataFrame]:
+    def plot(
+        self,
+        ax: Optional[plt.Axes] = None,
+        figsize: Optional[Tuple[int, int]] = None,
+        title: Optional[str] = "Time Series v.s Fitted Harmonics",
+        **kwargs: Optional[Any],
+    ) -> plt.Axes:
         """Demeans the time series, fits the harmonics,
             returns the plot and error metrics.
         Parameters
@@ -105,8 +101,6 @@ class HarmonicRegressionModel(Model):
             Plot of the original time series and the fitted harmonics
             Dataframe with mean square error and absolute error
         """
-        if _no_plotly:
-            raise RuntimeError("requires plotly to be installed")
 
         if self.params is None or self.harms is None:
             msg = "Call fit before plot."
@@ -114,15 +108,21 @@ class HarmonicRegressionModel(Model):
             raise ValueError(msg)
 
         fitted_harmonics = np.sum(self.params * self.harms, axis=1)
-        mse = np.mean((self.data.value - fitted_harmonics) ** 2)
-        abserr = np.mean(np.abs(self.data.value - fitted_harmonics))
 
-        err_table = pd.DataFrame(
-            {"Mean Square Error": [mse], "Absolute Error": [abserr]}
-        )
+        if ax is None:
+            if figsize is None:
+                figsize = (20, 6)
+            _, ax = plt.subplots(figsize=figsize)
 
-        fig = plot_fitted_harmonics(self.data.time, self.data.value, fitted_harmonics)
-        return fig, err_table
+        ax.set_title(title)
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Value")
+
+        (line1,) = ax.plot(self.data.time, self.data.value, label="Original signal")
+        (line2,) = ax.plot(self.data.time, fitted_harmonics, label="Fitted harmonics")
+        ax.legend(handles=[line1, line2])
+
+        return ax
 
     @staticmethod
     def fourier_series(
@@ -153,7 +153,9 @@ class HarmonicRegressionModel(Model):
         )
 
     @staticmethod
-    def make_harm_eval(harmonics: np.ndarray) -> Callable:
+    def make_harm_eval(
+        harmonics: np.ndarray,
+    ) -> Callable[..., np.ndarray]:
         """Defines evaluation function for the optimizer
         Parameters
         ----------
@@ -163,9 +165,9 @@ class HarmonicRegressionModel(Model):
         The evaluation function for the optimizer
         """
 
-        def harm_eval(step, *params):
-            params = np.array(params)
-            mul = np.multiply(harmonics[step.astype(int)], params)
+        def harm_eval(step: np.ndarray, *params: Real) -> np.ndarray:
+            params_ = np.array(params)
+            mul = np.multiply(harmonics[step.astype(int)], params_)
             return np.sum(mul, axis=1)
 
         return harm_eval

@@ -1,17 +1,18 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import re
+import typing
 from collections import Counter
 from operator import attrgetter
+from typing import Sequence
 from unittest import TestCase
 
 import numpy as np
-import statsmodels
+from kats.consts import TimeSeriesData
 from kats.detectors.bocpd import (
+    BOCPDChangePoint,
     BOCPDetector,
     BOCPDModelType,
     NormalKnownParameters,
@@ -20,10 +21,6 @@ from kats.detectors.bocpd import (
 )
 from kats.utils.simulator import Simulator
 from parameterized.parameterized import parameterized
-
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
 
 
 class BOCPDTest(TestCase):
@@ -34,7 +31,7 @@ class BOCPDTest(TestCase):
     sigma = 0.05  # std. dev
     num_points = 450
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.sim = Simulator(n=450, start="2018-01-01")
 
         self.cp_array_input = [
@@ -120,20 +117,22 @@ class BOCPDTest(TestCase):
         # We should have 3 change points per time series (of which there are 3)
         # However, we have set different change point priors, so we lose 3
         # and we set different thresholds, so we lose the other 3.
-        self.multnorm_cps_changepointpriors_and_thresholds = (
-            self.multnorm_bocpd_model.detector(
-                model=BOCPDModelType.NORMAL_KNOWN_MODEL,
-                changepoint_prior=np.array([0.01, 0.01, 1.0]),
-                threshold=np.array([1.0, 0.5, 0.5]),
-                choose_priors=False,
-                agg_cp=False,
-            )
+        self.multnorm_cps_changepointpriors_and_thresholds = self.multnorm_bocpd_model.detector(
+            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+            # pyre-fixme[6]: For 2nd param expected `float` but got `ndarray`.
+            changepoint_prior=np.array([0.01, 0.01, 1.0]),
+            # pyre-fixme[6]: For 3rd param expected `float` but got `ndarray`.
+            threshold=np.array([1.0, 0.5, 0.5]),
+            choose_priors=False,
+            agg_cp=False,
         )
 
         # check if multivariate detection works in detecting all changepoints
         self.multnorm_cps = self.multnorm_bocpd_model.detector(
             model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+            # pyre-fixme[6]: For 2nd param expected `float` but got `ndarray`.
             changepoint_prior=np.array([0.01, 0.01, 0.01]),
+            # pyre-fixme[6]: For 3rd param expected `float` but got `ndarray`.
             threshold=np.array([0.85, 0.85, 0.85]),
             choose_priors=False,
         )
@@ -198,7 +197,9 @@ class BOCPDTest(TestCase):
             choose_priors=False,
         )
 
-    def assert_changepoints_exist(self, ts, cp_arr, cps) -> None:
+    def assert_changepoints_exist(
+        self, ts: TimeSeriesData, cp_arr: np.ndarray, cps: Sequence[BOCPDChangePoint]
+    ) -> None:
         # check if the change points were detected
         # TODO: this check only tests that all changepoints we find should be there
         #       but not the other way around, that we find all change points.
@@ -210,6 +211,7 @@ class BOCPDTest(TestCase):
 
     # Test Plots #
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ("normal", "normal_bocpd_model", "normal_cps"),
@@ -224,7 +226,7 @@ class BOCPDTest(TestCase):
             ("poisson", "poisson_bocpd_model", "poisson_cps"),
         ]
     )
-    def test_plots(self, _, detector_name, cp_name) -> None:
+    def test_plots(self, _: str, detector_name: str, cp_name: str) -> None:
         attrgetter(detector_name)(self).plot(attrgetter(cp_name)(self))
 
     # Test Normal #
@@ -236,6 +238,10 @@ class BOCPDTest(TestCase):
         ]  # dict only has a single element here
         self.assertEqual(change_prob.shape[0], len(self.normal_ts))
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([("default", False, False),
+    #  ("w_priors", True, False), ("w_agg_post", False, True),
+    #  ("w_priors_and_agg_post", True, True)])`.
     @parameterized.expand(
         [
             ("default", False, False),
@@ -244,7 +250,9 @@ class BOCPDTest(TestCase):
             ("w_priors_and_agg_post", True, True),
         ]
     )
-    def test_normal_changepoints(self, _, choose_priors, agg_cp) -> None:
+    def test_normal_changepoints(
+        self, _: str, choose_priors: bool, agg_cp: bool
+    ) -> None:
 
         self.assert_changepoints_exist(
             self.normal_ts, self.normal_cp_arr, self.normal_cps
@@ -257,6 +265,10 @@ class BOCPDTest(TestCase):
             self.normal_ts, self.normal_cp_arr, self.normal_gridsearch_cps
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([("default", False, False),
+    #  ("w_priors", True, False), ("w_agg_post", False, True),
+    #  ("w_priors_and_agg_post", True, True)])`.
     @parameterized.expand(
         [
             ("default", False, False),
@@ -266,7 +278,7 @@ class BOCPDTest(TestCase):
         ]
     )
     def test_additional_multivariate_normal_plots(
-        self, _, choose_priors, agg_cp
+        self, _: str, choose_priors: bool, agg_cp: bool
     ) -> None:
         # check if multivariate detection works with choosing priors
         cps = self.multnorm_bocpd_model.detector(
@@ -284,6 +296,10 @@ class BOCPDTest(TestCase):
         for prob_arr in change_prob_val:
             self.assertEqual(prob_arr.shape[0], len(self.multnorm_ts))
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([("default", "multnorm_cps"),
+    #  ("changepointpriors_and_thresholds",
+    #  "multnorm_cps_changepointpriors_and_thresholds")])`.
     @parameterized.expand(
         [
             ("default", "multnorm_cps"),
@@ -293,7 +309,7 @@ class BOCPDTest(TestCase):
             ),
         ]
     )
-    def test_normal_multivariate_changepoints(self, _, cps_name) -> None:
+    def test_normal_multivariate_changepoints(self, _: str, cps_name: str) -> None:
         cps = getattr(self, cps_name)
 
         for t in cps:
@@ -302,6 +318,7 @@ class BOCPDTest(TestCase):
                 continue
             self.assertIn(cp, self.multnorm_cp_arr)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ("default", "multnorm_cps", Counter(value1=3, value2=3, value3=3)),
@@ -313,7 +330,10 @@ class BOCPDTest(TestCase):
         ]
     )
     def test_normal_multivariate_num_timeseries(
-        self, _, cps_name, target_counter
+        self,
+        _: str,
+        cps_name: str,
+        target_counter: typing.Counter[str],
     ) -> None:
         cps = getattr(self, cps_name)
         counter = Counter()
@@ -327,6 +347,10 @@ class BOCPDTest(TestCase):
         # Check we have all the time series.
         self.assertEqual(counter, target_counter)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([("default", "multnorm_cps",
+    #  9), ("changepointpriors_and_thresholds",
+    #  "multnorm_cps_changepointpriors_and_thresholds", 3)])`.
     @parameterized.expand(
         [
             ("default", "multnorm_cps", 9),
@@ -341,7 +365,7 @@ class BOCPDTest(TestCase):
         ]
     )
     def test_normal_multivariate_changepoints_length(
-        self, _, cps_name, target_len
+        self, _: str, cps_name: str, target_len: int
     ) -> None:
         cps = getattr(self, cps_name)
         self.assertEqual(len(cps), target_len)

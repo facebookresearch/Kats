@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -173,10 +174,6 @@ class GetMetaData:
         if len(self.data) < self.min_length:
             raise ValueError("Time series is too short!")
 
-        # check if the time frequency is constant
-        if pd.infer_freq(self.data.time) is None:
-            raise ValueError("Only constant frequency is supported for time!")
-
         # check if the time series is constant
         if self.data.value.nunique() <= 1:
             raise ValueError("It's constant time series!")
@@ -193,8 +190,10 @@ class GetMetaData:
     def _validate_models(self) -> None:
         """Check if candidate models and candidate hyper-params are matched"""
 
-        if list(self.all_models.keys()) != list(self.all_params.keys()):
-            raise ValueError("Unmatched model dict and parameters dict!")
+        if set(self.all_models.keys()) != set(self.all_params.keys()):
+            raise ValueError(
+                f"Unmatched model dict ({set(self.all_models.keys())}) and parameters dict ({set(self.all_params.keys())})!"
+            )
 
     def _validate_others(self) -> None:
         """Check if given serach method and error method are valid"""
@@ -221,10 +220,10 @@ class GetMetaData:
             if "seasonal_order" in params and isinstance(params["seasonal_order"], str):
                 params["seasonal_order"] = ast.literal_eval(params["seasonal_order"])
 
-            # use ** operator to unpack the dictionary params
-            local_params = single_params(**params)
-            local_model = single_model(self.train_series, local_params)
             try:
+                # use ** operator to unpack the dictionary params
+                local_params = single_params(**params)
+                local_model = single_model(self.train_series, local_params)
                 local_model.fit()
                 model_pred = local_model.predict(steps=self.test_series.time.shape[0])
 

@@ -1,11 +1,11 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
 
 import logging
-from typing import Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence, Tuple, Union, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -58,9 +58,9 @@ class HourlyRatioDetector(Detector):
             )
             logging.error(msg)
             raise ValueError(msg)
-        self._ratiodf = None
-        self.incomplete_dates = None
-        self.anomaly_dates = None
+        self._ratiodf: Optional[pd.DataFrame] = None
+        self.incomplete_dates: Optional[List[TimeSeriesChangePoint]] = None
+        self.anomaly_dates: Optional[List[TimeSeriesChangePoint]] = None
         self.freq = freq
         self.aggregate = aggregate
         self._valid_frequency()
@@ -84,9 +84,7 @@ class HourlyRatioDetector(Detector):
             return
         if isinstance(self.freq, str):
             for level in lower_granularity:
-                # pyre-fixme[58]: `in` is not supported for right operand type
-                #  `Optional[str]`.
-                if level in self.freq:
+                if isinstance(self.freq, str) and level in self.freq:
                     msg = "Input data granularity is {} and we can continue processing using aggregation function.".format(
                         self.freq
                     )
@@ -111,7 +109,7 @@ class HourlyRatioDetector(Detector):
             logging.error(msg)
             raise ValueError(msg)
 
-    def _preprocess(self):
+    def _preprocess(self) -> None:
         """preprocess input data.
 
         There are two steps for preprocess: 1) filter out dates with incomplete data, aggregate data to hourly level if necessary; and 2) calculate hourly ratio.
@@ -178,7 +176,9 @@ class HourlyRatioDetector(Detector):
         return (lab, pvalue)
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
-    def detector(self, support_fraction=0.9) -> Sequence[TimeSeriesChangePoint]:
+    def detector(
+        self, support_fraction: float = 0.9
+    ) -> Sequence[TimeSeriesChangePoint]:
         """Run detection algorithm.
 
         Args:
@@ -194,9 +194,17 @@ class HourlyRatioDetector(Detector):
         anomaly = []
         pvalues = []
         for w in range(7):
+            if self._ratiodf is None:
+                msg = "self._ratiodf should not be none after running _preprocess"
+                logging.error(msg)
+                raise ValueError(msg)
             obs = self._ratiodf[self._ratiodf["weekday"] == w][
                 "hourly_ratio"
             ].values.reshape(-1, 24)
+            if self._ratiodf is None:
+                msg = "self._ratiodf should not be none after running _preprocess"
+                logging.error(msg)
+                raise ValueError(msg)
             dates = np.unique(
                 self._ratiodf[self._ratiodf["weekday"] == w]["date"].values
             )
@@ -216,7 +224,7 @@ class HourlyRatioDetector(Detector):
         self.anomaly_dates = anomaly
         return anomaly
 
-    def plot(self, weekday: int = 0, **kwargs) -> plt.Axes:
+    def plot(self, weekday: int = 0, **kwargs: Any) -> plt.Axes:
         """plot the detection results.
 
         Args:
@@ -231,9 +239,17 @@ class HourlyRatioDetector(Detector):
             raise ValueError(msg)
         anomaly_dates = [t.start_time for t in self.anomaly_dates]
         anomaly_dates = set(anomaly_dates)
+        if self._ratiodf is None:
+            msg = "Please run detector method first."
+            logging.error(msg)
+            raise ValueError(msg)
         obs = self._ratiodf[self._ratiodf["weekday"] == weekday][
             "hourly_ratio"
         ].values.reshape(-1, 24)
+        if self._ratiodf is None:
+            msg = "Please run detector method first."
+            logging.error(msg)
+            raise ValueError(msg)
         dates = np.unique(
             self._ratiodf[self._ratiodf["weekday"] == weekday]["date"].values
         )

@@ -1,8 +1,7 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-# pyre-unsafe
 
 """
 Implementation of theta model which is basically a simple
@@ -51,7 +50,7 @@ class ThetaParams(Params):
         pass
 
 
-class ThetaModel(Model):
+class ThetaModel(Model[ThetaParams]):
     """Model class for Theta
 
     This class provides fit, predict, and plot methods for STLF model
@@ -82,7 +81,6 @@ class ThetaModel(Model):
         params: ThetaParams,
     ) -> None:
         super().__init__(data, params)
-        self.n = None
         self.__subtype__ = "theta"
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
@@ -90,7 +88,7 @@ class ThetaModel(Model):
             )
             logging.error(msg)
             raise ValueError(msg)
-        self.n = self.data.value.shape[0]
+        self.n: int = self.data.value.shape[0]
 
     def check_seasonality(self) -> None:
         """Determine if the metric to be forecasted is seasonal or not"""
@@ -120,7 +118,7 @@ class ThetaModel(Model):
         self.decomp = decomp
         return deseas_data
 
-    def fit(self, **kwargs) -> ThetaModel:
+    def fit(self) -> ThetaModel:
         """Fit Theta model"""
         if self.n is None:
             self.n = self.data.value.shape[0]

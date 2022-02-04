@@ -1,29 +1,26 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import math
-import re
 from operator import attrgetter
+from typing import Sequence, Tuple
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
 from kats.consts import TimeSeriesData
-from kats.detectors.robust_stat_detection import RobustStatDetector
+from kats.detectors.robust_stat_detection import (
+    RobustStatChangePoint,
+    RobustStatDetector,
+)
 from parameterized.parameterized import parameterized
 from sklearn.datasets import make_spd_matrix
 
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
-
 
 class RobustStatTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.random_seed = 10
         np.random.seed(self.random_seed)
         self.dates = pd.Series(pd.date_range("2019-01-01", "2019-03-01"))
@@ -59,7 +56,9 @@ class RobustStatTest(TestCase):
             }
         )
 
-        def _create_change_pt(df):
+        def _create_change_pt(
+            df: pd.DataFrame,
+        ) -> Tuple[RobustStatDetector, Sequence[RobustStatChangePoint]]:
             df["time"] = self.dates
             timeseries = TimeSeriesData(df)
             detector = RobustStatDetector(timeseries)
@@ -81,6 +80,10 @@ class RobustStatTest(TestCase):
         self.d_ts_without_name = RobustStatDetector(ts)
         self.change_points_ts_without_name = self.d_ts_without_name.detector()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["change_points_noregress",
+    #  0], ["change_points_increase", 1], ["change_points_decrease", 1],
+    #  ["change_points_spike_pos", 2], ["change_points_spike_neg", 2]])`.
     @parameterized.expand(
         [
             ["change_points_noregress", 0],
@@ -90,9 +93,10 @@ class RobustStatTest(TestCase):
             ["change_points_spike_neg", 2],
         ]
     )
-    def test_length(self, change_points, ans) -> None:
+    def test_length(self, change_points: str, ans: int) -> None:
         self.assertEqual(len(attrgetter(change_points)(self)), ans)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             ["d_noregress", "change_points_noregress"],
@@ -103,7 +107,7 @@ class RobustStatTest(TestCase):
             ["d_ts_without_name", "change_points_ts_without_name"],
         ]
     )
-    def test_plot(self, detector, change_points) -> None:
+    def test_plot(self, detector: str, change_points: str) -> None:
         attrgetter(detector)(self).plot(attrgetter(change_points)(self))
 
     def test_raise_error(self) -> None:

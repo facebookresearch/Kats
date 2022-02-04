@@ -1,8 +1,8 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
 
 """Apply LSTM for time series forecasting.
 
@@ -40,8 +40,6 @@ class LSTMParams(Params):
         num_epochs: Number of epochs for the training process
     """
 
-    __slots__ = ["hidden_size", "time_window", "num_epochs"]
-
     def __init__(self, hidden_size: int, time_window: int, num_epochs: int) -> None:
         super().__init__()
         self.hidden_size = hidden_size
@@ -54,7 +52,7 @@ class LSTMParams(Params):
             f" num_epochs:{num_epochs}"
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         logging.info("Method validate_params() is not implemented.")
         pass
 
@@ -104,7 +102,7 @@ class LSTMForecast(nn.Module):
         return predictions[-1]
 
 
-class LSTMModel(Model):
+class LSTMModel(Model[LSTMParams]):
     """Kats model class for time series LSTM model
 
     This is the Kats model class for time series forecast using the LSTM model
@@ -170,7 +168,7 @@ class LSTMModel(Model):
 
         return inout_seq
 
-    def fit(self, **kwargs) -> "LSTMModel":
+    def fit(self, **kwargs: Any) -> "LSTMModel":
         """Fit the LSTM forecast model
 
         Args:
@@ -217,8 +215,7 @@ class LSTMModel(Model):
 
         return self
 
-    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
-    def predict(self, steps: int, **kwargs) -> pd.DataFrame:
+    def predict(self, steps: int, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Prediction function for a multi-step forecast
 
         Args:
@@ -282,7 +279,7 @@ class LSTMModel(Model):
 
         return fcst_df
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "LSTM"
 
     @staticmethod

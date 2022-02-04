@@ -1,8 +1,8 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
 
 """The NeuralProphet model
 
@@ -11,14 +11,13 @@ Facebook Prophet and AR-Net, built on PyTorch.
 """
 
 import logging
+from typing import Callable, Optional, Union, List
 
-try:
-    from neuralprophet import NeuralProphet
+import numpy
+import torch
+from neuralprophet import NeuralProphet  # noqa
 
-    _no_neural_prophet = False
-except ImportError:
-    _no_neural_prophet = True
-    NeuralProphet = None  # for Pyre
+TorchLoss = torch.nn.modules.loss._Loss
 
 from kats.consts import Params
 
@@ -47,7 +46,7 @@ class NeuralProphetParams(Params):
               Not used if input `changepoints` is supplied. If `changepoints` is not
               supplied.
           changepoints_range (float): Proportion of history in which trend changepoints
-              wil be estimated. Defaults to 0.8 for the first 80%.
+              wil be estimated. Defaults to 0.9 for the first 90%.
               Not used if `changepoints` is specified.
           trend_reg (float): Parameter modulating the flexibility of the automatic
               changepoint selection.
@@ -70,7 +69,7 @@ class NeuralProphetParams(Params):
           seasonality_reg (float): Parameter modulating the strength of the seasonality model.
               Smaller values (~0.1-1) allow the model to fit larger seasonal fluctuations,
               larger values (~1-100) dampen the seasonality.
-              default: None, no regularization
+              default: 0, no regularization
 
        ## AR Parameters
           n_lags (int): Previous time series steps to include in auto-regression. Aka AR-order
@@ -94,7 +93,7 @@ class NeuralProphetParams(Params):
               default: None: Automatically sets the batch_size based on dataset size.
               For best results also leave epochs to None.
               For manual values, try ~1-512.
-          loss_func (str, torch.nn.modules.loss._Loss, 'typing.Callable'):
+          loss_func (str, torch.nn.modules.loss._Loss, 'Callable'):
               Type of loss to use: str ['Huber', 'MSE'],
               or torch loss or callable for custom loss, eg. asymmetric Huber loss
           train_speed (int, float) a quick setting to speed up or slow down
@@ -115,30 +114,36 @@ class NeuralProphetParams(Params):
 
     def __init__(
         self,
-        growth="linear",
-        changepoints=None,
-        n_changepoints=10,
-        changepoints_range=0.9,
-        trend_reg=0,
-        trend_reg_threshold=False,
-        yearly_seasonality="auto",
-        weekly_seasonality="auto",
-        daily_seasonality="auto",
-        seasonality_mode="additive",
-        seasonality_reg=0,
-        n_forecasts=1,
-        n_lags=0,
-        num_hidden_layers=0,
-        d_hidden=None,
-        ar_sparsity=None,
-        learning_rate=None,
-        epochs=None,
-        batch_size=None,
-        loss_func="Huber",
-        optimizer="AdamW",
-        train_speed=None,
-        normalize="auto",
-        impute_missing=True,
+        growth: str = "linear",
+        # TODO:
+        # when Numpy 1.21 is supported (for numpy.typing), do
+        # import numpy.typing as npt
+        # replace 'numpy.ndarray' by npt.NDArray['numpy.datetime64']
+        changepoints: Optional[
+            Union[List[str], List[numpy.datetime64], numpy.ndarray]
+        ] = None,
+        n_changepoints: int = 10,
+        changepoints_range: float = 0.9,
+        trend_reg: float = 0,
+        trend_reg_threshold: Union[float, bool] = False,
+        yearly_seasonality: Union[str, bool, int] = "auto",
+        weekly_seasonality: Union[str, bool, int] = "auto",
+        daily_seasonality: Union[str, bool, int] = "auto",
+        seasonality_mode: str = "additive",
+        seasonality_reg: float = 0,
+        n_forecasts: int = 1,
+        n_lags: int = 0,
+        num_hidden_layers: int = 0,
+        d_hidden: Optional[int] = None,
+        ar_sparsity: Optional[float] = None,
+        learning_rate: Optional[float] = None,
+        epochs: Optional[int] = None,
+        batch_size: Optional[int] = None,
+        loss_func: Union[str, TorchLoss, Callable[..., float]] = "Huber",
+        optimizer: str = "AdamW",
+        train_speed: Optional[Union[int, float]] = None,
+        normalize: str = "auto",
+        impute_missing: bool = True,
     ) -> None:
         super().__init__()
         self.growth = growth
@@ -165,8 +170,6 @@ class NeuralProphetParams(Params):
         self.train_speed = train_speed
         self.normalize = normalize
         self.impute_missing = impute_missing
-        if _no_neural_prophet:
-            raise RuntimeError("requires neuralprophet to be installed")
 
         logging.debug(
             "Initialized Neural Prophet with parameters. "
@@ -221,7 +224,7 @@ class NeuralProphetParams(Params):
             )
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         """Validate Neural Prophet Parameters"""
         logging.debug("Not yet implemented")
         pass

@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -54,7 +55,7 @@ SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
 
 
 class TSfeaturesTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         DATA = load_air_passengers(return_ts=False)
         self.TSData = TimeSeriesData(DATA)
 

@@ -1,4 +1,5 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -290,7 +291,6 @@ class ThetaModelTest(TestCase):
         with patch.object(
             m, "deseasonalize", (lambda self: self.data).__get__(m)
         ), patch.object(m, "check_seasonality"):
-            m.n = None
             m.seasonal = True
             m.decomp = None
             self.assertRaises(ValueError, m.fit)
