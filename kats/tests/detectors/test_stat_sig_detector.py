@@ -19,7 +19,7 @@ from kats.detectors.stat_sig_detector import (
 from kats.utils.simulator import Simulator
 
 _SERIALIZED = b'{"n_control": 20, "n_test": 7, "time_unit": "s"}'
-_SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "s", "rem_season": false, "seasonal_period": "weekly"}'
+_SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "s", "rem_season": false, "seasonal_period": "weekly", "use_corrected_scores": false, "max_split_ts_length": 500}'
 
 
 class TestStatSigDetector(TestCase):
@@ -153,6 +153,121 @@ class TestStatSigDetector(TestCase):
             self.assertEqual(anom.scores.value.iloc[i], 0.0)
 
         self.assertNotEqual(anom.scores.value.iloc[-1], 0.0)
+
+    def test_bigdata_transform(self) -> None:
+        # This unit test is confirming that the results are identical when we use the
+        # single time series vs. split time series codepaths.
+
+        # use_corrected_scores=True, split data
+        n_control = 28
+        n_test = 7
+        random.seed(0)
+        control_time = pd.date_range(
+            start="2018-01-06", freq="D", periods=(n_control + n_test - 5)
+        )
+        test_time = pd.date_range(start="2018-02-05", freq="D", periods=500)
+        control_val = [
+            random.normalvariate(0, 5) for _ in range(n_control + n_test - 5)
+        ]
+        test_val = [random.normalvariate(0, 5) for _ in range(500)]
+        hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+        data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=n_control,
+            n_test=n_test,
+            use_corrected_scores=True,
+            max_split_ts_length=100,
+        )
+        anom1 = ss_detect1.fit_predict(data=data_ts, historical_data=hist_ts)
+
+        # use_corrected_scores=True, not split data
+        hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+        data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
+        ss_detect2 = StatSigDetectorModel(
+            n_control=n_control,
+            n_test=n_test,
+            use_corrected_scores=True,
+            max_split_ts_length=1000,
+        )
+        anom2 = ss_detect2.fit_predict(data=data_ts, historical_data=hist_ts)
+
+        self.assertEqual(len(test_val), len(anom2.scores.value.values))
+        self.assertEqual(len(test_val), len(anom1.scores.value.values))
+
+        for i in range(500):
+            self.assertAlmostEqual(
+                anom1.scores.value.values[i], anom2.scores.value.values[i], places=10
+            )
+
+    def test_bigdata_flag_logic(self) -> None:
+        n_control = 28
+        n_test = 7
+        random.seed(0)
+        control_time = pd.date_range(
+            start="2018-01-06", freq="D", periods=(n_control + n_test)
+        )
+        test_time = pd.date_range(start="2018-02-05", freq="D", periods=50)
+        control_val = [random.normalvariate(0, 5) for _ in range(n_control + n_test)]
+        test_val = [random.normalvariate(0, 5) for _ in range(50)]
+
+        # use_corrected_scores = False and bigdata_trans_flag = False
+        hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+        data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=n_control,
+            n_test=n_test,
+            use_corrected_scores=False,
+            max_split_ts_length=100,
+        )
+        _ = ss_detect1.fit_predict(data=data_ts, historical_data=hist_ts)
+        self.assertEqual(ss_detect1.bigdata_trans_flag, False)
+
+        # True and True
+        hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+        data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=n_control,
+            n_test=n_test,
+            use_corrected_scores=True,
+            max_split_ts_length=10,
+        )
+        _ = ss_detect1.fit_predict(data=data_ts, historical_data=hist_ts)
+        self.assertEqual(ss_detect1.bigdata_trans_flag, True)
+
+        # True and False 1: not reach threshold
+        hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+        data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=n_control,
+            n_test=n_test,
+            use_corrected_scores=True,
+            max_split_ts_length=100,
+        )
+        _ = ss_detect1.fit_predict(data=data_ts, historical_data=hist_ts)
+        self.assertEqual(ss_detect1.bigdata_trans_flag, False)
+
+        # True and False 2: time unit difference
+        n_control = 2
+        n_test = 2
+        random.seed(0)
+        # weekly historical data
+        control_time = pd.date_range(
+            start="2018-01-06", freq="W", periods=(n_control + n_test)
+        )
+        # daily test data
+        test_time = pd.date_range(start="2018-02-05", freq="D", periods=50)
+        control_val = [random.normalvariate(0, 5) for _ in range(n_control + n_test)]
+        test_val = [random.normalvariate(0, 5) for _ in range(50)]
+        hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+        data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=n_control,
+            n_test=n_test,
+            use_corrected_scores=True,
+            max_split_ts_length=10,
+        )
+        _ = ss_detect1.fit_predict(data=data_ts, historical_data=hist_ts)
+        self.assertEqual(ss_detect1.bigdata_trans_flag, False)
 
     def test_logging(self) -> None:
         np.random.seed(100)

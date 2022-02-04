@@ -58,7 +58,7 @@ class UnivariateChangePointIntervalTest(TestCase):
             pd.DataFrame({"time": current_seq, "value": current_values})
         )
         self.current_mean = np.mean(current_values)
-        self.current_variance = np.var(current_values)
+        self.current_variance = np.var(current_values, ddof=1)
 
         previous_extend = TimeSeriesData(
             pd.DataFrame(

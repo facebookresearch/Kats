@@ -147,12 +147,14 @@ class ChangePointInterval:
     def variance_val(self) -> Union[float, ArrayLike]:
         if self.num_series == 1:
             vals = self.data
-            return 0.0 if vals is None else np.var(vals)
+            # the t-test uses the sample stadard deviation^2 instead of variance,
+            return 0.0 if vals is None or len(vals) == 1 else np.var(vals, ddof=1)
         else:
             data_df = self.data_df
-            if data_df is None:
+            if data_df is None or len(data_df) == 1:
                 return np.zeros(self.num_series)
-            return np.array([np.var(data_df[c].values) for c in self._ts_cols])
+            # the t-test uses the sample stadard deviation^2 instead of variance,
+            return np.array([np.var(data_df[c].values, ddof=1) for c in self._ts_cols])
 
     def __len__(self) -> int:
         df = self.data_df
@@ -169,6 +171,21 @@ class ChangePointInterval:
 
 # Percentage Change Object
 class PercentageChange:
+    """
+    PercentageChange is a class which is widely used in detector models. It calculates how much current TS changes
+    compared to previous historical TS. It includes method to calculate t-scores, upper bound, lower bound, etc., for
+    Statsig Detector model to detect significant change.
+
+    Attributes:
+        current: ChangePointInterval. The TS interval we'd like to detect.
+        previous: ChangePointInterval. The historical TS interval, which we compare the current TS interval with.
+        method: str, default value is "fdr_bh".
+        skip_rescaling: bool, default value is False. For multi-variate TS, we need to rescale p-values so that alpha is still the threshold for rejection.
+                    For Statsig detector, when a given TS (except historical part) is longer than max_split_ts_length,
+                    we will transform this long univariate TS into a multi-variate TS and then use multistatsig detector instead.
+                    In this case, we should skip rescaling p-values.
+        use_corrected_scores: bool, default value is False, using original t-scores or correct t-scores.
+    """
 
     upper: Optional[Union[float, np.ndarray]]
     lower: Optional[Union[float, np.ndarray]]
@@ -181,6 +198,8 @@ class PercentageChange:
         current: ChangePointInterval,
         previous: ChangePointInterval,
         method: str = "fdr_bh",
+        skip_rescaling: bool = False,
+        use_corrected_scores: bool = False,
     ) -> None:
         self.current = current
         self.previous = previous
@@ -192,6 +211,12 @@ class PercentageChange:
         self.alpha = 0.05
         self.method = method
         self.num_series = self.current.num_series
+
+        # If we'd like skip rescaling p-values for multivariate timeseires data
+        self.skip_rescaling = skip_rescaling
+
+        # 2 t scores strategies
+        self.use_corrected_scores = use_corrected_scores
 
     @property
     def ratio_estimate(self) -> Union[float, np.ndarray]:
@@ -314,9 +339,12 @@ class PercentageChange:
         # pyre-ignore[58]: * is not supported for operand types int and Union[float, np.ndarray].
         s_p = np.sqrt(((n_1 - 1) * s_1_sq + (n_2 - 1) * s_2_sq) / (n_1 + n_2 - 2))
 
-        # s_p_mean = s_p * np.sqrt((1. / n_1) + (1./ n_2))
+        if not self.use_corrected_scores:
+            return s_p
 
-        return s_p
+        # based on the definition of t-test, we should return s_p_mean
+        s_p_mean = s_p * np.sqrt((1.0 / n_1) + (1.0 / n_2))
+        return s_p_mean
 
     def _ttest_manual(self) -> Tuple[float, float]:
         """
@@ -387,6 +415,12 @@ class PercentageChange:
                 t_value_start[i], p_value_start[i] = ttest_ind(
                     current_slice, prev_slice, equal_var=True, nan_policy="omit"
                 )
+
+        # if un-scaled t_score and p_value are needed
+        if self.skip_rescaling:
+            self._p_value = p_value_start
+            self._t_score = t_value_start
+            return
 
         # The new p-values are the old p-values rescaled so that self.alpha is still the threshold for rejection
         _, self._p_value, _, _ = multitest.multipletests(
