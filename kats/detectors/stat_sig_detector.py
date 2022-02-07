@@ -52,6 +52,9 @@ class StatSigDetectorModel(DetectorModel):
                     we infer it from the provided data.
         rem_season: default value is False, if remove seasonality for historical data and data
         seasonal_period: str, default value is 'weekly'. Other possible values: 'daily', 'biweekly', 'monthly', 'yearly'
+        use_corrected_scores: bool, default value is False, using original t-scores or correct t-scores.
+        max_split_ts_length: int, default value is 500. If the given TS (except historical part) is longer than max_split_ts_length,
+                    we will transform a long univariate TS into a multi-variate TS and then use multistatsig detector, which is faster,
 
     >>> # Example usage:
     >>> # history and ts_pt are TimeSeriesData objects and history is larger
@@ -80,6 +83,8 @@ class StatSigDetectorModel(DetectorModel):
         time_unit: Optional[str] = None,
         rem_season: bool = False,
         seasonal_period: str = "weekly",
+        use_corrected_scores: bool = False,
+        max_split_ts_length: int = 500,
     ) -> None:
 
         if serialized_model:
@@ -90,6 +95,14 @@ class StatSigDetectorModel(DetectorModel):
             # for seasonality
             self.rem_season = model_dict.get("rem_season", rem_season)
             self.seasonal_period = model_dict.get("seasonal_period", seasonal_period)
+
+            # for big data and correct t-scores
+            self.use_corrected_scores = model_dict.get(
+                "use_corrected_scores", use_corrected_scores
+            )
+            self.max_split_ts_lengthq = model_dict.get(
+                "max_split_ts_length", max_split_ts_length
+            )
 
         else:
             self.n_test = n_test
@@ -116,6 +129,12 @@ class StatSigDetectorModel(DetectorModel):
         # for seasonality
         self.data_season = None
 
+        # big data and t-scores
+        self.use_corrected_scores = use_corrected_scores
+        # threshold for splitting long TS
+        self.max_split_ts_length = max_split_ts_length
+        self.bigdata_trans_flag = None
+
     def serialize(self) -> bytes:
         """
         Serializes by putting model parameters in a json
@@ -126,6 +145,8 @@ class StatSigDetectorModel(DetectorModel):
             "time_unit": self.time_unit,
             "rem_season": self.rem_season,
             "seasonal_period": self.seasonal_period,
+            "use_corrected_scores": self.use_corrected_scores,
+            "max_split_ts_length": self.max_split_ts_length,
         }
 
         return json.dumps(model_dict).encode("utf-8")
@@ -189,25 +210,55 @@ class StatSigDetectorModel(DetectorModel):
                 historical_data = sh_hist_data.remove_seasonality()
 
         self.data = data
-
         # first initialize this with the historical data
         self._init_data(historical_data)
-        self._init_control_test(data if historical_data is None else historical_data)
-        # set the flag to true
-        self.is_initialized = True
 
-        # now run through the data to get the prediction
+        # if using new t-scores
+        if self.use_corrected_scores:
+            if (
+                len(data) > self.max_split_ts_length
+                # pyre-ignore[16]: `Optional` has no attribute `time`.
+                and pd.infer_freq(historical_data.time) == pd.infer_freq(data.time)
+            ):
+                self.bigdata_trans_flag = True
+            else:
+                self.bigdata_trans_flag = False
+        else:
+            self.bigdata_trans_flag = False
 
-        for i in range(len(data)):
-            current_time = data.time.iloc[i]
-
-            ts_pt = TimeSeriesData(
-                time=pd.Series(current_time), value=pd.Series(data.value.iloc[i])
+        # if need trans to multi-TS
+        if self.bigdata_trans_flag:
+            new_data_ts = self._reorganize_big_data(self.max_split_ts_length)
+            ss_detect = MultiStatSigDetectorModel(
+                n_control=self.n_control,
+                n_test=self.n_test,
+                time_unit=self.time_unit,
+                rem_season=False,
+                seasonal_period=self.seasonal_period,
+                skip_rescaling=True,
+                use_corrected_scores=self.use_corrected_scores,
             )
+            anom = ss_detect.fit_predict(data=new_data_ts)
+            self._reorganize_back(anom)
 
-            self._update_data(ts_pt)
-            self._update_control_test(ts_pt)
-            self._update_response(ts_pt.time.iloc[0])
+        else:
+            self._init_control_test(
+                data if historical_data is None else historical_data
+            )
+            # set the flag to true
+            self.is_initialized = True
+
+            # now run through the data to get the prediction
+            for i in range(len(data)):
+                current_time = data.time.iloc[i]
+
+                ts_pt = TimeSeriesData(
+                    time=pd.Series(current_time), value=pd.Series(data.value.iloc[i])
+                )
+
+                self._update_data(ts_pt)
+                self._update_control_test(ts_pt)
+                self._update_response(ts_pt.time.iloc[0])
 
         # add seasonality back
         if self.rem_season:
@@ -278,6 +329,113 @@ class StatSigDetectorModel(DetectorModel):
                 stat_sig_ts=self.response.stat_sig_ts,
             )
         return self.response.get_last_n(self.last_N)
+
+    def _reorganize_big_data(self, max_split_ts_length):
+        first_half_len = len(self.data_history)
+        n_seq = len(self.data) // max_split_ts_length + int(
+            len(self.data) % max_split_ts_length > 0
+        )
+        remaining = (max_split_ts_length * n_seq - len(self.data)) % max_split_ts_length
+
+        time_need = pd.concat(
+            [self.data_history.time[:], self.data.time[:max_split_ts_length]]
+        )
+
+        new_ts = [
+            list(
+                pd.concat(
+                    [self.data_history.value[:], self.data.value[:max_split_ts_length]]
+                )
+            )
+        ]
+        for i in range(max_split_ts_length, len(self.data), max_split_ts_length):
+            new_ts.append(
+                new_ts[-1][-first_half_len:]
+                + list(self.data.value[i : i + max_split_ts_length])
+            )
+        new_ts[-1] += [0] * remaining
+
+        new_data_ts = TimeSeriesData(
+            pd.DataFrame(
+                {
+                    **{"time": time_need},
+                    **{f"ts_{i}": new_ts[i] for i in range(len(new_ts))},
+                }
+            )
+        )
+        self.remaining = remaining
+        return new_data_ts
+
+    def _reorganize_back(self, anom):
+        start_point = len(self.data_history)
+        res_score_val = pd.Series(
+            pd.DataFrame(anom.scores.value)
+            .iloc[start_point:, :]
+            .values.T.flatten()[: -self.remaining]
+        )
+
+        res_predicted_ts_val = pd.Series(
+            pd.DataFrame(anom.predicted_ts.value)
+            .iloc[start_point:, :]
+            .values.T.flatten()[: -self.remaining]
+        )
+
+        res_anomaly_magnitude_ts_val = pd.Series(
+            pd.DataFrame(anom.anomaly_magnitude_ts.value)
+            .iloc[start_point:, :]
+            .values.T.flatten()[: -self.remaining]
+        )
+
+        res_stat_sig_ts_val = pd.Series(
+            pd.DataFrame(anom.stat_sig_ts.value)
+            .iloc[start_point:, :]
+            .values.T.flatten()[: -self.remaining]
+        )
+
+        res_confidence_band_lower_val = pd.Series(
+            pd.DataFrame(anom.confidence_band.lower.value)
+            .iloc[start_point:, :]
+            .values.T.flatten()[: -self.remaining]
+        )
+
+        res_confidence_band_upper_val = pd.Series(
+            pd.DataFrame(anom.confidence_band.upper.value)
+            .iloc[start_point:, :]
+            .values.T.flatten()[: -self.remaining]
+        )
+
+        datatime = self.response.scores.time
+        zeros = pd.Series(np.zeros(len(datatime) - len(res_score_val)))
+        datavalues = pd.Series(
+            self.response.predicted_ts.value.values[
+                : len(datatime) - len(res_score_val)
+            ]
+        )
+
+        self.response = AnomalyResponse(
+            scores=TimeSeriesData(
+                time=datatime, value=pd.concat([zeros, res_score_val])
+            ),
+            confidence_band=ConfidenceBand(
+                upper=TimeSeriesData(
+                    time=datatime,
+                    value=pd.concat([datavalues, res_confidence_band_upper_val]),
+                ),
+                lower=TimeSeriesData(
+                    time=datatime,
+                    value=pd.concat([datavalues, res_confidence_band_lower_val]),
+                ),
+            ),
+            predicted_ts=TimeSeriesData(
+                time=datatime, value=pd.concat([datavalues, res_predicted_ts_val])
+            ),
+            anomaly_magnitude_ts=TimeSeriesData(
+                time=datatime, value=pd.concat([zeros, res_anomaly_magnitude_ts_val])
+            ),
+            stat_sig_ts=TimeSeriesData(
+                time=datatime, value=pd.concat([zeros, res_stat_sig_ts_val])
+            ),
+        )
 
     def visualize(self) -> None:
         """Function to visualize the result of the StatSigDetectorModel."""
@@ -466,7 +624,9 @@ class StatSigDetectorModel(DetectorModel):
         """
 
         perc_change = PercentageChange(
-            current=self.test_interval, previous=self.control_interval
+            current=self.test_interval,
+            previous=self.control_interval,
+            use_corrected_scores=self.use_corrected_scores,
         )
 
         self.response.inplace_update(
@@ -591,6 +751,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             can be found at https://www.statsmodels.org/dev/generated/statsmodels.stats.multitest.multipletests.html
         rem_season: default value is False, if remove seasonality for historical data and data
         seasonal_period: str, default value is 'weekly'. Other possible values: 'daily', 'biweekly', 'monthly', 'yearly'
+        skip_rescaling: bool. If we'd like skip rescaling p-values for multivariate timeseires when calling Percentagechange class
+        use_corrected_scores: bool, default value is False, using original t-scores or correct t-scores.
 
     >>> # Example usage:
     >>> # history and ts_pt are TimeSeriesData objects and history is larger
@@ -635,6 +797,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         rem_season: bool = False,
         seasonal_period: str = "weekly",
         method: str = "fdr_bh",
+        skip_rescaling: bool = False,
+        use_corrected_scores: bool = False,
     ) -> None:
 
         StatSigDetectorModel.__init__(
@@ -647,6 +811,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             seasonal_period,
         )
         self.method = method
+        self.skip_rescaling = skip_rescaling
+        self.use_corrected_scores = use_corrected_scores
 
     def fit_predict(
         self,
@@ -836,6 +1002,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             current=self.test_interval,
             previous=self.control_interval,
             method=self.method,
+            skip_rescaling=self.skip_rescaling,
+            use_corrected_scores=self.use_corrected_scores,
         )
 
         self.response.inplace_update(
