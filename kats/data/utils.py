@@ -33,7 +33,7 @@ import pandas as pd
 from kats.consts import TimeSeriesData
 
 
-def load_data(file_name: str) -> pd.DataFrame:
+def load_data(file_name: str, reset_columns:bool=False) -> pd.DataFrame:
     """load data for tests and tutorial notebooks"""
     ROOT = "kats"
     if "kats" in os.getcwd().lower():
@@ -42,7 +42,10 @@ def load_data(file_name: str) -> pd.DataFrame:
         path = "kats/data/"
     data_object = pkgutil.get_data(ROOT, path + file_name)
     assert data_object is not None
-    return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
+    df = pd.read_csv(io.BytesIO(data_object), encoding="utf8")
+    if reset_columns:
+        df.columns = ["time", "y"]
+    return df
 
 
 @overload

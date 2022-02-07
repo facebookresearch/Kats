@@ -3,15 +3,17 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
+
 
 import io
 import os
 import pkgutil
 import unittest
 from unittest import TestCase
+from typing import Dict, Union, cast
 
 import pandas as pd
+from kats.data.utils import load_data
 from kats.consts import TimeSeriesData
 from kats.models.linear_model import LinearModel, LinearModelParams
 from kats.tests.models.test_models_dummy_data import (
@@ -27,21 +29,7 @@ from kats.tests.models.test_models_dummy_data import (
 from pandas.util.testing import assert_frame_equal
 from parameterized.parameterized import parameterized
 
-# TODO: add reset_columns to function in kats.data.utils and then import
-def load_data(file_name, reset_columns=False):
-    ROOT = "kats"
-    if "kats" in os.getcwd().lower():
-        path = "data/"
-    else:
-        path = "kats/data/"
-    data_object = pkgutil.get_data(ROOT, path + file_name)
-    df = pd.read_csv(io.BytesIO(data_object), encoding="utf8")
-    if reset_columns:
-        df.columns = ["time", "y"]
-    return df
-
-
-TEST_DATA = {
+TEST_DATA : Dict[str, Union[Dict[str, Union[TimeSeriesData, int, pd.DataFrame, str]], Dict[str, Union[TimeSeriesData, pd.DataFrame, str]], Dict[str, TimeSeriesData]]] = {
     "daily": {
         "ts": TimeSeriesData(load_data("peyton_manning.csv", reset_columns=True)),
         "ts_nan": TimeSeriesData(df=PEYTON_INPUT_NAN),
@@ -67,6 +55,7 @@ TEST_DATA = {
 
 
 class LinearModelTest(TestCase):
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -92,6 +81,7 @@ class LinearModelTest(TestCase):
             ],
         ]
     )
+
     def test_fcst(
         self,
         name: str,
@@ -99,7 +89,7 @@ class LinearModelTest(TestCase):
         freq: str,
         truth_95: pd.DataFrame,
         truth_99: pd.DataFrame,
-    ):
+    ) -> None:
         # Set up params
         params_95 = LinearModelParams(alpha=0.05)
         params_99 = LinearModelParams(alpha=0.01)
@@ -116,6 +106,7 @@ class LinearModelTest(TestCase):
         assert_frame_equal(truth_95, res_95)
         assert_frame_equal(truth_99, res_99)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -132,9 +123,10 @@ class LinearModelTest(TestCase):
             ],
         ]
     )
+
     def test_invalid_params(
         self, ts: TimeSeriesData, invalid_param: float, freq: str, truth: pd.DataFrame
-    ):
+    ) -> None:
         # Set up params
         params = LinearModelParams(alpha=invalid_param)
         # Fit forecast
@@ -144,25 +136,29 @@ class LinearModelTest(TestCase):
         # Test result
         assert_frame_equal(truth, res)
 
-    def test_multivar(self):
+
+    def test_multivar(self) -> None:
         self.assertRaises(ValueError, LinearModel, TEST_DATA["multi"]["ts"], None)
 
-    def test_exec_plot(self):
+
+    def test_exec_plot(self) -> None:
         # Set up params
         params = LinearModelParams(alpha=0.05)
         # Fit forecast
-        m = LinearModel(TEST_DATA["daily"]["ts"], params)
+        m = LinearModel(cast(TimeSeriesData, TEST_DATA["daily"]["ts"]), params)
         m.fit()
         _ = m.predict(steps=2, freq=TEST_DATA["daily"]["freq"])
         # Test plotting
         m.plot()
 
-    def test_name(self):
-        m = LinearModel(TEST_DATA["daily"]["ts"], None)
+
+    def test_name(self) -> None:
+        m = LinearModel(cast(TimeSeriesData, TEST_DATA["daily"]["ts"]), LinearModelParams())
         self.assertEqual(m.__str__(), "Linear Model")
 
-    def test_search_space(self):
-        m = LinearModel(TEST_DATA["daily"]["ts"], None)
+
+    def test_search_space(self) -> None:
+        m = LinearModel(cast(TimeSeriesData, TEST_DATA["daily"]["ts"]), LinearModelParams())
         self.assertEqual(
             m.get_parameter_search_space(),
             [
