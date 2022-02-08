@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 import seaborn as sns
+from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.models.bayesian_var import BayesianVAR, BayesianVARParams
@@ -135,7 +136,7 @@ class testBayesianVARModel(TestCase):
             index=self.TSData_multi.value.columns,
         )
         # fmt: on
-        pd.testing.assert_frame_equal(expected, m.sigma_u)
+        assert_frame_equal(expected, m.sigma_u)
 
     @parameterized.expand(
         [

@@ -30,8 +30,8 @@ import dateutil
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from kats.compat.pandas import assert_frame_equal, assert_series_equal
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
-from pandas.testing import assert_frame_equal, assert_series_equal
 from pandas.tseries.frequencies import to_offset
 
 FigSize = Tuple[int, int]
@@ -434,7 +434,7 @@ class TimeSeriesData:
             try:
                 assert_frame_equal(
                     self.value.sort_index(axis=1),
-                    other.value.sort_index(axis=1),
+                    cast(pd.DataFrame, other.value).sort_index(axis=1),
                     check_names=True,
                     check_dtype=False,
                 )

@@ -9,6 +9,7 @@ import io
 import os
 import pkgutil
 from datetime import datetime
+from typing import cast
 from unittest import TestCase
 
 import matplotlib.pyplot as plt
@@ -18,16 +19,16 @@ import pytest
 import pytz
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
+from kats.compat.pandas import (
+    assert_frame_equal,
+    assert_index_equal,
+    assert_series_equal,
+)
 from kats.consts import (
     DEFAULT_TIME_NAME,
     DEFAULT_VALUE_NAME,
     TimeSeriesData,
     TSIterator,
-)
-from pandas.testing import (
-    assert_frame_equal,
-    assert_index_equal,
-    assert_series_equal,
 )
 
 
@@ -243,24 +244,32 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
     def test_init_from_df_univar(self) -> None:
         # DataFrame with string time
         assert_series_equal(self.ts_from_df.time, self.AIR_TIME_SERIES_PD_DATETIME)
-        assert_series_equal(self.ts_from_df.value, self.AIR_VALUE_SERIES)
+        assert_series_equal(
+            cast(pd.Series, self.ts_from_df.value), self.AIR_VALUE_SERIES
+        )
         # DataFrame with datetime time
         assert_series_equal(
             self.ts_from_df_datetime.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
-        assert_series_equal(self.ts_from_df_datetime.value, self.AIR_VALUE_SERIES)
+        assert_series_equal(
+            cast(pd.Series, self.ts_from_df_datetime.value), self.AIR_VALUE_SERIES
+        )
         # DataFrame with unix time
         assert_series_equal(
             self.ts_from_df_with_unix.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
-        assert_series_equal(self.ts_from_df_with_unix.value, self.AIR_VALUE_SERIES)
+        assert_series_equal(
+            cast(pd.Series, self.ts_from_df_with_unix.value), self.AIR_VALUE_SERIES
+        )
 
     # Testing multivariate time series initialized from a DataFrame
     def test_init_from_df_multi(self) -> None:
         assert_series_equal(
             self.ts_from_df_multi.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
-        assert_frame_equal(self.ts_from_df_multi.value, self.MULTIVAR_VALUE_DF)
+        assert_frame_equal(
+            cast(pd.DataFrame, self.ts_from_df_multi.value), self.MULTIVAR_VALUE_DF
+        )
 
     # Testing univiarite time series initialized from a Series and Series/DataFrame
     def test_init_from_series_univar(self) -> None:
@@ -275,20 +284,24 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             self.AIR_TIME_SERIES_PD_DATETIME,
         )
         assert_series_equal(
-            self.ts_from_series_univar_no_datetime.value, self.AIR_VALUE_SERIES
+            cast(pd.Series, self.ts_from_series_univar_no_datetime.value),
+            self.AIR_VALUE_SERIES,
         )
         # time and value from Series, with time as unix time
         assert_series_equal(
             self.ts_from_series_with_unix.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
-        assert_series_equal(self.ts_from_series_with_unix.value, self.AIR_VALUE_SERIES)
+        assert_series_equal(
+            cast(pd.Series, self.ts_from_series_with_unix.value), self.AIR_VALUE_SERIES
+        )
         # time from Series and value from DataFrame
         assert_series_equal(
             self.ts_from_series_and_df_univar.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
         print(type(self.ts_from_series_and_df_univar.value))
         assert_series_equal(
-            self.ts_from_series_and_df_univar.value, self.AIR_VALUE_SERIES
+            cast(pd.Series, self.ts_from_series_and_df_univar.value),
+            self.AIR_VALUE_SERIES,
         )
 
     # Testing multivariate time series initialized from a Series/DataFrame
@@ -298,7 +311,8 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             self.ts_from_series_and_df_multivar.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
         assert_frame_equal(
-            self.ts_from_series_and_df_multivar.value, self.MULTIVAR_VALUE_DF
+            cast(pd.DataFrame, self.ts_from_series_and_df_multivar.value),
+            self.MULTIVAR_VALUE_DF,
         )
 
     # Testing univariate time series with time initialized as a
@@ -308,7 +322,8 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             self.ts_from_index_and_series_univar.time, self.AIR_TIME_SERIES_PD_DATETIME
         )
         assert_series_equal(
-            self.ts_from_index_and_series_univar.value, self.AIR_VALUE_SERIES
+            cast(pd.Series, self.ts_from_index_and_series_univar.value),
+            self.AIR_VALUE_SERIES,
         )
 
     # Testing multivariate time series with time initialized as a
@@ -319,32 +334,38 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             self.AIR_TIME_SERIES_PD_DATETIME,
         )
         assert_frame_equal(
-            self.ts_from_index_and_series_multivar.value, self.MULTIVAR_VALUE_DF
+            cast(pd.DataFrame, self.ts_from_index_and_series_multivar.value),
+            self.MULTIVAR_VALUE_DF,
         )
 
     # Testing initialization from None Objects
     def test_none(self) -> None:
         # Testing initialization from None DataFrame
         assert_series_equal(self.ts_df_none.time, EMPTY_TIME_SERIES)
-        assert_series_equal(self.ts_df_none.value, EMPTY_VALUE_SERIES)
+        assert_series_equal(cast(pd.Series, self.ts_df_none.value), EMPTY_VALUE_SERIES)
         # Testing initialization from two None Series
         assert_series_equal(self.ts_time_none_and_value_none.time, EMPTY_TIME_SERIES)
-        assert_series_equal(self.ts_time_none_and_value_none.value, EMPTY_VALUE_SERIES)
+        assert_series_equal(
+            cast(pd.Series, self.ts_time_none_and_value_none.value), EMPTY_VALUE_SERIES
+        )
 
     # Testing initialization from Empty Objects
     def test_empty(self) -> None:
         # Testing intialization from empty DataFrame
         assert_series_equal(self.ts_df_empty.time, EMPTY_TIME_SERIES)
-        assert_series_equal(self.ts_df_empty.value, EMPTY_VALUE_SERIES)
+        assert_series_equal(cast(pd.Series, self.ts_df_empty.value), EMPTY_VALUE_SERIES)
         # Testing intialization from two empty Series
         assert_series_equal(self.ts_time_empty_value_empty.time, EMPTY_TIME_SERIES)
-        assert_series_equal(self.ts_time_empty_value_empty.value, EMPTY_VALUE_SERIES)
+        assert_series_equal(
+            cast(pd.Series, self.ts_time_empty_value_empty.value), EMPTY_VALUE_SERIES
+        )
         # Testing intialization from two empty no name Series
         assert_series_equal(
             self.ts_time_empty_value_empty_no_name.time, EMPTY_TIME_SERIES
         )
         assert_series_equal(
-            self.ts_time_empty_value_empty_no_name.value, EMPTY_VALUE_SERIES
+            cast(pd.Series, self.ts_time_empty_value_empty_no_name.value),
+            EMPTY_VALUE_SERIES,
         )
 
         # Make sure the time and value objects here have the default names
@@ -358,14 +379,17 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         # Testing initialization from time as empty Series and value as empty
         # DataFrame
         assert_series_equal(self.ts_time_empty_value_empty_df.time, EMPTY_TIME_SERIES)
-        assert_series_equal(self.ts_time_empty_value_empty_df.value, EMPTY_VALUE_SERIES)
+        assert_series_equal(
+            cast(pd.Series, self.ts_time_empty_value_empty_df.value), EMPTY_VALUE_SERIES
+        )
         # Testing initialization from time as empty Series and value as empty
         # DataFrame
         assert_series_equal(
             self.ts_time_empty_value_empty_df_with_cols.time, EMPTY_TIME_SERIES
         )
         assert_series_equal(
-            self.ts_time_empty_value_empty_df_with_cols.value, EMPTY_VALUE_SERIES
+            cast(pd.Series, self.ts_time_empty_value_empty_df_with_cols.value),
+            EMPTY_VALUE_SERIES,
         )
 
     # Testing incorrect initializations
@@ -1273,17 +1297,23 @@ class TSIteratorTest(TestCase):
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-01")]), check_names=False
         )
-        assert_series_equal(val.value, pd.Series([100]), check_names=False)
+        assert_series_equal(
+            cast(pd.Series, val.value), pd.Series([100]), check_names=False
+        )
         val = next(kats_iterator)
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-02")]), check_names=False
         )
-        assert_series_equal(val.value, pd.Series([120]), check_names=False)
+        assert_series_equal(
+            cast(pd.Series, val.value), pd.Series([120]), check_names=False
+        )
         val = next(kats_iterator)
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-03")]), check_names=False
         )
-        assert_series_equal(val.value, pd.Series([130]), check_names=False)
+        assert_series_equal(
+            cast(pd.Series, val.value), pd.Series([130]), check_names=False
+        )
 
     def test_ts_iterator_multivariate_next(self) -> None:
         df = pd.DataFrame(
@@ -1300,17 +1330,17 @@ class TSIteratorTest(TestCase):
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-01")]), check_names=False
         )
-        assert_series_equal(val.value, pd.Series([100, 200], name=0))
+        assert_series_equal(cast(pd.Series, val.value), pd.Series([100, 200], name=0))
         val = next(kats_iterator)
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-02")]), check_names=False
         )
-        assert_series_equal(val.value, pd.Series([120, 220], name=1))
+        assert_series_equal(cast(pd.Series, val.value), pd.Series([120, 220], name=1))
         val = next(kats_iterator)
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-03")]), check_names=False
         )
-        assert_series_equal(val.value, pd.Series([130, 230], name=2))
+        assert_series_equal(cast(pd.Series, val.value), pd.Series([130, 230], name=2))
 
     def test_ts_iterator_comprehension(self) -> None:
         kats_data = TimeSeriesData(
@@ -1327,18 +1357,24 @@ class TSIteratorTest(TestCase):
             pd.Series([pd.Timestamp("2020-07-31 19:55:47+0000", tz="UTC")]),
             check_names=False,
         )
-        assert_series_equal(val.value, pd.Series([1]), check_names=False)
+        assert_series_equal(
+            cast(pd.Series, val.value), pd.Series([1]), check_names=False
+        )
         val = kats_list[1]
         assert_series_equal(
             val.time,
             pd.Series([pd.Timestamp("2020-07-31 19:55:48+0000", tz="UTC")]),
             check_names=False,
         )
-        assert_series_equal(val.value, pd.Series([2]), check_names=False)
+        assert_series_equal(
+            cast(pd.Series, val.value), pd.Series([2]), check_names=False
+        )
         val = kats_list[2]
         assert_series_equal(
             val.time,
             pd.Series([pd.Timestamp("2020-07-31 19:55:49+0000", tz="UTC")]),
             check_names=False,
         )
-        assert_series_equal(val.value, pd.Series([4]), check_names=False)
+        assert_series_equal(
+            cast(pd.Series, val.value), pd.Series([4]), check_names=False
+        )

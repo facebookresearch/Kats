@@ -12,6 +12,7 @@ import kats.utils.emp_confidence_int  # noqa
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from kats.compat.pandas import assert_frame_equal
 from kats.consts import Params, TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.models.model import Model
@@ -299,7 +300,7 @@ class testEmpConfidenceInt(TestCase):
         expected = _FROZEN_DATA.copy()
         expected["fcst_lower"] = expected["fcst"]
         expected["fcst_upper"] = expected["fcst"]
-        pd.testing.assert_frame_equal(expected, result, check_like=True)
+        assert_frame_equal(expected, result, check_like=True)
 
     def test_errors(self) -> None:
         for i, kwargs in enumerate(

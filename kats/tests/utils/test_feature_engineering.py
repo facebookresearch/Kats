@@ -10,7 +10,7 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import pandas.testing as pdt
+from kats.compat.pandas import assert_frame_equal
 from kats.utils import feature_engineering as fe
 
 
@@ -78,7 +78,7 @@ class FeatureEngineeringTest(TestCase):
             index=dates,
         )
         result = fe.datetime_features(pd.Series(values, index=dates, name="val"))
-        pdt.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
     def test_date_features(self) -> None:
         dates = pd.date_range("2021-01-22", "2021-01-31", tz="US/Pacific").tolist()
@@ -109,7 +109,7 @@ class FeatureEngineeringTest(TestCase):
             index=dates,
         )
         result = fe.date_features(pd.Series(values, index=dates, name="val"))
-        pdt.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
     def test_time_features(self) -> None:
         dates = pd.date_range("2021-01-22", "2021-01-31", tz="US/Pacific").tolist()
@@ -134,7 +134,7 @@ class FeatureEngineeringTest(TestCase):
             index=dates,
         )
         result = fe.time_features(pd.Series(values, index=dates, name="val"))
-        pdt.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
     def test_timestamp_time_features(self) -> None:
         t = pd.Timestamp("2021-01-01T02:03:04.5678", tz="US/Pacific")
@@ -205,7 +205,7 @@ class FeatureEngineeringTest(TestCase):
             }
         )
         result = fe.circle_encode(pd.DataFrame({"x": [10, 11, 12, 1]}), {"x": 12})
-        pdt.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
     def test_circle_encode_modulo(self) -> None:
         s32 = np.sqrt(3) / 2
@@ -218,4 +218,4 @@ class FeatureEngineeringTest(TestCase):
         result = fe.circle_encode(
             pd.DataFrame({"x": [10, 11, 12, 13]}), {"x": 12}, modulo=True
         )
-        pdt.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)

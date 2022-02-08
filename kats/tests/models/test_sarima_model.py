@@ -11,6 +11,7 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.models.sarima import SARIMAModel, SARIMAParams
@@ -27,7 +28,6 @@ from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_30_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
     EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1,
 )
-from pandas.util.testing import assert_frame_equal
 from parameterized.parameterized import parameterized
 
 AIR_TS = load_air_passengers()
@@ -207,20 +207,8 @@ class SARIMAModelTest(TestCase):
         ).reset_index(
             drop=True,
         )
-        assert_frame_equal(
-            res_1,
-            truth_1,
-            check_exact=False,
-            # pyre-fixme[6]: Expected `bool` for 4th parameter...
-            check_less_precise=2,
-        )
-        assert_frame_equal(
-            res_2,
-            truth_2,
-            check_exact=False,
-            # pyre-fixme[6]: Expected `bool` for 4th parameter...
-            check_less_precise=2,
-        )
+        assert_frame_equal(truth_1, res_1, rtol=0.01)
+        assert_frame_equal(truth_2, res_2, rtol=0.01)
 
     def test_exog(self) -> None:
         # Prep data
@@ -251,13 +239,7 @@ class SARIMAModelTest(TestCase):
         )
 
         # Compare against truth
-        assert_frame_equal(
-            res,
-            EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1,
-            check_exact=False,
-            # pyre-fixme[6]: Expected `bool` for 4th parameter...
-            check_less_precise=2,
-        )
+        assert_frame_equal(EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1, res, rtol=0.01)
 
         # Should raise a ValueError if exogenous variables aren't used to predict
         self.assertRaises(ValueError, m.predict, steps, "D")

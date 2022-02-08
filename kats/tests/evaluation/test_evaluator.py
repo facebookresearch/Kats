@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 # This file defines tests for the abstract Evaluator class
 
 import re
@@ -13,12 +11,12 @@ import unittest.mock as mock
 
 import numpy as np
 import pandas as pd
+from kats.compat.pandas import assert_frame_equal
 from kats.evaluation.evaluator import Evaluator, EvaluationObject
 from kats.tests.test_backtester_dummy_data import (
     PROPHET_0_108_FCST_DUMMY_DATA,
 )
 from kats.utils.testing import error_funcs
-from pandas.testing import assert_frame_equal
 
 pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])
 np.random.seed(42)
@@ -37,6 +35,8 @@ FCST_EVALUATION_ERRORS = pd.DataFrame(
 
 class EvaluatorTest(unittest.TestCase):
     @classmethod
+    # pyre-fixme[56]: Pyre was not able to infer the type of argument `set()` to
+    #  decorator factory `unittest.mock.patch.multiple`.
     @mock.patch.multiple(Evaluator, __abstractmethods__=set())
     def setUpClass(cls) -> None:
         # pyre-fixme[45]: Cannot instantiate abstract class `Evaluator`.
@@ -103,14 +103,7 @@ class EvaluatorTest(unittest.TestCase):
         eval_res = self.evaluator.evaluate(
             run_name="test_evaluate", metric_to_func=errs, labels=labels
         )
-        if pd_ver < 1.1:
-            assert_frame_equal(
-                eval_res,
-                FCST_EVALUATION_ERRORS,
-                check_exact=False,
-                check_less_precise=4,
-            )
-        else:
-            assert_frame_equal(
-                eval_res, FCST_EVALUATION_ERRORS, check_exact=False, atol=0.5, rtol=0.2
-            )
+        assert_frame_equal(
+            eval_res, FCST_EVALUATION_ERRORS, check_exact=False,
+            check_less_precise=4, atol=0.5, rtol=0.2
+        )

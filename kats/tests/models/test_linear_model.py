@@ -5,15 +5,13 @@
 
 
 
-import io
-import os
-import pkgutil
 import unittest
 from unittest import TestCase
 from typing import Dict, Union, cast
 
 import pandas as pd
 from kats.data.utils import load_data
+from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
 from kats.models.linear_model import LinearModel, LinearModelParams
 from kats.tests.models.test_models_dummy_data import (
@@ -26,7 +24,6 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_LINEAR_NAN,
     PEYTON_INPUT_NAN,
 )
-from pandas.util.testing import assert_frame_equal
 from parameterized.parameterized import parameterized
 
 TEST_DATA : Dict[str, Union[Dict[str, Union[TimeSeriesData, int, pd.DataFrame, str]], Dict[str, Union[TimeSeriesData, pd.DataFrame, str]], Dict[str, TimeSeriesData]]] = {

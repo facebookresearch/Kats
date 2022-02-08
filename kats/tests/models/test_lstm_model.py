@@ -12,6 +12,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 import torch
+from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.models.lstm import LSTMModel, LSTMParams
@@ -33,7 +34,6 @@ from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_15_LSTM_PARAM_1_MODEL_2_MONTHLY,
     AIR_FCST_30_LSTM_PARAM_1_MODEL_2_MONTHLY,
 )
-from pandas.util.testing import assert_frame_equal
 from parameterized import parameterized
 
 AIR_TS = load_air_passengers()
@@ -207,22 +207,16 @@ class LSTMModelTest(TestCase):
         torch.manual_seed(0)
         m = LSTMModel(data=ts, params=params)
         m.fit(**model_params)
-        res_1 = m.predict(steps=steps_1, freq=freq,).reset_index(
-            drop=True,
-        )
-        res_2 = m.predict(steps=steps_2, freq=freq,).reset_index(
-            drop=True,
-        )
-        assert_frame_equal(
-            res_1,
-            truth_1,
-            check_exact=False,
-        )
-        assert_frame_equal(
-            res_2,
-            truth_2,
-            check_exact=False,
-        )
+        res_1 = m.predict(
+            steps=steps_1,
+            freq=freq,
+        ).reset_index(drop=True)
+        res_2 = m.predict(
+            steps=steps_2,
+            freq=freq,
+        ).reset_index(drop=True)
+        assert_frame_equal(res_1, truth_1)
+        assert_frame_equal(res_2, truth_2)
 
     # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(

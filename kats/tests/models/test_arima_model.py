@@ -10,6 +10,7 @@ from typing import Dict, Optional, Union
 from unittest import TestCase
 
 import pandas as pd
+from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data  # @manual
 from kats.models.arima import ARIMAModel, ARIMAParams
@@ -25,7 +26,6 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_ARIMA_PARAM_2_MODEL_2,
     PEYTON_FCST_30_ARIMA_PARAM_1_MODEL_1_INCL_HIST,
 )
-from pandas.util.testing import assert_frame_equal
 from parameterized.parameterized import parameterized
 
 STEPS_1 = 15
@@ -196,25 +196,29 @@ class ARIMAModelTest(TestCase):
                 truth_1.reset_index(drop=True),
                 check_exact=False,
                 check_less_precise=True,
+                rtol=0.001,
             )
             assert_frame_equal(
                 res_2.reset_index(drop=True),
                 truth_2.reset_index(drop=True),
                 check_exact=False,
                 check_less_precise=True,
+                rtol=0.001,
             )
         else:
             assert_frame_equal(
                 res_1,
                 truth_1,
-                check_exact=False,
                 check_less_precise=True,
+                check_exact=False,
+                rtol=0.001,
             )
             assert_frame_equal(
                 res_2,
                 truth_2,
-                check_exact=False,
                 check_less_precise=True,
+                check_exact=False,
+                rtol=0.001,
             )
 
     @parameterized.expand(

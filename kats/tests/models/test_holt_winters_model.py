@@ -9,6 +9,7 @@ from typing import cast, Any, Dict
 from unittest import TestCase
 
 import pandas as pd
+from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers, load_data
 from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
@@ -16,7 +17,6 @@ from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_HW_1,  # first param combination results
     AIR_FCST_HW_2,
 )
-from pandas.testing import assert_frame_equal
 from parameterized.parameterized import parameterized
 
 pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])
@@ -73,10 +73,7 @@ class HoltWintersModelTest(TestCase):
         res = m.predict(steps=30, **predict_args)
 
         # Test result
-        if pd_ver < 1.1:
-            assert_frame_equal(truth, res, check_like=False, check_less_precise=0)
-        else:
-            assert_frame_equal(truth, res, check_like=False, rtol=1)
+        assert_frame_equal(truth, res, check_less_precise=0, rtol=1)
 
     def test_invalid_params(self) -> None:
         self.assertRaises(
