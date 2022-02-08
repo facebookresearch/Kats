@@ -5,7 +5,12 @@
 
 from __future__ import annotations
 
-from importlib import metadata
+try:
+    from importlib import metadata
+except ImportError:
+    # Python < 3.8
+    import importlib_metadata as metadata
+
 from typing import Callable, Union
 
 from packaging import version as pv
