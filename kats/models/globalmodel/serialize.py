@@ -100,7 +100,7 @@ def load_global_model_from_json(json_str: str) -> Union[GMModel, GMEnsemble]:
             overlap=param_dict["overlap"],
             multi=param_dict["multi"],
             replicate=param_dict["replicate"],
-            max_core=min(cpu_count() - 1, param_dict["max_core"]),
+            max_core=min(cpu_count(), param_dict["max_core"]),
             ensemble_type=param_dict["ensemble_type"],
         )
         ans.gm_info = param_dict["gm_info"]

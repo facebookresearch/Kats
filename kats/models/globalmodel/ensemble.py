@@ -529,6 +529,10 @@ def load_gmensemble_from_file(file_name: str) -> GMEnsemble:
                 tmp_gmmodel.decoder.load_state_dict(info["decoder_dict"][i])
             gm_models.append(tmp_gmmodel)
         info["gmensemble_params"]["gmparam"] = gmparam
+        # ensure max_core parameter dose not mess-up model reuse.
+        info["gmensemble_params"]["max_core"] = min(
+            info["gmensemble_params"]["max_core"], cpu_count()
+        )
         gmensemble = GMEnsemble(**info["gmensemble_params"])
         gmensemble.gm_models = gm_models
         gmensemble.gm_info = info["gm_info"]

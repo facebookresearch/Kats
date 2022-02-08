@@ -5,6 +5,7 @@
 
 # pyre-unsafe
 
+import logging
 import os
 from functools import partial
 from unittest import TestCase, mock
@@ -717,7 +718,10 @@ class GMModelTest(TestCase):
         # check loading model
         gm = load_gmmodel_from_file("test_save_model.p")
         # remove temporary file
-        os.remove("test_save_model.p")
+        try:
+            os.remove("test_save_model.p")
+        except Exception as e:
+            logging.info(f"Fail to remove test_save_model.p with exception {e}.")
 
     def _test_single_gmmodel(self, gmmodel, train_ts, valid_ts) -> None:
         _ = gmmodel.train(
@@ -937,7 +941,10 @@ class GMEnsembleTest(TestCase):
         # test load_model
         _ = load_gmensemble_from_file("test_gme.p")
         # remove temporary file
-        os.remove("test_gme.p")
+        try:
+            os.remove("test_gme.p")
+        except Exception as e:
+            logging.info(f"Fail to remove test_gme.p with exception {e}.")
 
         # Check that gmparam is a valid object
         self.assertRaises(
