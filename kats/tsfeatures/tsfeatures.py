@@ -18,15 +18,19 @@ all feature group names in feature_group_mapping attribute.
 
 import inspect
 import logging
-import re
 from functools import partial
 from itertools import groupby
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
-import statsmodels
+import statsmodels.api as sm
 from deprecated import deprecated
+from scipy import stats
+from scipy.signal import periodogram  # @manual
+from statsmodels.stats.diagnostic import het_arch
+from statsmodels.tsa.seasonal import STL
+from statsmodels.tsa.stattools import acf, pacf, kpss
 
 try:
     from numba import jit  # @manual
@@ -40,7 +44,7 @@ except ImportError:
         return jit_decorator
 
 
-import statsmodels.api as sm
+from kats.compat.statsmodels import ExponentialSmoothing
 from kats.consts import TimeSeriesData
 from kats.detectors import (
     cusum_detection,
@@ -50,12 +54,6 @@ from kats.detectors import (
     trend_mk,
     seasonality,
 )
-from scipy import stats
-from scipy.signal import periodogram  # @manual
-from statsmodels.stats.diagnostic import het_arch
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
-from statsmodels.tsa.seasonal import STL
-from statsmodels.tsa.stattools import acf, pacf, kpss
 
 """
 Each entry in _ALL_TS_FEATURES is of the form
@@ -1325,13 +1323,7 @@ class TsFeatures:
             if extra_args is not None and extra_args.get("holt_alpha", default_status):
                 holt_params_features["holt_alpha"] = m.params["smoothing_level"]
             if extra_args is not None and extra_args.get("holt_beta", default_status):
-                statsmodels_ver = float(
-                    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-                )
-                if statsmodels_ver < 0.12:
-                    holt_params_features["holt_beta"] = m.params["smoothing_slope"]
-                elif statsmodels_ver >= 0.12:
-                    holt_params_features["holt_beta"] = m.params["smoothing_trend"]
+                holt_params_features["holt_beta"] = m.params["smoothing_trend"]
         except Exception as e:
             logging.warning(f"Holt Linear failed {e}")
         return holt_params_features
@@ -1361,31 +1353,21 @@ class TsFeatures:
 
         hw_params_features = {"hw_alpha": np.nan, "hw_beta": np.nan, "hw_gamma": np.nan}
         try:
-            # addressing issue of use_boxcox arg in different versions of statsmodels
-            statsmodels_ver = float(
-                re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-            )
-            _args_ = {
-                "seasonal_periods": period,
-                "trend": "add",
-                "seasonal": "add",
-            }
-            # performing version check on statsmodels
-            if statsmodels_ver >= 0.12:
-                _args_["use_boxcox"] = True
-                _args_["initialization_method"] = "estimated"
-                m = ExponentialSmoothing(x, **_args_).fit()
-            elif statsmodels_ver < 0.12:
-                m = ExponentialSmoothing(x, **_args_).fit(use_boxcox=True)
-            if extra_args is not None and extra_args.get("hw_alpha", default_status):
-                hw_params_features["hw_alpha"] = m.params["smoothing_level"]
-            if extra_args is not None and extra_args.get("hw_beta", default_status):
-                if statsmodels_ver < 0.12:
-                    hw_params_features["hw_beta"] = m.params["smoothing_slope"]
-                elif statsmodels_ver >= 0.12:
+            m = ExponentialSmoothing(
+                x,
+                initialization_method="estimated",
+                seasonal="add",
+                seasonal_periods=period,
+                trend="add",
+                use_boxcox=True,
+            ).fit()
+            if extra_args is not None:
+                if extra_args.get("hw_alpha", default_status):
+                    hw_params_features["hw_alpha"] = m.params["smoothing_level"]
+                if extra_args.get("hw_beta", default_status):
                     hw_params_features["hw_beta"] = m.params["smoothing_trend"]
-            if extra_args is not None and extra_args.get("hw_gamma", default_status):
-                hw_params_features["hw_gamma"] = m.params["smoothing_seasonal"]
+                if extra_args.get("hw_gamma", default_status):
+                    hw_params_features["hw_gamma"] = m.params["smoothing_seasonal"]
         except Exception as e:
             logging.warning(f"Holt-Winters failed {e}")
         return hw_params_features

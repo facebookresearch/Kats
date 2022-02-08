@@ -3,23 +3,17 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import re
-from typing import cast, Any, Dict
+from typing import cast, Any, Dict, List, Union
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-import statsmodels
+from kats.compat import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.tsfeatures.tsfeatures import _FEATURE_GROUP_MAPPING, TsFeatures
 
 
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
 SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
     {
         "time": pd.date_range("2021-01-01", "2021-01-25"),
@@ -52,6 +46,12 @@ SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
         ],
     }
 )
+
+
+def _univariate_features(
+    feats: Union[Dict[str, float], List[Dict[str, float]]]
+) -> Dict[str, float]:
+    return cast(Dict[str, float], feats)
 
 
 class TSfeaturesTest(TestCase):
@@ -94,7 +94,7 @@ class TSfeaturesTest(TestCase):
 
     def test_tsfeatures_basic(self) -> None:
         ts = TimeSeriesData(df=SAMPLE_INPUT_TS_BOCPD_SCALED)
-        features = cast(Dict[str, float], TsFeatures(hw_params=False).transform(ts))
+        features = _univariate_features(TsFeatures(hw_params=False).transform(ts))
         expected = {
             # statistics_features
             "length": 25.0,
@@ -149,15 +149,15 @@ class TSfeaturesTest(TestCase):
             # seasonalities
             # time
         }
-        if statsmodels_ver >= 0.12:
+        if statsmodels.version >= "0.12":
             expected["trend_strength"] = 0.426899
             expected["seasonality_strength"] = 0.410921
             expected["spikiness"] = 0.000661
-            expected["holt_alpha"] = 0.289034
+            expected["holt_alpha"] = 1e-8
         self.assertDictAlmostEqual(expected, features)
 
     def test_tsfeatures(self) -> None:
-        feature_vector = cast(Dict[str, float], TsFeatures().transform(self.TSData))
+        feature_vector = _univariate_features(TsFeatures().transform(self.TSData))
 
         feature_vector_round = {
             key: round(feature_vector[key], 6) for key in feature_vector
@@ -218,7 +218,7 @@ class TSfeaturesTest(TestCase):
             "hw_beta": 0.052631,
             "hw_gamma": 0.157901,
         }
-        if statsmodels_ver >= 0.12:
+        if statsmodels.version >= "0.12":
             rounded_truth["trend_strength"] = 0.93833
             rounded_truth["seasonality_strength"] = 0.329934
             rounded_truth["spikiness"] = 111.697325
@@ -237,8 +237,7 @@ class TSfeaturesTest(TestCase):
 
     def test_feature_selections(self) -> None:
         # test disabling functions
-        feature_vector = cast(
-            Dict[str, Any],
+        feature_vector = _univariate_features(
             TsFeatures(
                 unitroot_kpss=False,
                 histogram_mode=False,
@@ -284,7 +283,7 @@ class TSfeaturesTest(TestCase):
             "hw_beta": 0.052631,
             "hw_gamma": 0.157901,
         }
-        if statsmodels_ver >= 0.12:
+        if statsmodels.version >= "0.12":
             rounded_truth["trend_strength"] = 0.93833
             rounded_truth["seasonality_strength"] = 0.329934
             rounded_truth["spikiness"] = 111.697325
@@ -307,8 +306,7 @@ class TSfeaturesTest(TestCase):
             "hw_gamma",
             "level_shift_idx",
         ]
-        feature_vector = cast(
-            Dict[str, Any],
+        feature_vector = _univariate_features(
             TsFeatures(selected_features=features).transform(self.TSData),
         )
 
@@ -322,7 +320,7 @@ class TSfeaturesTest(TestCase):
             "holt_alpha": 1.0,
             "hw_gamma": 0.157901,
         }
-        if statsmodels_ver >= 0.12:
+        if statsmodels.version >= "0.12":
             rounded_truth["spikiness"] = 111.697325
             feature_vector["holt_alpha"] = np.round(feature_vector["holt_alpha"], 1)
             rounded_truth["holt_alpha"] = 1.0
@@ -361,8 +359,7 @@ class TSfeaturesTest(TestCase):
             "trend_mag",
             "residual_std",
         ]
-        feature_vector = cast(
-            Dict[str, Any],
+        feature_vector = _univariate_features(
             TsFeatures(selected_features=extension_features).transform(self.TSData),
         )
 
@@ -397,7 +394,7 @@ class TSfeaturesTest(TestCase):
             "seasonality_mag": 35.0,
             "residual_std": 21.258429,
         }
-        if statsmodels_ver >= 0.12:
+        if statsmodels.version >= "0.12":
             rounded_truth["trend_mag"] = 2.318814
             rounded_truth["seasonality_mag"] = 36.0
             rounded_truth["residual_std"] = 29.630087
@@ -405,9 +402,7 @@ class TSfeaturesTest(TestCase):
 
     def test_others(self) -> None:
         # test there is nan in feature vector because the length of TS is too short
-        feature_vector = cast(
-            Dict[str, float], TsFeatures().transform(self.TSData_short)
-        )
+        feature_vector = _univariate_features(TsFeatures().transform(self.TSData_short))
 
         self.assertEqual(
             np.isnan(np.asarray(list(feature_vector.values()))).any(),
@@ -425,14 +420,14 @@ class TSfeaturesTest(TestCase):
             TsFeatures(selected_features=["mango"])
 
     def test_IntegerArrays(self) -> None:
-        if statsmodels_ver < 0.12:
+        if statsmodels.version < "0.12":
             df = pd.DataFrame(
                 {
                     "time": range(15),
                     "value": [1, 4, 9, 4, 5, 5, 7, 2, 5, 1, 6, 3, 6, 5, 5],
                 }
             )
-        elif statsmodels_ver >= 0.12:
+        elif statsmodels.version >= "0.12":
             df = pd.DataFrame(
                 {
                     "time": range(20),
@@ -475,11 +470,10 @@ class TSfeaturesTest(TestCase):
                 "hw_gamma",
             ]
         )
-        feats = cast(Dict[str, float], ts_features.transform(ts))
+        feats = _univariate_features(ts_features.transform(ts))
         feats = {key: round(feats[key], 3) for key in feats}
-        if statsmodels_ver < 0.12:
+        if statsmodels.version < "0.12":
             self.assertEqual(
-                feats,
                 {
                     "length": 15,
                     "mean": 4.533,
@@ -489,10 +483,10 @@ class TSfeaturesTest(TestCase):
                     "seas_acf1": -0.121,
                     "hw_gamma": 0.947,
                 },
-            )
-        elif statsmodels_ver >= 0.12:
-            self.assertEqual(
                 feats,
+            )
+        elif statsmodels.version >= "0.12":
+            self.assertEqual(
                 {
                     "length": 20,
                     "mean": 5.2,
@@ -502,11 +496,12 @@ class TSfeaturesTest(TestCase):
                     "seas_acf1": -0.125,
                     "hw_gamma": 0.0,
                 },
+                feats,
             )
 
     def test_nowcasting_error(self) -> None:
         ts = TimeSeriesData(df=SAMPLE_INPUT_TS_BOCPD_SCALED)
-        features = cast(Dict[str, float], TsFeatures(nowcasting=True).transform(ts))
+        features = _univariate_features(TsFeatures(nowcasting=True).transform(ts))
         expected = {
             "trend_strength": 0.536395,
             "seasonality_strength": 0.464575,
@@ -556,11 +551,11 @@ class TSfeaturesTest(TestCase):
             "nowcast_macdsign": np.nan,
             "nowcast_macddiff": np.nan,
         }
-        if statsmodels_ver >= 0.12:
+        if statsmodels.version >= "0.12":
             expected["trend_strength"] = 0.426899
             expected["seasonality_strength"] = 0.410921
             expected["spikiness"] = 0.000661
-            expected["holt_alpha"] = 0.289034
+            expected["holt_alpha"] = 1e-8
         self.assertDictAlmostEqual(expected, features)
 
         _df_ = pd.DataFrame(
@@ -601,8 +596,8 @@ class TSfeaturesTest(TestCase):
             }
         )
         ts = TimeSeriesData(df=_df_)
-        features = cast(
-            Dict[str, float], TsFeatures(selected_features=["nowcasting"]).transform(ts)
+        features = _univariate_features(
+            TsFeatures(selected_features=["nowcasting"]).transform(ts)
         )
         expected = {
             "nowcast_roc": 0.435531,
@@ -626,8 +621,8 @@ class TSfeaturesTest(TestCase):
                 }
             )
         )
-        features = cast(
-            Dict[str, float], TsFeatures(selected_features=["time"]).transform(ts)
+        features = _univariate_features(
+            TsFeatures(selected_features=["time"]).transform(ts)
         )
         expected = {
             "time_years": 2,

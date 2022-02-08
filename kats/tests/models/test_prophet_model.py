@@ -6,7 +6,6 @@
 # pyre-unsafe
 
 import builtins
-import re
 import sys
 import unittest
 from typing import Optional
@@ -15,7 +14,7 @@ from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
-import statsmodels
+from kats.compat import statsmodels, pandas
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.models.prophet import ProphetModel, ProphetParams
@@ -43,14 +42,8 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12,
     NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_12,
 )
-from pandas.util.testing import assert_frame_equal
 from parameterized.parameterized import parameterized
 
-
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
-pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])
 
 TEST_DATA = {
     "nonseasonal": {
@@ -167,7 +160,7 @@ class ProphetModelTest(TestCase):
             msg = "param: {param}, expected default: {exp_val}, actual default: {val}".format(
                 param=param, exp_val=exp_val, val=actual_defaults[param]
             )
-            self.assertEqual(actual_defaults[param], exp_val, msg)
+            self.assertEqual(exp_val, actual_defaults[param], msg)
 
     def test_invalid_params(self) -> None:
         params = ProphetParams(growth="logistic")
@@ -195,7 +188,7 @@ class ProphetModelTest(TestCase):
                 None,
                 (
                     AIR_FCST_30_PROPHET_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else AIR_FCST_30_PROPHET_SM_12
                 ),
             ],
@@ -210,7 +203,7 @@ class ProphetModelTest(TestCase):
                 None,
                 (
                     AIR_FCST_30_PROPHET_CAP_AND_FLOOR_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else AIR_FCST_30_PROPHET_CAP_AND_FLOOR_SM_12
                 ),
             ],
@@ -225,7 +218,7 @@ class ProphetModelTest(TestCase):
                 None,
                 (
                     PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else PEYTON_FCST_30_PROPHET_CAP_AND_FLOOR_SM_12
                 ),
             ],
@@ -240,7 +233,7 @@ class ProphetModelTest(TestCase):
                 None,
                 (
                     AIR_FCST_30_PROPHET_INCL_HIST_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else AIR_FCST_30_PROPHET_INCL_HIST_SM_12
                 ),
             ],
@@ -255,7 +248,7 @@ class ProphetModelTest(TestCase):
                 None,
                 (
                     PEYTON_FCST_15_PROPHET_INCL_HIST_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else PEYTON_FCST_15_PROPHET_INCL_HIST_SM_12
                 ),
             ],
@@ -270,7 +263,7 @@ class ProphetModelTest(TestCase):
                 None,
                 (
                     AIR_FCST_15_PROPHET_LOGISTIC_CAP_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else AIR_FCST_15_PROPHET_LOGISTIC_CAP_SM_12
                 ),
             ],
@@ -285,7 +278,7 @@ class ProphetModelTest(TestCase):
                 None,
                 (
                     PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_12
                 ),
             ],
@@ -300,7 +293,7 @@ class ProphetModelTest(TestCase):
                 None,
                 (
                     AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12
                 ),
             ],
@@ -315,7 +308,7 @@ class ProphetModelTest(TestCase):
                 None,
                 (
                     PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12
                 ),
             ],
@@ -330,7 +323,7 @@ class ProphetModelTest(TestCase):
                 True,
                 (
                     NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_12
                 ),
             ],
@@ -361,17 +354,9 @@ class ProphetModelTest(TestCase):
         m = ProphetModel(data=ts, params=params)
         m.fit()
         forecast_df = m.predict(steps=steps, include_history=include_history, **kwargs)
-        if pd_ver < 1.1:
-            assert_frame_equal(
-                forecast_df,
-                truth,
-                check_exact=False,
-            )
-        else:
-            # pyre-fixme[28] Unexpected keyword...
-            assert_frame_equal(
-                forecast_df, truth, check_exact=False, atol=0.5, rtol=0.05
-            )
+        pandas.assert_frame_equal(
+            truth, forecast_df, check_exact=False, atol=0.5, rtol=0.5
+        )
 
     def test_multivar(self) -> None:
         # Prophet model does not support multivariate time series data
@@ -390,11 +375,10 @@ class ProphetModelTest(TestCase):
 
     def test_name(self):
         m = ProphetModel(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"])
-        self.assertEqual(m.__str__(), "Prophet")
+        self.assertEqual("Prophet", m.__str__())
 
     def test_search_space(self):
         self.assertEqual(
-            ProphetModel.get_parameter_search_space(),
             [
                 {
                     "name": "seasonality_prior_scale",
@@ -442,6 +426,7 @@ class ProphetModelTest(TestCase):
                     "is_ordered": True,
                 },
             ],
+            ProphetModel.get_parameter_search_space(),
         )
 
         # Testing extra regressors

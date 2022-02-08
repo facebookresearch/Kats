@@ -3,17 +3,15 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import re
 import unittest
-from typing import Optional
+from typing import cast, Dict, Optional, Union
 from unittest import TestCase
 from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
-import statsmodels
+from kats.compat import statsmodels
+from kats.compat.pandas import assert_frame_equal, assert_series_equal
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data, load_air_passengers
 from kats.models.theta import ThetaModel, ThetaParams
@@ -28,16 +26,10 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_THETA_SM_12,
     PEYTON_FCST_30_THETA_INCL_HIST_SM_12,
 )
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 from parameterized.parameterized import parameterized
 
 
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
-
-
-TEST_DATA = {
+TEST_DATA: Dict[str, Dict[str, Union[ThetaParams, TimeSeriesData, pd.DataFrame]]] = {
     "short": {
         "ts": TimeSeriesData(
             pd.DataFrame(
@@ -91,6 +83,7 @@ class ThetaModelTest(TestCase):
         params = ThetaParams(m=12)
         self.assertEqual(params.m, 12)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -103,7 +96,7 @@ class ThetaModelTest(TestCase):
                 None,
                 (
                     AIR_FCST_15_THETA_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else AIR_FCST_15_THETA_SM_12
                 ),
             ],
@@ -117,7 +110,7 @@ class ThetaModelTest(TestCase):
                 None,
                 (
                     AIR_FCST_15_THETA_INCL_HIST_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else AIR_FCST_15_THETA_INCL_HIST_SM_12
                 ),
             ],
@@ -131,7 +124,7 @@ class ThetaModelTest(TestCase):
                 None,
                 (
                     PEYTON_FCST_30_THETA_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else PEYTON_FCST_30_THETA_SM_12
                 ),
             ],
@@ -145,7 +138,7 @@ class ThetaModelTest(TestCase):
                 None,
                 (
                     PEYTON_FCST_30_THETA_INCL_HIST_SM_11
-                    if statsmodels_ver < 0.12
+                    if statsmodels.version < "0.12"
                     else PEYTON_FCST_30_THETA_INCL_HIST_SM_12
                 ),
             ],
@@ -168,8 +161,9 @@ class ThetaModelTest(TestCase):
         forecast_df = m.predict(
             steps=steps, alpha=alpha, include_history=include_history, freq=freq
         )
-        assert_frame_equal(forecast_df, truth, check_exact=False)
+        assert_frame_equal(truth, forecast_df)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -209,6 +203,7 @@ class ThetaModelTest(TestCase):
         m.check_seasonality()
         self.assertEqual(m.seasonal, is_seasonal)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -245,7 +240,9 @@ class ThetaModelTest(TestCase):
         if seasonality_removed:
             self.assertFalse(ts.value.equals(deseas_data.value))
         else:
-            assert_series_equal(deseas_data.value, ts.value)
+            assert_series_equal(
+                cast(pd.Series, ts.value), cast(pd.Series, deseas_data.value)
+            )
 
         self.assertEqual(decomp_is_none, m.decomp is None)
 
@@ -258,17 +255,23 @@ class ThetaModelTest(TestCase):
             ThetaParams(),
         )
 
-    def test_exec_plot(self):
-        m = ThetaModel(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"])
+    def test_exec_plot(self) -> None:
+        m = ThetaModel(
+            cast(TimeSeriesData, TEST_DATA["daily"]["ts"]),
+            cast(ThetaParams, TEST_DATA["daily"]["params"]),
+        )
         m.fit()
         m.predict(steps=15, alpha=0.05)
         m.plot()
 
-    def test_name(self):
-        m = ThetaModel(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"])
+    def test_name(self) -> None:
+        m = ThetaModel(
+            cast(TimeSeriesData, TEST_DATA["daily"]["ts"]),
+            cast(ThetaParams, TEST_DATA["daily"]["params"]),
+        )
         self.assertEqual(m.__str__(), "Theta")
 
-    def test_search_space(self):
+    def test_search_space(self) -> None:
         self.assertEqual(
             ThetaModel.get_parameter_search_space(),
             [
@@ -283,7 +286,10 @@ class ThetaModelTest(TestCase):
         )
 
     def test_others(self) -> None:
-        m = ThetaModel(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"])
+        m = ThetaModel(
+            cast(TimeSeriesData, TEST_DATA["daily"]["ts"]),
+            cast(ThetaParams, TEST_DATA["daily"]["params"]),
+        )
         # fit must be called before predict
         self.assertRaises(ValueError, m.predict, 30)
 
@@ -297,11 +303,16 @@ class ThetaModelTest(TestCase):
 
         with patch(
             "kats.utils.decomposition.TimeSeriesDecomposition.decomposer",
-            return_value={"seasonal": TEST_DATA["daily"]["ts"] * 0},
+            return_value={
+                "seasonal": cast(TimeSeriesData, TEST_DATA["daily"]["ts"]) * 0
+            },
         ):
             # Don't deseasonalize if any seasonal index = 0
             deseas_data = m.deseasonalize()
-            assert_series_equal(deseas_data.value, TEST_DATA["daily"]["ts"].value)
+            expected = cast(
+                pd.Series, cast(TimeSeriesData, TEST_DATA["daily"]["ts"]).value
+            )
+            assert_series_equal(expected, cast(pd.Series, deseas_data.value))
 
 
 if __name__ == "__main__":

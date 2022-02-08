@@ -3,22 +3,14 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import re
 from unittest import TestCase
 
 import numpy as np
-import statsmodels
+from kats.compat import statsmodels
 from kats.data.utils import load_air_passengers
 from kats.detectors.trend_mk import MKDetector
 from kats.models.theta import ThetaParams, ThetaModel
 from kats.utils.cupik import Pipeline
-
-
-statsmodels_ver = float(
-    re.findall("([0-9]+\\.[0-9]+)\\..*", statsmodels.__version__)[0]
-)
 
 
 class cupikTest(TestCase):
@@ -73,10 +65,9 @@ class cupikTest(TestCase):
             == fitted.fitted_values.values
         )
         self.assertEqual(np.sum(bools), 144)
-        if statsmodels_ver < 0.12:
-            self.assertEqual(fitted.predict(1).fcst.values[0], 433.328591954023)
-        elif statsmodels_ver >= 0.12:
-            self.assertEqual(fitted.predict(1).fcst.values[0], 433.1270492317991)
+        old_statsmodels = statsmodels.version < "0.12"
+        expected = 433.328591954023 if old_statsmodels else 433.1270492317991
+        self.assertEqual(expected, fitted.predict(1).fcst.values[0])
 
         # test if the model can be built on the output from the detector
         pipe = Pipeline(
@@ -87,7 +78,5 @@ class cupikTest(TestCase):
         )
         fitted = pipe.fit(self.TSData)
         self.assertEqual(len(pipe.metadata["trend_detector"][0]), 2)
-        if statsmodels_ver < 0.12:
-            self.assertEqual(fitted.predict(1).fcst.values[0], 433.328591954023)
-        elif statsmodels_ver >= 0.12:
-            self.assertEqual(fitted.predict(1).fcst.values[0], 433.1270492317991)
+        expected = 433.328591954023 if old_statsmodels else 433.1270492317991
+        self.assertEqual(expected, fitted.predict(1).fcst.values[0])
