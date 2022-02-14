@@ -37,7 +37,7 @@ class TestMetaDetectHptSelect(TestCase):
         return cls._synth_data_read.get_metadata(algorithm_name)
 
     @parameterized.expand(MetaDetectHptSelect.DETECTION_ALGO.keys())
-    def test_legal_run(self, algorithm_name) -> None:
+    def test_legal_run(self, algorithm_name: str) -> None:
         MetaDetectHptSelect(
             **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
         ).train()
@@ -51,7 +51,7 @@ class TestMetaDetectHptSelect(TestCase):
             )
 
     @parameterized.expand(MetaDetectHptSelect.DETECTION_ALGO.keys())
-    def test_illegal_hyper_parameter(self, algo_name) -> None:
+    def test_illegal_hyper_parameter(self, algo_name: str) -> None:
         metadata = self._get_valid_metadata(algo_name)
         data_y = metadata["data_y"]
         corrupted_col = data_y.columns[random.randint(0, len(data_y.columns) - 1)]
