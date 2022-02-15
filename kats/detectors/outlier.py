@@ -58,7 +58,9 @@ class OutlierDetector(Detector):
             self.decomp = "additive"
         self.iqr_mult = iqr_mult
 
-    def __clean_ts__(self, original: pd.DataFrame) -> Tuple[List[int], List[float]]:
+    def __clean_ts__(
+        self, original: Union[pd.Series, pd.DataFrame]
+    ) -> Tuple[List[int], List[float], List[pd.Timestamp]]:
         """
         Performs detection for a single metric. First decomposes the time series
         and detects outliers when the values in residual time series are beyond the
@@ -71,16 +73,23 @@ class OutlierDetector(Detector):
         original.index = pd.to_datetime(original.index)
 
         if pd.infer_freq(original.index) is None:
-            original = original.asfreq("D").to_dataframe()
+            original = cast(pd.DataFrame, original.asfreq("D"))
             logging.info("Setting frequency to Daily since it cannot be inferred")
 
-        original = original.interpolate(
-            method="polynomial", limit_direction="both", order=3
+        original = cast(
+            pd.DataFrame,
+            original.interpolate(method="polynomial", limit_direction="both", order=3),
         )
 
         # This is a hack since polynomial interpolation is not working here
         if sum((np.isnan(x) for x in original["y"])):
-            original = original.interpolate(method="linear", limit_direction="both")
+            original = cast(
+                pd.DataFrame,
+                original.interpolate(method="linear", limit_direction="both"),
+            )
+
+        # If interpolation added rows, need to return interpolated time index
+        output_time = original.index
 
         # Once our own decomposition is ready, we can directly use it here
         result = seasonal_decompose(
@@ -101,7 +110,7 @@ class OutlierDetector(Detector):
         outliers = resid[(resid >= limits[1]) | (resid <= limits[0])]
         outliers_index = list(outliers.index)
 
-        return outliers_index, output_scores
+        return outliers_index, output_scores, output_time
 
     # pyre-fixme
     def detector(self, method: Optional[str] = None) -> None:
@@ -117,11 +126,12 @@ class OutlierDetector(Detector):
         ]
         self.outliers = outliers = []
         output_scores_dict = {}
+        time_index = None
         logging.Logger("Detecting Outliers")
 
         for ts, col in zip(ts_iter, column_names):
             try:
-                outliers_index, output_scores = self.__clean_ts__(ts)
+                outliers_index, output_scores, time_index = self.__clean_ts__(ts)
                 outliers.append(outliers_index)
                 output_scores_dict[col] = output_scores
             except BaseException:
@@ -132,7 +142,7 @@ class OutlierDetector(Detector):
                 outliers.append([])
 
         if output_scores_dict:
-            self.output_scores = pd.DataFrame(output_scores_dict, index=self.data.time)
+            self.output_scores = pd.DataFrame(output_scores_dict, index=time_index)
 
 
 class MultivariateAnomalyDetectorType(Enum):

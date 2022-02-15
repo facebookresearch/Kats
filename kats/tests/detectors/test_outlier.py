@@ -33,6 +33,25 @@ class OutlierDetectionTest(TestCase):
         daily_data.columns = ["time", "y"]
         self.ts_data_daily = TimeSeriesData(daily_data)
 
+        daily_data_missing = daily_data.drop([2, 11, 18, 19, 20, 21, 22, 40, 77, 101]).copy()
+        # Detecting missing data is coupled to pd.infer_freq() implementation. Make sure the
+        # rows dropped above prevent us from inferring a frequency (so it returns None)
+        self.assertIsNone(pd.infer_freq(daily_data_missing['time']))
+        self.ts_data_daily_missing = TimeSeriesData(daily_data_missing)
+
+    def test_additive_overrides_missing_daily_data(self) -> None:
+        m = OutlierDetector(self.ts_data_daily_missing, "additive")
+
+        m.detector()
+        outliers = m.remover(interpolate=True)
+
+        m2 = OutlierDetector(self.ts_data_daily_missing, "logarithmic")
+
+        m2.detector()
+        outliers2 = m2.remover(interpolate=True)
+
+        self.assertEqual(outliers.value.all(), outliers2.value.all())
+
     def test_additive_overrides(self) -> None:
         m = OutlierDetector(self.ts_data, "additive")
 
