@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 This file defines the BackTester classes for Kats.
 
@@ -25,11 +23,12 @@ For more information, check out the Kats tutorial notebook on backtesting!
 import logging
 import multiprocessing as mp
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
 
 
 # Constant to indicate error types supported
@@ -60,17 +59,33 @@ class BackTesterParent(ABC):
     Raises:
       ValueError: The time series is empty or an invalid error type was passed.
     """
+    error_methods: List[str]
+    data: TimeSeriesData
+    # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+    #  `typing.Type` to avoid runtime subscripting errors.
+    model_class: Type
+    params: Params
+    multi: bool
+    offset: int
+    results: List[Tuple[np.ndarray, np.ndarray, Model[Params], np.ndarray]]
+    errors: Dict[str, float]
+    size: int
+    error_funcs: Dict[str, Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], float]]
+    freq: Optional[str]
+    raw_errors: List[np.ndarray]
 
     def __init__(
         self,
         error_methods: List[str],
         data: TimeSeriesData,
         params: Params,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
         multi: bool,
-        offset=0,
-        **kwargs,
-    ):
+        offset: int = 0,
+        **kwargs: Any,
+    ) -> None:
         self.error_methods = error_methods
         self.data = data
         self.model_class = model_class
@@ -264,7 +279,7 @@ class BackTesterParent(ABC):
         self,
         training_data_indices: Tuple[int, int],
         testing_data_indices: Tuple[int, int],
-    ) -> Optional[Tuple[np.ndarray, np.ndarray, Type, np.ndarray]]:
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, Model[Params], np.ndarray]]:
         """
         Trains model, evaluates it, and stores results in results list.
         """
@@ -364,7 +379,11 @@ class BackTesterParent(ABC):
                 pool.apply_async(self._create_model, args=(train_split, test_split))
                 for train_split, test_split in zip(training_splits, testing_splits)
             ]
-            self.results = [fut.get() for fut in futures]
+            self.results = results = []
+            for fut in futures:
+                result = fut.get()
+                assert result is not None
+                results.append(result)
             pool.close()
 
     def run_backtest(self) -> None:
@@ -393,8 +412,8 @@ class BackTesterParent(ABC):
             raise ValueError("Invalid error name")
 
     @abstractmethod
-    def _create_train_test_splits(self):
-        pass
+    def _create_train_test_splits(self) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+        raise NotImplementedError()
 
 
 class BackTesterSimple(BackTesterParent):
@@ -447,9 +466,11 @@ class BackTesterSimple(BackTesterParent):
         params: Params,
         train_percentage: float,
         test_percentage: float,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         logging.info("Initializing train/test percentages")
         if train_percentage <= 0:
             logging.error("Non positive training percentage")
@@ -578,11 +599,13 @@ class BackTesterRollingOrigin(BackTesterParent):
         start_train_percentage: float,
         test_percentage: float,
         expanding_steps: int,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
         constant_train_size: bool = False,
-        multi=True,
-        **kwargs,
-    ):
+        multi: bool=True,
+        **kwargs: Any,
+    ) -> None:
         logging.info("Initializing train/test percentages")
         if start_train_percentage <= 0:
             logging.error("Non positive start training percentage")
@@ -714,10 +737,12 @@ class BackTesterExpandingWindow(BackTesterRollingOrigin):
         end_train_percentage: float,
         test_percentage: float,
         expanding_steps: int,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
-        multi=True,
-        **kwargs,
-    ):
+        multi: bool=True,
+        **kwargs: Any,
+    ) -> None:
         logging.info(
             "BackTesterExpandingWindow will be deprecated. Please use the "
             "updated API found in BackTesterRollingOrigin."
@@ -751,10 +776,12 @@ class BackTesterRollingWindow(BackTesterRollingOrigin):
         train_percentage: float,
         test_percentage: float,
         sliding_steps: int,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
-        multi=True,
-        **kwargs,
-    ):
+        multi: bool=True,
+        **kwargs: Any,
+    ) -> None:
         logging.info(
             "BackTesterRollingWindow will be deprecated. Please use the "
             "updated API found in BackTesterRollingOrigin."
@@ -831,9 +858,11 @@ class BackTesterFixedWindow(BackTesterParent):
         train_percentage: float,
         test_percentage: float,
         window_percentage: int,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         logging.info("Initializing train/test percentages")
         if train_percentage <= 0:
             logging.error("Non positive training percentage")
@@ -952,6 +981,12 @@ class CrossValidation:
       >>> cv.run_cv()
       >>> mape = cv.get_error_value("mape") # Retrieve MAPE error
     """
+    size: int
+    results: List[Tuple[np.ndarray, np.ndarray, Model[Params], np.ndarray]]
+    num_folds: int
+    errors: Dict[str, float]
+    raw_errors: List[np.ndarray]
+    _backtester: BackTesterParent
 
     def __init__(
         self,
@@ -961,10 +996,12 @@ class CrossValidation:
         train_percentage: float,
         test_percentage: float,
         num_folds: int,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
-        constant_train_size=False,
-        multi=True,
-    ):
+        constant_train_size: bool=False,
+        multi: bool=True,
+    ) -> None:
         logging.info("Initializing and validating parameter values")
         if train_percentage <= 0:
             logging.error("Non positive training percentage")
