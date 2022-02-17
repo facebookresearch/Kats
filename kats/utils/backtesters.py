@@ -23,12 +23,13 @@ For more information, check out the Kats tutorial notebook on backtesting!
 import logging
 import multiprocessing as mp
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
-from kats.models.model import Model
+if TYPE_CHECKING:
+    from kats.models.model import Model
 
 
 # Constant to indicate error types supported
@@ -67,7 +68,7 @@ class BackTesterParent(ABC):
     params: Params
     multi: bool
     offset: int
-    results: List[Tuple[np.ndarray, np.ndarray, Model[Params], np.ndarray]]
+    results: List[Tuple[np.ndarray, np.ndarray, 'Model[Params]', np.ndarray]]
     errors: Dict[str, float]
     size: int
     error_funcs: Dict[str, Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], float]]
@@ -279,7 +280,7 @@ class BackTesterParent(ABC):
         self,
         training_data_indices: Tuple[int, int],
         testing_data_indices: Tuple[int, int],
-    ) -> Optional[Tuple[np.ndarray, np.ndarray, Model[Params], np.ndarray]]:
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, 'Model[Params]', np.ndarray]]:
         """
         Trains model, evaluates it, and stores results in results list.
         """
@@ -982,7 +983,7 @@ class CrossValidation:
       >>> mape = cv.get_error_value("mape") # Retrieve MAPE error
     """
     size: int
-    results: List[Tuple[np.ndarray, np.ndarray, Model[Params], np.ndarray]]
+    results: List[Tuple[np.ndarray, np.ndarray, 'Model[Params]', np.ndarray]]
     num_folds: int
     errors: Dict[str, float]
     raw_errors: List[np.ndarray]
