@@ -25,6 +25,8 @@ class cupikTest(TestCase):
 
         # Scene 1: window_size = 7, direction = 'up'
         pipe = Pipeline(
+            # pyre-fixme[6]: For 1st param expected `List[Tuple[str, Step]]` but got
+            #  `List[Tuple[str, MKDetector]]`.
             [
                 ("trend_detector", MKDetector(threshold=0.8)),
             ]
@@ -42,6 +44,8 @@ class cupikTest(TestCase):
 
         # Scene 2: Default parameters of MKDetector
         pipe = Pipeline(
+            # pyre-fixme[6]: For 1st param expected `List[Tuple[str, Step]]` but got
+            #  `List[Tuple[str, MKDetector]]`.
             [
                 ("trend_detector", MKDetector(threshold=0.8)),
             ]
@@ -56,21 +60,30 @@ class cupikTest(TestCase):
 
     def test_thetamodel(self) -> None:
         pipe = Pipeline(
+            # pyre-fixme[6]: For 1st param expected `List[Tuple[str, Step]]` but got
+            #  `List[Tuple[str, ThetaModel]]`.
             [("theta_model", ThetaModel(data=self.TSData, params=ThetaParams()))]
         )
         fitted = pipe.fit(self.TSData)
         bools = (
             # pyre-fixme[16]: Optional type has no attribute `values`.
             ThetaModel(self.TSData, ThetaParams()).fit().fitted_values.values
+            # pyre-fixme[16]: Item `List` of
+            #  `Union[List[kats.consts.TimeSeriesData], TimeSeriesData]` has no
+            #  attribute `fitted_values`.
             == fitted.fitted_values.values
         )
         self.assertEqual(np.sum(bools), 144)
         old_statsmodels = statsmodels.version < "0.12"
         expected = 433.328591954023 if old_statsmodels else 433.1270492317991
+        # pyre-fixme[16]: Item `List` of `Union[List[kats.consts.TimeSeriesData],
+        #  TimeSeriesData]` has no attribute `predict`.
         self.assertEqual(expected, fitted.predict(1).fcst.values[0])
 
         # test if the model can be built on the output from the detector
         pipe = Pipeline(
+            # pyre-fixme[6]: For 1st param expected `List[Tuple[str, Step]]` but got
+            #  `List[Tuple[str, Union[MKDetector, ThetaModel]]]`.
             [
                 ("trend_detector", MKDetector(threshold=0.8)),
                 ("theta_model", ThetaModel(data=self.TSData, params=ThetaParams())),
@@ -79,4 +92,6 @@ class cupikTest(TestCase):
         fitted = pipe.fit(self.TSData)
         self.assertEqual(len(pipe.metadata["trend_detector"][0]), 2)
         expected = 433.328591954023 if old_statsmodels else 433.1270492317991
+        # pyre-fixme[16]: Item `List` of `Union[List[kats.consts.TimeSeriesData],
+        #  TimeSeriesData]` has no attribute `predict`.
         self.assertEqual(expected, fitted.predict(1).fcst.values[0])

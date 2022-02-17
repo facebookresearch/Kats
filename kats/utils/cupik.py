@@ -3,14 +3,35 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing_extensions import Protocol
 
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
+
+
+class Step(Protocol):
+    __type__: str
+    data: TimeSeriesData
+
+    def remover(self, interpolate: bool) -> TimeSeriesData:
+        ...
+
+    def transform(self, data: TimeSeriesData) -> object:
+        ...
+
+    def fit(
+        self,
+        x: Union[pd.DataFrame, np.ndarray],
+        y: Optional[Union[pd.Series, np.ndarray]],
+        **kwargs: Any
+    ) -> List[TimeSeriesData]:
+        ...
+
+
+PipelineStep = Tuple[str, Step]
 
 
 class Pipeline:
@@ -31,7 +52,7 @@ class Pipeline:
     extra_fitting_params: Optional[Dict[str, Any]] = None
     y: Optional[Union[np.ndarray, pd.Series]] = None
 
-    def __init__(self, steps: List[Tuple[str, Any]]):
+    def __init__(self, steps: List[PipelineStep]) -> None:
         """
         inputs:
         steps: a list of the initialized Kats methods/sklearn machine learning model, with
@@ -52,17 +73,20 @@ class Pipeline:
                    function inside CuPiK should we apply
         """
         self.steps = steps
-        self.metadata = {}
+        self.metadata: Dict[str, str] = {}
         self.univariate = False
-        self.functions = {
+        self.functions: Dict[str, Callable[..., Any]] = {  # type: ignore
             "detector": self.__detect__,
             "transformer": self.__transform__,
             "model": self.__model__,
         }
 
     def __detect__(
-        self, steps: List[Any], data: List[TimeSeriesData], extra_params: Dict[str, Any]
-    ) -> Tuple[List[TimeSeriesData], Any]:
+        self,
+        steps: List[Step],
+        data: List[TimeSeriesData],
+        extra_params: Dict[str, Any],
+    ) -> Tuple[List[TimeSeriesData], List[object]]:
         """
         Internal function for processing the detector steps
 
@@ -100,8 +124,11 @@ class Pipeline:
         return data, metadata
 
     def __transform__(
-        self, steps: List[Any], data: List[TimeSeriesData], extra_params: Dict[str, Any]
-    ) -> Tuple[List[Any], List[Any]]:
+        self,
+        steps: List[Step],
+        data: List[TimeSeriesData],
+        extra_params: Dict[str, Any],
+    ) -> Tuple[Union[List[TimeSeriesData], List[object]], List[object]]:
         """
         Internal function for processing the transformation/transformer steps. We currently only have
         tsfeatures as a transformation/transformer step in Kats.
@@ -121,7 +148,7 @@ class Pipeline:
 
         metadata: outputs from the transformer
         """
-        metadata = []
+        metadata: List[object] = []
         for s, d in zip(steps, data):
             metadata.append(s.transform(d))
         if self.useFeatures:
@@ -130,8 +157,11 @@ class Pipeline:
             return data, metadata
 
     def __model__(
-        self, steps: List[Any], data: List[TimeSeriesData], extra_params: Dict[str, Any]
-    ):
+        self,
+        steps: List[Step],
+        data: List[TimeSeriesData],
+        extra_params: Dict[str, Any],
+    ) -> Tuple[List[Step], Optional[List[object]]]:
         """
         Internal function for processing the modeling step
 
@@ -148,7 +178,8 @@ class Pipeline:
 
         None as the placeholder of metadata
         """
-        for i, (s, d) in enumerate(zip(steps, data)):
+        result = []
+        for s, d in zip(steps, data):
             s.data = d
             if not isinstance(d.value, pd.Series):
                 msg = "Only support univariate time series, but get {type}.".format(
@@ -157,15 +188,15 @@ class Pipeline:
                 logging.error(msg)
                 raise ValueError(msg)
             s.fit(**extra_params)
-            data[i] = s
-        return data, None
+            result.append(s)
+        return result, None
 
     def _fit_sklearn_(
         self,
-        step: Any,
-        data: List[Dict[str, Any]],
-        y: Any,
-    ) -> Any:
+        step: Step,
+        data: List[TimeSeriesData],
+        y: Optional[Union[pd.Series, np.ndarray]],
+    ) -> List[TimeSeriesData]:
         """
         Internal function for fitting sklearn model on a tabular data with features
         extracted.
@@ -186,17 +217,15 @@ class Pipeline:
         ), "Require data preprocessed by TsFeatures, please set useFeatures = True"
         assert y is not None, "Missing dependent variable"
         df = pd.DataFrame(data).dropna(axis=1)
-        X_train, y_train = df.values, self.y
-        step.fit(X_train, y_train)
-        return step
+        return step.fit(df.values, y)
 
     def __fit__(
         self,
         n: str,
-        s: Any,
-        data: Any,
+        s: Step,
+        data: List[TimeSeriesData],
     ) -> List[
-        Any
+        TimeSeriesData
     ]:  # using list output for adaption of current multi-time series scenarios
         """
         Internal function for performing the detailed fitting functions
@@ -214,22 +243,28 @@ class Pipeline:
               of dictionaries including the output acquired using feature extraction
               methods in Kats
         """
+        y = self.y
         if (
             str(s.__class__).split()[1][1:8] == "sklearn"
         ):  # if current step is a scikit-learn model
-            return self._fit_sklearn_(s, data, self.y)
+            return self._fit_sklearn_(s, data, y)
 
         _steps_ = [s for _ in range(len(data))]
-        Type = s.__type__
+        method = s.__type__
 
         extra_params = (self.extra_fitting_params or {}).get(n, {})
-        data, metadata = self.functions[Type](_steps_, data, extra_params)
+        data, metadata = self.functions[method](_steps_, data, extra_params)
         if metadata is not None:
             self.metadata[n] = metadata  # saving the metadata of the current step into
             # the dictionary of {"user_defined_method_name": corresponding_metadata}
         return data
 
-    def fit(self, data: Any, params: Optional[Dict[str, Any]] = None, **kwargs) -> Any:
+    def fit(
+        self,
+        data: Union[TimeSeriesData, List[TimeSeriesData]],
+        params: Optional[Dict[str, Any]] = None,
+        **kwargs: Any
+    ) -> Union[TimeSeriesData, List[TimeSeriesData]]:
         """
         This function is the external function for user to fit the pipeline
 
@@ -270,9 +305,11 @@ class Pipeline:
         # Extra parameters for specific method of each step
         self.extra_fitting_params = params
 
-        if type(data) != list:  # Since we support multiple timeseries in a list,
-            # when data is univariate, we put them in a list
-            self.univariate = True
+        if isinstance(data, list):
+            univariate = False
+        else:
+            # Put univariate data into a list
+            univariate = self.univariate = True
             data = [data]
 
         for (
@@ -282,10 +319,4 @@ class Pipeline:
             # function
             data = self.__fit__(n, s, data)
 
-        if (
-            self.univariate
-        ):  # When input data is one univariate time series, we directly
-            # present the output (not in a list)
-            return data[0]
-        else:
-            return data
+        return data[0] if univariate else data
