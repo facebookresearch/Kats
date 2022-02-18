@@ -367,7 +367,7 @@ class StatSigDetectorModel(DetectorModel):
                 new_ts[-1][-first_half_len:]
                 + list(data.value[i : i + max_split_ts_length])
             )
-        new_ts[-1] += [0] * remaining
+        new_ts[-1] += [1] * remaining
 
         new_data_ts = TimeSeriesData(
             pd.DataFrame(

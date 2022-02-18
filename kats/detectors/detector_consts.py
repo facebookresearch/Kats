@@ -147,13 +147,13 @@ class ChangePointInterval:
     def variance_val(self) -> Union[float, ArrayLike]:
         if self.num_series == 1:
             vals = self.data
-            # the t-test uses the sample stadard deviation^2 instead of variance,
+            # the t-test uses the sample standard deviation^2 instead of variance,
             return 0.0 if vals is None or len(vals) == 1 else np.var(vals, ddof=1)
         else:
             data_df = self.data_df
             if data_df is None or len(data_df) == 1:
                 return np.zeros(self.num_series)
-            # the t-test uses the sample stadard deviation^2 instead of variance,
+            # the t-test uses the sample standard deviation^2 instead of variance,
             return np.array([np.var(data_df[c].values, ddof=1) for c in self._ts_cols])
 
     def __len__(self) -> int:
@@ -449,8 +449,13 @@ class PercentageChange:
         n_min = min(len(current), len(previous))
         if n_min == 0:
             return np.nan
-        current = current[-n_min:-1]
-        previous = previous[-n_min:-1]
+
+        current = current[-n_min:]
+        previous = previous[-n_min:]
+
+        # for multivariate TS data
+        if self.num_series > 1:
+            return np.asarray([np.cov(current[:, c], previous[:, c])[0, 1] / n_min for c in range(self.num_series)])
 
         return np.cov(current, previous)[0, 1] / n_min
 
