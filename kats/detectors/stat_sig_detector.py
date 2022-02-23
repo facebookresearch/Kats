@@ -95,10 +95,11 @@ class StatSigDetectorModel(DetectorModel):
             self.seasonal_period: str = model_dict.get("seasonal_period", seasonal_period)
 
             # for big data and correct t-scores
-            self.use_corrected_scores = model_dict.get(
+            self.use_corrected_scores: bool = model_dict.get(
                 "use_corrected_scores", use_corrected_scores
             )
-            self.max_split_ts_length = model_dict.get(
+            # threshold for splitting long TS
+            self.max_split_ts_length: int = model_dict.get(
                 "max_split_ts_length", max_split_ts_length
             )
 
@@ -107,8 +108,12 @@ class StatSigDetectorModel(DetectorModel):
             self.n_control: Optional[int] = n_control
             self.time_unit: Optional[str] = time_unit
             # for seasonality
-            self.rem_season = rem_season
+            self.rem_season: bool = rem_season
             self.seasonal_period: str = seasonal_period
+            # big data and t-scores
+            self.use_corrected_scores: bool = use_corrected_scores
+            # threshold for splitting long TS
+            self.max_split_ts_length: int = max_split_ts_length
 
         if (self.n_control is None) or (self.n_test is None):
             raise ValueError(
@@ -127,10 +132,7 @@ class StatSigDetectorModel(DetectorModel):
         # for seasonality
         self.data_season: Optional[TimeSeriesData] = None
 
-        # big data and t-scores
-        self.use_corrected_scores = use_corrected_scores
-        # threshold for splitting long TS
-        self.max_split_ts_length = max_split_ts_length
+        # big data strategy
         self.bigdata_trans_flag: Optional[bool] = None
         self.remaining: Optional[int] = None
 
