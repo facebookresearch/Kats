@@ -140,7 +140,7 @@ features = TsFeatures().transform(air_passengers_ts)
 ### Version 0.2.0
 * Forecasting
     * Added global model, a neural network forecasting model
-    * Added global model tutorial
+    * Added [global model tutorial](https://github.com/facebookresearch/Kats/blob/main/tutorials/kats_205_globalmodel.ipynb)
     * Consolidated backtesting APIs and some minor bug fixes
 * Detection
     * Added model optimizer for anomaly/ changepoint detection
@@ -148,10 +148,10 @@ features = TsFeatures().transform(air_passengers_ts)
     * Improved simulators, to build synthetic data and inject anomalies
     * Added new detectors: ProphetTrendDetector, Dynamic Time Warping based detectors
     * Support for meta-learning, to recommend anomaly detection algorithms and parameters for your dataset
-    * Standardizing API for some of our legacy detectors: OutlierDetector, MKDetector
+    * Standardized API for some of our legacy detectors: OutlierDetector, MKDetector
     * Support for Seasonality Removal in StatSigDetector
 * TsFeatures
-    * No change from 0.1.0 version
+    * Added time-based features
 * Others
     * Bug fixes, code coverage improvement, etc.
 
