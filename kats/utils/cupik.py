@@ -4,8 +4,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from typing_extensions import Protocol
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 import numpy as np
 import pandas as pd

@@ -10,3 +10,4 @@ scipy<1.8.0
 seaborn>=0.11.1
 setuptools-git>=1.2
 statsmodels==0.12.2
+typing-extensions; python_version < '3.8'
