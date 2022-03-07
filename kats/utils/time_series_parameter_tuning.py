@@ -37,11 +37,8 @@ from ax.core.outcome_constraint import OutcomeConstraint
 from ax.modelbridge.discrete import DiscreteModelBridge
 from ax.modelbridge.registry import Models
 from ax.runners.synthetic import SyntheticRunner
-from ax.service.utils.instantiation import (
-    outcome_constraint_from_str,
-    parameter_from_json,
-)
 from kats.consts import SearchMethodEnum
+from ax.service.utils.instantiation import InstantiationBase
 
 # Maximum number of worker processes used to evaluate trial arms in parallel
 MAX_NUM_PROCESSES = 50
@@ -245,10 +242,10 @@ class TimeSeriesParameterTuning(ABC):
             "Parameter tuning search space dimensions: {}".format(parameters)
         )
         self.validate_parameters_format(parameters)
-        self.parameters = [parameter_from_json(parameter) for parameter in parameters]
+        self.parameters = [InstantiationBase.parameter_from_json(parameter) for parameter in parameters]
         self.outcome_constraints = (
             [
-                outcome_constraint_from_str(str_constraint)
+                InstantiationBase.outcome_constraint_from_str(str_constraint)
                 for str_constraint in outcome_constraints
             ]
             if outcome_constraints is not None

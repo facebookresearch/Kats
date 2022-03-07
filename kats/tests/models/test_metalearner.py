@@ -13,7 +13,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from ax.modelbridge.registry import Models, SearchSpace
-from ax.service.utils.instantiation import parameter_from_json
+from ax.service.utils.instantiation import InstantiationBase
 from kats.consts import TimeSeriesData
 from kats.models.arima import ARIMAModel
 from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
@@ -94,7 +94,7 @@ def generate_meta_data(n):
     features = np.random.randn(n * 40).reshape(n, -1)
     generators = {
         m: Models.UNIFORM(
-            SearchSpace([parameter_from_json(item) for item in spaces[m]])
+            SearchSpace([InstantiationBase.parameter_from_json(item) for item in spaces[m]])
         )
         for m in spaces
     }
@@ -124,7 +124,7 @@ def generate_meta_data_by_model(model, n, d=40):
         model = base_models[model]
     space = model.get_parameter_search_space()
     generator = Models.UNIFORM(
-        SearchSpace([parameter_from_json(item) for item in space])
+        SearchSpace([InstantiationBase.parameter_from_json(item) for item in space])
     )
     x = np.random.randn(n * d).reshape(n, -1)
     x = pd.DataFrame(x)
