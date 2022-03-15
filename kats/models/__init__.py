@@ -19,13 +19,6 @@ except ImportError:
 from . import globalmodel  # noqa
 from . import metalearner  # noqa
 from . import model  # noqa
-
-try:
-    from . import neuralprophet  # noqa
-except ImportError:
-    import logging
-
-    logging.warning("kats.models.neuralprophet not available (requires neuralprophet)")
 from . import nowcasting  # noqa
 from . import prophet  # noqa
 from . import quadratic_model  # noqa
