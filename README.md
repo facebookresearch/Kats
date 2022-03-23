@@ -23,7 +23,7 @@ Kats is released by Facebook's *Infrastructure Data Science* team. It is availab
 ## Important links
 
 - Homepage: https://facebookresearch.github.io/Kats/
-- Kats Python package: https://pypi.org/project/kats/0.1.0/
+- Kats Python package: https://pypi.org/project/kats/
 - Facebook Engineering Blog Post: https://engineering.fb.com/2021/06/21/open-source/kats/
 - Source code repository: https://github.com/facebookresearch/kats
 - Contributing: https://github.com/facebookresearch/Kats/blob/master/CONTRIBUTING.md
