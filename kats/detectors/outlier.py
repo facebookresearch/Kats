@@ -107,7 +107,7 @@ class OutlierDetector(Detector):
         limits = resid_q + (self.iqr_mult * iqr * np.array([-1, 1]))
         # calculate scores
         output_scores = list((resid - limits[0]) / (limits[1] - limits[0]))
-        outliers = resid[(resid >= limits[1]) | (resid <= limits[0])]
+        outliers = resid[(resid > limits[1]) | (resid < limits[0])]
         outliers_index = list(outliers.index)
 
         return outliers_index, output_scores, output_time
