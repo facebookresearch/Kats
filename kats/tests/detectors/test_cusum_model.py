@@ -47,11 +47,11 @@ class TestIncreaseCUSUMDetectorModel(TestCase):
         self.score_tsd_percentage_change = self.model._predict(
             data=data,
             score_func=CusumScoreFunction.percentage_change.value,
-        )
+        ).score
 
         self.score_tsd_z_score = self.model._predict(
             data=data, score_func=CusumScoreFunction.z_score.value
-        )
+        ).score
 
         self.serialized_model = self.model.serialize()
 
@@ -154,16 +154,16 @@ class TestDecreaseCUSUMDetectorModel(TestCase):
 
         self.score_tsd = model._predict(
             data=data, score_func=CusumScoreFunction.change.value
-        )
+        ).score
 
         self.score_tsd_percentage_change = model._predict(
             data=data,
             score_func=CusumScoreFunction.percentage_change.value,
-        )
+        ).score
 
         self.score_tsd_z_score = model._predict(
             data=data, score_func=CusumScoreFunction.z_score.value
-        )
+        ).score
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
@@ -579,3 +579,46 @@ class TestRaiseCUSUMDetectorModel(TestCase):
                 scan_window=self.scan_window, historical_window=self.historical_window
             )
             model.predict(data=self.tsd)
+
+
+class TestDeltaReturnCUSUMDetectorModel(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(100)
+        self.scan_window = 24 * 60 * 60  # in seconds
+        self.historical_window = 3 * 24 * 60 * 60  # in seconds
+        self.test_data_window = 16  # in hours
+        self.regression_sum_score = 12  #
+        df_increase = pd.DataFrame(
+            {
+                "ts_value": np.concatenate(
+                    [np.random.normal(1, 0.2, 156), np.random.normal(1.5, 0.2, 12)]
+                ),
+                "time": pd.date_range("2020-01-01", periods=168, freq="H"),
+            }
+        )
+        self.tsd = TimeSeriesData(df_increase)
+        self.tsd_value_name = self.tsd.value.name
+        data = self.tsd[-self.test_data_window :]
+
+        self.model = CUSUMDetectorModel(
+            scan_window=self.scan_window, historical_window=self.historical_window
+        )
+
+        self.delta = self.model.fit_predict(
+            data=data, historical_data=self.tsd[: -self.test_data_window]
+        ).anomaly_magnitude_ts
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    @parameterized.expand(
+        [
+            ("change_point_delta", len, "delta"),
+        ]
+    )
+    def test_change_tsd(
+        self,
+        name: str,
+        func_: Callable[[TimeSeriesData], float],
+        attr1: str,
+        # attr2: str,
+    ) -> None:
+        self.assertTrue(func_(attrgetter(attr1)(self)) > 0)

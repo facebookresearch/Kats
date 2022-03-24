@@ -30,7 +30,7 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Dict, cast, Any, List, Optional, Union
+from typing import Dict, cast, Any, List, Optional, Union, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -110,6 +110,11 @@ STR_TO_SCORE_FUNC: Dict[str, CusumScoreFunction] = {  # Used for param tuning
     "percentage_change": CusumScoreFunction.percentage_change,
     "z_score": CusumScoreFunction.z_score,
 }
+
+
+class PredictFunctionValues(NamedTuple):
+    score: TimeSeriesData
+    absolute_change: TimeSeriesData
 
 
 class CUSUMDetectorModel(DetectorModel):
@@ -356,7 +361,7 @@ class CUSUMDetectorModel(DetectorModel):
         self,
         data: TimeSeriesData,
         score_func: CusumScoreFunction = CusumScoreFunction.change,
-    ) -> TimeSeriesData:
+    ) -> PredictFunctionValues:
         """
         data: the new data for the anoamly score calculation.
         """
@@ -372,18 +377,31 @@ class CUSUMDetectorModel(DetectorModel):
                 cp_index = data.time[data.time == change_time].index[0]
                 data_pre = data[: cp_index + 1]
                 score_pre = self._zeros_ts(data_pre)
+                change_pre = self._zeros_ts(data_pre)
                 score_post = SCORE_FUNC_DICT[score_func](
                     data=data[cp_index + 1 :],
                     pre_mean=self.pre_mean,
                     pre_std=self.pre_std,
                 )
                 score_pre.extend(score_post, validate=False)
-                return score_pre
-            return SCORE_FUNC_DICT[score_func](
-                data=data, pre_mean=self.pre_mean, pre_std=self.pre_std
+
+                change_post = SCORE_FUNC_DICT[CusumScoreFunction.change.value](
+                    data=data[cp_index + 1 :],
+                    pre_mean=self.pre_mean,
+                    pre_std=self.pre_std,
+                )
+                change_pre.extend(change_post, validate=False)
+                return PredictFunctionValues(score_pre, change_pre)
+            return PredictFunctionValues(
+                SCORE_FUNC_DICT[score_func](
+                    data=data, pre_mean=self.pre_mean, pre_std=self.pre_std
+                ),
+                SCORE_FUNC_DICT[CusumScoreFunction.change.value](
+                    data=data, pre_mean=self.pre_mean, pre_std=self.pre_std
+                ),
             )
         else:
-            return self._zeros_ts(data)
+            return PredictFunctionValues(self._zeros_ts(data), self._zeros_ts(data))
 
     def _zeros_ts(self, data: TimeSeriesData) -> TimeSeriesData:
         return TimeSeriesData(
@@ -503,27 +521,36 @@ class CUSUMDetectorModel(DetectorModel):
         )
         if anomaly_start_time > historical_data.time.iloc[-1]:
             # if len(all data) is smaller than historical window return zero score
+            # Calling first _predict to poulate self.change_point_delta
+            predict_results = self._predict(
+                smooth_historical_data[-len(data) :], score_func
+            )
             return AnomalyResponse(
-                scores=self._predict(smooth_historical_data[-len(data) :], score_func),
+                scores=predict_results.score,
                 confidence_band=None,
                 predicted_ts=None,
-                anomaly_magnitude_ts=self._zeros_ts(data),
+                anomaly_magnitude_ts=predict_results.absolute_change,
                 stat_sig_ts=None,
             )
         anomaly_start_idx = self._time2idx(data, anomaly_start_time, "right")
         anomaly_start_time = data.time.iloc[anomaly_start_idx]
         score_tsd = self._zeros_ts(data[:anomaly_start_idx])
+        change_tsd = self._zeros_ts(data[:anomaly_start_idx])
 
         if (
             historical_data.time.iloc[-1] - historical_data.time.iloc[0] + frequency
             <= scan_window
         ):
             # if len(all data) is smaller than scan data return zero score
+            # Calling first _predict to poulate self.change_point_delta
+            predict_results = self._predict(
+                smooth_historical_data[-len(data) :], score_func
+            )
             return AnomalyResponse(
-                scores=self._predict(smooth_historical_data[-len(data) :], score_func),
+                scores=predict_results.score,
                 confidence_band=None,
                 predicted_ts=None,
-                anomaly_magnitude_ts=self._zeros_ts(data),
+                anomaly_magnitude_ts=predict_results.absolute_change,
                 stat_sig_ts=None,
             )
 
@@ -572,13 +599,15 @@ class CUSUMDetectorModel(DetectorModel):
                 magnitude_ratio=magnitude_ratio,
                 change_directions=change_directions,
             )
+            predict_results = self._predict(
+                smooth_historical_data[historical_end : scan_end + 1],
+                score_func=score_func,
+            )
             score_tsd.extend(
-                self._predict(
-                    smooth_historical_data[historical_end : scan_end + 1],
-                    score_func=score_func,
-                ),
+                predict_results.score,
                 validate=False,
             )
+            change_tsd.extend(predict_results.absolute_change, validate=False)
 
         # Handle the remaining data
         remain_data_len = len(data) - len(score_tsd)
@@ -602,19 +631,21 @@ class CUSUMDetectorModel(DetectorModel):
                 magnitude_ratio=magnitude_ratio,
                 change_directions=change_directions,
             )
+            predict_results = self._predict(
+                smooth_historical_data[historical_end:scan_end],
+                score_func=score_func,
+            )
             score_tsd.extend(
-                self._predict(
-                    smooth_historical_data[historical_end:scan_end],
-                    score_func=score_func,
-                ),
+                predict_results.score,
                 validate=False,
             )
+            change_tsd.extend(predict_results.absolute_change, validate=False)
 
         return AnomalyResponse(
             scores=score_tsd,
             confidence_band=None,
             predicted_ts=None,
-            anomaly_magnitude_ts=self._zeros_ts(data),
+            anomaly_magnitude_ts=change_tsd,
             stat_sig_ts=None,
         )
 
