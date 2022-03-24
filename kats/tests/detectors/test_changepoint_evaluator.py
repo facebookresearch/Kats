@@ -8,8 +8,7 @@ from unittest import TestCase, mock
 
 import numpy as np
 import pandas as pd
-
-# from kats.detectors.bocpd_model import BocpdDetectorModel
+from kats.consts import TimeSeriesData
 from kats.detectors.changepoint_evaluator import (
     TuringEvaluator,
     Evaluation,
@@ -21,6 +20,124 @@ from kats.detectors.cusum_model import (
     CusumScoreFunction,
 )
 from kats.detectors.detector import Detector
+
+from typing import Any, Dict, List, Type, Union
+
+from kats.detectors.detector import DetectorModel
+from kats.detectors.prophet_detector import (
+    ProphetDetectorModel,
+    ProphetTrendDetectorModel,
+)
+from kats.detectors.slow_drift_detector import SlowDriftDetectorModel
+from kats.detectors.stat_sig_detector import StatSigDetectorModel
+from kats.detectors.trend_mk_model import MKDetectorModel
+
+
+OUTLIER_SPACE: List[Dict[str, Any]] = [
+    {
+        "name": "iqr_mult",
+        "type": "choice",
+        "values": [2.0, 3.0, 4.0],
+        "value_type": "float",
+        "is_ordered": True,
+    },
+]
+
+MK_SPACE: List[Dict[str, Any]] = [
+    {
+        "name": "window_size",
+        "type": "choice",
+        "values": [5, 10, 15, 20],
+        "value_type": "int",
+        "is_ordered": True,
+    },
+]
+
+STATSIG_SPACE: List[Dict[str, Any]] = [
+    {
+        "name": "n_control",
+        "type": "choice",
+        "values": [2, 5, 10],
+        "value_type": "int",
+        "is_ordered": True,
+    },
+    {
+        "name": "n_test",
+        "type": "choice",
+        "values": [2, 5, 10],
+        "value_type": "int",
+        "is_ordered": True,
+    },
+]
+
+PROPHET_TREND_SPACE: List[Dict[str, Any]] = [
+    {
+        "name": "changepoint_prior_scale",
+        "type": "choice",
+        "values": [0.01, 0.05, 0.1],
+        "value_type": "float",
+        "is_ordered": True,
+    },
+]
+
+PROPHET_SPACE: List[Dict[str, Any]] = [
+    {
+        "name": "scoring_confidence_interval",
+        "type": "choice",
+        "values": [0.8, 0.9],
+        "value_type": "float",
+        "is_ordered": True,
+    },
+]
+
+SLOWDRIFT_SPACE: List[Dict[str, Any]] = [
+    {
+        "name": "slow_drift_window",
+        "type": "choice",
+        "values": [1, 2],
+        "value_type": "int",
+        "is_ordered": True,
+    },
+    {
+        "name": "algorithm_version",
+        "type": "choice",
+        "values": [1, 2],
+        "value_type": "int",
+        "is_ordered": True,
+    },
+    {
+        "name": "seasonality_period",
+        "type": "choice",
+        "values": [7],
+        "value_type": "int",
+        "is_ordered": True,
+    },
+    {
+        "name": "seasonality_num_points",
+        "type": "choice",
+        "values": [0, 1, 7],
+        "value_type": "int",
+        "is_ordered": True,
+    },
+]
+
+
+
+GRID_SD_DICT: Dict[Type[DetectorModel], List[Dict[str, Any]]] = {
+    SlowDriftDetectorModel: SLOWDRIFT_SPACE,
+    StatSigDetectorModel: STATSIG_SPACE,
+    ProphetTrendDetectorModel: PROPHET_TREND_SPACE,
+    MKDetectorModel: MK_SPACE,
+    ProphetDetectorModel: PROPHET_SPACE,
+}
+
+DETECTOR_ONLINE_ONLY: Dict[Union[Type[Detector], Type[DetectorModel]], bool] = {
+    SlowDriftDetectorModel: True,
+    StatSigDetectorModel: True,
+    MKDetectorModel: True,
+    ProphetTrendDetectorModel: False,
+    ProphetDetectorModel: False,
+}
 
 
 class GenerateData:
@@ -359,3 +476,84 @@ class TestChangepointEvaluator(TestCase):
         )
 
         self.assertEqual(eval_agg_9_df.shape[0], eg_df.shape[0])
+
+    def test_eval_start_time(self) -> None:
+        data_generator = GenerateData()
+        eg_df = data_generator.eg_df.iloc[:2, :]
+
+        for detect_model in list(GRID_SD_DICT.keys()):
+            turing_model = TuringEvaluator(
+                detector=detect_model,
+                is_detector_model=True,
+            )
+            params = {list(x.values())[0]: list(x.values())[2][0] for x in GRID_SD_DICT[detect_model]}
+            eval_agg = turing_model.evaluate(
+                data=eg_df,
+                model_params=params,
+                alert_style_cp=True,
+                eval_start_time_sec=500*24*3600,
+                training_window_sec=500*24*3600,
+                retrain_freq_sec=500*24*3600,
+            )
+
+            self.assertEqual(eval_agg.shape[0], eg_df.shape[0])
+
+    def test_periodic_retraining_error(self) -> None:
+        data_generator = GenerateData()
+        eg_df = data_generator.eg_df
+
+        # for time series data that is too short
+        eg_df2 = pd.DataFrame(
+                [
+                    {
+                        "dataset_name": "eg_2",
+                        "time_series": str(TimeSeriesData()),
+                        "annotation": str({"1": [2, 6, 10], "2": [3, 6]}),
+                    },
+                ]
+            )
+
+        # incorrect params
+        for detect_model, x, y, z in [
+            (ProphetTrendDetectorModel, 5, 500, 500),
+            (ProphetTrendDetectorModel, 500, 5, 500),
+            (ProphetTrendDetectorModel, 500, 500, 5),
+        ]:
+            turing_model = TuringEvaluator(
+                detector=detect_model,
+                is_detector_model=True,
+            )
+            params = {list(x.values())[0]: list(x.values())[2][0] for x in GRID_SD_DICT[detect_model]}
+            with self.assertRaises(ValueError):
+                _ = turing_model.evaluate(
+                    data=eg_df,
+                    model_params=params,
+                    alert_style_cp=True,
+                    eval_start_time_sec=x*24*3600,
+                    training_window_sec=y*24*3600,
+                    retrain_freq_sec=z*24*3600,
+                )
+
+            # for time series data that is too short
+            turing_model = TuringEvaluator(
+                detector=detect_model,
+                is_detector_model=True,
+            )
+            with self.assertRaises(ValueError):
+                _ = turing_model.evaluate(
+                    data=eg_df2,
+                    model_params=params,
+                    alert_style_cp=True,
+                    eval_start_time_sec=500*24*3600,
+                    training_window_sec=500*24*3600,
+                    retrain_freq_sec=500*24*3600,
+                )
+
+    def test_online_flag(self) -> None:
+        for detect_model in GRID_SD_DICT:
+            print(detect_model)
+            turing_model = TuringEvaluator(
+                detector=detect_model,
+                is_detector_model=True,
+            )
+            self.assertEqual(DETECTOR_ONLINE_ONLY[detect_model], turing_model.onlineflag)

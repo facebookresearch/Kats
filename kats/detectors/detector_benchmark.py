@@ -6,7 +6,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Type
+from typing import Dict, List, Optional, Tuple, Type, Callable
 
 import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
@@ -16,14 +16,24 @@ from kats.detectors.changepoint_evaluator import TuringEvaluator
 from kats.detectors.detector import DetectorModel
 from kats.utils.time_series_parameter_tuning import TimeSeriesParameterTuning
 
+
 SUPPORTED_METRICS = {"f_score", "precision", "recall", "delay"}
+
+SUPPORTED_BULK_EVAL_METHODS = {"mean", "median", "min", 'max'}
 
 
 def check_metric_is_supported(metric: str) -> None:
     """Check if the metric specified by the user is supported by our evaluator."""
     if metric not in SUPPORTED_METRICS:
-        raise Exception(
+        raise ValueError(
             f"Supported metrics for evaluating detector are: {SUPPORTED_METRICS}"
+        )
+
+def check_bulk_eval_method_is_supported(method: str) -> None:
+    """Check if the bulk evaluation method specified by the user is supported by our evaluator."""
+    if method not in SUPPORTED_BULK_EVAL_METHODS:
+        raise ValueError(
+            f"Supported methods for bulk evaluation are: {SUPPORTED_BULK_EVAL_METHODS}"
         )
 
 
@@ -38,12 +48,18 @@ def decompose_params(params: Dict[str, float]) -> Tuple[Dict[str, float], float,
 
 @dataclass
 class DetectorModelSet:
+    """
+    Help class for ModelOptimizer.
+    """
     def __init__(
         self,
         model_name: str,
         model: Type[DetectorModel],
         margin: int = 5,
         alert_style_cp: bool = True,
+        eval_start_time_sec: Optional[int] = None,
+        training_window_sec: Optional[int] = None,
+        retrain_freq_sec: Optional[int] = None,
     ) -> None:
         self.model_name: str = model_name
         self.model: Type[DetectorModel] = model
@@ -51,6 +67,9 @@ class DetectorModelSet:
         self.alert_style_cp: bool = alert_style_cp
         self.result: Optional[pd.DataFrame] = None
         self.parameters: Dict[str, float] = {}
+        self.eval_start_time_sec: Optional[int] = eval_start_time_sec
+        self.training_window_sec: Optional[int] = training_window_sec
+        self.retrain_freq_sec: Optional[int] = retrain_freq_sec
 
     def update_benchmark_results(
         self, benchmark_results: Dict[str, Optional[pd.DataFrame]]
@@ -61,7 +80,9 @@ class DetectorModelSet:
         self, data_df: pd.DataFrame
     ) -> Tuple[Dict[str, pd.DataFrame], TuringEvaluator]:
         self.result, turing_evaluator = self.evaluate_parameters_detector_model(
-            self.get_params(), self.model, data_df
+            params=self.get_params(),
+            detector=self.model,
+            data=data_df,
         )
 
         return {self.model_name: self.result}, turing_evaluator
@@ -83,6 +104,9 @@ class DetectorModelSet:
             threshold_low=threshold_low,
             threshold_high=threshold_high,
             margin=self.margin,
+            eval_start_time_sec=self.eval_start_time_sec,
+            training_window_sec=self.training_window_sec,
+            retrain_freq_sec=self.retrain_freq_sec,
         )
         return results, turing_model
 
@@ -99,6 +123,73 @@ class PredefinedModel(DetectorModelSet):
 
 
 class ModelOptimizer(DetectorModelSet):
+    """
+    Find best parameters for a given detector model based on turing evaluation method.
+
+    Attributes:
+        model_name: str,
+        model: Type[DetectorModel], detector model.
+        parameters_space: List[Dict[str, float]], parameter search space.
+        data_df: pd.DataFrame, time series data.
+        optimization_metric: str. Like f1-score, recall, etc.
+        optimize_for_min: bool.
+        search_method: SearchMethodEnum = SearchMethodEnum.GRID_SEARCH. We also support Bayesian search and grid search.
+        arm_count: int = 4, number of trails in searching part.
+        margin: int = margin for TTD,
+        alert_style_cp: bool = True,
+        eval_start_time: Optional[int] = None, start time of results evaluation (seconds).
+        bulk_eval_method: str = 'mean', aggregation function for bulk evaluation.
+        training_window_sec: Optional[int] = None, training window for GM and prophet models (seconds).
+        retrain_freq_sec: Optional[int] = None, training frequency for GM and prophet models (seconds).
+
+    >>> GRID_SD = [
+            {
+                "name": "n_control",
+                "type": "choice",
+                "values": [70, 140],
+                "value_type": "int",
+                "is_ordered": True,
+            },
+            {
+                "name": "n_test",
+                "type": "choice",
+                "values": [7, 14, 30],
+                "value_type": "int",
+                "is_ordered": True,
+            },
+            {
+                "name": "rem_season",
+                "type": "choice",
+                "values": [True, False],
+                "value_type": "bool",
+                "is_ordered": True,
+            },
+            {
+                "name": "seasonal_period",
+                "type": "choice",
+                "values": ["daily", "weekly"],
+                "value_type": "str",
+                "is_ordered": True,
+            },
+        ]  # params search space
+    >>> mopt = ModelOptimizer(
+            model_name="ssd_opt",
+            model=StatSigDetectorModel,
+            parameters_space=GRID_SD,
+            optimization_metric="f_score",
+            optimize_for_min=0,
+            search_method=SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
+            data_df=simulated_cp_df,
+            arm_count=10,
+            eval_start_time=50,
+            bulk_eval_method='min',
+            training_window =50,
+            retrain_freq =50,
+        )
+    >>> mopt._evaluate()  # tuning
+    >>> mopt.parameter_tuning_results_grid  # tuning results
+    >>> mopt.get_params()  # get best params
+    """
     def __init__(
         self,
         model_name: str,
@@ -109,6 +200,12 @@ class ModelOptimizer(DetectorModelSet):
         optimize_for_min: bool,
         search_method: SearchMethodEnum = SearchMethodEnum.GRID_SEARCH,
         arm_count: int = 4,
+        margin: int = 5,
+        alert_style_cp: bool = True,
+        eval_start_time_sec: Optional[int] = None,
+        bulk_eval_method: str = 'mean',
+        training_window_sec: Optional[int] = None,
+        retrain_freq_sec: Optional[int] = None,
     ) -> None:
         super().__init__(model_name, model)
         check_metric_is_supported(optimization_metric)
@@ -131,6 +228,19 @@ class ModelOptimizer(DetectorModelSet):
         )
         self.parameter_tuning_results_grid: Optional[pd.DataFrame] = None
         self.best_params: Dict[str, float] = {}
+        self.margin: int = margin
+        self.alert_style_cp: bool = alert_style_cp
+
+        self.eval_start_time_sec: Optional[int] = eval_start_time_sec
+
+        self.bulk_eval_method = bulk_eval_method
+        check_bulk_eval_method_is_supported(self.bulk_eval_method)
+        SUPPORTED_BULK_EVAL_METHODS_DICT = {"mean": np.nanmean, "median": np.nanmedian, "min": np.nanmin, 'max': np.nanmax}
+        # pyre-fixme[24]: Invalid type parameters [24]: Generic type `Callable` expects 2 type parameters.
+        self.bulk_eval_method_func: Callable = SUPPORTED_BULK_EVAL_METHODS_DICT[self.bulk_eval_method]
+
+        self.training_window_sec: Optional[int] = training_window_sec
+        self.retrain_freq_sec: Optional[int] = retrain_freq_sec
 
     def get_params(self) -> Dict[str, float]:
         if not self.best_params:
@@ -142,7 +252,7 @@ class ModelOptimizer(DetectorModelSet):
             results, _ = self.evaluate_parameters_detector_model(
                 params, self.model, self.data_df
             )
-            return np.mean(results[self.optimization_metric])
+            return self.bulk_eval_method_func(results[self.optimization_metric])
         except Exception:
             logging.warning(f"{params} cannot be evaluated: returning inf.")
             if self.optimize_for_min:
@@ -163,7 +273,7 @@ class ModelOptimizer(DetectorModelSet):
         if (max(parameter_tuning_results_grid["mean"]) == float("-inf")) or (
             min(parameter_tuning_results_grid["mean"]) == float("inf")
         ):
-            raise Exception("All parameters raised an error")
+            raise ValueError("All parameters raised an error")
 
     def _compute_best_param(self) -> Dict[str, float]:
         if self.parameter_tuning_results_grid is None:

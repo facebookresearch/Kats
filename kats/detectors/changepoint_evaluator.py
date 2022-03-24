@@ -28,6 +28,117 @@ from kats.detectors.detector import Detector, DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.utils.simulator import Simulator
 
+# from kats.detectors.detector_consts import ConfidenceBand
+from kats.detectors.prophet_detector import ProphetDetectorModel, ProphetTrendDetectorModel
+from kats.detectors.slow_drift_detector import SlowDriftDetectorModel
+from kats.detectors.stat_sig_detector import StatSigDetectorModel, MultiStatSigDetectorModel
+from kats.detectors.cusum_model import CUSUMDetectorModel
+from kats.detectors.window_slo_detector import WindowSloDetectorModel
+from kats.detectors.bocpd_model import BocpdDetectorModel
+from kats.detectors.sprt_detector import SPRTDetectorModel
+# from kats.detectors.outlier_detector import OutlierDetectorModel
+from kats.detectors.trend_mk_model import MKDetectorModel
+from kats.detectors.gm_detector import GMDetectorModel
+
+
+# historical window related params' names for each dectectors
+HISTORICAL_DATA_PARAM_NAME: Dict[Union[Type[Detector], Type[DetectorModel]], List[str]] = {
+    SlowDriftDetectorModel: ['slow_drift_window'],
+    StatSigDetectorModel: ['n_control', 'n_test'],
+    MultiStatSigDetectorModel: ['n_control', 'n_test'],
+    CUSUMDetectorModel: ['historical_window'],
+    WindowSloDetectorModel: ['window_size'],
+    # BocpdDetectorModel: [''],
+    # SPRTDetectorModel: [''],
+    MKDetectorModel: ['window_size'],
+}
+
+# historical window related params' default value for each dectectors
+HISTORICAL_DATA_PARAM_DEFAULT: Dict[Union[Type[Detector], Type[DetectorModel]], Dict[str, int]] = {
+    SlowDriftDetectorModel: {'slow_drift_window': 0},
+    StatSigDetectorModel: {'n_control': 0, 'n_test': 1},
+    MultiStatSigDetectorModel: {'n_control': 0, 'n_test': 1},
+    CUSUMDetectorModel: {'historical_window': 0},
+    WindowSloDetectorModel: {'window_size': 10},
+    # BocpdDetectorModel: {'': 0},
+    # SPRTDetectorModel: {'': 0},
+    MKDetectorModel: {'window_size': 20},
+}
+
+# whether online only
+DETECTOR_ONLINE_ONLY: Dict[Union[Type[Detector], Type[DetectorModel]], bool] = {
+    SlowDriftDetectorModel: True,
+    StatSigDetectorModel: True,
+    MultiStatSigDetectorModel: True,
+    CUSUMDetectorModel: True,
+    WindowSloDetectorModel: True,
+    BocpdDetectorModel: True,
+    SPRTDetectorModel: True,
+    MKDetectorModel: True,
+    GMDetectorModel: False,
+    ProphetTrendDetectorModel: False,
+    ProphetDetectorModel: False,
+}
+
+# get evaluation start time for detectors that have rolling window strategy
+def get_appropriate_start_time_default(
+    detector: Union[Type[Detector], Type[DetectorModel]],
+    params: Optional[Dict[str, float]],
+    tsd: TimeSeriesData,
+) -> int:
+    # return number of data points in TSD
+    # SlowDriftDetectorModel: slow_drift_window is in seconds (see also here).
+    # [Multi]StatSigDetectorModel: n_control and n_test are in number of time_unit (points).
+    # CUSUMDetectorModel: historical_window is in seconds.
+    # WindowSloDetectorModel: window_size is in number of datapoints.
+    # MKDetectorModel: window_size appears to be in number of datapoints.
+
+    assert params is not None
+    # for BocpdDetectorModel and SPRTDetectorModel
+    if detector not in HISTORICAL_DATA_PARAM_NAME:
+        return 0
+    window_param_name_list = HISTORICAL_DATA_PARAM_NAME[detector]
+    res = 0
+    for wpn in window_param_name_list:
+        if wpn in params:
+            res += params[wpn]
+        else:
+            res += HISTORICAL_DATA_PARAM_DEFAULT[detector][wpn]
+
+    if detector in [StatSigDetectorModel, MultiStatSigDetectorModel]:
+        # for statsig and multistatsig, window = n_test + n_control - 1
+        return int(res - 1)
+
+    elif detector in [SlowDriftDetectorModel, CUSUMDetectorModel]:
+        # SlowDriftDetectorModel: slow_drift_window is in seconds
+        # CUSUMDetectorModel: historical_window is in seconds.
+        return get_points_from_sec(int(res), tsd)
+    else:
+        return int(res)
+
+# get number of data points from number of seconds in TSD
+def get_points_from_sec(
+    eval_start_time_sec: int,
+    tsd: TimeSeriesData,
+) -> int:
+    """
+    eval_start_time_sec: evaluation start time in terms of second.
+    tsd: TS data. Time is sorted.
+
+    return: evaluation start point (index).
+    """
+    if eval_start_time_sec <= 0:
+        raise ValueError(
+                "Please use a larger eval_start_time_sec."
+            )
+
+    end = pd.to_datetime(tsd.time[0]) + pd.Timedelta(value=eval_start_time_sec, unit='s')
+    for i in range(len(tsd)):
+        if tsd.time[i] >= end:
+            return i
+    raise ValueError("Inappropriate eval_start_time_sec.")
+
+
 # defining some helper functions
 def get_cp_index(
     changepoints: Sequence[TimeSeriesChangePoint], tsd: TimeSeriesData
@@ -87,9 +198,19 @@ def get_cp_index_from_detector_model(
     alert_style_cp: bool,
     threshold_low: float,
     threshold_high: float,
+    onlineflag: bool,
+    eval_start_time_point: int,
 ) -> List[int]:
-
-    score_val = anom_obj.scores.value.values
+    """
+    Get change point index
+    onlineflag: whether online only detectors
+    eval_start_time_point: evaluation start point
+    """
+    if onlineflag:
+        score_val = anom_obj.scores.value.values[eval_start_time_point:]
+    else:
+        # for GM and Prophet, anom_obj doesn't include first historical data
+        score_val = anom_obj.scores.value.values
     if alert_style_cp:
         cp_list = get_cp_index_from_alert_score(
             score_val, threshold_low, threshold_high
@@ -397,6 +518,115 @@ class TuringEvaluator(BenchmarkEvaluator):
         self.eval_agg: Optional[EvalAggregate] = None
         self.cp_dict: Dict[str, List[int]] = {}
 
+        # Whether the algorithms can only operates in online mode
+        self.onlineflag: bool = self._if_online_only()
+
+    def _if_online_only(self) -> bool:
+        # check whether the algorithms can only operates in online mode
+        if self.detector not in DETECTOR_ONLINE_ONLY:
+            print("The given detector model is not in detector model dictionary, using onlineflag=True")
+        return DETECTOR_ONLINE_ONLY.get(self.detector, True)
+
+    # get anomaly response for GM and Prophet (onlineonly = False)
+    def _get_anomaly_response(
+        self,
+        tsdata: TimeSeriesData,
+        eval_start_time_point: int,
+        training_window_point: int,
+        retrain_freq_point: int,
+        model_params: Optional[Dict[str, float]] = None,
+    ) -> AnomalyResponse:
+
+        if eval_start_time_point < 0:
+            raise ValueError(
+                "Please use a larger evaluation start time (>=0)."
+            )
+        if training_window_point < 1:
+            raise ValueError(
+                "Please use a larger training window (>=1)."
+            )
+        if retrain_freq_point < 1:
+            raise ValueError(
+                "Please use a larger retraining frequency (>=1)."
+            )
+        if len(tsdata) < eval_start_time_point or len(tsdata) < training_window_point:
+            raise ValueError(
+                "Time series is too short for the given model or the given evalution start time or the training window."
+            )
+
+        timeindex = tsdata.time.values
+        valuedata = tsdata.value.values
+
+        remain_length = len(tsdata) - eval_start_time_point
+
+        if retrain_freq_point >= remain_length:
+            raise ValueError(
+                "Time series is too short for the given retrain frequency."
+            )
+
+        response = None
+        for i in range(0, remain_length, retrain_freq_point):
+            # historical_data
+            historical_data = TimeSeriesData(pd.DataFrame({
+                'time': timeindex[
+                    eval_start_time_point + i - training_window_point : eval_start_time_point + i
+                ],
+                'value': valuedata[
+                    eval_start_time_point + i - training_window_point : eval_start_time_point + i
+                ],
+            }))
+
+            test_data = TimeSeriesData(pd.DataFrame({
+                'time': timeindex[eval_start_time_point + i : eval_start_time_point + i + retrain_freq_point],
+                'value': valuedata[eval_start_time_point + i : eval_start_time_point + i + retrain_freq_point],
+            }))
+
+            # fit and predict
+            # for GM, change serialized_model to bytes from str type
+            if model_params and "serialized_model" in model_params and isinstance(model_params["serialized_model"], str):
+                # pyre-fixme[16]: `float` has no attribute `encode`.
+                model_params["serialized_model"] = model_params["serialized_model"].encode()
+
+            # pyre-fixme[32]: Keyword argument `model_params` has type `Optional[Dict[str, float]]` but must be a mapping with string keys.
+            detector = self.detector(**model_params)
+            # pyre-fixme[16]: `Detector` has no attribute `fit_predict`.
+            anom_obj = detector.fit_predict(
+                data=test_data,
+                historical_data=historical_data,
+            )
+
+            # concat anomaly response
+            if not response:
+                response = anom_obj
+            else:
+                response = AnomalyResponse(
+                    scores=TimeSeriesData(
+                        time=pd.concat([
+                            pd.Series(response.scores.time.values),
+                            pd.Series(anom_obj.scores.time.values)
+                        ]),
+                        value=pd.concat([
+                            pd.Series(response.scores.value.values),
+                            pd.Series(anom_obj.scores.value.values)
+                        ]),
+                    ),
+                    confidence_band = None,
+                    predicted_ts = None,
+                    anomaly_magnitude_ts=TimeSeriesData(
+                        time=pd.concat([
+                            pd.Series(response.anomaly_magnitude_ts.time.values),
+                            pd.Series(anom_obj.anomaly_magnitude_ts.time.values)
+                        ]),
+                        value=pd.concat([
+                            pd.Series(response.anomaly_magnitude_ts.value.values),
+                            pd.Series(anom_obj.anomaly_magnitude_ts.value.values)
+                        ]),
+                    ),
+                    stat_sig_ts = None,
+                )
+
+        return response
+
     def evaluate(
         self,
         model_params: Optional[Dict[str, float]] = None,
@@ -406,7 +636,15 @@ class TuringEvaluator(BenchmarkEvaluator):
         threshold_low: float = 0.0,
         threshold_high: float = 1.0,
         margin: int = 5,
+        eval_start_time_sec: Optional[int] = None,
+        training_window_sec: Optional[int] = None,
+        retrain_freq_sec: Optional[int] = None,
     ) -> pd.DataFrame:
+        """
+        eval_start_time_sec: evaluation start time for anom_obj and anno
+        training_window_sec: for GM and Prophet only
+        retrain_freq_sec: for GM and Prophet only
+        """
 
         if self.is_detector_model:
             return self._evaluate_detector_model(
@@ -417,6 +655,9 @@ class TuringEvaluator(BenchmarkEvaluator):
                 threshold_low=threshold_low,
                 threshold_high=threshold_high,
                 margin=margin,
+                eval_start_time_sec=eval_start_time_sec,
+                training_window_sec=training_window_sec,
+                retrain_freq_sec=retrain_freq_sec,
             )
         else:
             return self._evaluate_detector(
@@ -435,7 +676,15 @@ class TuringEvaluator(BenchmarkEvaluator):
         threshold_low: float = 0.0,
         threshold_high: float = 1.0,
         margin: int = 5,
+        eval_start_time_sec: Optional[int] = None,
+        training_window_sec: Optional[int] = None,
+        retrain_freq_sec: Optional[int] = None,
     ) -> pd.DataFrame:
+        """
+        eval_start_time_sec: evaluation start time for anom_obj and anno
+        training_window_sec: for GM and Prophet only
+        retrain_freq_sec: for GM and Prophet only
+        """
 
         if not ignore_list:
             ignore_list = []
@@ -454,17 +703,83 @@ class TuringEvaluator(BenchmarkEvaluator):
             if this_dataset in ignore_list:
                 continue
             data_name, tsd, anno = self._parse_data(row)
-            # pyre-fixme[45]: Cannot instantiate abstract class `Detector`.
-            detector = self.detector(**model_params)
-            # pyre-fixme[16]: `Detector` has no attribute `fit_predict`.
-            anom_obj = detector.fit_predict(tsd)
+
+            if self.onlineflag:
+                # if a user dosen't set eval_start_time
+                if eval_start_time_sec is None:
+                    eval_start_time_point = get_appropriate_start_time_default(
+                        self.detector,
+                        model_params,
+                        tsd,
+                    )
+                    if eval_start_time_point >= len(tsd):
+                        raise ValueError("Inappropriate parameters.")
+                else:
+                    # test if a user sets an appropriate eval_start_time
+                    temp_start_time_point = get_appropriate_start_time_default(
+                        self.detector,
+                        model_params,
+                        tsd,
+                    )
+                    if temp_start_time_point >= len(tsd):
+                        raise ValueError("Inappropriate parameters.")
+
+                    eval_start_time_point = get_points_from_sec(
+                        eval_start_time_sec,
+                        tsd,
+                    )
+
+                    if eval_start_time_point >= len(tsd):
+                        raise ValueError("Inappropriate evaluation start time.")
+
+                    if eval_start_time_point < temp_start_time_point:
+                        print(f"Not approriate evaluation start time, using {tsd.time[temp_start_time_point]} instead.")
+                        eval_start_time_point = temp_start_time_point
+
+                # pyre-fixme[45]: Cannot instantiate abstract class `Detector`.
+                detector = self.detector(**model_params)
+                # pyre-fixme[16]: `Detector` has no attribute `fit_predict`.
+                anom_obj = detector.fit_predict(tsd)
+            else:
+                assert eval_start_time_sec is not None
+                assert training_window_sec is not None
+                assert retrain_freq_sec is not None
+
+                eval_start_time_point = get_points_from_sec(
+                    eval_start_time_sec,
+                    tsd,
+                )
+                training_window_point = get_points_from_sec(
+                    training_window_sec,
+                    tsd,
+                )
+                retrain_freq_point = get_points_from_sec(
+                    retrain_freq_sec,
+                    tsd,
+                )
+                # get anomaly response for GM and Prophet
+                anom_obj = self._get_anomaly_response(
+                    tsdata=tsd,
+                    eval_start_time_point=eval_start_time_point,
+                    training_window_point=training_window_point,
+                    retrain_freq_point=retrain_freq_point,
+                    model_params=model_params,
+                )
 
             self.cp_dict[data_name] = get_cp_index_from_detector_model(
-                anom_obj, alert_style_cp, threshold_low, threshold_high
+                anom_obj=anom_obj,
+                alert_style_cp=alert_style_cp,
+                threshold_low=threshold_low,
+                threshold_high=threshold_high,
+                onlineflag=self.onlineflag,
+                eval_start_time_point=eval_start_time_point,
             )
+            new_anno = {}
+            for key in anno:
+                new_anno[key] = [x for x in anno[key] if x >= eval_start_time_point]
 
             eval_dict = measure(
-                annotations=anno, predictions=self.cp_dict[data_name], margin=margin
+                annotations=new_anno, predictions=self.cp_dict[data_name], margin=margin
             )
             eval_list.append(
                 Evaluation(
