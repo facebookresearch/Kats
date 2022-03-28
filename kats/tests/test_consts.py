@@ -1330,17 +1330,17 @@ class TSIteratorTest(TestCase):
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-01")]), check_names=False
         )
-        assert_series_equal(cast(pd.Series, val.value), pd.Series([100, 200], name=0))
+        assert_frame_equal(cast(pd.DataFrame, val.value), pd.DataFrame([[100, 200]], columns=["y1", "y2"]))
         val = next(kats_iterator)
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-02")]), check_names=False
         )
-        assert_series_equal(cast(pd.Series, val.value), pd.Series([120, 220], name=1))
+        assert_frame_equal(cast(pd.DataFrame, val.value), pd.DataFrame([[120, 220]], columns=["y1", "y2"]))
         val = next(kats_iterator)
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-03")]), check_names=False
         )
-        assert_series_equal(cast(pd.Series, val.value), pd.Series([130, 230], name=2))
+        assert_frame_equal(cast(pd.DataFrame, val.value), pd.DataFrame([[130, 230]], columns=["y1", "y2"]))
 
     def test_ts_iterator_comprehension(self) -> None:
         kats_data = TimeSeriesData(

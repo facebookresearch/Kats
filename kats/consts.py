@@ -1025,9 +1025,7 @@ class TSIterator:
             else:
                 ret = TimeSeriesData(
                     time=pd.Series(self.ts.time[self.curr]),
-                    value=pd.DataFrame(
-                        self.ts.value.iloc[self.curr], columns=[self.curr]
-                    ),
+                    value=self.ts.value.loc[[self.curr]],
                 )
             self.curr += 1
             return ret
