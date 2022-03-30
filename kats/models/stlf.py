@@ -99,6 +99,7 @@ class STLFModel(Model[STLFParams]):
 
     def __init__(self, data: TimeSeriesData, params: STLFParams) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
@@ -124,14 +125,18 @@ class STLFModel(Model[STLFParams]):
         """
 
         # create decomposer for time series decomposition
+        # pyre-fixme[6]: For 1st param expected `TimeSeriesData` but got
+        #  `Optional[TimeSeriesData]`.
         decomposer = TimeSeriesDecomposition(self.data, "multiplicative")
         self.decomp = decomp = decomposer.decomposer()
 
         self.sea_data = copy(decomp["seasonal"])
         self.desea_data = desea_data = copy(self.data)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         desea_data.value = desea_data.value / decomp["seasonal"].value
         return self
 
+    # pyre-fixme[15]: `fit` overrides method defined in `Model` inconsistently.
     def fit(self, **kwargs: Any) -> STLFModel:
         """Fit STLF model
 
@@ -171,6 +176,7 @@ class STLFModel(Model[STLFParams]):
         self.model = model
         return self
 
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, *args: Any, include_history: bool = False, **kwargs: Any
     ) -> pd.DataFrame:
@@ -195,6 +201,7 @@ class STLFModel(Model[STLFParams]):
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
         self.include_history = include_history
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
         self.alpha = kwargs.get("alpha", 0.05)
 
@@ -251,6 +258,8 @@ class STLFModel(Model[STLFParams]):
         return "STLF"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, Any]]:
         """Provide a parameter space for STLF model
 

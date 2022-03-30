@@ -249,6 +249,7 @@ class ProphetModel(Model[ProphetParams]):
         super().__init__(data, params)
         if _no_prophet:
             raise RuntimeError("requires fbprophet to be installed")
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
@@ -266,6 +267,8 @@ class ProphetModel(Model[ProphetParams]):
             The fitted prophet model object
         """
         # prepare dataframe for Prophet.fit()
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         df = pd.DataFrame({"ds": self.data.time, "y": self.data.value})
         logging.debug(
             "Call fit() with parameters: "
@@ -353,6 +356,7 @@ class ProphetModel(Model[ProphetParams]):
         self.model = prophet.fit(df=df)
         logging.info("Fitted Prophet model. ")
 
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, *args: Any, include_history: bool = False, **kwargs: Any
     ) -> pd.DataFrame:
@@ -374,6 +378,7 @@ class ProphetModel(Model[ProphetParams]):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
         self.include_history = include_history
         # prepare future for Prophet.predict
@@ -436,6 +441,8 @@ class ProphetModel(Model[ProphetParams]):
         return "Prophet"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, object]]:
         """get default parameter search space for Prophet model"""
         return get_default_prophet_parameter_search_space()

@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """A module for computing the meta-data of time series.
 
 This module contains the class for computing the meta-data of time series. The meta-data of a time series is consists of three parts: 1) time series features;
@@ -90,10 +88,12 @@ class GetMetaData:
         min_length: int = 30,
         scale: bool = True,
         method: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         executor: Any = None,
         error_method: str = "mae",
         num_trials: int = 5,
         num_arms: int = 4,
+        # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
         if not isinstance(data, TimeSeriesData):
@@ -104,6 +104,7 @@ class GetMetaData:
         self.all_params = all_params
         self.min_length = min_length
         self.method = method
+        # pyre-fixme[4]: Attribute must be annotated.
         self.error_funcs = {
             "mape": self._calc_mape,
             "smape": self._calc_smape,
@@ -211,11 +212,16 @@ class GetMetaData:
         logging.info(msg)
 
     def _tune_single(
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         self, single_model: Callable, single_params: Callable
+    # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
+    #  `typing.Dict` to avoid runtime subscripting errors.
     ) -> Tuple[Dict, float]:
         """Fit and evaluate a single candidate model."""
 
         # define an evaluation_function
+        # pyre-fixme[3]: Return type must be annotated.
+        # pyre-fixme[2]: Parameter must be annotated.
         def _evaluation_function(params):
             if "seasonal_order" in params and isinstance(params["seasonal_order"], str):
                 params["seasonal_order"] = ast.literal_eval(params["seasonal_order"])
@@ -395,5 +401,6 @@ class GetMetaData:
         logging.info("Calculating RMSE")
         return np.sqrt(self._calc_mse(training_inputs, predictions, truth, diffs))
 
+    # pyre-fixme[3]: Return type must be annotated.
     def __str__(self):
         return "GetMetaData"

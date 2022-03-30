@@ -329,6 +329,7 @@ class KatsEnsemble(Model):
         weights = self.backTestExecutor(err_method) if should_auto_backtest else None
         return fitted, weights
 
+    # pyre-fixme[15]: `fit` overrides method defined in `Model` inconsistently.
     def fit(self, err_method: str = "mape") -> KatsEnsemble:
         """Fit individual forecasting models via calling fitExecutor
 
@@ -387,6 +388,7 @@ class KatsEnsemble(Model):
         return self
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int) -> KatsEnsemble:
         """Predit future for each individual model
 

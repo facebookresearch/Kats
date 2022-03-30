@@ -88,6 +88,7 @@ class VARModel(Model[VARParams]):
 
     def __init__(self, data: TimeSeriesData, params: VARParams) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.DataFrame):
             msg = "Only support multivariate time series, but get {type}.".format(
                 type=type(self.data.value)
@@ -100,9 +101,11 @@ class VARModel(Model[VARParams]):
 
         logging.debug("Call fit()")
         if self.params.maxlags is None:
+            # pyre-fixme[16]: `Optional` has no attribute `time`.
             self.params.maxlags = int(12 * (len(self.data.time) / 100.0) ** (1.0 / 4))
 
         # create VAR model
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         var = VAR(self.data.value)
         logging.info("Created VAR model.")
 
@@ -121,6 +124,7 @@ class VARModel(Model[VARParams]):
         self.resid = model.resid
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history: bool = False, **kwargs: Any
     ) -> Dict[str, TimeSeriesData]:
@@ -148,6 +152,7 @@ class VARModel(Model[VARParams]):
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
         self.include_history = include_history
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
         self.alpha = alpha = kwargs.get("alpha", 0.05)
 
@@ -161,6 +166,7 @@ class VARModel(Model[VARParams]):
         self.dates = dates
 
         self.fcst_dict = fcst_dict = {}
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         ts_names = list(self.data.value.columns)
 
         for i, name in enumerate(ts_names):
@@ -227,7 +233,9 @@ class VARModel(Model[VARParams]):
         if figsize is None:
             figsize = (10, 6)
         fig, axes = plt.subplots(ncols=2, dpi=dpi, figsize=figsize)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         for ts_name, ax in zip(self.data.value.columns, axes.flat):
+            # pyre-fixme[16]: `Optional` has no attribute `time`.
             ax.plot(self.data.time, self.data.value[ts_name], history_color)
 
             data = fcst_dict[ts_name]
@@ -258,6 +266,8 @@ class VARModel(Model[VARParams]):
         return "VAR"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, Any]]:
         """Provide a parameter space for VAR model
 

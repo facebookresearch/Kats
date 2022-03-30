@@ -3,13 +3,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import pickle
 from typing import Any
 
 
 class SimplePickleSerializer:
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def _jdefault(self, o):
         if isinstance(o, set):
             return list(o)
@@ -21,6 +21,7 @@ class SimplePickleSerializer:
             return str(o)
         return o.__dict__
 
+    # pyre-fixme[2]: Parameter annotation cannot be `Any`.
     def serialize(self, obj: Any) -> bytes:
         """Performs model saving.
 
@@ -36,6 +37,7 @@ class SimplePickleSerializer:
             return b""
         return pickle.dumps(obj)
 
+    # pyre-fixme[3]: Return annotation cannot be `Any`.
     def deserialize(self, serialized_data: bytes) -> Any:
         """Performs model decoding.
 
@@ -54,6 +56,7 @@ class SimplePickleSerializer:
         return pickle.loads(decoded)
 
 
+# pyre-fixme[2]: Parameter annotation cannot be `Any`.
 def serialize_for_zippy(input: Any) -> bytes:
     """Performs model compression.
 
@@ -68,6 +71,7 @@ def serialize_for_zippy(input: Any) -> bytes:
     return serializer.serialize(input)
 
 
+# pyre-fixme[2]: Parameter must be annotated.
 def deserialize_from_zippy(input: bytes, use_case_id=None) -> None:
     """Performs model serialization for Zippydb.
 

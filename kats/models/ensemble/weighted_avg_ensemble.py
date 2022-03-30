@@ -121,6 +121,7 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     # pyre-fixme[2]: Parameter must be annotated.
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, **kwargs) -> pd.DataFrame:
         """Predict method of weighted average ensemble model
 

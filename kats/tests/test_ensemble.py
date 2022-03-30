@@ -3,8 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
 import sys
+from typing import Any, Dict
 import unittest
 import unittest.mock as mock
 from unittest import TestCase
@@ -30,6 +30,7 @@ from kats.models.ensemble.ensemble import (
 from kats.models.ensemble.kats_ensemble import KatsEnsemble
 from kats.models.ensemble.median_ensemble import MedianEnsembleModel
 from kats.models.ensemble.weighted_avg_ensemble import WeightedAvgEnsemble
+from kats.models.model import Model
 from parameterized.parameterized import parameterized
 
 np.random.seed(123321)
@@ -60,15 +61,18 @@ def get_fake_preds(
     )
 
 
-def get_predict_model(m, model_name, steps, freq):
+# pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+def get_predict_model(m: Model, model_name: str, steps: int, freq: str) -> np.ndarray:
     """Get model prediction based on model_name."""
     if model_name == "BaseEnsemble":
+        # pyre-fixme[16]: `Model` has no attribute `_predict_all`.
         return m._predict_all(steps=steps, freq=freq)
     else:
+        # pyre-fixme[7]: Expected `ndarray` but got `None`.
         return m.predict(steps=steps, freq=freq)
 
 
-def get_ensemble_param(ts_param):
+def get_ensemble_param(ts_param: Dict[str, bool]) -> EnsembleParams:
     """Returns EnsembleParams based on which base_models are included."""
     base_model_list = [
         BaseModelParams("arima", arima.ARIMAParams(p=1, d=1, q=1))
@@ -103,6 +107,8 @@ def get_ensemble_param(ts_param):
         BaseModelParams("theta", theta.ThetaParams(m=12)) if ts_param["theta"] else "",
     ]
     return EnsembleParams(
+        # pyre-fixme[6]: For 1st param expected `List[BaseModelParams]` but got
+        #  `List[Union[BaseModelParams, str]]`.
         [base_model for base_model in base_model_list if base_model != ""]
     )
 
@@ -140,7 +146,7 @@ TEST_PARAM = {
 }
 
 
-TEST_DATA = {
+TEST_DATA: Dict[str, Dict[str, Any]] = {
     "monthly": {
         "ts": load_air_passengers(),
         "params": {
@@ -197,6 +203,7 @@ class testEnsembleModels(TestCase):
             params,
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -286,9 +293,12 @@ class testEnsembleModels(TestCase):
         self,
         ts_data_name: str,
         ts_data: TimeSeriesData,
+        # pyre-fixme[2]: Parameter must be annotated.
         params,
         steps: int,
+        # pyre-fixme[2]: Parameter must be annotated.
         freq,
+        # pyre-fixme[2]: Parameter must be annotated.
         model,
         backtester: bool,
     ) -> None:
@@ -323,6 +333,7 @@ class testEnsembleModels(TestCase):
                 # no predictions should be made yet
                 mock_fit_model.return_value.predict.assert_not_called()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -361,9 +372,12 @@ class testEnsembleModels(TestCase):
         self,
         ts_model_name: str,
         ts_data: TimeSeriesData,
+        # pyre-fixme[2]: Parameter must be annotated.
         params,
         steps: int,
+        # pyre-fixme[2]: Parameter must be annotated.
         freq,
+        # pyre-fixme[2]: Parameter must be annotated.
         model,
         backtester: bool,
         plot: bool,
@@ -404,6 +418,7 @@ class testEnsembleModels(TestCase):
                 if plot:
                     m.plot()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -423,12 +438,14 @@ class testEnsembleModels(TestCase):
             ],
         ]
     )
-    def test_name(self, ts_model_name: str, model, model_name: str):
+    # pyre-fixme[2]: Parameter must be annotated.
+    def test_name(self, ts_model_name: str, model, model_name: str) -> None:
         """Test name of the model according to the model used."""
         # test __str__ method
         m = model(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"]["base"])
         self.assertEqual(m.__str__(), model_name)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -445,13 +462,16 @@ class testEnsembleModels(TestCase):
             ],
         ]
     )
-    def test_invalid_params_ensemble_params(self, ts_model_name: str, model) -> None:
+    # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
+    def test_invalid_params_ensemble_params(self, ts_model_name: str, model: Model) -> None:
         # validate params in EnsembleParams
         TSData_multi = TEST_DATA["multivariate"]["ts"]
         params = TEST_DATA["multivariate"]["params"]
 
         self.assertRaises(
             ValueError,
+            # pyre-fixme[6]: For 2nd param expected `(...) -> Any` but got
+            #  `Model[typing.Any]`.
             model,
             TSData_multi,
             params,
@@ -459,6 +479,7 @@ class testEnsembleModels(TestCase):
 
 
 class testKatsEnsemble(TestCase):
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -485,7 +506,7 @@ class testKatsEnsemble(TestCase):
         ]
     )
     def test_fit_median_forecast(
-        self, ts_data_name: str, ts_data: TimeSeriesData, params, steps: int, freq
+        self, ts_data_name: str, ts_data: TimeSeriesData, params: Dict[str, Any], steps: int, freq: str
     ) -> None:
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
 
@@ -515,6 +536,7 @@ class testKatsEnsemble(TestCase):
                 m.aggregate()
                 m.plot()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -541,7 +563,7 @@ class testKatsEnsemble(TestCase):
         ]
     )
     def test_fit_weightedavg_forecast(
-        self, ts_data_name: str, ts_data: TimeSeriesData, params, steps: int, freq
+        self, ts_data_name: str, ts_data: TimeSeriesData, params: Dict[str, Any], steps: int, freq: str
     ) -> None:
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
 

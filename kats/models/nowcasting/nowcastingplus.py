@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """NowcastingPlus is a basic model for short-term forecasting.
 
 This modules contains class NowcastingParams, which is the class parameter
@@ -38,6 +36,8 @@ from sklearn import preprocessing
 from sklearn.linear_model import LinearRegression
 
 
+# pyre-fixme[3]: Return type must be annotated.
+# pyre-fixme[2]: Parameter must be annotated.
 def poly(df, n):
     """
     Takes the column x from the dataframe df and takes
@@ -57,11 +57,13 @@ class NowcastingParams(Params):
         step: An integer indicating how many steps ahead we are forecasting. Default is 1.
     """
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def __init__(self, step: int = 1, **kwargs) -> None:
         super().__init__()
         self.step = step
         logging.debug(f"Initialized QuadraticModel with parameters: step:{step}")
 
+    # pyre-fixme[3]: Return type must be annotated.
     def validate_params(self):
         """Raises: NotImplementedError("Subclasses should implement this!")."""
 
@@ -69,6 +71,7 @@ class NowcastingParams(Params):
         raise NotImplementedError("Subclasses should implement this!")
 
 
+# pyre-fixme[24]: Generic type `m.Model` expects 1 type parameter.
 class NowcastingPlusModel(m.Model):
     """The class for NowcastingPlus Model.
 
@@ -84,28 +87,38 @@ class NowcastingPlusModel(m.Model):
         self,
         data: TimeSeriesData,
         params: NowcastingParams,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         model: Any = None,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         poly_model: Any = None,
         feature_names: List[str] = [],
         poly_feature_names: List[str] = [],
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         scaler: Any = None,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         label_scaler: Any = None,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         y_train_season_obj: Any = None,
     ) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: Optional type has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
             )
             logging.error(msg)
             raise ValueError(msg)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.df = data.to_dataframe()
+        # pyre-fixme[4]: Attribute must be annotated.
         self.step = params.step
         self.model = model
         self.feature_names = feature_names
         self.poly_model = poly_model
+        # pyre-fixme[4]: Attribute must be annotated.
         self.df_poly = data.to_dataframe()
         self.poly_feature_names = poly_feature_names
+        # pyre-fixme[4]: Attribute must be annotated.
         self.df_nowcasting = data.to_dataframe()
         self.scaler = scaler
         self.label_scaler = label_scaler
@@ -209,6 +222,9 @@ class NowcastingPlusModel(m.Model):
         return serialize_for_zippy(self.model)
 
     ###################### module 2: for online prediction ######################
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def predict(self, **kwargs):
         """Predicts the time series in the future.
 
@@ -232,6 +248,8 @@ class NowcastingPlusModel(m.Model):
         now = self.df["y"][-self.step :]
         return (now - poly_now) - y_predict + polynext
 
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def predict_polyfit(self, model=None, df=None, **kwargs):
         poly_now = self.y_train_season_obj[-1]
         first_occ = np.where(self.y_train_season_obj == poly_now)
@@ -247,11 +265,14 @@ class NowcastingPlusModel(m.Model):
 
         self.model = deserialize_from_zippy(model_as_bytes)
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[3]: Return type must be annotated.
     def plot(self):
         """Raises: NotImplementedError("Subclasses should implement this!")。"""
 
         raise NotImplementedError("Subclasses should implement this!")
 
+    # pyre-fixme[3]: Return type must be annotated.
     def __str__(self):
         """Returns the name as Nowcasting,"""
 

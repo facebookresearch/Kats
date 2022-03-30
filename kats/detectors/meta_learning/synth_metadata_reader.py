@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 This module reads synthetic data from daiquery and preprocess it as data_x=features, data_y=hpt_res for given algorithm
 """
@@ -12,35 +10,36 @@ This module reads synthetic data from daiquery and preprocess it as data_x=featu
 import io
 import os
 import pkgutil
-from typing import Dict
+from typing import Any, Dict, Optional, Set
 
 import pandas as pd
 
 
 class SynthMetadataReader:
-    NUM_SECS_IN_DAY = 3600 * 24
-    PARAMS_TO_SCALE_DOWN = {"n_control", "n_test", "historical_window", "scan_window"}
+    NUM_SECS_IN_DAY: int = 3600 * 24
+    PARAMS_TO_SCALE_DOWN: Set[str] = {"n_control", "n_test", "historical_window", "scan_window"}
+    _rawdata: Optional[pd.DataFrame] = None
+    _metadata: Optional[Dict[str, Any]] = None
 
-    def __init__(self):
-        self._rawdata = None
-        self._metadata = None
-
-    def _get_raw_data(self):
-        if self._rawdata is None:
+    def _get_raw_data(self) -> pd.DataFrame:
+        rawdata = self._rawdata
+        if rawdata is None:
             root = "kats"
             path = "data/" if "kats" in os.getcwd().lower() else "kats/data/"
             filename = "meta_learning_detection_training_data_pmo_sample_1000.csv"
             data_object = pkgutil.get_data(root, path + filename)
-            self._rawdata = pd.read_csv(
+            assert data_object is not None
+            self._rawdata = rawdata = pd.read_csv(
                 io.BytesIO(data_object),
                 index_col=0,
                 dtype={"idx": object},
                 encoding="utf8",
             )
-        return self._rawdata.copy()
+        return rawdata.copy()
 
     def get_metadata(self, algorithm_name: str) -> Dict[str, pd.DataFrame]:
-        if self._metadata is None:
+        metadata = self._metadata
+        if metadata is None:
             rawdata = self._get_raw_data()
 
             metadata = {}
@@ -76,6 +75,6 @@ class SynthMetadataReader:
 
             self._metadata = metadata
         return {
-            "data_x": self._metadata["data_x"].copy(),
-            "data_y": self._metadata["data_y"][algorithm_name].copy(),
+            "data_x": metadata["data_x"].copy(),
+            "data_y": metadata["data_y"][algorithm_name].copy(),
         }

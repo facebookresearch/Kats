@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """A module for meta-learner hyper-parameter selection.
 
 This module contains two classes, including:
@@ -26,6 +24,7 @@ from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
 from sklearn.model_selection import train_test_split
 
+# pyre-fixme[5]: Global expression must be annotated.
 default_model_params = {
     "holtwinters": {
         "categorical_idx": ["trend", "damped", "seasonal", "seasonal_periods"],
@@ -60,6 +59,7 @@ default_model_params = {
     },
 }
 
+# pyre-fixme[5]: Global expression must be annotated.
 default_model_networks = {
     "holtwinters": {
         "n_hidden_shared": [20],
@@ -144,6 +144,7 @@ class MetaLearnHPT:
         default_model: Optional[str] = None,
         scale: bool = True,
         load_model: bool = False,
+        # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
         if not load_model:
@@ -153,16 +154,22 @@ class MetaLearnHPT:
                 raise _log_error("data_y is necessary to initialize a new model!")
 
             data_x.fillna(0, inplace=True)
+            # pyre-fixme[4]: Attribute must be annotated.
             self.dataX = np.asarray(data_x)
+            # pyre-fixme[4]: Attribute must be annotated.
             self.dataY = data_y.copy()
+            # pyre-fixme[4]: Attribute must be annotated.
             self.dim_input = self.dataX.shape[1]
+            # pyre-fixme[4]: Attribute must be annotated.
             self.model = None
 
             # Record loss path for validation/trainin set and for both classification and regression.
+            # pyre-fixme[4]: Attribute must be annotated.
             self._loss_path = collections.defaultdict(list)
 
             if isinstance(default_model, str):
                 default_model = default_model.lower()
+            # pyre-fixme[4]: Attribute must be annotated.
             self.__default_model = default_model
 
             if default_model is not None:
@@ -189,23 +196,30 @@ class MetaLearnHPT:
                 msg = "At least one of numerical_idx and categorical_idx should be a non-empty list."
                 raise _log_error(msg)
 
+            # pyre-fixme[4]: Attribute must be annotated.
             self.categorical_idx = categorical_idx
+            # pyre-fixme[4]: Attribute must be annotated.
             self.numerical_idx = numerical_idx
+            # pyre-fixme[4]: Attribute must be annotated.
             self._target_num = (
                 np.asarray(self.dataY[self.numerical_idx])
                 if self.numerical_idx
                 else None
             )
+            # pyre-fixme[4]: Attribute must be annotated.
             self._dim_output_num = (
                 self._target_num.shape[1] if self.numerical_idx else 0
             )
             self._get_target_cat()
             self._validate_data()
+            # pyre-fixme[4]: Attribute must be annotated.
             self.scale = scale
             if self.scale:
+                # pyre-fixme[4]: Attribute must be annotated.
                 self.x_mean = self.dataX.mean(0)
                 x_std = self.dataX.std(0)
                 x_std[x_std == 0.0] = 1.0
+                # pyre-fixme[4]: Attribute must be annotated.
                 self.x_std = x_std
                 self.dataX = (self.dataX - self.x_mean) / self.x_std
 
@@ -797,6 +811,8 @@ class MultitaskNet(nn.Module):
             self.num_layer.append(nn.Linear(curr_input, n_hidden_and_output_num[i]))
             curr_input = n_hidden_and_output_num[i]
 
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def forward(self, x):
         """Forward function in neural networks."""
 

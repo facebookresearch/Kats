@@ -3,9 +3,9 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 # This file contains dummy data for the model unit tests
+
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -4659,7 +4659,7 @@ METALEARNING_TEST_T1 = pd.DataFrame(
     }
 )
 
-METALEARNING_TEST_T1_FEATURES = {
+METALEARNING_TEST_T1_FEATURES: Dict[str, float] = {
     "length": 60,
     "mean": 0.017541978414630434,
     "var": 1.1330423233556002,
@@ -4770,6 +4770,7 @@ METALEARNING_TEST_T2 = pd.DataFrame(
     }
 )
 
+# pyre-fixme[5]: Global expression must be annotated.
 METALEARNING_TEST_T2_FEATURES = {
     "length": 60,
     "mean": 0.8889935204889182,
@@ -4813,6 +4814,7 @@ METALEARNING_TEST_T2_FEATURES = {
     "hw_gamma": 0.26315604715898244,
 }
 
+# pyre-fixme[5]: Global expression must be annotated.
 METALEARNING_TEST_FEATURES = [
     [
         1.08565103,

@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 from unittest import TestCase
 
 import numpy as np
@@ -16,7 +14,7 @@ from kats.detectors.meta_learning.metalearning_detection_model import (
 base_models = ["cusum", "statsig", "bocpd"]
 
 
-def generate_meta_data(n):
+def generate_meta_data(n: int) -> pd.DataFrame:
     data = []
     features = np.random.randn(n * 10).reshape(n, -1)
     for i in range(n):

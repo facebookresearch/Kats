@@ -3,10 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
-from typing import Generic, Optional, Tuple, TypeVar
+from typing import Any, Generic, Optional, Tuple, TypeVar
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -28,6 +26,7 @@ class Model(Generic[ParamsType]):
         validate_frequency: validate the frequency of time series
         validate_dimension: validate the dimension of time series
     """
+    data: Optional[TimeSeriesData]
     fcst_df: Optional[pd.DataFrame] = None
     include_history: bool = False
 
@@ -42,31 +41,30 @@ class Model(Generic[ParamsType]):
         self.params = params
         self.__type__ = "model"
         if data is not None:
-            # pyre-fixme[16]: `Optional` has no attribute `validate_data`.
-            self.data.validate_data(validate_frequency, validate_dimension)
+            data.validate_data(validate_frequency, validate_dimension)
 
-    def setup_data(self):
+    def setup_data(self) -> None:
         """abstract method to set up dataset
 
         This is a declaration for setup data method
         """
         pass
 
-    def validate_inputs(self):
+    def validate_inputs(self) -> None:
         """abstract method to validate the inputs
 
         This is a declaration for validate_inputs method
         """
         pass
 
-    def fit(self):
+    def fit(self) -> None:
         """abstract method to fit model
 
         This is a declaration for model fitting
         """
         pass
 
-    def predict(self, *_args, **_kwargs):
+    def predict(self, *_args: Any, **_kwargs: Any) -> None:
         """abstract method to predict
 
         This is a declaration for predict method
@@ -77,7 +75,7 @@ class Model(Generic[ParamsType]):
         self,
         ax: Optional[plt.Axes] = None,
         figsize: Optional[Tuple[int, int]] = None,
-        **kwargs
+        **kwargs: Any
     ) -> plt.Axes:
         """Plot method for forecasting models
 
@@ -93,6 +91,7 @@ class Model(Generic[ParamsType]):
         if fcst_df is None:
             raise ValueError("predict() must be called before plot().")
         data = self.data
+        assert data is not None
         include_history = self.include_history
 
         logging.info("Generating chart for forecast result.")
@@ -136,7 +135,7 @@ class Model(Generic[ParamsType]):
         return ax
 
     @staticmethod
-    def get_parameter_search_space():
+    def get_parameter_search_space() -> None:
         """method to query default parameter search space
 
         abstract method to be implemented by downstream forecasting models

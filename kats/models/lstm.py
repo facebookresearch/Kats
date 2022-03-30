@@ -125,6 +125,7 @@ class LSTMModel(Model[LSTMParams]):
 
     def __init__(self, data: TimeSeriesData, params: LSTMParams) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = (
                 f"Only support univariate time series, but get {type(self.data.value)}."
@@ -148,6 +149,7 @@ class LSTMModel(Model[LSTMParams]):
             normalized values) and ground truth value for prediction.
         """
 
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         train_data = self.data.value.values.astype(float)
 
         # scaling using MinMaxScaler
@@ -168,6 +170,7 @@ class LSTMModel(Model[LSTMParams]):
 
         return inout_seq
 
+    # pyre-fixme[15]: `fit` overrides method defined in `Model` inconsistently.
     def fit(self, **kwargs: Any) -> "LSTMModel":
         """Fit the LSTM forecast model
 
@@ -215,6 +218,7 @@ class LSTMModel(Model[LSTMParams]):
 
         return self
 
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Prediction function for a multi-step forecast
 
@@ -236,6 +240,7 @@ class LSTMModel(Model[LSTMParams]):
         logging.debug(
             "Call predict() with parameters. " f"steps:{steps}, kwargs:{kwargs}"
         )
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
 
         model.eval()
@@ -283,6 +288,8 @@ class LSTMModel(Model[LSTMParams]):
         return "LSTM"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, Any]]:
         """Get default parameter search space for the LSTM model
 

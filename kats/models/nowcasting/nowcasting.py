@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """Nowcasting is the basic model for short-term forecasting.
 
 This modules contains class NowcastingParams, which is the class parameter
@@ -45,11 +43,13 @@ class NowcastingParams(Params):
         step: An integer indicating how many steps ahead we are forecasting. Default is 1.
     """
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def __init__(self, step: int = 1, **kwargs) -> None:
         super().__init__()
         self.step = step
         logging.debug(f"Initialized QuadraticModel with parameters: step:{step}")
 
+    # pyre-fixme[3]: Return type must be annotated.
     def validate_params(self):
         """Raises: NotImplementedError("Subclasses should implement this!")."""
 
@@ -57,6 +57,7 @@ class NowcastingParams(Params):
         raise NotImplementedError("Subclasses should implement this!")
 
 
+# pyre-fixme[24]: Generic type `m.Model` expects 1 type parameter.
 class NowcastingModel(m.Model):
     """The class for Nowcasting Model.
 
@@ -72,17 +73,21 @@ class NowcastingModel(m.Model):
         self,
         data: TimeSeriesData,
         params: NowcastingParams,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         model: Any = None,
         feature_names: List[str] = [],
     ) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: Optional type has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
             )
             logging.error(msg)
             raise ValueError(msg)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.df = data.to_dataframe()
+        # pyre-fixme[4]: Attribute must be annotated.
         self.step = params.step
         self.model = model
         self.feature_names = feature_names
@@ -128,6 +133,7 @@ class NowcastingModel(m.Model):
     def label_extraction(self) -> None:
         """Extracts labels from time seires data."""
 
+        # pyre-fixme[16]: Optional type has no attribute `to_dataframe`.
         self.df["label"] = LAG(self.data.to_dataframe(), -self.step)[
             "LAG_-" + str(self.step)
         ]
@@ -156,6 +162,9 @@ class NowcastingModel(m.Model):
         return serialize_for_zippy(self.model)
 
     ###################### module 2: for online prediction ######################
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def predict(self, model=None, df=None, **kwargs):
         """Predicts the time series in the future.
 
@@ -195,11 +204,14 @@ class NowcastingModel(m.Model):
 
         self.model = deserialize_from_zippy(model_as_bytes)
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[3]: Return type must be annotated.
     def plot(self):
         """Raises: NotImplementedError("Subclasses should implement this!")。"""
 
         raise NotImplementedError("Subclasses should implement this!")
 
+    # pyre-fixme[3]: Return type must be annotated.
     def __str__(self):
         """Returns the name as Nowcasting,"""
 

@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import unittest
 from unittest import TestCase
 
@@ -44,6 +42,8 @@ class testBayesianVARModel(TestCase):
         m = BayesianVAR(ts, self.params)
         self.assertEqual(list(m.data.to_dataframe().columns), correct_columns)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `pytest.mark.mpl_image_compare($parameter$remove_text = True)`.
     @pytest.mark.mpl_image_compare(remove_text=True)
     def test_plot(self) -> plt.Figure:
         params = BayesianVARParams(p=3)
@@ -55,6 +55,8 @@ class testBayesianVARModel(TestCase):
             self.assertIsNotNone(ax)
         return plt.gcf()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `pytest.mark.mpl_image_compare($parameter$remove_text = True)`.
     @pytest.mark.mpl_image_compare(remove_text=True)
     def test_plot_ax(self) -> plt.Figure:
         params = BayesianVARParams(p=3)
@@ -67,6 +69,8 @@ class testBayesianVARModel(TestCase):
             self.assertIsNotNone(ax)
         return plt.gcf()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `pytest.mark.mpl_image_compare($parameter$remove_text = True)`.
     @pytest.mark.mpl_image_compare(remove_text=True)
     def test_plot_params(self) -> plt.Figure:
         params = BayesianVARParams(p=3)
@@ -138,6 +142,10 @@ class testBayesianVARModel(TestCase):
         # fmt: on
         assert_frame_equal(expected, m.sigma_u)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([("zero_p", 0, 1, 1, 1, 1),
+    #  ("zero_phi_0", 1, 0, 1, 1, 1), ("zero_phi_1", 1, 1, 0, 1, 1), ("large_phi_1", 1,
+    #  1, 2, 1, 1), ("zero_phi_2", 1, 1, 1, 0, 1), ("zero_phi_3", 1, 1, 1, 1, 0)])`.
     @parameterized.expand(
         [
             ("zero_p", 0, 1, 1, 1, 1),
@@ -149,6 +157,7 @@ class testBayesianVARModel(TestCase):
         ]
     )
     def test_bad_params(
+        # pyre-fixme[2]: Parameter must be annotated.
         self, name, p: int, phi0: float, phi1: float, phi2: float, phi3: float
     ) -> None:
         params = BayesianVARParams()

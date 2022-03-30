@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import sys
 import unittest
 import unittest.mock as mock
@@ -76,9 +74,13 @@ class testBaseEnsemble(TestCase):
 
         self.TSData_dummy = TSData_dummy
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["TSData", 30, "MS"],
+    #  ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]])`.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
+    # pyre-fixme[2]: Parameter must be annotated.
     def test_fit_forecast(self, ts_data_name, steps: int, freq: str) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
@@ -193,9 +195,13 @@ class testMedianEnsemble(TestCase):
 
         self.TSData_dummy = TSData_dummy
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["TSData", 30, "MS"],
+    #  ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]])`.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
+    # pyre-fixme[2]: Parameter must be annotated.
     def test_fit_forecast(self, ts_data_name, steps: int, freq: str) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
@@ -280,9 +286,13 @@ class testWeightedAvgEnsemble(TestCase):
 
         self.TSData_dummy = TSData_dummy
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["TSData", 30, "MS"],
+    #  ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]])`.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData_daily", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
+    # pyre-fixme[2]: Parameter must be annotated.
     def test_fit_forecast(self, ts_data_name, steps: int, freq: str) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)[
@@ -360,9 +370,13 @@ class testKatsEnsemble(TestCase):
         self.TSData = load_air_passengers()
         self.TSData_dummy = TSData_dummy
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["TSData", 30, "MS"],
+    #  ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]])`.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
+    # pyre-fixme[2]: Parameter must be annotated.
     def test_fit_median_forecast(self, ts_data_name, steps: int, freq: str) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
@@ -413,10 +427,14 @@ class testKatsEnsemble(TestCase):
                 m.aggregate()
                 m.plot()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand([["TSData", 30, "MS"],
+    #  ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]])`.
     @parameterized.expand(
         [["TSData", 30, "MS"], ["TSData", 30, "D"], ["TSData_dummy", 30, "D"]]
     )
     def test_fit_weightedavg_forecast(
+        # pyre-fixme[2]: Parameter must be annotated.
         self, ts_data_name, steps: int, freq: str
     ) -> None:
         ts_data = getattr(self, ts_data_name)

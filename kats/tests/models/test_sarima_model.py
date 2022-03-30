@@ -3,10 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import unittest
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 from unittest import TestCase
 
 import numpy as np
@@ -30,11 +28,11 @@ from kats.tests.models.test_models_dummy_data import (
 )
 from parameterized.parameterized import parameterized
 
-AIR_TS = load_air_passengers()
-MULTI_DF = load_data("multivariate_anomaly_simulated_data.csv")
+AIR_TS: pd.DataFrame = load_air_passengers()
+MULTI_DF: pd.DataFrame = load_data("multivariate_anomaly_simulated_data.csv")
 STEPS_1 = 15
 STEPS_2 = 30
-TEST_DATA = {
+TEST_DATA: Dict[str, Dict[str, Any]] = {
     "monthly": {
         "ts": AIR_TS,
         "invalid_ts": TimeSeriesData(
@@ -116,6 +114,7 @@ TEST_DATA = {
 
 
 class SARIMAModelTest(TestCase):
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -244,6 +243,7 @@ class SARIMAModelTest(TestCase):
         # Should raise a ValueError if exogenous variables aren't used to predict
         self.assertRaises(ValueError, m.predict, steps, "D")
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [

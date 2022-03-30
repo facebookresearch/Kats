@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """ Module that has parameter tuning classes for time series models.
 
 This module has a collection of classes. A subset of these classes are parameter tuning
@@ -25,7 +23,7 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from multiprocessing.pool import Pool
 from numbers import Number
-from typing import Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from ax import Arm, ComparisonOp, Data, OptimizationConfig, SearchSpace
@@ -44,7 +42,7 @@ from ax.service.utils.instantiation import InstantiationBase
 MAX_NUM_PROCESSES = 50
 
 
-def compute_search_cardinality(params_space: List[Dict]) -> float:
+def compute_search_cardinality(params_space: List[Dict[str, Any]]) -> float:
     """compute cardinality of search space params"""
     # check if search space is infinite
     is_infinite = any([param["type"] == "range" for param in params_space])
@@ -68,6 +66,8 @@ class Final(type):
         N/A
     """
 
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def __new__(metacls, name, bases, classdict):
         """Checks if child class is instantiated. Throws an error if so.
 
@@ -113,6 +113,7 @@ class TimeSeriesEvaluationMetric(Metric):
     def __init__(
         self,
         name: str,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         evaluation_function: Callable,
         logger: logging.Logger,
         multiprocessing: bool = False,
@@ -130,6 +131,9 @@ class TimeSeriesEvaluationMetric(Metric):
 
         return True
 
+    # pyre-fixme[2]: Parameter must be annotated.
+    # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
+    #  `typing.Dict` to avoid runtime subscripting errors.
     def evaluate_arm(self, arm) -> Dict:
         """Evaluates the performance of an arm.
 
@@ -185,6 +189,7 @@ class TimeSeriesEvaluationMetric(Metric):
     #  inconsistently.
     # pyre-fixme[14]: `fetch_trial_data` overrides method defined in `Metric`
     #  inconsistently.
+    # pyre-fixme[2]: Parameter must be annotated.
     def fetch_trial_data(self, trial) -> Data:
         """Calls evaluation of every arm in a trial.
 
@@ -224,12 +229,13 @@ class TimeSeriesParameterTuning(ABC):
         outcome_constraints: Constraints set on the outcome of the objective.
     """
 
+    # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
     evaluation_function: Optional[Callable] = None
     outcome_constraints: Optional[List[OutcomeConstraint]] = None
 
     def __init__(
         self,
-        parameters: Optional[List[Dict]] = None,
+        parameters: Optional[List[Dict[str, Any]]] = None,
         experiment_name: Optional[str] = None,
         objective_name: Optional[str] = None,
         outcome_constraints: Optional[List[str]] = None,
@@ -237,11 +243,13 @@ class TimeSeriesParameterTuning(ABC):
     ) -> None:
         if parameters is None:
             parameters = [{}]
+        # pyre-fixme[4]: Attribute must be annotated.
         self.logger = logging.getLogger(__name__)
         self.logger.info(
             "Parameter tuning search space dimensions: {}".format(parameters)
         )
         self.validate_parameters_format(parameters)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.parameters = [InstantiationBase.parameter_from_json(parameter) for parameter in parameters]
         self.outcome_constraints = (
             [
@@ -253,10 +261,13 @@ class TimeSeriesParameterTuning(ABC):
         )
         self._kats_search_space = SearchSpace(parameters=self.parameters)
         self.logger.info("Search space is created.")
+        # pyre-fixme[4]: Attribute must be annotated.
         self.job_id = uuid.uuid4()
+        # pyre-fixme[4]: Attribute must be annotated.
         self.experiment_name = (
             experiment_name if experiment_name else f"parameter_tuning_{self.job_id}"
         )
+        # pyre-fixme[4]: Attribute must be annotated.
         self.objective_name = (
             objective_name if objective_name else f"objective_{self.job_id}"
         )
@@ -271,6 +282,8 @@ class TimeSeriesParameterTuning(ABC):
         self.logger.info("Experiment is created.")
 
     @staticmethod
+    # pyre-fixme[24]: Generic type `list` expects 1 type parameter, use
+    #  `typing.List` to avoid runtime subscripting errors.
     def validate_parameters_format(parameters: List) -> None:
         """Check parameters objects structure.
 
@@ -319,12 +332,13 @@ class TimeSeriesParameterTuning(ABC):
                     "."
                 )
 
-    def get_search_space(self):
+    def get_search_space(self) -> SearchSpace:
         """Getter of search space attribute of the private attribute, _exp."""
 
         return self._exp.search_space
 
     def generator_run_for_search_method(
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         self, evaluation_function: Callable, generator_run: DiscreteModelBridge
     ) -> None:
         """Creates a new batch trial then runs the lastest.
@@ -380,6 +394,7 @@ class TimeSeriesParameterTuning(ABC):
     @abstractmethod
     def generate_evaluate_new_parameter_values(
         self,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         evaluation_function: Callable,
         arm_count: int = -1  # -1 means
         # create all arms (i.e. all combinations of parameter values)
@@ -393,7 +408,7 @@ class TimeSeriesParameterTuning(ABC):
         pass
 
     @staticmethod
-    def _repivot_dataframe(armscore_df: pd.DataFrame):
+    def _repivot_dataframe(armscore_df: pd.DataFrame) -> pd.DataFrame:
         """Reformats the score data frame.
 
         Args:
@@ -419,6 +434,7 @@ class TimeSeriesParameterTuning(ABC):
             "_".join(tpl) for tpl in new_cols[2:]
         ]
         transform["parameters"] = parameters_holder
+        # pyre-fixme[7]: Expected `DataFrame` but got `Union[DataFrame, Series]`.
         return transform
 
     def list_parameter_value_scores(
@@ -505,7 +521,7 @@ class TimeSeriesParameterTuning(ABC):
 class SearchMethodFactory(metaclass=Final):
     """Generates and returns  search strategy object."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         raise TypeError(
             "SearchMethodFactory is not allowed to be instantiated. Use "
             "it as a static class."
@@ -513,15 +529,16 @@ class SearchMethodFactory(metaclass=Final):
 
     @staticmethod
     def create_search_method(
-        parameters: List[Dict],
+        parameters: List[Dict[str, Any]],
         selected_search_method: SearchMethodEnum = SearchMethodEnum.GRID_SEARCH,
         experiment_name: Optional[str] = None,
         objective_name: Optional[str] = None,
         outcome_constraints: Optional[List[str]] = None,
         seed: Optional[int] = None,
         bootstrap_size: int = 5,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         evaluation_function: Optional[Callable] = None,
-        bootstrap_arms_for_bayes_opt: Optional[List[dict]] = None,
+        bootstrap_arms_for_bayes_opt: Optional[List[Dict[str, Any]]] = None,
         multiprocessing: bool = False,
     ) -> TimeSeriesParameterTuning:
         """The static method of factory class that creates the search method
@@ -620,11 +637,12 @@ class GridSearch(TimeSeriesParameterTuning):
 
     def __init__(
         self,
-        parameters: List[Dict],
+        parameters: List[Dict[str, Any]],
         experiment_name: Optional[str] = None,
         objective_name: Optional[str] = None,
         outcome_constraints: Optional[List[str]] = None,
         multiprocessing: bool = False,
+        # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
         super().__init__(
@@ -634,6 +652,7 @@ class GridSearch(TimeSeriesParameterTuning):
             outcome_constraints,
             multiprocessing,
         )
+        # pyre-fixme[4]: Attribute must be annotated.
         self._factorial = Models.FACTORIAL(
             search_space=self.get_search_space(), check_cardinality=False
         )
@@ -642,6 +661,7 @@ class GridSearch(TimeSeriesParameterTuning):
 
     def generate_evaluate_new_parameter_values(
         self,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         evaluation_function: Callable,
         arm_count: int = -1,  # -1 means create all arms (i.e. all combinations of
         # parameter values)
@@ -689,13 +709,14 @@ class RandomSearch(TimeSeriesParameterTuning):
 
     def __init__(
         self,
-        parameters: List[Dict],
+        parameters: List[Dict[str, Any]],
         experiment_name: Optional[str] = None,
         objective_name: Optional[str] = None,
         seed: Optional[int] = None,
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
         outcome_constraints: Optional[List[str]] = None,
         multiprocessing: bool = False,
+        # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
         super().__init__(
@@ -712,6 +733,7 @@ class RandomSearch(TimeSeriesParameterTuning):
             )
         self.logger.info("Seed that is used in random search: {seed}".format(seed=seed))
         if random_strategy == SearchMethodEnum.RANDOM_SEARCH_UNIFORM:
+            # pyre-fixme[4]: Attribute must be annotated.
             self._random_strategy_model = Models.UNIFORM(
                 search_space=self.get_search_space(), deduplicate=True, seed=seed
             )
@@ -731,6 +753,7 @@ class RandomSearch(TimeSeriesParameterTuning):
         self.logger.info("A RandomSearch object is successfully created.")
 
     def generate_evaluate_new_parameter_values(
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         self, evaluation_function: Callable, arm_count: int = 1
     ) -> None:
         """This method can be called as many times as desired with arm_count in
@@ -785,7 +808,8 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
 
     def __init__(
         self,
-        parameters: List[Dict],
+        parameters: List[Dict[str, Any]],
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         evaluation_function: Callable,
         experiment_name: Optional[str] = None,
         objective_name: Optional[str] = None,
@@ -794,6 +818,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
         outcome_constraints: Optional[List[str]] = None,
         multiprocessing: bool = False,
+        # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
         super().__init__(
@@ -810,6 +835,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             )
         self.logger.info("Seed that is used in random search: {seed}".format(seed=seed))
         if random_strategy == SearchMethodEnum.RANDOM_SEARCH_UNIFORM:
+            # pyre-fixme[4]: Attribute must be annotated.
             self._random_strategy_model = Models.UNIFORM(
                 search_space=self.get_search_space(), deduplicate=True, seed=seed
             )
@@ -844,6 +870,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         self.logger.info(f"Bootstrapping of size = {bootstrap_size} is done.")
 
     def generate_evaluate_new_parameter_values(
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         self, evaluation_function: Callable, arm_count: int = 1
     ) -> None:
         """This method can be called as many times as desired with arm_count in
@@ -873,7 +900,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
 class SearchForMultipleSpaces:
     def __init__(
         self,
-        parameters: Dict[str, List[Dict]],
+        parameters: Dict[str, List[Dict[str, Any]]],
         search_method: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
         experiment_name: Optional[str] = None,
         objective_name: Optional[str] = None,
@@ -901,6 +928,7 @@ class SearchForMultipleSpaces:
         # search_agent_dict is a dict for str -> TimeSeriesParameterTuning object
         # Thus, we can access different search method objects created using their
         # keys.
+        # pyre-fixme[4]: Attribute must be annotated.
         self.search_agent_dict = {
             agent_name: SearchMethodFactory.create_search_method(
                 parameters=model_params,
@@ -913,6 +941,7 @@ class SearchForMultipleSpaces:
         }
 
     def generate_evaluate_new_parameter_values(
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         self, selected_model: str, evaluation_function: Callable, arm_count: int = 1
     ) -> None:
         """Calls generate_evaluate_new_parameter_values() for the search method in

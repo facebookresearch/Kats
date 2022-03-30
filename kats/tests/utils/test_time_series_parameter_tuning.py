@@ -3,27 +3,30 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
+from typing import Tuple
 import unittest
 from unittest import TestCase
 
-import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
+from numpy.random import RandomState
 import pandas as pd
+
 from ax.core.parameter import ChoiceParameter, FixedParameter, ParameterType
 from ax.models.random.sobol import SobolGenerator
 from ax.models.random.uniform import UniformGenerator
 from kats.consts import SearchMethodEnum
 from kats.models.arima import ARIMAModel
 from kats.models.prophet import ProphetModel
+import kats.utils.time_series_parameter_tuning as tpt
 
 
 class GridSearchTest(TestCase):
     def test_time_series_parameter_tuning_arima(self) -> None:
-        random_state = np.random.RandomState(seed=0)
+        # pyre-fixme[11]: Annotation `RandomState` is not defined as a type.
+        random_state: RandomState = RandomState(seed=0)
 
-        def arima_evaluation_function(params):
+        # pyre-fixme[2]: Parameter must be annotated.
+        def arima_evaluation_function(params) -> Tuple[float, float]:
             error = random_state.random()
             sem = 0.0  # standard error of the mean of model's estimation error.
             return error, sem
@@ -43,10 +46,11 @@ class GridSearchTest(TestCase):
         self.assertEqual(len(parameter_values_with_scores.index), 50)
 
     def test_time_series_parameter_tuning_prophet(self) -> None:
-        random_state = np.random.RandomState(seed=0)
+        random_state: RandomState =RandomState(seed=0)
 
-        def prophet_evaluation_function(params):
-            error = random_state.random()
+        # pyre-fixme[2]: Parameter must be annotated.
+        def prophet_evaluation_function(params) -> Tuple[float, float]:
+            error: RandomState = random_state.random()
             sem = 0.0  # standard error of the mean of model's estimation error.
             return error, sem
 
@@ -65,9 +69,10 @@ class GridSearchTest(TestCase):
         self.assertEqual(len(parameter_values_with_scores.index), 25600)
 
     def test_grid_search_arm_count(self) -> None:
-        random_state = np.random.RandomState(seed=0)
+        random_state: RandomState = RandomState(seed=0)
 
-        def evaluation_function(params):
+        # pyre-fixme[2]: Parameter must be annotated.
+        def evaluation_function(params) -> Tuple[float, float]:
             error = random_state.random()
             sem = 0.0  # standard error of the mean of model's estimation error.
             return error, sem
@@ -181,9 +186,10 @@ class GridSearchTest(TestCase):
         self.assertEqual(time_series_parameter_tuning.parameters[2].value, 4)
 
     def test_time_series_parameter_tuning_arima_uniform_random_search(self) -> None:
-        random_state = np.random.RandomState(seed=0)
+        random_state: RandomState = RandomState(seed=0)
 
-        def arima_evaluation_function(params):
+        # pyre-fixme[2]: Parameter must be annotated.
+        def arima_evaluation_function(params) -> Tuple[float, float]:
             error = random_state.random()
             sem = 0.0  # standard error of the mean of model's estimation error.
             return error, sem
@@ -210,9 +216,10 @@ class GridSearchTest(TestCase):
         self.assertEqual(len(parameter_values_with_scores.index), 12)
 
     def test_time_series_parameter_tuning_prophet_sobol_random_search(self) -> None:
-        random_state = np.random.RandomState(seed=0)
+        random_state: RandomState = RandomState(seed=0)
 
-        def prophet_evaluation_function(params):
+        # pyre-fixme[2]: Parameter must be annotated.
+        def prophet_evaluation_function(params) -> Tuple[float, float]:
             error = random_state.random()
             sem = 0.0  # standard error of the mean of model's estimation error.
             return error, sem
@@ -448,9 +455,10 @@ class TestSearchForMultipleSpaces(TestCase):
             experiment_name="experiment1",
             objective_name="objective1",
         )
-        random_state = np.random.RandomState(seed=0)
+        random_state: RandomState = RandomState(seed=0)
 
-        def arima_evaluation_function(params):
+        # pyre-fixme[2]: Parameter must be annotated.
+        def arima_evaluation_function(params) -> Tuple[float, float]:
             error = random_state.random()
             sem = 0.0  # standard error of the mean of model's estimation error.
             return error, sem

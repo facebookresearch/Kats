@@ -3,11 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
-import io
-import os
-import pkgutil
 import unittest
 from datetime import datetime, timedelta
 from unittest import TestCase

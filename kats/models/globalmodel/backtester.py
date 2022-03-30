@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import collections
 import logging
 import time
@@ -60,6 +58,7 @@ class GMBackTester:
 
     def __init__(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         data: Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]],
         gmparam: GMParam,
         backtest_timestamp: List[Union[str, pd.Timestamp]],
@@ -77,16 +76,20 @@ class GMBackTester:
             logging.error(msg)
             raise ValueError(msg)
         self.params = gmparam
+        # pyre-fixme[4]: Attribute must be annotated.
         self.max_back_test_timedelta = (
             gmparam.freq * gmparam.validation_step_num * gmparam.fcst_window * 3
         )
+        # pyre-fixme[4]: Attribute must be annotated.
         self.min_train_length = (
             gmparam.input_window
             + gmparam.fcst_window
             + gmparam.min_training_step_num * gmparam.min_training_step_length
         )
+        # pyre-fixme[4]: Attribute must be annotated.
         self.min_valid_length = gmparam.fcst_window
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.min_test_length = (
             gmparam.min_warming_up_step_num * gmparam.min_training_step_length
             + gmparam.input_window
@@ -124,11 +127,13 @@ class GMBackTester:
             raise ValueError(msg)
         self.earliest_timestamp = earliest_timestamp
         pdata = self._preprocess(data)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.data = pdata
 
         n = len(data)
 
         if isinstance(test_size, int) and test_size > 0 and test_size < n:
+            # pyre-fixme[4]: Attribute must be annotated.
             self.test_size = test_size
         elif isinstance(test_size, float) and test_size > 0 and test_size < 1:
             self.test_size = int(len(data) * test_size)
@@ -139,6 +144,7 @@ class GMBackTester:
 
         total_cores = cpu_count()
         if max_core is None:
+            # pyre-fixme[4]: Attribute must be annotated.
             self.max_core = max((total_cores - 1) // 2, 1)
         elif isinstance(max_core, int) and max_core > 0 and max_core < total_cores:
             self.max_core = max_core
@@ -147,16 +153,23 @@ class GMBackTester:
             logging.error(msg)
             raise ValueError(msg)
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.gm_collects = {
             bt: [GMModel(gmparam) for _ in range(int(replicate * splits))]
             for bt in backtest_timestamp
         }
+        # pyre-fixme[4]: Attribute must be annotated.
         self.gm_info_collects = collections.defaultdict(list)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.evaluation_collects = []
+        # pyre-fixme[4]: Attribute must be annotated.
         self.bt_info = {}
+        # pyre-fixme[4]: Attribute must be annotated.
         self.test_ids = []
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _preprocess(
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         self, data: Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]]
     ) -> Dict[Any, Dict[Any, TimeSeriesData]]:
         """Preprocessing for input time series, including two steps:
@@ -194,8 +207,10 @@ class GMBackTester:
             ans[i] = ts
         return ans
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _filter(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         data: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]],
         backtest_ts: Union[str, pd.Timestamp],
         mode: str = "train",
@@ -269,7 +284,9 @@ class GMBackTester:
     def _fit_single_gm(
         self,
         gmmodel: GMModel,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         train_TSs: Dict[Any, TimeSeriesData],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         valid_TSs: Optional[Dict[Any, TimeSeriesData]] = None,
         random_seed: Optional[int] = None,
     ) -> Dict[str, Any]:
@@ -375,7 +392,9 @@ class GMBackTester:
     def _evaluate(
         self,
         gm_collects: List[GMModel],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         bt_test_train_TSs: Dict[Any, TimeSeriesData],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         bt_test_valid_TSs: Dict[Any, TimeSeriesData],
     ) -> pd.DataFrame:
         """
@@ -448,6 +467,7 @@ class GMBackTesterExpandingWindow(BackTesterExpandingWindow):
         >>> gmtew.run_backtest()
     """
 
+    # pyre-fixme[3]: Return type must be annotated.
     def __init__(
         self,
         error_methods: List[str],
@@ -457,7 +477,9 @@ class GMBackTesterExpandingWindow(BackTesterExpandingWindow):
         end_train_percentage: float,
         test_percentage: float,
         expanding_steps: int,
+        # pyre-fixme[2]: Parameter must be annotated.
         multi=True,
+        # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ):
         if data.infer_freq_robust() != gmobject.params.freq:

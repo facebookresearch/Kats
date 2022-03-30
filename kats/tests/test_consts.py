@@ -3,13 +3,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import io
 import os
 import pkgutil
 from datetime import datetime
-from typing import cast
+from typing import cast, List
 from unittest import TestCase
 
 import matplotlib.pyplot as plt
@@ -32,31 +30,32 @@ from kats.consts import (
 )
 
 
-def load_data(file_name):
+def load_data(file_name: str) -> pd.DataFrame:
     ROOT = "kats"
     if "kats" in os.getcwd().lower():
         path = "data/"
     else:
         path = "kats/data/"
     data_object = pkgutil.get_data(ROOT, path + file_name)
+    # pyre-fixme[6]: For 1st param expected `bytes` but got `Optional[bytes]`.
     return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
 TIME_COL_NAME = "ds"
 VALUE_COL_NAME = "y"
-MULTIVAR_VALUE_DF_COLS = [VALUE_COL_NAME, VALUE_COL_NAME + "_1"]
+MULTIVAR_VALUE_DF_COLS: List[str] = [VALUE_COL_NAME, VALUE_COL_NAME + "_1"]
 
 EMPTY_DF = pd.DataFrame()
 EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME, dtype=float)
 EMPTY_VALUE_SERIES = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
 EMPTY_VALUE_SERIES_NO_NAME = pd.Series([], dtype=float)
 EMPTY_TIME_DATETIME_INDEX = pd.DatetimeIndex(pd.Series([], dtype=object))
-EMPTY_DF_WITH_COLS = pd.concat([EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1)
+EMPTY_DF_WITH_COLS: pd.DataFrame = pd.concat([EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1)
 NUM_YEARS_OFFSET = 12
 
 
 class TimeSeriesBaseTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # load Dataframes for testing
         self.AIR_DF = load_data("air_passengers.csv")
         self.AIR_DF_DATETIME = self.AIR_DF.copy(deep=True)
@@ -86,7 +85,7 @@ class TimeSeriesBaseTest(TestCase):
 
 
 class TimeSeriesDataInitTest(TimeSeriesBaseTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TimeSeriesDataInitTest, self).setUp()
         # Univariate TimeSeriesData initialized from a pd.DataFrame
         self.ts_from_df = TimeSeriesData(df=self.AIR_DF, time_col_name=TIME_COL_NAME)
@@ -823,7 +822,7 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
 
 
 class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TimeSeriesDataOpsTest, self).setUp()
         # Creating DataFrames
         # DataFrame with date offset
@@ -1203,6 +1202,8 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
             ),
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `pytest.mark.mpl_image_compare`.
     @pytest.mark.mpl_image_compare
     def test_plot(self) -> plt.Figure:
         # Univariate test case
@@ -1210,6 +1211,8 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
         self.assertIsNotNone(ax)
         return plt.gcf()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `pytest.mark.mpl_image_compare`.
     @pytest.mark.mpl_image_compare
     def test_plot_multivariate(self) -> plt.Figure:
         # Multivariate test case
@@ -1217,6 +1220,8 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
         self.assertIsNotNone(ax)
         return plt.gcf()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `pytest.mark.mpl_image_compare`.
     @pytest.mark.mpl_image_compare
     def test_plot_params(self) -> plt.Figure:
         # Test more parameter overrides.
@@ -1226,6 +1231,8 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
         self.assertIsNotNone(ax)
         return plt.gcf()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `pytest.mark.mpl_image_compare`.
     @pytest.mark.mpl_image_compare
     def test_plot_grid_ax(self) -> plt.Figure:
         # Test grid and ax parameter overrides.
@@ -1234,19 +1241,19 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
         self.assertIsNotNone(ax)
         return fig
 
-    def test_plot_missing_column(self):
+    def test_plot_missing_column(self) -> None:
         # Columns not in data.
         with self.assertRaises(ValueError):
             self.ts_univ_1.plot(cols=["z"])
 
-    def test_plot_empty(self):
+    def test_plot_empty(self) -> None:
         # No data to plot.
         with self.assertRaises(ValueError):
             self.ts_empty.plot()
 
 
 class TimeSeriesDataMiscTest(TimeSeriesBaseTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TimeSeriesDataMiscTest, self).setUp()
         # Creating TimeSeriesData objects
         # Univariate TimeSeriesData initialized from a pd.DataFrame

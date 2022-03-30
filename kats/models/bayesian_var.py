@@ -370,6 +370,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
         return look_ahead_pred
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history: bool = False, verbose: bool = False
     ) -> Dict[str, TimeSeriesData]:

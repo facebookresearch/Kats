@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import collections
 import logging
 import random
@@ -50,16 +48,19 @@ TSData_const = TimeSeriesData(
 )
 
 # TS which has NAN values
+# pyre-fixme[5]: Global expression must be annotated.
 DATA_nan = METALEARNING_TEST_T2.copy()
 DATA_nan.iloc[10, 1] = np.nan
 TSData_nan = TimeSeriesData(DATA_nan)
 
 # TS which has INF values
+# pyre-fixme[5]: Global expression must be annotated.
 DATA_inf = METALEARNING_TEST_T2.copy()
 DATA_inf.iloc[10, 1] = np.inf
 TSData_inf = TimeSeriesData(DATA_inf)
 
 # TS which doesn't have constant frequency
+# pyre-fixme[5]: Global expression must be annotated.
 DATA_gap = METALEARNING_TEST_T2.copy()
 DATA_gap = DATA_gap.drop([3, 4])
 TSData_gap = TimeSeriesData(DATA_gap)
@@ -80,9 +81,12 @@ base_models = {
 
 t1 = TimeSeriesData(METALEARNING_TEST_T1)
 t2 = TimeSeriesData(METALEARNING_TEST_T2)
+# pyre-fixme[5]: Global expression must be annotated.
 feature = np.array(METALEARNING_TEST_FEATURES)
 
 
+# pyre-fixme[3]: Return type must be annotated.
+# pyre-fixme[2]: Parameter must be annotated.
 def generate_meta_data(n):
     # generate meta data to initialize MetaLearnModelSelect
     np.random.seed(560)
@@ -116,6 +120,8 @@ def generate_meta_data(n):
     return ans
 
 
+# pyre-fixme[3]: Return type must be annotated.
+# pyre-fixme[2]: Parameter must be annotated.
 def generate_meta_data_by_model(model, n, d=40):
     random.seed(560)
     np.random.seed(560)
@@ -133,7 +139,9 @@ def generate_meta_data_by_model(model, n, d=40):
     return x, y
 
 
+# pyre-fixme[5]: Global expression must be annotated.
 METALEARNING_METADATA = generate_meta_data(35)
+# pyre-fixme[5]: Global expression must be annotated.
 METALEARNING_METADATA_BY_MODEL = {
     t: generate_meta_data_by_model(t, 150)
     for t in ["arima", "holtwinters", "sarima", "theta", "stlf", "prophet"]
@@ -156,6 +164,8 @@ candidate_params = {
 }
 
 
+# pyre-fixme[3]: Return type must be annotated.
+# pyre-fixme[2]: Parameter must be annotated.
 def equals(v1, v2):
     # check whether v1 and v2 are equal
     try:
@@ -169,6 +179,7 @@ def equals(v1, v2):
         else:
             return False
     except Exception as e:
+        # pyre-fixme[58]: `+` is not supported for operand types `str` and `Exception`.
         msg = "fail to compare the inputs and exception message is " + e
         raise ValueError(msg)
 

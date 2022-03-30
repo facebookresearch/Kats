@@ -103,6 +103,7 @@ class ARIMAModel(Model[ARIMAParams]):
 
     def __init__(self, data: TimeSeriesData, params: ARIMAParams) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = (
                 "Only support univariate time series, but got "
@@ -169,9 +170,11 @@ class ARIMAModel(Model[ARIMAParams]):
         self.start_ar_lags = start_ar_lags
 
         arima = ARIMA(
+            # pyre-fixme[16]: `Optional` has no attribute `value`.
             self.data.value,
             order=(self.params.p, self.params.d, self.params.q),
             exog=self.params.exog,
+            # pyre-fixme[16]: `Optional` has no attribute `time`.
             dates=self.data.time,
             freq=self.params.freq,
         )
@@ -191,6 +194,7 @@ class ARIMAModel(Model[ARIMAParams]):
         logging.info("Fitted arima.")
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history: bool = False, **kwargs: Any
     ) -> pd.DataFrame:
@@ -212,6 +216,7 @@ class ARIMAModel(Model[ARIMAParams]):
         self.include_history = include_history
         self.exog = kwargs.get("exog", None)
         self.alpha = kwargs.get("alpha", 0.05)
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
         fcst = model.forecast(steps, exog=self.exog, alpha=self.alpha)
         logging.info("Generated forecast data from arima model.")
@@ -238,6 +243,8 @@ class ARIMAModel(Model[ARIMAParams]):
         if self.include_history:
             try:
                 hist_fcst = (
+                    # pyre-fixme[6]: For 1st param expected `Sized` but got
+                    #  `Optional[TimeSeriesData]`.
                     model.predict(self.params.d, len(self.data))
                     .reset_index()
                     .rename(columns={"index": "time", 0: "fcst"})
@@ -257,6 +264,8 @@ class ARIMAModel(Model[ARIMAParams]):
         return "ARIMA"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, Any]]:
         """Get default ARIMA parameter search space.
 

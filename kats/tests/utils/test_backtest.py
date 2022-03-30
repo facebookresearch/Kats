@@ -3,14 +3,12 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 # This file defines tests for the Backtester classes
 
 import statistics
 import unittest
 import unittest.mock as mock
-from typing import Callable, Dict, List, Tuple, cast
+from typing import Any, Callable, Dict, List, Tuple, cast
 
 import numpy as np
 import pandas as pd
@@ -95,7 +93,7 @@ class SimpleBackTesterTest(unittest.TestCase):
         #  `Union[DataFrame, Series]`.
         cls.test_data = TimeSeriesData(DATA.tail(TIMESTEPS))
 
-    def prophet_predict_side_effect(self, *args, **kwargs):
+    def prophet_predict_side_effect(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         if (
             len(kwargs) > 1
             and kwargs["steps"] == TIMESTEPS
@@ -521,7 +519,7 @@ class FixedWindowBackTesterTest(unittest.TestCase):
         #  `Union[DataFrame, Series]`.
         cls.test_data = TimeSeriesData(DATA.tail(TIMESTEPS))
 
-    def prophet_predict_side_effect(self, *args, **kwargs):
+    def prophet_predict_side_effect(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
         if (
             len(kwargs) > 1
             and kwargs["steps"] == TIMESTEPS * 2

@@ -3,12 +3,10 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import builtins
 import sys
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 import unittest
-from typing import Optional
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -45,7 +43,7 @@ from kats.tests.models.test_models_dummy_data import (
 from parameterized.parameterized import parameterized
 
 
-TEST_DATA = {
+TEST_DATA: Dict[str, Any] = {
     "nonseasonal": {
         "ts": TimeSeriesData(NONSEASONAL_INPUT),
         "future_df": NONSEASONAL_FUTURE_DF,
@@ -91,10 +89,12 @@ TEST_DATA = {
 
 class ProphetModelTest(TestCase):
     @classmethod
-    def setUpClass(cls):
-        original_import_fn = builtins.__import__
+    def setUpClass(cls) -> None:
+        # pyre-fixme[33]: Given annotation cannot contain `Any`.
+        original_import_fn: Callable[[str, Optional[Mapping[str, Any]], Optional[Mapping[str, Any]], Sequence[str], int], Any] = builtins.__import__
 
-        def mock_prophet_import(module, *args, **kwargs):
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
+        def mock_prophet_import(module: Any, *args: Any, **kwargs: Any) -> None:
             if module == "fbprophet":
                 raise ImportError
             else:
@@ -175,6 +175,7 @@ class ProphetModelTest(TestCase):
         )
         self.assertRaises(ValueError, params.validate_params)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -367,17 +368,17 @@ class ProphetModelTest(TestCase):
             ProphetParams(),
         )
 
-    def test_exec_plot(self):
+    def test_exec_plot(self) -> None:
         m = ProphetModel(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"])
         m.fit()
         m.predict(steps=30, freq="MS")
         m.plot()
 
-    def test_name(self):
+    def test_name(self) -> None:
         m = ProphetModel(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"])
         self.assertEqual("Prophet", m.__str__())
 
-    def test_search_space(self):
+    def test_search_space(self) -> None:
         self.assertEqual(
             [
                 {

@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
 import time
 from multiprocessing import cpu_count
@@ -66,6 +64,7 @@ class GMEnsemble:
             raise ValueError(msg)
         self.params = gmparam
         if ensemble_type == "median":
+            # pyre-fixme[4]: Attribute must be annotated.
             self._ensemble_func = np.median
         elif ensemble_type == "mean":
             self._ensemble_func = np.mean
@@ -96,6 +95,7 @@ class GMEnsemble:
 
         total_cores = cpu_count()
         if max_core is None:
+            # pyre-fixme[4]: Attribute must be annotated.
             self.max_core = max((total_cores - 1) // 2, 1)
         elif isinstance(max_core, int) and max_core > 0 and max_core <= total_cores:
             self.max_core = max_core
@@ -103,17 +103,24 @@ class GMEnsemble:
             msg = f"max_core should be a positive integer in [1, {total_cores}] but receives {max_core}."
             logging.error(msg)
             raise ValueError(msg)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.gm_info = []
+        # pyre-fixme[4]: Attribute must be annotated.
         self.gm_models = [GMModel(self.params) for _ in range(self.model_num)]
+        # pyre-fixme[4]: Attribute must be annotated.
         self.test_ids = []
 
     def _fit_single_gm(
         self,
         gm: GMModel,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         train_TSs: Dict[Any, TimeSeriesData],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         valid_TSs: Optional[Dict[Any, TimeSeriesData]],
         random_seed: Optional[int] = None,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_train_TSs: Optional[Dict[Any, TimeSeriesData]] = None,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_valid_TSs: Optional[Dict[Any, TimeSeriesData]] = None,
     ) -> Dict[str, Any]:
         """Fit a global model and return training information.
@@ -146,6 +153,8 @@ class GMEnsemble:
         )
         return training_info
 
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def _predict_single_gm(self, gm, test_TSs, steps, test_batch_size=1000):
         t = time.time()
         fcst = gm.predict(
@@ -156,6 +165,7 @@ class GMEnsemble:
 
     def train(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         data: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]],
         test_size: float = 0.1,
         valid_set: bool = False,
@@ -240,8 +250,10 @@ class GMEnsemble:
             )
         return
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _combine_fcst(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         idx: Any,
         fcsts: List[np.ndarray],
         steps: int,
@@ -270,8 +282,10 @@ class GMEnsemble:
             )
             return idx, df
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def predict(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_TSs: Union[
             TimeSeriesData, List[TimeSeriesData], Dict[Any, TimeSeriesData]
         ],
@@ -425,9 +439,11 @@ class GMEnsemble:
 
     def evaluate(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_train_TSs: Union[
             TimeSeriesData, List[TimeSeriesData], Dict[Any, TimeSeriesData]
         ],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_valid_TSs: Union[
             TimeSeriesData, List[TimeSeriesData], Dict[Any, TimeSeriesData]
         ],

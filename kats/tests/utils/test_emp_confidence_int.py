@@ -244,6 +244,7 @@ class MyFakeModel(Model[FakeParams]):
     def fit(self, *_args: Any, **_kwargs: Any) -> None:
         self.unfit = False
 
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, include_history: bool=False, *_args: Any, **_kwargs: Any) -> pd.DataFrame:
         if self.unfit:
             raise ValueError("Model hasn't been fit")

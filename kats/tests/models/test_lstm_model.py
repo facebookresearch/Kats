@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import unittest
 from typing import Dict
 from unittest import TestCase
@@ -36,11 +34,13 @@ from kats.tests.models.test_models_dummy_data import (
 )
 from parameterized import parameterized
 
+# pyre-fixme[5]: Global expression must be annotated.
 AIR_TS = load_air_passengers()
 PT_TS = TimeSeriesData(load_data("peyton_manning.csv"))
 MULTI_DF = TimeSeriesData(load_data("multivariate_anomaly_simulated_data.csv"))
 STEPS_1 = 15
 STEPS_2 = 30
+# pyre-fixme[5]: Global expression must be annotated.
 TEST_DATA = {
     "monthly": {
         "ts": AIR_TS,

@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """This module contains the class TemporalHierarchicalModel class.
 """
 
@@ -34,6 +32,7 @@ from kats.models.reconciliation.base_models import (
 from sklearn.covariance import MinCovDet
 
 
+# pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
 BASE_MODELS: Dict[str, Type[Model]] = {
     "arima": arima.ARIMAModel,
     "holtwinters": holtwinters.HoltWintersModel,
@@ -64,6 +63,7 @@ class TemporalHierarchicalModel:
             different levels.
     """
 
+    # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
     models: Optional[Dict[str, Model]] = None
     residuals: Optional[Dict[int, np.ndarray]] = None
     res_matrix: Optional[np.ndarray] = None
@@ -91,13 +91,18 @@ class TemporalHierarchicalModel:
         if len(levels) != len(set(levels)):
             raise _log_error("One level cannot receive multiple models.")
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.levels = sorted(levels, reverse=True)
 
         m = self._get_m(levels)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.m = m
+        # pyre-fixme[4]: Attribute must be annotated.
         self.freq = {k: int(m / k) for k in self.levels}
         self.baseModels = baseModels
+        # pyre-fixme[4]: Attribute must be annotated.
         self.info_fcsts = {}
+        # pyre-fixme[4]: Attribute must be annotated.
         self.info_residuals = {}
 
     def _get_m(self, ks: List[int]) -> int:
@@ -171,6 +176,7 @@ class TemporalHierarchicalModel:
         h = n // k
         return (data[: int(h * k)]).reshape(-1, k).sum(axis=1)
 
+    # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
     def _get_residuals(self, model: Model) -> np.ndarray:
         """Calculate residuals of each base model.
 
@@ -185,6 +191,8 @@ class TemporalHierarchicalModel:
             return model.model.resid.values
         except Exception:
             fcst = model.predict(steps=1, freq="D", include_history=True)
+            # pyre-fixme[16]: `None` has no attribute `merge`.
+            # pyre-fixme[16]: `Optional` has no attribute `to_dataframe`.
             merge = fcst.merge(model.data.to_dataframe(), on="time")
             for col in merge.columns:
                 if col != "time" and ("fcst" not in col):
@@ -300,6 +308,7 @@ class TemporalHierarchicalModel:
         else:
             raise _log_error(f"{method} is invalid for get_W() method.")
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def _predict_origin(self, steps: int, method="struc") -> Dict[int, np.ndarray]:
         """
         Generate original forecasts from each base model (without time index).
@@ -358,6 +367,7 @@ class TemporalHierarchicalModel:
     def _predict(
         self,
         steps: int,
+        # pyre-fixme[2]: Parameter must be annotated.
         method="struc",
         origin_fcst: bool = False,
         fcst_levels: Optional[List[int]] = None,
@@ -429,6 +439,7 @@ class TemporalHierarchicalModel:
     def predict(
         self,
         steps: int,
+        # pyre-fixme[2]: Parameter must be annotated.
         method="struc",
         freq: Optional[str] = None,
         origin_fcst: bool = False,
@@ -474,6 +485,7 @@ class TemporalHierarchicalModel:
         return ans
 
     def median_validation(
+        # pyre-fixme[2]: Parameter must be annotated.
         self, steps, dist_metric: str = "mae", threshold: float = 5.0
     ) -> List[int]:
         """Filtering out bad fcsts based on median forecasts.

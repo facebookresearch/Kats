@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """A module for meta-learner predictability.
 
 This module contains the class :class:`MetaLearnPredictability` for meta-learner predictability. This class predicts whether a time series is predictable or not.
@@ -54,8 +52,10 @@ class MetaLearnPredictability:
 
     def __init__(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         metadata: Optional[List[Any]] = None,
         threshold: float = 0.2,
+        # pyre-fixme[2]: Parameter must be annotated.
         load_model=False,
     ) -> None:
         if load_model:
@@ -86,12 +86,17 @@ class MetaLearnPredictability:
                 logging.error(msg)
                 raise ValueError(msg)
 
+            # pyre-fixme[4]: Attribute must be annotated.
             self.metadata = metadata
+            # pyre-fixme[4]: Attribute must be annotated.
             self.threshold = threshold
             self._reorganize_data()
             self._validate_data()
+            # pyre-fixme[4]: Attribute must be annotated.
             self.rescale = False
+            # pyre-fixme[4]: Attribute must be annotated.
             self.clf = None
+            # pyre-fixme[4]: Attribute must be annotated.
             self._clf_threshold = None
 
     def _reorganize_data(self) -> None:
@@ -165,6 +170,7 @@ class MetaLearnPredictability:
         recall_threshold: float = 0.7,
         n_estimators: int = 500,
         n_neighbors: int = 5,
+        # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> Dict[str, float]:
         """Train a classifier with time series features to forecast predictability.
@@ -330,6 +336,7 @@ class MetaLearnPredictability:
         joblib.dump(self.__dict__, file_path)
         logging.info(f"Successfully save the model: {file_path}.")
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def load_model(self, file_path) -> None:
         """Load a pre-trained model.
 

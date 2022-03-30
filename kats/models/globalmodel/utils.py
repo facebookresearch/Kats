@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import json
 import logging
 from typing import List, Optional, Any, Dict, Union, Tuple
@@ -45,6 +43,7 @@ all_possible_gmfeatures = [
 
 
 @jit
+# pyre-fixme[2]: Parameter must be annotated.
 def get_filters(isna_idx, seasonality) -> np.ndarray:
     """Helper function for adding NaNs to time series.
 
@@ -127,10 +126,13 @@ def fill_missing_value_na(
         return TimeSeriesData(all_ds.loc[filters])
 
 
+# pyre-fixme[3]: Return annotation cannot contain `Any`.
 def split(
     splits: int,
     overlap: bool,
+    # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
     train_TSs: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]],
+    # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
     valid_TSs: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData], None],
 ) -> List[Tuple[Dict[Any, TimeSeriesData], Optional[Dict[Any, TimeSeriesData]]]]:
     """Split dataset into sub-datasets.
@@ -211,10 +213,12 @@ class LSTM2Cell(torch.nn.Module):
         state_size: An integer representing c state size.
     """
 
+    # pyre-fixme[3]: Return type must be annotated.
     def __init__(self, input_size: int, h_size: int, state_size: int):
         super(LSTM2Cell, self).__init__()
         self.lxh = torch.nn.Linear(input_size + 2 * h_size, 4 * state_size)
         self.h_size = h_size
+        # pyre-fixme[4]: Attribute must be annotated.
         self.out_size = state_size - h_size
 
     # jit does not like Optional, so we have to use bool variables and NoneT
@@ -286,11 +290,13 @@ class S2Cell(torch.nn.Module):
             The number of expected features in the c_state.
     """
 
+    # pyre-fixme[3]: Return type must be annotated.
     def __init__(self, input_size: int, h_size: int, state_size: int):
         super(S2Cell, self).__init__()
         self.lxh = torch.nn.Linear(input_size + 2 * h_size, 4 * state_size)
         self.h_size = h_size
         self.state_size = state_size
+        # pyre-fixme[4]: Attribute must be annotated.
         self.out_size = state_size - h_size
 
     # jit does not like Optional, so we have to use bool variables and NoneT
@@ -375,7 +381,9 @@ class DilatedRNNStack(torch.nn.Module):
         input_size: int,
         state_size: int,
         output_size: Optional[int] = None,
+        # pyre-fixme[2]: Parameter must be annotated.
         h_size=None,
+        # pyre-fixme[2]: Parameter must be annotated.
         jit=False,
     ) -> None:
         super(DilatedRNNStack, self).__init__()
@@ -383,16 +391,22 @@ class DilatedRNNStack(torch.nn.Module):
         self.nn_structure = nn_structure
         self.cell_name = cell_name
         self.input_size = input_size
+        # pyre-fixme[4]: Attribute must be annotated.
         self.h_size = h_size
+        # pyre-fixme[4]: Attribute must be annotated.
         self.jit = jit
+        # pyre-fixme[4]: Attribute must be annotated.
         self.h_state_store = []
+        # pyre-fixme[4]: Attribute must be annotated.
         self.c_state_store = []
+        # pyre-fixme[4]: Attribute must be annotated.
         self.max_dilation = np.max([np.max(t) for t in nn_structure])
 
         self.reset_state()
 
         out_size = self._validate(cell_name, state_size, h_size)
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.cells = []
         layer = 0
         iblock = 0
@@ -423,6 +437,7 @@ class DilatedRNNStack(torch.nn.Module):
                 self.cells.append(cell)
                 layer += 1
         if isinstance(output_size, int) and output_size > 0:
+            # pyre-fixme[4]: Attribute must be annotated.
             self.adaptor = torch.nn.Linear(out_size, output_size)
         elif output_size is None:
             self.adaptor = None
@@ -431,7 +446,9 @@ class DilatedRNNStack(torch.nn.Module):
             logging.error(msg)
             raise ValueError(msg)
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.block_num = block_num
+        # pyre-fixme[4]: Attribute must be annotated.
         self.out_size = out_size
 
     def _validate(self, cell_name: str, state_size: int, h_size: Optional[int]) -> int:
@@ -455,6 +472,7 @@ class DilatedRNNStack(torch.nn.Module):
 
         return out_size
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def prepare_decoder(self, decoder) -> None:
         """Prepare a DilatedRNNStack object used as decoder.
 
@@ -858,6 +876,7 @@ class GMFeature:
     """
 
     def __init__(self, feature_type: Union[List[str], str]) -> None:
+        # pyre-fixme[4]: Attribute must be annotated.
         self.all_possible_gmfeatures = all_possible_gmfeatures
         if isinstance(feature_type, str):
             feature_type = [feature_type]
@@ -1012,6 +1031,7 @@ class GMFeature:
         return torch.tensor(ans.reshape(n, -1), dtype=torch.get_default_dtype())
 
     @staticmethod
+    # pyre-fixme[3]: Return type must be annotated.
     def _get_ts2vec(
         x: np.ndarray,
         time: np.ndarray,
@@ -1096,6 +1116,8 @@ class GMFeature:
             return torch.cat(features, 1)
         return None
 
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def __eq__(self, gmfeature):
         if isinstance(gmfeature, GMFeature):
             if set(gmfeature.feature_type) == set(self.feature_type):
@@ -1185,6 +1207,7 @@ class GMParam:
 
         self._valid_freq(freq)
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.model_type = self._valid_model_type(model_type)
 
         # valid uplifiting ratio
@@ -1194,6 +1217,7 @@ class GMParam:
             raise ValueError(msg)
         self.uplifting_ratio = uplifting_ratio
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.nn_structure, self.decoder_nn_structure = self._valid_nn_structure(
             nn_structure, decoder_nn_structure
         )
@@ -1207,18 +1231,23 @@ class GMParam:
             if batch_size is not None
             else {0: 2, 3: 5, 4: 15, 5: 50, 6: 150, 7: 500}
         )
+        # pyre-fixme[4]: Attribute must be annotated.
         self.batch_size = self._valid_union_dict(batch_size, "batch_size", int, int)
         learning_rate = (
             learning_rate if learning_rate is not None else {0: 1e-3, 2: 1e-3 / 3.0}
         )
+        # pyre-fixme[4]: Attribute must be annotated.
         self.learning_rate = self._valid_union_dict(
             learning_rate, "learning_rate", int, float
         )
+        # pyre-fixme[4]: Attribute must be annotated.
         self.loss_function = None
         self._valid_loss_function(loss_function)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.optimizer = None
         self._valid_optimizer(optimizer)
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.quantile = quantile if quantile is not None else [0.5, 0.05, 0.95, 0.99]
         self._valid_list(self.quantile, "quantile", float, 0, 1)
 
@@ -1229,12 +1258,14 @@ class GMParam:
             raise ValueError(msg)
 
         if training_quantile is None:
+            # pyre-fixme[4]: Attribute must be annotated.
             self.training_quantile = self.quantile
         else:
             self._valid_list(training_quantile, "training_quantile", float, 0, 1)
             self.training_quantile = training_quantile
 
         if quantile_weight is None:
+            # pyre-fixme[4]: Attribute must be annotated.
             self.quantile_weight = [1.0 / len(self.quantile)] * len(self.quantile)
         else:
             if len(quantile_weight) != len(self.quantile):
@@ -1245,6 +1276,7 @@ class GMParam:
             self.quantile_weight = quantile_weight
 
         if validation_metric is None:
+            # pyre-fixme[4]: Attribute must be annotated.
             self.validation_metric = all_validation_metric_name
         else:
             if isinstance(validation_metric, list):
@@ -1259,10 +1291,12 @@ class GMParam:
                 logging.error(msg)
                 raise ValueError(msg)
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.init_seasonality = (
             init_seasonality if init_seasonality is not None else [0.1, 10.0]
         )
         self._valid_list(self.init_seasonality, "init_seasonality", float, 0, np.inf)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.init_smoothing_params = (
             init_smoothing_params if init_smoothing_params is not None else [0.4, 0.6]
         )
@@ -1310,6 +1344,7 @@ class GMParam:
         self.fcst_step_num = fcst_step_num
 
         # max_step_delta needed for training/testing
+        # pyre-fixme[4]: Attribute must be annotated.
         self.max_step_delta = min(input_window, fcst_window) // min_training_step_length
 
         self.jit = jit
@@ -1340,6 +1375,7 @@ class GMParam:
             decoder_nn_structure = None
         return nn_structure, decoder_nn_structure
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def _valid_optimizer(self, optimizer) -> None:
         opt_methods = ["adam"]
         if optimizer is None:
@@ -1363,6 +1399,7 @@ class GMParam:
             logging.error(msg)
             raise ValueError(msg)
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def _valid_loss_function(self, loss_function) -> None:
         """Helper function to verify loss function."""
         if isinstance(loss_function, str):
@@ -1380,6 +1417,10 @@ class GMParam:
             raise ValueError(msg)
 
     def _valid_list(
+        # pyre-fixme[24]: Generic type `list` expects 1 type parameter, use
+        #  `typing.List` to avoid runtime subscripting errors.
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         self, value: List, name: str, value_type: type, lower: float, upper: float
     ) -> None:
         """
@@ -1398,11 +1439,18 @@ class GMParam:
             logging.error(msg)
             raise ValueError(msg)
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _valid_union_dict(
         self,
+        # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
+        #  `typing.Dict` to avoid runtime subscripting errors.
         value: Union[int, float, dict],
         name: str,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         key_type: type,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         value_type: type,
     ) -> Dict[Any, Any]:
         """
@@ -1472,6 +1520,7 @@ class GMParam:
             params["gmfeature"] = params["gmfeature"].feature_type
         return json.dumps(params)
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def __eq__(self, gmparam) -> bool:
         if isinstance(gmparam, GMParam):
             for elm in self.__dict__:
@@ -1480,6 +1529,7 @@ class GMParam:
             return True
         return False
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def _valid_gmfeature(self, gmfeature, input_window) -> None:
 
         if gmfeature is None:
@@ -1569,6 +1619,7 @@ def calc_sbias(fcst: np.ndarray, actuals: np.ndarray) -> float:
     return np.nanmean(diff)
 
 
+# pyre-fixme[3]: Return type must be annotated.
 def calc_exceed(fcst: np.ndarray, actuals: np.ndarray, quantile: np.ndarray):
     """Compute exceed rate for quantile estimates.
 
@@ -1597,8 +1648,10 @@ def calc_exceed(fcst: np.ndarray, actuals: np.ndarray, quantile: np.ndarray):
     return np.nanmean(diff.reshape(n, m, -1), axis=2).mean(axis=0)
 
 
+# pyre-fixme[3]: Return annotation cannot contain `Any`.
 def gmpreprocess(
     gmparam: GMParam,
+    # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
     data: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]],
     mode: str,
     valid_set: bool = True,

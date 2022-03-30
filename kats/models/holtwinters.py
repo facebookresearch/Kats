@@ -115,6 +115,7 @@ class HoltWintersModel(Model[HoltWintersParams]):
     def __init__(self, data: TimeSeriesData, params: HoltWintersParams) -> None:
 
         super().__init__(data, params)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
@@ -127,6 +128,7 @@ class HoltWintersModel(Model[HoltWintersParams]):
 
         logging.debug("Call fit() with parameters:{kwargs}".format(kwargs=kwargs))
         holtwinters = HoltWinters(
+            # pyre-fixme[16]: `Optional` has no attribute `value`.
             self.data.value,
             trend=self.params.trend,
             damped=self.params.damped,
@@ -137,6 +139,7 @@ class HoltWintersModel(Model[HoltWintersParams]):
         logging.info("Fitted HoltWinters.")
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history: bool = False, **kwargs: Any
     ) -> pd.DataFrame:
@@ -159,6 +162,7 @@ class HoltWintersModel(Model[HoltWintersParams]):
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
         if "freq" not in kwargs:
+            # pyre-fixme[16]: `Optional` has no attribute `time`.
             self.freq = pd.infer_freq(self.data.time)
         else:
             self.freq = kwargs["freq"]
@@ -173,10 +177,14 @@ class HoltWintersModel(Model[HoltWintersParams]):
             error_methods = kwargs.get("error_methods", ["mape"])
             train_percentage = kwargs.get("train_percentage", 70)
             test_percentage = kwargs.get("test_percentage", 10)
+            # pyre-fixme[6]: For 1st param expected `Sized` but got
+            #  `Optional[TimeSeriesData]`.
             sliding_steps = kwargs.get("sliding_steps", len(self.data) // 5)
             multi = kwargs.get("multi", True)
             eci = EmpConfidenceInt(
                 error_methods=error_methods,
+                # pyre-fixme[6]: For 2nd param expected `TimeSeriesData` but got
+                #  `Optional[TimeSeriesData]`.
                 data=self.data,
                 params=self.params,
                 train_percentage=train_percentage,
@@ -222,6 +230,8 @@ class HoltWintersModel(Model[HoltWintersParams]):
         return "HoltWinters"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, Any]]:
         """Get default HoltWinters parameter search space.
 

@@ -3,11 +3,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 This module implements a simulator for generating synthetic time series data.
 """
+
+from __future__ import annotations
 
 import copy
 from datetime import timedelta
@@ -56,13 +56,15 @@ class Simulator:
         self,
         n: int = 100,
         freq: str = "D",
-        start: Any = None,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
+        start: Optional[Any] = None,
     ) -> None:
         self.n = n
         self.freq = freq
         self.start = start
 
         # create time
+        # pyre-fixme[4]: Attribute must be annotated.
         self.time = pd.date_range(
             start=start,
             freq=freq,
@@ -70,6 +72,7 @@ class Simulator:
         )
 
         # create the simulated time series
+        # pyre-fixme[4]: Attribute must be annotated.
         self.timeseries = np.zeros(self.n)
 
     def arima_sim(
@@ -173,7 +176,7 @@ class Simulator:
 
     def add_trend(
         self, magnitude: float, trend_type: str = "linear", multiply: bool = False
-    ):
+    ) -> Simulator:
         """Add a trend component to the target time series for STL-based simulator.
 
         trend_type -  shape of the trend. {"linear","sigmoid"}
@@ -187,7 +190,7 @@ class Simulator:
             The timeseries generated.
         """
 
-        def component_gen(timepoints):
+        def component_gen(timepoints: np.ndarray) -> float:
             if trend_type == "sigmoid" or trend_type == "S":
                 return magnitude * self.sigmoid(timepoints - 0.5)
             else:  # 'linear' trend by default
@@ -199,7 +202,7 @@ class Simulator:
         self,
         magnitude: float = 1.0,
         multiply: bool = False,
-    ):
+    ) -> Simulator:
 
         """Add noise to the generated time series for STL-based simulator.
 
@@ -214,7 +217,7 @@ class Simulator:
             Generated timeseries.
         """
 
-        def component_gen(timepoints):
+        def component_gen(timepoints: np.ndarray) -> float:
             return magnitude * np.random.randn(len(timepoints))
 
         return self._add_component(component_gen, multiply)
@@ -224,7 +227,7 @@ class Simulator:
         magnitude: float = 0.0,
         period: TimedeltaLike = "1D",
         multiply: bool = False,
-    ) -> TimeSeriesData:
+    ) -> Simulator:
         """Add a seasonality component to the time series for STL-based simulator.
 
         Args:
@@ -236,9 +239,11 @@ class Simulator:
             Generated timeseries.
         """
 
+        # pyre-fixme[6]: For 1st param expected `str` but got `Union[float, str,
+        #  timedelta]`.
         period = self._convert_period(period)
 
-        def component_gen(timepoints):
+        def component_gen(timepoints: np.ndarray) -> float:
             return magnitude * np.sin(2 * np.pi * timepoints)
 
         return self._add_component(component_gen, multiply, time_scale=period)
@@ -248,18 +253,20 @@ class Simulator:
         return 1 / (1 + np.exp(-10 * x))
 
     @staticmethod
-    def _convert_period(period):
+    def _convert_period(period: str) -> float:
         """
         Convert TimedeltaLike object to time offset in seconds
         """
+        # pyre-fixme[16]: `Optional` has no attribute `nanos`.
         return to_offset(period).nanos / 1e9
 
     def _add_component(
         self,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         component_gen: Callable,
         multiply: bool,
         time_scale: Optional[float] = None,
-    ):
+    ) -> Simulator:
         """
         Add a new component to the target time series.
         The component is defined by component_gen.
@@ -297,7 +304,7 @@ class Simulator:
         ts = TimeSeriesData(time=self.time, value=pd.Series(self.timeseries))
         return ts
 
-    def _adjust_length(self, length: int):
+    def _adjust_length(self, length: int) -> None:
         """
         if given length is not compatible with other parameters, adjust the length
         """
@@ -663,7 +670,7 @@ class Simulator:
         loc_arr: Optional[List[int]],
         param_arr: Optional[List[float]],
         loc_param_diff: int = 1,
-    ):
+    ) -> None:
         """Private method, to check whether arguments to injected anomaly functions are valid.
 
         Args:
@@ -738,7 +745,7 @@ class Simulator:
         ts_input: TimeSeriesData,
         cp_arr: Optional[List[int]] = None,
         trend_arr: Optional[List[float]] = None,
-    ):
+    ) -> TimeSeriesData:
         """Produces Time Series with injected level shifts
 
         Args:
@@ -775,7 +782,7 @@ class Simulator:
         anomaly_arr: Optional[List[int]] = None,
         z_score_arr: Optional[List[float]] = None,
         epsilon_std_dev: float = 0,
-    ):
+    ) -> TimeSeriesData:
         """Produces time series with injected spikes.
 
         Args:

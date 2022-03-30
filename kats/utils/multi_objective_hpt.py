@@ -3,10 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
-from typing import Dict, List, Type, Tuple
+from typing import Any, Dict, List, Set, Tuple, Type
 
 import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
@@ -28,7 +26,7 @@ from pymoo.optimize import minimize
 
 MINIMIZE = "minimize"
 MAXIMIZE = "maximize"
-OPTIMIZATION_GOAL_OPTIONS = {MINIMIZE, MAXIMIZE}
+OPTIMIZATION_GOAL_OPTIONS: Set[str] = {MINIMIZE, MAXIMIZE}
 
 
 class HPT_Problem(Problem):
@@ -45,21 +43,28 @@ class HPT_Problem(Problem):
         search_grid: TimeSeriesParameterTuning,
         data_df: pd.DataFrame,
         objectives_and_goals: Dict[str, str],
-    ):
+    ) -> None:
         self._validate_objectives_and_goals(objectives_and_goals)
         self.objectives_and_goals = objectives_and_goals
 
         # Make a list so that we always calculate fitness objectives in deterministic order.
+        # pyre-fixme[4]: Attribute must be annotated.
         self.objectives = list(objectives_and_goals.keys())
         tunable_parameters = search_grid.get_search_space().tunable_parameters
+        # pyre-fixme[4]: Attribute must be annotated.
         self.par_to_val = {}
         for par in tunable_parameters:
+            # pyre-fixme[16]: `Parameter` has no attribute `values`.
             self.par_to_val[par] = tunable_parameters[par].values
 
         # Make a list of the keys (tunable parameters) so that the order is deterministic.
+        # pyre-fixme[4]: Attribute must be annotated.
         self.tunable_parameters = list(tunable_parameters.keys())
+        # pyre-fixme[4]: Attribute must be annotated.
         self.lower_limits, self.upper_limits = self.get_upper_and_lower_limits()
+        # pyre-fixme[4]: Attribute must be annotated.
         self.n_vars = len(tunable_parameters)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.all_solutions = {}
         self.data_df = data_df
         super().__init__(
@@ -76,7 +81,7 @@ class HPT_Problem(Problem):
             is_detector_model=True, detector=cusum_model.CUSUMDetectorModel
         )
 
-    def _validate_objectives_and_goals(self, objectives_and_goals: Dict[str, str]):
+    def _validate_objectives_and_goals(self, objectives_and_goals: Dict[str, str]) -> None:
         self._check_if_all_valid(
             values_to_check=list(objectives_and_goals.keys()),
             expected_values=SUPPORTED_METRICS,
@@ -90,8 +95,9 @@ class HPT_Problem(Problem):
         )
 
     def _check_if_all_valid(
+        # pyre-fixme[24]: Generic type `set` expects 1 type parameter.
         self, values_to_check: List[str], expected_values: set, explanation: str
-    ):
+    ) -> None:
         if not all(
             [value_to_check in expected_values for value_to_check in values_to_check]
         ):
@@ -99,10 +105,10 @@ class HPT_Problem(Problem):
                 f"{explanation} must be listed in {expected_values}. You provided {values_to_check}."
             )
 
-    def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
+    def _evaluate(self, x: np.ndarray, out: np.ndarray, *args: Any, **kwargs: Any) -> None:
         out["F"] = self.get_fitness(x)
 
-    def get_fitness(self, x: np.ndarray):
+    def get_fitness(self, x: np.ndarray) -> List[float]:
         pars = self.decode_solution(x)
         params_model, threshold_low, threshold_high = decompose_params(pars)
         results = self.turing_model.evaluate(
@@ -113,7 +119,7 @@ class HPT_Problem(Problem):
         )
 
         self.all_solutions[self.get_unique_id_for_solution(x)] = results
-        fitness = [0] * self.n_obj
+        fitness = [0.] * self.n_obj
         averaged_results = np.mean(results)
         for i in range(self.n_obj):
             # For maximization problem, multiply the result by -1.
@@ -125,8 +131,8 @@ class HPT_Problem(Problem):
 
         return fitness
 
-    def get_upper_and_lower_limits(self):
-        upper_limits = []
+    def get_upper_and_lower_limits(self) -> Tuple[List[float], List[float]]:
+        upper_limits: List[float] = []
 
         """
         We assign the limits in the order of tunable_parameters list. The order of that list will not
@@ -136,7 +142,7 @@ class HPT_Problem(Problem):
             upper_limits.append(len(self.par_to_val[key]) - 1)
 
         # All tunable_parameters should have at least one option.
-        lower_limits = [0] * len(self.par_to_val)
+        lower_limits: List[float] = [0.] * len(self.par_to_val)
         return lower_limits, upper_limits
 
     def decode_solution(self, x: np.ndarray) -> Dict[str, float]:
@@ -156,17 +162,21 @@ class MultiObjectiveModelOptimizer(DetectorModelSet):
         self,
         model_name: str,
         model: Type[DetectorModel],
+        # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
+        #  `typing.Dict` to avoid runtime subscripting errors.
         parameters_space: List[Dict],
         data_df: pd.DataFrame,
         n_gen: int,
         pop_size: int,
         objectives_and_goals: Dict[str, str],
-    ):
+    ) -> None:
         super().__init__(model_name, model)
         self.model_name = model_name
         self.model = model
+        # pyre-fixme[4]: Attribute must be annotated.
         self.result = {}
         self.solutions = pd.DataFrame()
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.parameters = parameters_space
         self.n_gen = n_gen
         self.pop_size = pop_size
@@ -215,17 +225,19 @@ class MultiObjectiveModelOptimizer(DetectorModelSet):
         logging.info("Multi-objective optimization completed.")
         return self.result, self.hpt_problem.turing_model
 
-    def get_params(self):
+    # pyre-fixme[15]: `get_params` overrides method defined in `DetectorModelSet`
+    #  inconsistently.
+    def get_params(self) -> pd.DataFrame:
         return self.solutions
 
-    def get_results(self, res: Result):
+    def get_results(self, res: Result) -> None:
         self.result = {}
         for id in range(len(res.X)):
             self.result[f"moo_solution_{id}"] = self.hpt_problem.all_solutions[
                 self.hpt_problem.get_unique_id_for_solution(res.X[id])
             ]
 
-    def get_hyper_parameters_and_results_for_non_dominated_solutions(self, res: Result):
+    def get_hyper_parameters_and_results_for_non_dominated_solutions(self, res: Result) -> None:
         solutions = []
         for id in range(len(res.X)):
             decoded_solution = self.hpt_problem.decode_solution(res.X[id])
@@ -237,5 +249,7 @@ class MultiObjectiveModelOptimizer(DetectorModelSet):
             solutions.append(decoded_solution)
         self.solutions = pd.DataFrame(solutions)
 
-    def update_benchmark_results(self, benchmark_results: Dict):
+    # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
+    #  `typing.Dict` to avoid runtime subscripting errors.
+    def update_benchmark_results(self, benchmark_results: Dict) -> None:
         benchmark_results.update(self.result)

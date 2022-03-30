@@ -71,6 +71,7 @@ class QuadraticModel(Model[QuadraticModelParams]):
 
     def __init__(self, data: TimeSeriesData, params: QuadraticModelParams) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
@@ -85,17 +86,20 @@ class QuadraticModel(Model[QuadraticModelParams]):
             "alpha:{alpha}".format(alpha=self.params.alpha)
         )
 
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.past_length = len(self.data.time)
         _X = list(range(self.past_length))
         _X_quad = np.column_stack([_X, np.power(_X, 2)])
         X_quad = sm.add_constant(_X_quad)
 
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         y = self.data.value
         quad_model = sm.OLS(y, X_quad)
 
         self.model = quad_model.fit()
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history: bool = False, **kwargs: Any
     ) -> pd.DataFrame:
@@ -139,6 +143,7 @@ class QuadraticModel(Model[QuadraticModelParams]):
         self.y_fcst_upper = pd.Series(y_fcst_upper)
 
         # create future dates
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
         self.dates = dates[dates != last_date]
@@ -161,6 +166,8 @@ class QuadraticModel(Model[QuadraticModelParams]):
         return "Quadratic"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, object]]:
         """get default parameter search space for Quadratic model."""
         return [

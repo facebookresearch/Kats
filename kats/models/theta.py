@@ -82,6 +82,7 @@ class ThetaModel(Model[ThetaParams]):
     ) -> None:
         super().__init__(data, params)
         self.__subtype__ = "theta"
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
@@ -93,6 +94,7 @@ class ThetaModel(Model[ThetaParams]):
     def check_seasonality(self) -> None:
         """Determine if the metric to be forecasted is seasonal or not"""
 
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         y = self.data.value
         m = self.params.m
         if (m > 1) and (y.nunique() > 1) and (self.n > 2 * m):
@@ -108,19 +110,25 @@ class ThetaModel(Model[ThetaParams]):
         deseas_data = copy(self.data)
         decomp = None
         if self.seasonal:
+            # pyre-fixme[6]: For 1st param expected `TimeSeriesData` but got
+            #  `Optional[TimeSeriesData]`.
             decomp = TimeSeriesDecomposition(deseas_data, "multiplicative").decomposer()
             if (abs(decomp["seasonal"].value) < 10 ** -10).sum():
                 logging.info(
                     "Seasonal indexes equal to zero. Using non-seasonal Theta method"
                 )
             else:
+                # pyre-fixme[16]: `Optional` has no attribute `value`.
                 deseas_data.value = deseas_data.value / decomp["seasonal"].value
         self.decomp = decomp
+        # pyre-fixme[7]: Expected `TimeSeriesData` but got `Optional[TimeSeriesData]`.
         return deseas_data
 
+    # pyre-fixme[15]: `fit` overrides method defined in `Model` inconsistently.
     def fit(self) -> ThetaModel:
         """Fit Theta model"""
         if self.n is None:
+            # pyre-fixme[16]: `Optional` has no attribute `value`.
             self.n = self.data.value.shape[0]
         self.check_seasonality()
         deseas_data = self.deseasonalize()
@@ -143,6 +151,7 @@ class ThetaModel(Model[ThetaParams]):
         return self
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self,
         steps: int,
@@ -172,6 +181,7 @@ class ThetaModel(Model[ThetaParams]):
             f"freq={freq}, alpha={alpha})"
         )
         if freq is None:
+            # pyre-fixme[16]: `Optional` has no attribute `time`.
             freq = pd.infer_freq(self.data.time)
         self.freq = freq
         self.alpha = alpha
@@ -255,6 +265,8 @@ class ThetaModel(Model[ThetaParams]):
         return "Theta"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, Any]]:
         """Provide a parameter space for Theta model
 

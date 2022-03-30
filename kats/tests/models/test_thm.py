@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
 from unittest import TestCase
 
@@ -21,7 +19,7 @@ from kats.models.reconciliation.base_models import (
 from kats.models.reconciliation.thm import TemporalHierarchicalModel
 
 
-def generate_ts(st: str = "2018-05-06", et: str = "2021-05-06"):
+def generate_ts(st: str = "2018-05-06", et: str = "2021-05-06") -> TimeSeriesData:
     time = pd.date_range(st, et, freq="D")
     ts = TimeSeriesData(
         pd.DataFrame({"time": time, "y": np.random.uniform(0, 1, len(time))})
@@ -29,7 +27,7 @@ def generate_ts(st: str = "2018-05-06", et: str = "2021-05-06"):
     return ts
 
 
-ts = generate_ts("2020-05-06", "2020-05-15")
+ts: TimeSeriesData = generate_ts("2020-05-06", "2020-05-15")
 
 bm1 = BaseTHModel(level=1, model_name="prophet", model_params=prophet.ProphetParams())
 bm2 = BaseTHModel(level=2, model_name="prophet", model_params=prophet.ProphetParams())

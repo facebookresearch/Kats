@@ -59,6 +59,7 @@ class LinearModel(Model[LinearModelParams]):
 
     def __init__(self, data: TimeSeriesData, params: LinearModelParams) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
@@ -86,10 +87,12 @@ class LinearModel(Model[LinearModelParams]):
         # prepare X and y for linear model
         _X = list(range(self.past_length))
         X = sm.add_constant(_X)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         y = self.data.value
         lm = sm.OLS(y, X)
         self.model = lm.fit()
 
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history: bool = False, *args: Any, **kwargs: Any
     ) -> pd.DataFrame:
@@ -107,6 +110,7 @@ class LinearModel(Model[LinearModelParams]):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
         self.include_history = include_history
 
@@ -152,6 +156,8 @@ class LinearModel(Model[LinearModelParams]):
         return "Linear Model"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, Any]]:
         """get default parameter search space for Linear model."""
         return [

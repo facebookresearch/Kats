@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
 from typing import List, Union, Dict, Optional, Any, Tuple
 
@@ -38,7 +36,9 @@ class GMDataLoader:
 
     def __init__(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         dataset: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_dataset: Union[
             None, Dict[Any, TimeSeriesData], List[TimeSeriesData]
         ] = None,
@@ -52,21 +52,29 @@ class GMDataLoader:
             ) != len(keys):
                 msg = "The keys of dataset and test_dataset are not the same."
                 raise ValueError(msg)
+            # pyre-fixme[4]: Attribute must be annotated.
             self.test_lengths = test_lengths
         else:
             self.test_lengths = None
+        # pyre-fixme[4]: Attribute must be annotated.
         self.keys = keys
+        # pyre-fixme[4]: Attribute must be annotated.
         self.lengths = lengths
+        # pyre-fixme[4]: Attribute must be annotated.
         self._batch_ids = None
         self._batch_size = -1
         self._batch_num = -1
+        # pyre-fixme[4]: Attribute must be annotated.
         self._last_batch = None
         self._idx = -1
+        # pyre-fixme[4]: Attribute must be annotated.
         self.num = len(dataset)
         if magnitude > 0:
+            # pyre-fixme[4]: Attribute must be annotated.
             self.magnitude = magnitude
 
     def _valid_dataset(
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         self, dataset: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]]
     ) -> Tuple[np.ndarray, np.ndarray]:
         if len(dataset) < 1:
@@ -142,6 +150,7 @@ class GMDataLoader:
         self._batch_size = batch_size
         self._last_batch = last_batch
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def get_batch(self, batch_size: int) -> List[Any]:
         """Generate a batch of ids of batch_size.
 
@@ -184,8 +193,11 @@ class GMBatch:
     def __init__(
         self,
         params: GMParam,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         batch_ids: List[Any],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         train_TSs: Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         valid_TSs: Optional[
             Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]]
         ] = None,
@@ -202,13 +214,18 @@ class GMBatch:
             None if valid_TSs is None else {idx: valid_TSs[idx] for idx in batch_ids}
         )
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.train = train
+        # pyre-fixme[4]: Attribute must be annotated.
         self.valid = valid
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.training = mode == "train"
+        # pyre-fixme[4]: Attribute must be annotated.
         self.batch_size = len(train)
         self.batch_ids = batch_ids
         self.training_encoder_step_num = 1
+        # pyre-fixme[4]: Attribute must be annotated.
         self.test_encoder_step_num = params.fcst_step_num
 
         (
@@ -228,10 +245,14 @@ class GMBatch:
 
         self.batch_size = len(train)
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.train_length = reduced_length
+        # pyre-fixme[4]: Attribute must be annotated.
         self.valid_length = reduced_valid_length
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.train_indices = train_indices
+        # pyre-fixme[4]: Attribute must be annotated.
         self.valid_indices = valid_indices
 
         tdtype = torch.get_default_dtype()
@@ -245,10 +266,13 @@ class GMBatch:
             init_seasonality[
                 init_seasonality > params.init_seasonality[1]
             ] = params.init_seasonality[1]
+            # pyre-fixme[4]: Attribute must be annotated.
             self.init_seasonality = torch.tensor(init_seasonality, dtype=tdtype)
         else:
             self.init_seasonality = None
+        # pyre-fixme[4]: Attribute must be annotated.
         self.offset = torch.tensor(offset, dtype=tdtype).view(-1, 1)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.indices = train_indices + valid_indices
 
         if valid or (not self.training):
@@ -258,21 +282,28 @@ class GMBatch:
             x = train_x
             time = train_time
         # store info for gmfeature
+        # pyre-fixme[4]: Attribute must be annotated.
         self.gmfeature = params.gmfeature
+        # pyre-fixme[4]: Attribute must be annotated.
         self.base_features = (
             params.gmfeature.get_base_features(x, time)
             if params.gmfeature is not None
             else None
         )
+        # pyre-fixme[4]: Attribute must be annotated.
         self.x_array = (
             x  # storing a np.ndarray copy of x for on-the-fly feature computing
         )
+        # pyre-fixme[4]: Attribute must be annotated.
         self.x = torch.tensor(x, dtype=tdtype)
+        # pyre-fixme[4]: Attribute must be annotated.
         self.time = time
 
     def _get_indices(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         train: Dict[Any, TimeSeriesData],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         valid: Optional[Dict[Any, TimeSeriesData]],
         params: GMParam,
     ) -> Tuple[int, int, List[int], List[int]]:
@@ -403,7 +434,9 @@ class GMBatch:
 
     def _get_array(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         train: Dict[Any, TimeSeriesData],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         valid: Optional[Dict[Any, TimeSeriesData]],
         params: GMParam,
         reduced_length: int,

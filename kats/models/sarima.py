@@ -159,6 +159,7 @@ class SARIMAModel(Model[SARIMAParams]):
         params: SARIMAParams,
     ) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = f"Only support univariate time series, but get {self.data.value}."
             logging.error(msg)
@@ -254,6 +255,7 @@ class SARIMAModel(Model[SARIMAParams]):
 
         logging.info("Created SARIMA model.")
         sarima = SARIMAX(
+            # pyre-fixme[16]: `Optional` has no attribute `value`.
             self.data.value,
             order=(self.params.p, self.params.d, self.params.q),
             exog=self.params.exog,
@@ -290,6 +292,7 @@ class SARIMAModel(Model[SARIMAParams]):
         logging.info("Fitted SARIMA.")
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self,
         steps: int,
@@ -325,6 +328,7 @@ class SARIMAModel(Model[SARIMAParams]):
 
         logging.debug(f"Call predict() with parameters. steps:{steps}, kwargs:{kwargs}")
         self.include_history = include_history
+        # pyre-fixme[16]: `Optional` has no attribute `infer_freq_robust`.
         self.freq = kwargs.get("freq", self.data.infer_freq_robust())
         self.alpha = alpha
 
@@ -351,6 +355,7 @@ class SARIMAModel(Model[SARIMAParams]):
             self.y_fcst_lower = np.array(pred_interval.iloc[:, 1])
             self.y_fcst_upper = np.array(pred_interval.iloc[:, 0])
 
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
 
@@ -415,6 +420,8 @@ class SARIMAModel(Model[SARIMAParams]):
         return "SARIMA"
 
     @staticmethod
+    # pyre-fixme[15]: `get_parameter_search_space` overrides method defined in
+    #  `Model` inconsistently.
     def get_parameter_search_space() -> List[Dict[str, Any]]:
         """Get default SARIMA parameter search space.
 

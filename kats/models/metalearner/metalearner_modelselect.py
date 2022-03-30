@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """A module for meta-learner model selection.
 
 This module contains:
@@ -89,11 +87,14 @@ class MetaLearnModelSelect:
                 logging.error(msg)
                 raise ValueError(msg)
 
+            # pyre-fixme[4]: Attribute must be annotated.
             self.metadata = metadata
             self._reorganize_data()
             self._validate_data()
 
+            # pyre-fixme[4]: Attribute must be annotated.
             self.scale = False
+            # pyre-fixme[4]: Attribute must be annotated.
             self.clf = None
         elif load_model:
             pass
@@ -129,6 +130,7 @@ class MetaLearnModelSelect:
         self.x_std = np.std(self.metadataX.values, axis=0)
         self.x_std[self.x_std == 0] = 1.0
 
+    # pyre-fixme[3]: Return type must be annotated.
     def _validate_data(self):
         num_class = self.metadataY.nunique()
         if num_class == 1:
@@ -503,6 +505,7 @@ class MetaLearnModelSelect:
         ans = {"label": label, "probability": prob, "pvalue": pvalue}
         return ans
 
+    # pyre-fixme[3]: Return type must be annotated.
     def __str__(self):
         return "MetaLearnModelSelect"
 
@@ -522,6 +525,7 @@ class RandomDownSampler:
         self.hpt = hpt
         self.dataX = dataX
         self.dataY = dataY
+        # pyre-fixme[4]: Attribute must be annotated.
         self.col_namesX = self.dataX.columns
 
     def fit_resample(self) -> Tuple[pd.Series, pd.DataFrame, pd.Series]:

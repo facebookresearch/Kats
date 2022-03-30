@@ -3,25 +3,26 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
-from typing import List, Dict
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
+from kats.consts import TimeSeriesData
 from kats.models.metalearner.metalearner_modelselect import MetaLearnModelSelect
 
 NUM_SECS_IN_DAY: int = 3600 * 24
 PARAMS_TO_SCALE_DOWN = {"n_control", "n_test", "historical_window", "scan_window"}
 
 
-def change_dtype(d):
+def change_dtype(d: Dict[str, Any]) -> Dict[str, float]:
     for elm in d:
         d[elm] = float(d[elm])
     return d
 
 
 class MetaDetectModelSelect(object):
+    results: Optional[Dict[str, Dict[str, float]]] = None
+
     def __init__(self, df: pd.DataFrame) -> None:
         if not isinstance(df, pd.DataFrame):
             msg = "Dataset is not in form of a dataframe!"
@@ -49,9 +50,8 @@ class MetaDetectModelSelect(object):
             raise ValueError(msg)
 
         self.df = df
-        self.results = None
 
-    def preprocess(self) -> List:
+    def preprocess(self) -> List[Dict[str, Any]]:
         # prepare the training data
         # Create training data table
         table = [
@@ -84,14 +84,15 @@ class MetaDetectModelSelect(object):
 
     def report_metrics(self) -> pd.DataFrame:
         # report the summary, as in the notebook N1154788
-        if self.results is None:
-            self.results = self.train()
-        summary = pd.DataFrame([self.results["fit_error"], self.results["pred_error"]])
+        results = self.results
+        if results is None:
+            results = self.train()
+        summary = pd.DataFrame([results["fit_error"], results["pred_error"]])
         summary["type"] = ["fit_error", "pred_error"]
         summary["error_metric"] = "Inverted F-score"
         return summary
 
-    def predict(self, TimeSeriesData):
+    def predict(self, ts: TimeSeriesData) -> None:
         # for a given timeseries data, predicts the best model
         # this can be omitted, for the bootcamp task (add later)
         raise ValueError("Predict method hasn't been implemented yet.")

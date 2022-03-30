@@ -3,9 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import random
+from typing import Dict
 from unittest import TestCase
 from unittest.mock import Mock
 
@@ -33,23 +32,27 @@ class TestMetaDetectHptSelect(TestCase):
         return supported_algos[random.randint(0, len(supported_algos) - 1)]
 
     @classmethod
-    def _get_valid_metadata(cls, algorithm_name: str):
+    def _get_valid_metadata(cls, algorithm_name: str) -> Dict[str, pd.DataFrame]:
         return cls._synth_data_read.get_metadata(algorithm_name)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(MetaDetectHptSelect.DETECTION_ALGO.keys())
     def test_legal_run(self, algorithm_name: str) -> None:
         MetaDetectHptSelect(
             **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
         ).train()
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `parameterized.parameterized.parameterized.expand(["blabla", "mumu"])`.
     @parameterized.expand(["blabla", "mumu"])
-    def test_not_supportted_algo(self, algorithm_name) -> None:
+    def test_not_supportted_algo(self, algorithm_name: str) -> None:
         with self.assertRaises(KatsDetectorUnsupportedAlgoName):
             MetaDetectHptSelect(
                 **self._get_valid_metadata(self._get_valid_alg_name()),
                 algorithm_name=algorithm_name
             )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(MetaDetectHptSelect.DETECTION_ALGO.keys())
     def test_illegal_hyper_parameter(self, algo_name: str) -> None:
         metadata = self._get_valid_metadata(algo_name)

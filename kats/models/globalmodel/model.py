@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import collections
 import logging
 from typing import List, Optional, Union, Callable, Any, Tuple, Dict, Generator
@@ -56,6 +54,7 @@ class GMModel:
         >>> evals = gmm.evalute(test_train, test_test)
     """
 
+    # pyre-fixme[3]: Return type must be annotated.
     def __init__(self, params: GMParam):
 
         if not isinstance(params, GMParam):
@@ -66,8 +65,11 @@ class GMModel:
         self.params = params
         self.debug = False
 
+        # pyre-fixme[4]: Attribute must be annotated.
         self.rnn = None
+        # pyre-fixme[4]: Attribute must be annotated.
         self.decoder = None
+        # pyre-fixme[4]: Attribute must be annotated.
         self.encoder = None
 
     def _reset_nn_states(self) -> None:
@@ -91,6 +93,9 @@ class GMModel:
             msg = "Not implemented."
             raise ValueError(msg)
 
+    # pyre-fixme[24]: Generic type `Generator` expects 3 type parameters.
+    # pyre-fixme[24]: Generic type `list` expects 1 type parameter, use
+    #  `typing.List` to avoid runtime subscripting errors.
     def _get_nn_parameters(self) -> Union[Generator, List]:
         if self.params.model_type == "rnn":
             return self.rnn.parameters()
@@ -191,6 +196,7 @@ class GMModel:
         else:
             return self.params.loss_function
 
+    # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
     def build_validation_function(self) -> Callable:
         """Helper function for building validation function.
 
@@ -201,6 +207,10 @@ class GMModel:
         valid_metric_names = self.params.validation_metric
         quantile = np.array(self.params.quantile[1:])
 
+        # pyre-fixme[53]: Captured variable `quantile` is not annotated.
+        # pyre-fixme[53]: Captured variable `valid_metric_names` is not annotated.
+        # pyre-fixme[3]: Return type must be annotated.
+        # pyre-fixme[2]: Parameter must be annotated.
         def valid_func(fcst, target):
             ans = {}
             if len(fcst.shape) == 1:
@@ -224,6 +234,7 @@ class GMModel:
 
         return valid_func
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def build_optimizer(self) -> Tuple[Any, Dict[str, Any]]:
         """Helper function for building optimizer.
 
@@ -245,6 +256,8 @@ class GMModel:
         return optimizer, optimizer_param
 
     @staticmethod
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `torch.jit.script`.
     @torch.jit.script
     def _process(
         prev_idx: int,
@@ -343,6 +356,8 @@ class GMModel:
             fcst_season,
         )
 
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def _valid_tensor(self, input_t, tag):
         """
         Helper function for debug use.
@@ -355,15 +370,20 @@ class GMModel:
                 msg = f"{tag} tensor contains inf (tensor = {input_t})"
                 logging.error(msg)
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def train(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         train_TSs: Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         valid_TSs: Optional[
             Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]]
         ] = None,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_train_TSs: Optional[
             Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]]
         ] = None,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_valid_TSs: Optional[
             Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]]
         ] = None,
@@ -489,9 +509,12 @@ class GMModel:
         self._reset_nn_states()
         return training_info
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _format_fcst(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         ids: List[Any],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         fcst_store: Dict[Any, List[np.ndarray]],
         steps: int,
         first_time: np.ndarray,
@@ -540,8 +563,10 @@ class GMModel:
             ans[idx] = df
         return ans
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def predict(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_TSs: Union[
             TimeSeriesData, List[TimeSeriesData], Dict[Any, TimeSeriesData]
         ],
@@ -642,6 +667,7 @@ class GMModel:
             joblib.dump(info, f)
         logging.info(f"Successfully save model to file {file_name}.")
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _single_pass_rnn(
         self,
         rnn: nn.Module,
@@ -649,7 +675,9 @@ class GMModel:
         batch: GMBatch,
         training_mode: bool = True,
         fcst_monitor: bool = False,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         loss_func: Optional[Callable] = None,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         valid_loss_func: Optional[Callable] = None,
     ) -> Tuple[List[Any], List[Any], List[Any], Dict[Any, List[Any]]]:
         """
@@ -803,13 +831,16 @@ class GMModel:
 
         return train_loss, train_res, valid_res, fcst_store
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _single_pass(
         self,
         params: GMParam,
         batch: GMBatch,
         training_mode: bool = True,
         fcst_monitor: bool = False,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         loss_func: Optional[Callable] = None,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         valid_loss_func: Optional[Callable] = None,
     ) -> Tuple[List[Any], List[Any], List[Any], Dict[Any, List[Any]]]:
         if params.model_type == "rnn":
@@ -839,9 +870,11 @@ class GMModel:
 
     def evaluate(
         self,
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_train_TSs: Union[
             TimeSeriesData, List[TimeSeriesData], Dict[Any, TimeSeriesData]
         ],
+        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_valid_TSs: Union[
             TimeSeriesData, List[TimeSeriesData], Dict[Any, TimeSeriesData]
         ],
@@ -910,6 +943,8 @@ class GMModel:
                 ans.append(tmp)
         return pd.DataFrame(ans)
 
+    # pyre-fixme[3]: Return type must be annotated.
+    # pyre-fixme[2]: Parameter must be annotated.
     def _adjust_pi(self, fcsts):
         # only 1 step fcst and hence no need for adjustment
         if len(fcsts) == 1:
@@ -966,6 +1001,8 @@ class GMModel:
         return
 
     @staticmethod
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    #  `torch.jit.script`.
     @torch.jit.script
     def _process_s2s(
         prev_idx: int,
@@ -1001,6 +1038,7 @@ class GMModel:
             x_lt,
         )
 
+    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _single_pass_s2s(
         self,
         encoder: nn.Module,
@@ -1009,7 +1047,9 @@ class GMModel:
         batch: GMBatch,
         training_mode: bool = True,
         fcst_monitor: bool = False,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         loss_func: Optional[Callable] = None,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         valid_loss_func: Optional[Callable] = None,
     ) -> Tuple[List[Any], List[Any], List[Any], Dict[Any, List[Any]]]:
         """
@@ -1156,13 +1196,23 @@ class GMModel:
         params: GMParam,
         batch: GMBatch,
         fcst: Tensor,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         loss_func: Optional[Callable],
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         valid_loss_func: Optional[Callable],
         is_valid: bool,
         training_mode: bool,
+        # pyre-fixme[24]: Generic type `list` expects 1 type parameter, use
+        #  `typing.List` to avoid runtime subscripting errors.
         valid_res: List,
         fcst_monitor: bool,
+        # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
+        #  `typing.Dict` to avoid runtime subscripting errors.
         fcst_store: Dict,
+    # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
+    #  `typing.Dict` to avoid runtime subscripting errors.
+    # pyre-fixme[24]: Generic type `list` expects 1 type parameter, use
+    #  `typing.List` to avoid runtime subscripting errors.
     ) -> Tuple[Union[float, Tensor], List, Dict]:
         """Calculate and store training or validation losses and forecasts."""
 

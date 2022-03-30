@@ -43,6 +43,7 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
 
     def __init__(self, data: TimeSeriesData, params: HarmonicRegressionParams) -> None:
         super().__init__(data, params)
+        # pyre-fixme[16]: `Optional` has no attribute `is_univariate`.
         if not self.data.is_univariate():
             msg = "The provided time series data is not univariate."
             logging.error(msg)
@@ -63,6 +64,7 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
             self.regression_params.period, self.regression_params.fourier_order
         )
 
+    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, dates: pd.Series, *_args: Optional[Any], **_kwargs: Optional[Any]
     ) -> pd.DataFrame:
@@ -118,6 +120,8 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
         ax.set_xlabel("Time")
         ax.set_ylabel("Value")
 
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         (line1,) = ax.plot(self.data.time, self.data.value, label="Original signal")
         (line2,) = ax.plot(self.data.time, fitted_harmonics, label="Fitted harmonics")
         ax.legend(handles=[line1, line2])
@@ -202,9 +206,11 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
             for each fourier_order, there is one cos-sin pair.
             Number of colums: fourier_order*2
         """
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         time_series = self.data.value
 
         harms = HarmonicRegressionModel.fourier_series(
+            # pyre-fixme[16]: `Optional` has no attribute `time`.
             self.data.time, period, fourier_order
         )
 

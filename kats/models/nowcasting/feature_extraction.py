@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """This is a file with functions which turn time series into ML features.
 
 Typical use case is to create various features for the nowcasting model.
@@ -154,6 +152,7 @@ def MACD(
     df = df.join(MACDdiff)
     return df
 
+    # pyre-fixme[3]: Return type must be annotated.
     def _ewma(arr: np.ndarray, span: int, min_periods: int):
         """
         Exponentialy weighted moving average specified by a decay ``window``
@@ -188,6 +187,7 @@ def MACD(
         output_array[-len(output_subset) :] = output_subset
         return output_array
 
+    # pyre-fixme[3]: Return type must be annotated.
     def _get_nowcasting_np(
         x: np.ndarray,
         window: int = 5,
@@ -279,6 +279,7 @@ def MACD(
         return nowcasting_features
 
 
+# pyre-fixme[2]: Parameter must be annotated.
 def BBANDS(df, n: int, column: str = "y") -> pd.DataFrame:
     """Adds two Bolllinger Band columns
 
@@ -309,6 +310,7 @@ def BBANDS(df, n: int, column: str = "y") -> pd.DataFrame:
     return df
 
 
+# pyre-fixme[2]: Parameter must be annotated.
 def TRIX(df, n: int, column: str = "y") -> pd.DataFrame:
     """Adds the TRIX indicator column
 
@@ -342,6 +344,7 @@ def TRIX(df, n: int, column: str = "y") -> pd.DataFrame:
     return df
 
 
+# pyre-fixme[2]: Parameter must be annotated.
 def EMA(df, n: int, column: str = "y") -> pd.DataFrame:
     """Adds the Exponetial Moving Average column
 
@@ -366,6 +369,7 @@ def EMA(df, n: int, column: str = "y") -> pd.DataFrame:
     return df
 
 
+# pyre-fixme[2]: Parameter must be annotated.
 def TSI(df, r: int, s: int, column: str = "y") -> pd.DataFrame:
     """Adds the TSI column
 
@@ -395,6 +399,7 @@ def TSI(df, r: int, s: int, column: str = "y") -> pd.DataFrame:
     return df
 
 
+# pyre-fixme[2]: Parameter must be annotated.
 def RSI(df, n: int, column: str = "y") -> pd.DataFrame:
     """
     Relative Strength Index (RSI)

@@ -3,14 +3,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
 import os
-from typing import Any
 
 import matplotlib as mpl
+from pytest import Session
 
 
-def pytest_sessionstart(session: Any) -> None:
+def pytest_sessionstart(session: Session) -> None:
     # Set the matplotlib backend to Agg for UI-less testing
     # unless the developer manually overrides by setting
     # MPLBACKEND to something else (such as "TkAgg").

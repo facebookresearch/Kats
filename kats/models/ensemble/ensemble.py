@@ -83,6 +83,7 @@ class BaseEnsemble(Model):
     def __init__(self, data: TimeSeriesData, params: EnsembleParams) -> None:
         super().__init__(data, params)
 
+        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)

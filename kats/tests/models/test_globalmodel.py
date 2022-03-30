@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import logging
 import os
 from functools import partial
@@ -38,6 +36,8 @@ from kats.models.globalmodel.utils import (
 )
 
 
+# pyre-fixme[3]: Return type must be annotated.
+# pyre-fixme[2]: Parameter must be annotated.
 def get_ts(n, start_time, seed: int = 560, freq: str = "D", has_nans: bool = True):
     """
     Helper function for generating TimeSeriesData.
@@ -52,7 +52,9 @@ def get_ts(n, start_time, seed: int = 560, freq: str = "D", has_nans: bool = Tru
     return TimeSeriesData(time=t, value=val)
 
 
+# pyre-fixme[3]: Return type must be annotated.
 def _gm_mock_predict_func(
+    # pyre-fixme[2]: Parameter must be annotated.
     TSs, steps, fcst_window, len_quantile, raw: bool = True, test_batch_size: int = 500
 ):
     """
@@ -63,6 +65,8 @@ def _gm_mock_predict_func(
     return {i: [np.random.randn(n)] * m for i in range(len(TSs))}
 
 
+# pyre-fixme[3]: Return type must be annotated.
+# pyre-fixme[2]: Parameter must be annotated.
 def get_gmmodel_mock(gmparam):
     """
     Helper function for building mock object for GMModel
@@ -76,7 +80,9 @@ def get_gmmodel_mock(gmparam):
     return gm_mock
 
 
+# pyre-fixme[5]: Global expression must be annotated.
 TSs = [get_ts(i * 5, "2020-05-06", i) for i in range(20, 30)]
+# pyre-fixme[5]: Global expression must be annotated.
 valid_TSs = [get_ts(i * 2, "2020-05-06", i) for i in range(20, 30)]
 
 
@@ -559,6 +565,7 @@ class GMBatchTest(TestCase):
                 batch = GMBatch(**batch_param)
                 self._valid(batch, gmparam)
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def _valid(self, batch, params) -> None:
         seasonality = params.seasonality
         # valid tensors
@@ -723,6 +730,7 @@ class GMModelTest(TestCase):
         except Exception as e:
             logging.info(f"Fail to remove test_save_model.p with exception {e}.")
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def _test_single_gmmodel(self, gmmodel, train_ts, valid_ts) -> None:
         _ = gmmodel.train(
             train_ts, valid_ts, train_ts, valid_ts, fcst_monitor=True, debug=True
@@ -920,6 +928,7 @@ class GMEnsembleTest(TestCase):
         )
         self._test_sinle_ensemble(gme, TSs, valid_TSs)
 
+    # pyre-fixme[2]: Parameter must be annotated.
     def _test_sinle_ensemble(self, gme, TSs, test_TSs) -> None:
         # mock each single GMModel object
         gme.gm_models = [get_gmmodel_mock(gme.params) for _ in range(gme.model_num)]

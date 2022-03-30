@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Type, Union, Optional, Sequence, Callable
@@ -22,6 +20,7 @@ ArrayLike = Union[np.ndarray, Sequence[float], pd.Series]
 @dataclass
 class EvaluationObject:
     input_data: Optional[Union[ArrayLike, TimeSeriesData, pd.DataFrame]]
+    # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
     model: Optional[Union[Model, DetectorModel]]
     preds: Optional[ArrayLike]
     labels: Optional[ArrayLike]
@@ -59,6 +58,8 @@ class Evaluator(ABC):
     def generate_predictions(
         self,
         run_name: str,
+        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
+        #  `typing.Type` to avoid runtime subscripting errors.
         model: Type,
         model_params: Optional[Union[Params, Dict[str, float]]],
         tune_params: bool = False,
@@ -68,6 +69,7 @@ class Evaluator(ABC):
     def evaluate(
         self,
         run_name: str,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         metric_to_func: Dict[str, Callable],
         labels: ArrayLike,
     ) -> pd.DataFrame:

@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 import unittest
 from typing import Dict, Optional, Union
 from unittest import TestCase
@@ -30,6 +28,7 @@ from parameterized.parameterized import parameterized
 
 STEPS_1 = 15
 STEPS_2 = 30
+# pyre-fixme[5]: Global expression must be annotated.
 TEST_DATA = {
     "daily": {
         "ts": TimeSeriesData(load_data("peyton_manning.csv")),
@@ -114,6 +113,7 @@ TEST_DATA = {
 
 
 class ARIMAModelTest(TestCase):
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [
@@ -221,6 +221,7 @@ class ARIMAModelTest(TestCase):
                 rtol=0.001,
             )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [
             [

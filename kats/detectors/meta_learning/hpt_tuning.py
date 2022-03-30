@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# pyre-unsafe
-
 """
 MetaDetectHptSelect is a meta learner that predict best hyper parameters of chosen detection algorithm given a time series features
 before predicting, user needs to train the model:
@@ -16,7 +14,7 @@ before predicting, user needs to train the model:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -35,6 +33,7 @@ from .exceptions import (
 
 @dataclass
 class DetectionAlgoMeta:
+    # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
     detector_cls: Callable
 
 
@@ -47,7 +46,7 @@ class MetaDetectHptSelect:
         "lr": 0.001,
     }
 
-    def __init__(self, data_x: pd.DataFrame, data_y: pd.DataFrame, algorithm_name: str):
+    def __init__(self, data_x: pd.DataFrame, data_y: pd.DataFrame, algorithm_name: str) -> None:
         self._check_valid_input(data_x, data_y, algorithm_name)
         self._data_x: pd.DataFrame = data_x
         self._data_y: pd.DataFrame = data_y
@@ -69,6 +68,8 @@ class MetaDetectHptSelect:
         # check 2: are all hyper parameters valid for the given algorithm
         for idx, hp in data_y.iterrows():
             try:
+                # pyre-fixme[6]: For 2nd param expected `Dict[str, typing.Any]` but
+                #  got `Type[Mapping[Variable[K], Variable[V]]]`.
                 MetaDetectHptSelect._init_detection_model(algorithm_name, hp.to_dict())
             except Exception as e:
                 raise KatsDetectorHPTIllegalHyperParameter(
@@ -76,7 +77,7 @@ class MetaDetectHptSelect:
                 )
 
     @staticmethod
-    def _init_detection_model(algorithm_name, hyper_parameters):
+    def _init_detection_model(algorithm_name: str, hyper_parameters: Dict[str, Any]) -> DetectionAlgoMeta:
         """
         returns detection algorithm for given algorithm name initialized with given hyper parameters
         """
@@ -84,7 +85,7 @@ class MetaDetectHptSelect:
             **hyper_parameters
         )
 
-    def train(self, **meta_learn_hpt_kwargs) -> MetaDetectHptSelect:
+    def train(self, **meta_learn_hpt_kwargs: Any) -> MetaDetectHptSelect:
         for k in self.TRAIN_DEFAULT_VALUES:
             if k not in meta_learn_hpt_kwargs:
                 meta_learn_hpt_kwargs[k] = self.TRAIN_DEFAULT_VALUES[k]
@@ -103,7 +104,7 @@ class MetaDetectHptSelect:
         self._meta_hpt_model = model
         return self
 
-    def _train_model(self, model: MetaLearnHPT, meta_learn_hpt_kwargs):
+    def _train_model(self, model: MetaLearnHPT, meta_learn_hpt_kwargs: Dict[str, Any]) -> None:
         model.train(**meta_learn_hpt_kwargs)
 
     def plot(self, **kwargs: Any) -> Sequence[plt.Axes]:
@@ -112,13 +113,16 @@ class MetaDetectHptSelect:
             raise KatsDetectorHPTModelUsedBeforeTraining()
         return model.plot(**kwargs)
 
+    # pyre-fixme[3]: Return type must be annotated.
     def get_hpt(self, ts: pd.DataFrame):  # -> model_params:
         # get the hpt for a time series
         # ignore for the first bootcamp task
         raise KatsDetectorsUnimplemented()
 
+    # pyre-fixme[3]: Return type must be annotated.
     def save_model(self):
         raise KatsDetectorsUnimplemented()
 
+    # pyre-fixme[3]: Return type must be annotated.
     def load_model(self):
         raise KatsDetectorsUnimplemented()
