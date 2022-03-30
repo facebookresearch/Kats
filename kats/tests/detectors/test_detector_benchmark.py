@@ -34,7 +34,6 @@ from kats.detectors.prophet_detector import (
     ProphetDetectorModel,
     ProphetTrendDetectorModel,
 )
-from kats.detectors.slow_drift_detector import SlowDriftDetectorModel
 from kats.detectors.stat_sig_detector import StatSigDetectorModel
 from kats.detectors.trend_mk_model import MKDetectorModel
 from kats.models.globalmodel.model import GMModel
@@ -45,7 +44,7 @@ from kats.utils.simulator import Simulator
 
 #search space
 
-# Test 11 models: CUSUM, BOCPD, OUTLIER, MK, STATSIG, PROPHET_TREND, PROPHET, SLOWDRIFT, GM
+# Test 10 models: CUSUM, BOCPD, OUTLIER, MK, STATSIG, PROPHET_TREND, PROPHET, GM
 # SQRT, SLOVIOLATION, MultiStatSigDetectorModel
 
 CUSUM_SPACE: List[Dict[str, Any]] = [
@@ -215,52 +214,6 @@ PROPHET_SPACE: List[Dict[str, Any]] = [
     },
 ]
 
-SLOWDRIFT_SPACE: List[Dict[str, Any]] = [
-    {
-        "name": "threshold_high",
-        "type": "range",
-        "bounds": [0.1, 0.5],
-        "value_type": "float",
-        "is_ordered": True,
-    },
-    {
-        "name": "threshold_low",
-        "type": "range",
-        "bounds": [-0.5, -0.1],
-        "value_type": "float",
-        "is_ordered": True,
-    },
-    {
-        "name": "slow_drift_window",
-        "type": "choice",
-        "values": [1, 2],
-        "value_type": "int",
-        "is_ordered": True,
-    },
-    {
-        "name": "algorithm_version",
-        "type": "choice",
-        "values": [1, 2],
-        "value_type": "int",
-        "is_ordered": True,
-    },
-    {
-        "name": "seasonality_period",
-        "type": "choice",
-        "values": [7],
-        "value_type": "int",
-        "is_ordered": True,
-    },
-    {
-        "name": "seasonality_num_points",
-        "type": "choice",
-        "values": [0, 1, 7],
-        "value_type": "int",
-        "is_ordered": True,
-    },
-]
-
-
 # serialized model for GM
 gmm = GMModel(
     GMParam(
@@ -317,7 +270,6 @@ GM_SPACE: List[Dict[str, Any]] = [
 ]
 
 GRID_SD_DICT: Dict[Type[DetectorModel], List[Dict[str, Any]]] = {
-    SlowDriftDetectorModel: SLOWDRIFT_SPACE,
     StatSigDetectorModel: STATSIG_SPACE,
     CUSUMDetectorModel: CUSUM_SPACE,
     BocpdDetectorModel: BOCPD_SPACE,
@@ -425,7 +377,6 @@ SIMULATED_TS_DF: pd.DataFrame = _generate_all_data()
 
 DETECTOR_ONLINE_ONLY: Dict[Union[Type[Detector], Type[DetectorModel]], bool] = {
     OutlierDetectorModel: True,
-    SlowDriftDetectorModel: True,
     StatSigDetectorModel: True,
     CUSUMDetectorModel: True,
     BocpdDetectorModel: True,
@@ -437,7 +388,6 @@ DETECTOR_ONLINE_ONLY: Dict[Union[Type[Detector], Type[DetectorModel]], bool] = {
 
 TEST_DETECTORS: Dict[Type[DetectorModel], str] = {
     OutlierDetectorModel: "outlier",
-    SlowDriftDetectorModel: "slowdrift",
     StatSigDetectorModel: "statsig",
     CUSUMDetectorModel: "cusum",
     BocpdDetectorModel: "bocpd",
@@ -448,7 +398,7 @@ TEST_DETECTORS: Dict[Type[DetectorModel], str] = {
 }
 
 class ModelOptimizerTest(TestCase):
-    # Test 9 models: CUSUM, BOCPD, OUTLIER, MK, STATSIG, PROPHET_TREND, PROPHET, SLOWDRIFT, GM
+    # Test 8 models: CUSUM, BOCPD, OUTLIER, MK, STATSIG, PROPHET_TREND, PROPHET, GM
     def test_detectors(self) -> None:
         for detect_model in TEST_DETECTORS:
             mopt = ModelOptimizer(
@@ -473,7 +423,6 @@ class ModelOptimizerTest(TestCase):
     def test_detectors_otherparams(self) -> None:
         for detect_model, x, y in [
             (OutlierDetectorModel, "recall", "min"),
-            (SlowDriftDetectorModel, "delay", "median"),
             (StatSigDetectorModel, "precision", "max"),
         ]:
             mopt = ModelOptimizer(

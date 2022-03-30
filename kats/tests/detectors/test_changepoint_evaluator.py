@@ -28,7 +28,6 @@ from kats.detectors.prophet_detector import (
     ProphetDetectorModel,
     ProphetTrendDetectorModel,
 )
-from kats.detectors.slow_drift_detector import SlowDriftDetectorModel
 from kats.detectors.stat_sig_detector import StatSigDetectorModel
 from kats.detectors.trend_mk_model import MKDetectorModel
 
@@ -90,41 +89,7 @@ PROPHET_SPACE: List[Dict[str, Any]] = [
     },
 ]
 
-SLOWDRIFT_SPACE: List[Dict[str, Any]] = [
-    {
-        "name": "slow_drift_window",
-        "type": "choice",
-        "values": [1, 2],
-        "value_type": "int",
-        "is_ordered": True,
-    },
-    {
-        "name": "algorithm_version",
-        "type": "choice",
-        "values": [1, 2],
-        "value_type": "int",
-        "is_ordered": True,
-    },
-    {
-        "name": "seasonality_period",
-        "type": "choice",
-        "values": [7],
-        "value_type": "int",
-        "is_ordered": True,
-    },
-    {
-        "name": "seasonality_num_points",
-        "type": "choice",
-        "values": [0, 1, 7],
-        "value_type": "int",
-        "is_ordered": True,
-    },
-]
-
-
-
 GRID_SD_DICT: Dict[Type[DetectorModel], List[Dict[str, Any]]] = {
-    SlowDriftDetectorModel: SLOWDRIFT_SPACE,
     StatSigDetectorModel: STATSIG_SPACE,
     ProphetTrendDetectorModel: PROPHET_TREND_SPACE,
     MKDetectorModel: MK_SPACE,
@@ -132,7 +97,6 @@ GRID_SD_DICT: Dict[Type[DetectorModel], List[Dict[str, Any]]] = {
 }
 
 DETECTOR_ONLINE_ONLY: Dict[Union[Type[Detector], Type[DetectorModel]], bool] = {
-    SlowDriftDetectorModel: True,
     StatSigDetectorModel: True,
     MKDetectorModel: True,
     ProphetTrendDetectorModel: False,

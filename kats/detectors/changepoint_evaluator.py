@@ -28,22 +28,18 @@ from kats.detectors.detector import Detector, DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.utils.simulator import Simulator
 
-# from kats.detectors.detector_consts import ConfidenceBand
 from kats.detectors.prophet_detector import ProphetDetectorModel, ProphetTrendDetectorModel
-from kats.detectors.slow_drift_detector import SlowDriftDetectorModel
 from kats.detectors.stat_sig_detector import StatSigDetectorModel, MultiStatSigDetectorModel
 from kats.detectors.cusum_model import CUSUMDetectorModel
 from kats.detectors.window_slo_detector import WindowSloDetectorModel
 from kats.detectors.bocpd_model import BocpdDetectorModel
 from kats.detectors.sprt_detector import SPRTDetectorModel
-# from kats.detectors.outlier_detector import OutlierDetectorModel
 from kats.detectors.trend_mk_model import MKDetectorModel
 from kats.detectors.gm_detector import GMDetectorModel
 
 
 # historical window related params' names for each dectectors
 HISTORICAL_DATA_PARAM_NAME: Dict[Union[Type[Detector], Type[DetectorModel]], List[str]] = {
-    SlowDriftDetectorModel: ['slow_drift_window'],
     StatSigDetectorModel: ['n_control', 'n_test'],
     MultiStatSigDetectorModel: ['n_control', 'n_test'],
     CUSUMDetectorModel: ['historical_window'],
@@ -55,7 +51,6 @@ HISTORICAL_DATA_PARAM_NAME: Dict[Union[Type[Detector], Type[DetectorModel]], Lis
 
 # historical window related params' default value for each dectectors
 HISTORICAL_DATA_PARAM_DEFAULT: Dict[Union[Type[Detector], Type[DetectorModel]], Dict[str, int]] = {
-    SlowDriftDetectorModel: {'slow_drift_window': 0},
     StatSigDetectorModel: {'n_control': 0, 'n_test': 1},
     MultiStatSigDetectorModel: {'n_control': 0, 'n_test': 1},
     CUSUMDetectorModel: {'historical_window': 0},
@@ -67,7 +62,6 @@ HISTORICAL_DATA_PARAM_DEFAULT: Dict[Union[Type[Detector], Type[DetectorModel]], 
 
 # whether online only
 DETECTOR_ONLINE_ONLY: Dict[Union[Type[Detector], Type[DetectorModel]], bool] = {
-    SlowDriftDetectorModel: True,
     StatSigDetectorModel: True,
     MultiStatSigDetectorModel: True,
     CUSUMDetectorModel: True,
@@ -87,7 +81,6 @@ def get_appropriate_start_time_default(
     tsd: TimeSeriesData,
 ) -> int:
     # return number of data points in TSD
-    # SlowDriftDetectorModel: slow_drift_window is in seconds (see also here).
     # [Multi]StatSigDetectorModel: n_control and n_test are in number of time_unit (points).
     # CUSUMDetectorModel: historical_window is in seconds.
     # WindowSloDetectorModel: window_size is in number of datapoints.
@@ -109,8 +102,7 @@ def get_appropriate_start_time_default(
         # for statsig and multistatsig, window = n_test + n_control - 1
         return int(res - 1)
 
-    elif detector in [SlowDriftDetectorModel, CUSUMDetectorModel]:
-        # SlowDriftDetectorModel: slow_drift_window is in seconds
+    elif detector in [CUSUMDetectorModel]:
         # CUSUMDetectorModel: historical_window is in seconds.
         return get_points_from_sec(int(res), tsd)
     else:
