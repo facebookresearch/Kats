@@ -28,6 +28,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKI
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
+
 if TYPE_CHECKING:
     from kats.models.model import Model
 
@@ -60,6 +61,7 @@ class BackTesterParent(ABC):
     Raises:
       ValueError: The time series is empty or an invalid error type was passed.
     """
+
     error_methods: List[str]
     data: TimeSeriesData
     # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
@@ -68,10 +70,12 @@ class BackTesterParent(ABC):
     params: Params
     multi: bool
     offset: int
-    results: List[Tuple[np.ndarray, np.ndarray, 'Model[Params]', np.ndarray]]
+    results: List[Tuple[np.ndarray, np.ndarray, "Model[Params]", np.ndarray]]
     errors: Dict[str, float]
     size: int
-    error_funcs: Dict[str, Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], float]]
+    error_funcs: Dict[
+        str, Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], float]
+    ]
     freq: Optional[str]
     raw_errors: List[np.ndarray]
 
@@ -280,7 +284,7 @@ class BackTesterParent(ABC):
         self,
         training_data_indices: Tuple[int, int],
         testing_data_indices: Tuple[int, int],
-    ) -> Optional[Tuple[np.ndarray, np.ndarray, 'Model[Params]', np.ndarray]]:
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, "Model[Params]", np.ndarray]]:
         """
         Trains model, evaluates it, and stores results in results list.
         """
@@ -413,7 +417,9 @@ class BackTesterParent(ABC):
             raise ValueError("Invalid error name")
 
     @abstractmethod
-    def _create_train_test_splits(self) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+    def _create_train_test_splits(
+        self,
+    ) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
         raise NotImplementedError()
 
 
@@ -437,7 +443,6 @@ class BackTesterSimple(BackTesterParent):
       freq: A string representing the (inferred) frequency of the
         `pandas.DataFrame`.
       raw_errors: List storing raw errors (truth - predicted).
-
 
     Raises:
       ValueError: Invalid train and/or test params passed. Or the time series
@@ -604,7 +609,7 @@ class BackTesterRollingOrigin(BackTesterParent):
         #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
         constant_train_size: bool = False,
-        multi: bool=True,
+        multi: bool = True,
         **kwargs: Any,
     ) -> None:
         logging.info("Initializing train/test percentages")
@@ -741,7 +746,7 @@ class BackTesterExpandingWindow(BackTesterRollingOrigin):
         # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
         #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
-        multi: bool=True,
+        multi: bool = True,
         **kwargs: Any,
     ) -> None:
         logging.info(
@@ -780,7 +785,7 @@ class BackTesterRollingWindow(BackTesterRollingOrigin):
         # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
         #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
-        multi: bool=True,
+        multi: bool = True,
         **kwargs: Any,
     ) -> None:
         logging.info(
@@ -982,8 +987,9 @@ class CrossValidation:
       >>> cv.run_cv()
       >>> mape = cv.get_error_value("mape") # Retrieve MAPE error
     """
+
     size: int
-    results: List[Tuple[np.ndarray, np.ndarray, 'Model[Params]', np.ndarray]]
+    results: List[Tuple[np.ndarray, np.ndarray, "Model[Params]", np.ndarray]]
     num_folds: int
     errors: Dict[str, float]
     raw_errors: List[np.ndarray]
@@ -1000,8 +1006,8 @@ class CrossValidation:
         # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
         #  `typing.Type` to avoid runtime subscripting errors.
         model_class: Type,
-        constant_train_size: bool=False,
-        multi: bool=True,
+        constant_train_size: bool = False,
+        multi: bool = True,
     ) -> None:
         logging.info("Initializing and validating parameter values")
         if train_percentage <= 0:
