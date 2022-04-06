@@ -5,7 +5,6 @@
 
 from . import bocpd  # noqa # usort: skip
 from . import bocpd_model  # noqa # usort: skip
-from . import changepoint_evaluator  # noqa # usort: skip
 from . import cusum_detection  # noqa # usort: skip
 from . import cusum_model  # noqa # usort: skip
 from . import detector  # noqa # usort: skip
