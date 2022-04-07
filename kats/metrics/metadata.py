@@ -75,7 +75,7 @@ _SCORE_MIN_0 = MetricMetadata(MetricType.SCORE, Directionality.POSITIVE, 0.0, np
 
 # These metadata values apply only when unweighted. When unconstrained weights
 # are used, most metrics become unbounded.
-@lru_cache
+@lru_cache(None)
 def _metadata() -> Dict[str, MetricMetadata]:
     metadata = {
         "continuous_rank_probability_score": _ERROR_RATE_METRIC,
