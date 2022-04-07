@@ -270,7 +270,7 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             cast(pd.DataFrame, self.ts_from_df_multi.value), self.MULTIVAR_VALUE_DF
         )
 
-    # Testing univiarite time series initialized from a Series and Series/DataFrame
+    # Testing univariate time series initialized from a Series and Series/DataFrame
     def test_init_from_series_univar(self) -> None:
         # time and value from Series, with time as string
         assert_series_equal(
@@ -286,6 +286,15 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             cast(pd.Series, self.ts_from_series_univar_no_datetime.value),
             self.AIR_VALUE_SERIES,
         )
+        # time and value from Series, with time out of order and `sort_by_time=True`
+        unsorted_df = self.AIR_DF.sample(frac=1)
+        resorted_ts = TimeSeriesData(
+            time=unsorted_df.ds,
+            value=unsorted_df.y,
+            time_col_name=TIME_COL_NAME,
+            sort_by_time=True,
+        )
+        self.assertEqual(resorted_ts, self.ts_from_df)
         # time and value from Series, with time as unix time
         assert_series_equal(
             self.ts_from_series_with_unix.time, self.AIR_TIME_SERIES_PD_DATETIME
@@ -414,6 +423,11 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             #  pd.core.indexes.datetimes.DatetimeIndex, pd.core.series.Series]` for 1st
             #  param but got `List[Variable[_T]]`.
             TimeSeriesData(time=[], value=[])
+            # Incorrect initialization with different length time and values
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES[:-1])
+            TimeSeriesData(time=self.AIR_TIME_SERIES[:-1], value=self.AIR_VALUE_SERIES)
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF[:-1])
+            TimeSeriesData(time=self.AIR_TIME_SERIES[:-1], value=self.MULTIVAR_VALUE_DF)
 
     # Testing DataFrame conversion
     def test_to_dataframe(self) -> None:
@@ -1337,17 +1351,26 @@ class TSIteratorTest(TestCase):
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-01")]), check_names=False
         )
-        assert_frame_equal(cast(pd.DataFrame, val.value), pd.DataFrame([[100, 200]], columns=["y1", "y2"]))
+        assert_frame_equal(
+            cast(pd.DataFrame, val.value),
+            pd.DataFrame([[100, 200]], columns=["y1", "y2"]),
+        )
         val = next(kats_iterator)
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-02")]), check_names=False
         )
-        assert_frame_equal(cast(pd.DataFrame, val.value), pd.DataFrame([[120, 220]], columns=["y1", "y2"]))
+        assert_frame_equal(
+            cast(pd.DataFrame, val.value),
+            pd.DataFrame([[120, 220]], columns=["y1", "y2"]),
+        )
         val = next(kats_iterator)
         assert_series_equal(
             val.time, pd.Series([pd.Timestamp("2020-03-03")]), check_names=False
         )
-        assert_frame_equal(cast(pd.DataFrame, val.value), pd.DataFrame([[130, 230]], columns=["y1", "y2"]))
+        assert_frame_equal(
+            cast(pd.DataFrame, val.value),
+            pd.DataFrame([[130, 230]], columns=["y1", "y2"]),
+        )
 
     def test_ts_iterator_comprehension(self) -> None:
         kats_data = TimeSeriesData(

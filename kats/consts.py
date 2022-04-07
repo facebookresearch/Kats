@@ -238,20 +238,9 @@ class TimeSeriesData:
                     tz_ambiguous=tz_ambiguous,
                     tz_nonexistent=tz_nonexistent,
                 )
-                # Sorting by time if necessary
-                if sort_by_time:
-                    df.sort_values(self.time_col_name, inplace=True)
-                    df.reset_index(inplace=True, drop=True)
-                else:
-                    logging.warning(
-                        (
-                            "Please make sure the time series is sorted by time or "
-                            "set 'sort_by_time' as True."
-                        )
-                    )
-                self._time = df[self.time_col_name]
-                self._value = df[[x for x in df.columns if x != self.time_col_name]]
-                self._set_univariate_values_to_series()
+                # Sort by time
+                df = self._sort_by_time(sort_by_time=sort_by_time, df=df)
+                self._extract_from_df(df=df)
 
         # If separate objects are passed
         elif time is not None and value is not None:
@@ -319,6 +308,9 @@ class TimeSeriesData:
                         tz_nonexistent=tz_nonexistent,
                     ).reset_index(drop=True),
                 )
+            df = self.to_dataframe()
+            df = self._sort_by_time(sort_by_time=sort_by_time, df=df)
+            self._extract_from_df(df=df)
 
         # If None is passed
         elif not time and not value:
@@ -330,6 +322,9 @@ class TimeSeriesData:
         else:
             msg = "One of time or value is empty while the other is not"
             raise _log_error(msg)
+
+        # Validate that time & value have equal lengths
+        self.validate_data(validate_frequency=False, validate_dimension=True)
 
         # Validate values
         if not self.value.empty and not (
@@ -638,7 +633,7 @@ class TimeSeriesData:
             raise ValueError("Only constant frequency is supported for time!")
 
         if validate_dimension and len(self.time) != self.value.shape[0]:
-            raise ValueError("time and value has different length (dimension)!")
+            raise ValueError("time and value have different lengths (dimensions)!")
 
     def _calc_min_max_values(self) -> None:
         # Get maximum and minimum values
@@ -819,6 +814,26 @@ class TimeSeriesData:
             combo_df[self.time_col_name] = combo_df[DEFAULT_TIME_NAME]
             combo_df.drop(DEFAULT_TIME_NAME, axis=1, inplace=True)
         return TimeSeriesData(df=combo_df, time_col_name=self.time_col_name)
+
+    def _sort_by_time(self, sort_by_time: bool, df: pd.DataFrame) -> pd.DataFrame:
+        """Sort DataFrame by time if necessary, otherwise output warning"""
+        if sort_by_time:
+            df.sort_values(self.time_col_name, inplace=True)
+            df.reset_index(inplace=True, drop=True)
+        else:
+            logging.warning(
+                (
+                    "Please make sure the time series is sorted by time or "
+                    "set 'sort_by_time' as True."
+                )
+            )
+        return df
+
+    def _extract_from_df(self, df: pd.DataFrame) -> None:
+        """Set instance `time` and `value` variables from DataFrame"""
+        self._time = df[self.time_col_name]
+        self._value = df[[x for x in df.columns if x != self.time_col_name]]
+        self._set_univariate_values_to_series()
 
     def infer_freq_robust(self) -> pd.Timedelta:
         """
