@@ -4,8 +4,8 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-This module contains 1) helper functions for evaluating forecasting models (i.e., calc_mape and calc_mae); 2) the BaseTHModel class for storing information of base models;
-and 3) the GetAggregateTS class for aggregating base time series to higher levels.
+This module contains 1) the BaseTHModel class for storing information of base models;
+and 2) the GetAggregateTS class for aggregating base time series to higher levels.
 """
 
 from typing import List, Dict, Optional
@@ -35,40 +35,6 @@ import logging
 
 import numpy as np
 import pandas as pd
-
-
-def calc_mape(predictions: np.ndarray, truth: np.ndarray) -> float:
-    """Calculate mape.
-    MAPE = average(abs((truth-predictions)/truth))
-
-    Args:
-        predictions: a np.array storing predictions.
-        truth: a np.array storing true values.
-
-    Returns:
-        A float representing the MAPE.
-    """
-
-    base = np.abs((truth - predictions) / truth)
-    # filter out np.inf
-    base = base[base < np.inf]
-    return np.mean(base)
-
-
-def calc_mae(predictions: np.ndarray, truth: np.ndarray) -> float:
-    """Calculate mae.
-
-    MAE = average(abs(truth-predictions))
-
-    Args:
-        predictions: a np.array storing predictions.
-        truth: a np.array storing true values.
-
-    Returns:
-        A float representing the MAE.
-    """
-
-    return np.average(np.abs(truth - predictions))
 
 
 class BaseTHModel:

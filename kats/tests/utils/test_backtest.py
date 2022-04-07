@@ -8,12 +8,13 @@
 import statistics
 import unittest
 import unittest.mock as mock
-from typing import Any, Callable, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
+from kats.metrics.metrics import core_metric
 from kats.tests.test_backtester_dummy_data import (
     PROPHET_EMPTY_DUMMY_DATA,
     PROPHET_0_108_FCST_DUMMY_DATA,
@@ -31,7 +32,6 @@ from kats.utils.backtesters import (
     CrossValidation,
     _return_fold_offsets as return_fold_offsets,
 )
-from kats.utils.testing import error_funcs
 
 # Constants
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]  # Errors to test
@@ -52,13 +52,9 @@ def compute_errors(
     train: np.ndarray, pred: np.ndarray, truth: np.ndarray
 ) -> Dict[str, float]:
     true_errors = {}
-    for error, func in error_funcs.items():
-        if error == "mase":
-            func = cast(Callable[[np.ndarray, np.ndarray, np.ndarray], float], func)
-            err = func(train, pred, truth)
-        else:
-            func = cast(Callable[[np.ndarray, np.ndarray], float], func)
-            err = func(pred, truth)
+    for error in ALL_ERRORS:
+        func = core_metric(error)
+        err = func(truth, pred)
         true_errors[error] = err
     return true_errors
 
@@ -69,13 +65,9 @@ def compute_errors_list(
     truth: np.ndarray,
     true_errors: Dict[str, List[float]],
 ) -> None:
-    for error, func in error_funcs.items():
-        if error == "mase":
-            func = cast(Callable[[np.ndarray, np.ndarray, np.ndarray], float], func)
-            err = func(train, pred, truth)
-        else:
-            func = cast(Callable[[np.ndarray, np.ndarray], float], func)
-            err = func(pred, truth)
+    for error in ALL_ERRORS:
+        func = core_metric(error)
+        err = func(truth, pred)
         if error in true_errors:
             true_errors[error].append(err)
         else:

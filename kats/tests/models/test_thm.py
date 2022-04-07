@@ -13,8 +13,6 @@ from kats.models import prophet
 from kats.models.reconciliation.base_models import (
     BaseTHModel,
     GetAggregateTS,
-    calc_mae,
-    calc_mape,
 )
 from kats.models.reconciliation.thm import TemporalHierarchicalModel
 
@@ -32,19 +30,6 @@ ts: TimeSeriesData = generate_ts("2020-05-06", "2020-05-15")
 bm1 = BaseTHModel(level=1, model_name="prophet", model_params=prophet.ProphetParams())
 bm2 = BaseTHModel(level=2, model_name="prophet", model_params=prophet.ProphetParams())
 bm5 = BaseTHModel(level=5, fcsts=np.random.randn(5), residuals=np.random.randn(len(ts)))
-
-
-class testHelperFunctions(TestCase):
-    def test_calc_mape(self) -> None:
-        pred = np.array([0, 1, 1])
-        truth = np.array([0, 1, 2])
-
-        self.assertEqual(0.25, calc_mape(pred, truth))
-
-    def test_calc_mae(self) -> None:
-        pred = np.array([0, 1, 1])
-        truth = np.array([0, 1, 4])
-        self.assertEqual(1.0, calc_mae(pred, truth))
 
 
 class testBaseTHModel(TestCase):

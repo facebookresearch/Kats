@@ -22,8 +22,6 @@ from kats.utils.backtesters import BackTesterRollingWindow
 from scipy import stats
 
 
-ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
-
 FigSize = Tuple[int, int]
 
 

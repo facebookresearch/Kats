@@ -9,8 +9,6 @@ This module contains the class for computing the meta-data of time series. The m
 2) the best hyper-parameters of each candidate models and their corresponding errors; and 3) the best model.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import ast
 import logging
 from multiprocessing import cpu_count
@@ -21,6 +19,7 @@ import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
 import pandas as pd
 from kats.consts import SearchMethodEnum, TimeSeriesData
+from kats.metrics.metrics import core_metric
 from kats.models.arima import ARIMAModel, ARIMAParams
 from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
 from kats.models.prophet import ProphetModel, ProphetParams
@@ -104,15 +103,6 @@ class GetMetaData:
         self.all_params = all_params
         self.min_length = min_length
         self.method = method
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.error_funcs = {
-            "mape": self._calc_mape,
-            "smape": self._calc_smape,
-            "mae": self._calc_mae,
-            "mase": self._calc_mase,
-            "mse": self._calc_mse,
-            "rmse": self._calc_rmse,
-        }
         self.error_method = error_method
         self.num_trials = num_trials
         self.num_arms = num_arms
@@ -237,10 +227,7 @@ class GetMetaData:
                 predictions = np.asarray(model_pred.fcst)
                 truth = np.asarray(self.test_series.value)
                 diffs = abs(truth - predictions)
-                # error metric:
-                error = self.error_funcs[self.error_method](
-                    training_inputs, predictions, truth, diffs
-                )
+                error = core_metric(self.error_method)(truth, predictions)
             except Exception as e:
                 logging.info(f"Exception in tuning hyper-parameters: {e}.")
                 return np.inf
@@ -334,72 +321,6 @@ class GetMetaData:
             "search_method": local_method,
             "error_method": self.error_method,
         }
-
-    def _calc_mape(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        logging.info("Calculating MAPE")
-        return np.mean(np.abs((truth - predictions) / truth))
-
-    def _calc_smape(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        logging.info("Calculating SMAPE")
-        return ((abs(truth - predictions) / (truth + predictions)).sum()) * (
-            2.0 / truth.size
-        )
-
-    def _calc_mae(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        logging.info("Calculating MAE")
-        return diffs.mean()
-
-    def _calc_mase(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        # MASE = mean(|actual - forecast| / naiveError), where naiveError = 1/ (n-1) sigma^n_[i=2](|actual_[i] - actual_[i-1]|).
-        logging.info("Calculating MASE")
-        naive_error = np.abs(np.diff(training_inputs)).sum() / (
-            training_inputs.shape[0] - 1
-        )
-        return diffs.mean() / naive_error
-
-    def _calc_mse(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        logging.info("Calculating MSE")
-        return ((diffs) ** 2).mean()
-
-    def _calc_rmse(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        logging.info("Calculating RMSE")
-        return np.sqrt(self._calc_mse(training_inputs, predictions, truth, diffs))
 
     # pyre-fixme[3]: Return type must be annotated.
     def __str__(self):

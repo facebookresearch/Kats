@@ -13,6 +13,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from kats.consts import TimeSeriesData
+from kats.metrics import metrics
 from kats.models.globalmodel.data_processor import (
     GMBatch,
     GMDataLoader,
@@ -22,9 +23,7 @@ from kats.models.globalmodel.utils import (
     DilatedRNNStack,
     PinballLoss,
     AdjustedPinballLoss,
-    calc_smape,
     calc_exceed,
-    calc_sbias,
     gmparam_from_string,
 )
 from torch import Tensor
@@ -220,9 +219,9 @@ class GMModel:
             d = target.shape[1]
             for name in valid_metric_names:
                 if name == "smape":
-                    ans["smape"] = calc_smape(fcst[:, :d], target)
+                    ans["smape"] = metrics.smape(target, fcst[:, :d])
                 elif name == "sbias":
-                    ans["sbias"] = calc_sbias(fcst[:, :d], target)
+                    ans["sbias"] = metrics.sbias(target, fcst[:, :d])
                 elif name == "exceed" and len(quantile) > 1:
                     tmp_val = calc_exceed(fcst[:, d:], target, quantile)
                     tmp_dict = {

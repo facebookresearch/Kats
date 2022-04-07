@@ -23,18 +23,15 @@ For more information, check out the Kats tutorial notebook on backtesting!
 import logging
 import multiprocessing as mp
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
+from kats.metrics.metrics import core_metric, CoreMetric
 
 if TYPE_CHECKING:
     from kats.models.model import Model
-
-
-# Constant to indicate error types supported
-ALLOWED_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
 
 
 class BackTesterParent(ABC):
@@ -43,7 +40,7 @@ class BackTesterParent(ABC):
 
     Attributes:
         error_methods: List of strings indicating which errors to calculate
-          (see `ALLOWED_ERRORS` for exhaustive list).
+          (see `kats.metrics` for exhaustive list).
         data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
         params: Parameters to train model with.
         model_class: Defines the model type to use for backtesting.
@@ -53,8 +50,6 @@ class BackTesterParent(ABC):
           forecast_predictions)` storing forecast results.
         errors: Dictionary mapping the error type to value.
         size: An integer for the total number of datapoints.
-        error_funcs: Dictionary mapping error name to the
-          function that calculates it.
         freq: A string representing the (inferred) frequency of the
           `pandas.DataFrame`.
 
@@ -62,7 +57,7 @@ class BackTesterParent(ABC):
       ValueError: The time series is empty or an invalid error type was passed.
     """
 
-    error_methods: List[str]
+    error_methods: List[Tuple[str, CoreMetric]]
     data: TimeSeriesData
     # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
     #  `typing.Type` to avoid runtime subscripting errors.
@@ -73,9 +68,6 @@ class BackTesterParent(ABC):
     results: List[Tuple[np.ndarray, np.ndarray, "Model[Params]", np.ndarray]]
     errors: Dict[str, float]
     size: int
-    error_funcs: Dict[
-        str, Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], float]
-    ]
     freq: Optional[str]
     raw_errors: List[np.ndarray]
 
@@ -91,7 +83,12 @@ class BackTesterParent(ABC):
         offset: int = 0,
         **kwargs: Any,
     ) -> None:
-        self.error_methods = error_methods
+        self.size = size = len(data.time)
+        if not size:
+            msg = "Passed an empty time series"
+            logging.error(msg)
+            raise ValueError(msg)
+
         self.data = data
         self.model_class = model_class
         self.params = params
@@ -99,29 +96,6 @@ class BackTesterParent(ABC):
         self.offset = offset
 
         self.results = []
-        self.errors = {}
-        self.size = len(data.time)
-        self.error_funcs = {
-            "mape": self._calc_mape,
-            "smape": self._calc_smape,
-            "mae": self._calc_mae,
-            "mase": self._calc_mase,
-            "mse": self._calc_mse,
-            "rmse": self._calc_rmse,
-        }
-
-        if self.size <= 0:
-            logging.error("self.size <= 0")
-            logging.error("self.size: {0}".format(self.size))
-            raise ValueError("Passing an empty time series")
-
-        for error in self.error_methods:
-            if error not in ALLOWED_ERRORS:
-                logging.error("Invalid error type passed")
-                logging.error("error name: {0}".format(error))
-                raise ValueError("Unsupported error type")
-            self.errors[error] = 0.0
-
         # Handling frequency
         if "freq" in kwargs:
             self.freq = kwargs["freq"]
@@ -131,6 +105,19 @@ class BackTesterParent(ABC):
 
         self.raw_errors = []
 
+        methods = []
+        errors = {}
+        for error in error_methods:
+            try:
+                methods.append((error, core_metric(error)))
+                errors[error] = 0.0
+            except KeyError:
+                msg = f"Unsupported error function {error}"
+                logging.error(msg)
+                raise ValueError(msg)
+        self.errors = errors
+        self.error_methods = methods
+
         logging.info("Instantiated BackTester")
         if kwargs:
             logging.info(
@@ -139,7 +126,7 @@ class BackTesterParent(ABC):
                 )
             )
         logging.info("Model type: {0}".format(self.model_class))
-        logging.info("Error metrics: {0}".format(self.error_methods))
+        logging.info("Error metrics: {0}".format(error_methods))
 
         super().__init__()
 
@@ -185,100 +172,11 @@ class BackTesterParent(ABC):
                 logging.error("Unequal amount of labels and predictions")
                 raise ValueError("Incorrect dimensionality of predictions & labels")
 
-            diffs = np.abs(truth - predictions)
-
-            for error_type in self.error_methods:
+            for name, method in self.error_methods:
                 # Weighting the errors by the relative fold length if
                 # predictions are of different sizes
-                self.errors[error_type] = (
-                    self.errors[error_type]
-                    + (
-                        self.error_funcs[error_type](
-                            training_inputs, predictions, truth, diffs
-                        )
-                    )
-                    * float(len(truth))
-                    / total_fold_length
-                )
-
-    def _calc_mape(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        """Calculates MAPE error."""
-
-        logging.info("Calculating MAPE")
-        return np.mean(np.abs((truth - predictions) / truth))
-
-    def _calc_smape(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        """Calculates SMAPE error."""
-
-        logging.info("Calculating SMAPE")
-        return ((abs(truth - predictions) / (truth + predictions)).sum()) * (
-            2.0 / truth.size
-        )
-
-    def _calc_mae(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        """Calculates MAE error."""
-
-        logging.info("Calculating MAE")
-        return diffs.mean()
-
-    def _calc_mase(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        """Calculates non-seasonal MASE error.
-
-        mean(|actual - forecast| / naiveError), where
-        naiveError = mean(|actual_[i] - actual_[i-1]|)
-        """
-
-        logging.info("Calculating MASE")
-        naive_errors = np.abs(np.diff(training_inputs))
-        return diffs.mean() / naive_errors.mean()
-
-    def _calc_mse(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        """Calculates MSE error."""
-
-        logging.info("Calculating MSE")
-        return ((diffs) ** 2).mean()
-
-    def _calc_rmse(
-        self,
-        training_inputs: np.ndarray,
-        predictions: np.ndarray,
-        truth: np.ndarray,
-        diffs: np.ndarray,
-    ) -> float:
-        """Calculates RMSE error."""
-
-        logging.info("Calculating RMSE")
-        return np.sqrt(self._calc_mse(training_inputs, predictions, truth, diffs))
+                weight = float(len(truth)) / total_fold_length
+                self.errors[name] += weight * method(truth, predictions)
 
     def _create_model(
         self,
@@ -430,7 +328,7 @@ class BackTesterSimple(BackTesterParent):
       train_percentage: A float for the percentage of data used for training.
       test_percentage: A float for the percentage of data used for testing.
       error_methods: List of strings indicating which errors to calculate
-        (see `ALLOWED_ERRORS` for exhaustive list).
+        (see `kats.metrics` for exhaustive list).
       data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
       params: Parameters to train model with.
       model_class: Defines the model type to use for backtesting.
@@ -557,7 +455,7 @@ class BackTesterRollingOrigin(BackTesterParent):
       expanding_steps: An integer for the number of expanding steps (i.e.
         number of folds).
       error_methods: List of strings indicating which errors to calculate
-        (see `ALLOWED_ERRORS` for exhaustive list).
+        (see `kats.metrics` for exhaustive list).
       data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
       params: Parameters to train model with.
       model_class: Defines the model type to use for backtesting.
@@ -568,8 +466,6 @@ class BackTesterRollingOrigin(BackTesterParent):
         forecast_predictions)` storing forecast results.
       errors: Dictionary mapping the error type to value.
       size: An integer for the total number of datapoints.
-      error_funcs: Dictionary mapping error name to
-        function that calculates it.
       freq: A string representing the (inferred) frequency of the
         `pandas.DataFrame`.
       raw_errors: List storing raw errors (truth - predicted).
@@ -820,7 +716,7 @@ class BackTesterFixedWindow(BackTesterParent):
       window_percentage: A float for the percentage of data used for the
         fixed window.
       error_methods: List of strings indicating which errors to calculate
-        (see `ALLOWED_ERRORS` for exhaustive list).
+        (see `kats.metrics` for exhaustive list).
       data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
       params: Parameters to train model with.
       model_class: Defines the model type to use for backtesting.
@@ -828,8 +724,6 @@ class BackTesterFixedWindow(BackTesterParent):
         forecast_predictions)` storing forecast results.
       errors: Dictionary mapping the error type to value.
       size: An integer for the total number of datapoints.
-      error_funcs: Dictionary mapping error name to the
-        function that calculates it.
       freq: A string representing the (inferred) frequency of the
         `pandas.DataFrame`.
       raw_errors: List storing raw errors (truth - predicted).
@@ -951,7 +845,7 @@ class CrossValidation:
       test_percentage: A float for the percentage of data used for testing.
       num_folds: An integer for the number of folds to use.
       error_methods: List of strings indicating which errors to calculate
-        (see `ALLOWED_ERRORS` for exhaustive list).
+        (see `kats.metrics` for exhaustive list).
       data: :class:`kats.consts.TimeSeriesData` object to perform backtest on.
       params: Parameters to train model with.
       model_class: Defines the model type to use for backtesting.

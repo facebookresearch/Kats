@@ -1585,42 +1585,7 @@ def gmparam_from_string(gmstring: str) -> GMParam:
     return gmparam
 
 
-def calc_smape(fcst: np.ndarray, actuals: np.ndarray) -> float:
-    """Compute sMAPE between fcst and actuals.
-
-    sMAPE = 2*abs(fcst - actuals)/(abs(fcst)+abs(actuals))
-
-    Args:
-        fcst: A `numpy.ndarray` object representing the forecasts.
-        actuals: A `numpy.ndarray` object representing the true values.
-
-    Returns:
-        A float representing the mean of sMAPE.
-    """
-
-    diff = 2 * np.abs(fcst - actuals) / (np.abs(fcst) + np.abs(actuals))
-    return np.nanmean(diff)
-
-
-def calc_sbias(fcst: np.ndarray, actuals: np.ndarray) -> float:
-    """Compute sbias between fcst and actuals.
-
-    sbias = 2*(fcst - actuals)/(abs(fcst)+abs(actuals))
-
-    Args:
-        fcst: A `numpy.ndarray` object representing the forecasts.
-        actuals: A `numpy.ndarray` object representing the true values.
-
-    Returns:
-        A float representing the mean of sbias.
-    """
-    diff = 2 * (fcst - actuals) / (np.abs(fcst) + np.abs(actuals))
-
-    return np.nanmean(diff)
-
-
-# pyre-fixme[3]: Return type must be annotated.
-def calc_exceed(fcst: np.ndarray, actuals: np.ndarray, quantile: np.ndarray):
+def calc_exceed(fcst: np.ndarray, actuals: np.ndarray, quantile: np.ndarray) -> np.ndarray:
     """Compute exceed rate for quantile estimates.
 
     For quantile q (0<q<=0.5), the exceed rate of q is defined as:

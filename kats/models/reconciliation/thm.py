@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Type
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
+from kats.metrics import metrics
 from kats.models import (
     arima,
     holtwinters,
@@ -25,8 +26,6 @@ from kats.models import (
 from kats.models.model import Model
 from kats.models.reconciliation.base_models import (
     BaseTHModel,
-    calc_mape,
-    calc_mae,
     GetAggregateTS,
 )
 from sklearn.covariance import MinCovDet
@@ -507,11 +506,9 @@ class TemporalHierarchicalModel:
 
         diffs = {}
         ks = self.levels
-        if dist_metric == "mae":
-            func = calc_mae
-        elif dist_metric == "mape":
-            func = calc_mape
-        else:
+        try:
+            func = metrics.core_metric(dist_metric)
+        except KeyError:
             raise _log_error(f"Invalid dist_metric {dist_metric}")
         median_fcst = self._predict(steps, method="median", origin_fcst=True)
         for k in ks:

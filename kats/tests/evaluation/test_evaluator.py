@@ -5,7 +5,6 @@
 
 # This file defines tests for the abstract Evaluator class
 
-import re
 import unittest
 import unittest.mock as mock
 
@@ -13,18 +12,17 @@ import numpy as np
 import pandas as pd
 from kats.compat.pandas import assert_frame_equal
 from kats.evaluation.evaluator import Evaluator, EvaluationObject
+from kats.metrics.metrics import core_metric
 from kats.tests.test_backtester_dummy_data import (
     PROPHET_0_108_FCST_DUMMY_DATA,
 )
-from kats.utils.testing import error_funcs
 
-pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])
 np.random.seed(42)
 
 # Constant Values
 FCST_EVALUATION_ERRORS = pd.DataFrame(
     {  # Rounded to 6 decimals
-        "mape": [0.007622],
+        "mape": [0.0075546],
         "smape": [0.007588],
         "mae": [3.361111],
         "mse": [12.916667],
@@ -90,20 +88,20 @@ class EvaluatorTest(unittest.TestCase):
         labels = np.asarray(PROPHET_0_108_FCST_DUMMY_DATA["fcst"])
         preds = np.asarray(PROPHET_0_108_FCST_DUMMY_DATA["rand_fcst"])
 
-        # Set up error funcs
-        errs = {}
-        for error_name, error_func in error_funcs.items():
-            if not error_name == "mase":
-                errs[error_name] = error_func
-
         # Set up evaluator
         self.evaluator.create_evaluation_run(run_name="test_evaluate")
         self.evaluator.runs["test_evaluate"].preds = preds
 
         eval_res = self.evaluator.evaluate(
-            run_name="test_evaluate", metric_to_func=errs, labels=labels
+            run_name="test_evaluate",
+            metric_to_func={name: core_metric(name) for name in FCST_EVALUATION_ERRORS},
+            labels=labels,
         )
         assert_frame_equal(
-            eval_res, FCST_EVALUATION_ERRORS, check_exact=False,
-            check_less_precise=4, atol=0.5, rtol=0.2
+            eval_res,
+            FCST_EVALUATION_ERRORS,
+            check_exact=False,
+            check_less_precise=4,
+            atol=0.5,
+            rtol=0.2,
         )
