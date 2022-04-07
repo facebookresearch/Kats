@@ -38,6 +38,7 @@ class MetricsMetadataTest(TestCase):
             ("root_mean_squared_error", metadata._NONNEGATIVE_ERROR_METRIC),
             ("root_mean_squared_log_error", metadata._NONNEGATIVE_ERROR_METRIC),
             ("root_mean_squared_percentage_error", metadata._NONNEGATIVE_ERROR_METRIC),
+            ("symmetric_bias", metadata._UNBOUNDED_METRIC),
             ("symmetric_mean_absolute_percentage_error", metadata._ERROR_RATE_METRIC),
             ("tracking_signal", metadata._UNBOUNDED_ERROR_METRIC),
         ]
