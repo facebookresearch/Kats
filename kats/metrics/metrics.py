@@ -90,13 +90,12 @@ KatsMetric = Union[
 
 # Imported metrics
 
-from sklearn.metrics import (  # noqa
+from kats.compat.sklearn import (  # noqa
     # mean_absolute_error,  # doesn't handle empty arrays, nan values
+    # mean_pinball_loss
     mean_squared_error as sklearn_mse,
     mean_squared_log_error as sklearn_msle,
 )
-
-# from kats.compat.sklearn import mean_pinball_loss  # requires sklearn>=1.0.0
 
 
 def _arrays(*args: Optional[ArrayLike]) -> Generator[np.ndarray, None, None]:
@@ -516,6 +515,8 @@ def mean_squared_error(
     """
     if not len(y_true):
         return np.nan
+    # pyre-ignore[6]: For 1st param expected `bool` but got `ndarray`.
+    # pyre-ignore[6]: For 1st param expected `str` but got `ndarray`.
     return sklearn_mse(*_arrays(y_true, y_pred, sample_weight))
 
 
@@ -536,6 +537,7 @@ def root_mean_squared_error(
     """
     if not len(y_true):
         return np.nan
+    # pyre-ignore[6]: For 1st param expected `str` but got `ndarray`.
     return sklearn_mse(*_arrays(y_true, y_pred, sample_weight), squared=False)
 
 
@@ -556,9 +558,8 @@ def root_mean_squared_log_error(
     """
     if not len(y_true):
         return np.nan
-    # sklearn>=1.0.0
-    # return mean_squared_log_error(y_true, y_error, sample_weight, squared=False)
-    return np.sqrt(sklearn_msle(*_arrays(y_true, y_pred, sample_weight)))
+    # pyre-ignore[6]: For 1st param expected `str` but got `ndarray`.
+    return sklearn_msle(*_arrays(y_true, y_pred, sample_weight), squared=False)
 
 
 def root_mean_squared_percentage_error(

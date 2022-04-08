@@ -5,4 +5,5 @@
 
 from . import compat  # noqa # usort: skip
 from . import pandas  # noqa # usort: skip
+from . import sklearn  # noqa # usort: skip
 from . import statsmodels  # noqa # usort: skip
