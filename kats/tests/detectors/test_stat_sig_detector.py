@@ -21,7 +21,7 @@ from parameterized.parameterized import parameterized
 from operator import attrgetter
 
 _SERIALIZED = b'{"n_control": 20, "n_test": 7, "time_unit": "s"}'
-_SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "s", "rem_season": false, "seasonal_period": "weekly", "use_corrected_scores": false, "max_split_ts_length": 500}'
+_SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "s", "rem_season": false, "seasonal_period": "weekly", "use_corrected_scores": true, "max_split_ts_length": 500}'
 
 
 class TestStatSigDetector(TestCase):

@@ -81,7 +81,7 @@ class StatSigDetectorModel(DetectorModel):
         time_unit: Optional[str] = None,
         rem_season: bool = False,
         seasonal_period: str = "weekly",
-        use_corrected_scores: bool = False,
+        use_corrected_scores: bool = True,
         max_split_ts_length: int = 500,
     ) -> None:
 
