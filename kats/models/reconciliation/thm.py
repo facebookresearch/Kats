@@ -508,7 +508,7 @@ class TemporalHierarchicalModel:
         ks = self.levels
         try:
             func = metrics.core_metric(dist_metric)
-        except KeyError:
+        except ValueError:
             raise _log_error(f"Invalid dist_metric {dist_metric}")
         median_fcst = self._predict(steps, method="median", origin_fcst=True)
         for k in ks:

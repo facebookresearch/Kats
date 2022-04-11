@@ -111,7 +111,7 @@ class BackTesterParent(ABC):
             try:
                 methods.append((error, core_metric(error)))
                 errors[error] = 0.0
-            except KeyError:
+            except ValueError:
                 msg = f"Unsupported error function {error}"
                 logging.error(msg)
                 raise ValueError(msg)

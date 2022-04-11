@@ -770,4 +770,7 @@ def core_metric(name: str) -> CoreMetric:
     Returns:
         The metric function.
     """
-    return CORE_METRICS[name]
+    try:
+        return CORE_METRICS[name]
+    except KeyError:
+        raise ValueError(f"Could not find core metric named {name}")
