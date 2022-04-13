@@ -1063,11 +1063,17 @@ class ModelEnum(Enum):
     hyper-parameter tuning.
     """
 
+    # pyre-fixme[20]: Argument `value` expected.
     ARIMA = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     SARIMA = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     PROPHET = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     HOLTWINTERS = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     LINEAR = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     QUADRATIC = auto()
 
 
@@ -1078,9 +1084,13 @@ class SearchMethodEnum(Enum):
     hyper-parameter tuning.
     """
 
+    # pyre-fixme[20]: Argument `value` expected.
     GRID_SEARCH = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     RANDOM_SEARCH_UNIFORM = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     RANDOM_SEARCH_SOBOL = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     BAYES_OPT = auto()
 
 
@@ -1091,9 +1101,13 @@ class OperationsEnum(Enum):
     :class:`TimeSeriesData` objects.
     """
 
+    # pyre-fixme[20]: Argument `value` expected.
     ADD = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     SUB = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     DIV = auto()
+    # pyre-fixme[20]: Argument `value` expected.
     MUL = auto()
 
 
