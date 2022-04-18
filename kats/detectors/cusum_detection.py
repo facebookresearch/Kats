@@ -568,10 +568,12 @@ class CUSUMDetector(Detector):
         _, ax = plt.subplots(**kwargs)
         ax.plot(data_df[time_col_name], data_df[val_col_name])
 
+        changepoint_annotated = False
         for change in change_points:
             if change.regression_detected:
                 ax.axvline(x=change.start_time, color="red")
-        else:
+                changepoint_annotated = True
+        if not changepoint_annotated:
             logging.warning("No change points detected!")
 
         interest_window = self.interest_window
