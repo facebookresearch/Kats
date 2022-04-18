@@ -5,8 +5,8 @@
 
 import builtins
 import sys
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 import unittest
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -91,7 +91,16 @@ class ProphetModelTest(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         # pyre-fixme[33]: Given annotation cannot contain `Any`.
-        original_import_fn: Callable[[str, Optional[Mapping[str, Any]], Optional[Mapping[str, Any]], Sequence[str], int], Any] = builtins.__import__
+        original_import_fn: Callable[
+            [
+                str,
+                Optional[Mapping[str, Any]],
+                Optional[Mapping[str, Any]],
+                Sequence[str],
+                int,
+            ],
+            Any,
+        ] = builtins.__import__
 
         # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         def mock_prophet_import(module: Any, *args: Any, **kwargs: Any) -> None:
@@ -163,17 +172,17 @@ class ProphetModelTest(TestCase):
             self.assertEqual(exp_val, actual_defaults[param], msg)
 
     def test_invalid_params(self) -> None:
-        params = ProphetParams(growth="logistic")
-        self.assertRaises(ValueError, params.validate_params)
 
-        params = ProphetParams(
+        self.assertRaises(ValueError, ProphetParams, growth="logistic")
+        self.assertRaises(
+            ValueError,
+            ProphetParams,
             custom_seasonalities=[
                 {
                     "name": "monthly",
                 },
             ],
         )
-        self.assertRaises(ValueError, params.validate_params)
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
@@ -317,7 +326,7 @@ class ProphetModelTest(TestCase):
                 "optional predict params",
                 TEST_DATA["nonseasonal"]["ts"],
                 TEST_DATA["nonseasonal"]["params"],
-                30,
+                len(TEST_DATA["nonseasonal"]["future_df"]),
                 False,
                 None,
                 TEST_DATA["nonseasonal"]["future_df"],
@@ -435,37 +444,35 @@ class ProphetModelTest(TestCase):
             extra_regressors=[
                 {
                     "name": "reg1",
-                    "value": range(len(TEST_DATA["daily"]["ts"])),
                     "prior_scale": 0.5,
                     "mode": "multiplicative",
                 },
                 {
                     "name": "reg2",
-                    "value": range(len(TEST_DATA["daily"]["ts"]), 0, -1),
                 },
             ]
         )
 
-        future_regressors = [
-            {
-                "name": "reg1",
-                "value": range(30),
-            },
-            {
-                "name": "reg2",
-                "value": range(30, 0, -1),
-            },
-        ]
+        tmp_df = TEST_DATA["daily"]["ts"].to_dataframe()
+        tmp_df["reg1"] = np.arange(len(tmp_df))
+        tmp_df["reg2"] = np.arange(len(tmp_df), 0, -1)
+        ts = TimeSeriesData(tmp_df)
 
-        params.validate_params()  # Validate params and ensure no errors raised.
-        m_daily = ProphetModel(TEST_DATA["daily"]["ts"], params)
+        future = pd.DataFrame(
+            {
+                "ds": pd.date_range("2013-05-01", periods=30),
+                "reg1": np.arange(30),
+                "reg2": np.arange(30, 0, -1),
+            }
+        )
+
+        m_daily = ProphetModel(ts, params)
         m_daily.fit()
-        m_daily.predict(steps=30, freq="D", extra_regressors=future_regressors)
+
+        m_daily.predict(steps=30, freq="D", future=future)
         m_daily.plot()
 
-        m_daily.predict(
-            steps=30, include_history=True, freq="D", extra_regressors=future_regressors
-        )
+        m_daily.predict(steps=30, include_history=True, freq="D", future=future)
         m_daily.plot()
 
 
