@@ -27,6 +27,7 @@ from kats.models.globalmodel.utils import (
     gmparam_from_string,
 )
 from torch import Tensor
+from torch.nn.modules.loss import _Loss
 from torch.optim import Adam
 
 NoneT = torch.FloatTensor([-1e38])
@@ -159,41 +160,38 @@ class GMModel:
         self.rnn = rnn
         return
 
-    def build_loss_function(self) -> Union[AdjustedPinballLoss, PinballLoss]:
+    def build_loss_function(self) -> Union[AdjustedPinballLoss, PinballLoss, _Loss]:
         """Helper function for building loss function.
 
         Returns:
             A :class:`kats.models.globalmodel.utils.PinballLoss` or a :class:`kats.models.globalmodel.utils.AdjustedPinballLoss` object representing the loss function.
         """
 
-        if isinstance(self.params.loss_function, str):
-            if self.params.loss_function == "pinball":
-                loss_func = PinballLoss(
-                    quantile=torch.tensor(
-                        self.params.training_quantile, dtype=torch.get_default_dtype()
-                    ),
-                    weight=torch.tensor(
-                        self.params.quantile_weight, dtype=torch.get_default_dtype()
-                    ),
-                    reduction="mean",
-                )
-            elif self.params.loss_function == "adjustedpinball":
-                loss_func = AdjustedPinballLoss(
-                    quantile=torch.tensor(
-                        self.params.training_quantile, dtype=torch.get_default_dtype()
-                    ),
-                    weight=torch.tensor(
-                        self.params.quantile_weight, dtype=torch.get_default_dtype()
-                    ),
-                    reduction="mean",
-                    input_log=True,
-                )
-            else:
-                msg = f"Loss function {self.params.loss_function} cannot be recognized."
-                raise ValueError(msg)
-            return loss_func
+        if self.params.loss_function == "pinball":
+            loss_func = PinballLoss(
+                quantile=torch.tensor(
+                    self.params.training_quantile, dtype=torch.get_default_dtype()
+                ),
+                weight=torch.tensor(
+                    self.params.quantile_weight, dtype=torch.get_default_dtype()
+                ),
+                reduction="mean",
+            )
+        elif self.params.loss_function == "adjustedpinball":
+            loss_func = AdjustedPinballLoss(
+                quantile=torch.tensor(
+                    self.params.training_quantile, dtype=torch.get_default_dtype()
+                ),
+                weight=torch.tensor(
+                    self.params.quantile_weight, dtype=torch.get_default_dtype()
+                ),
+                reduction="mean",
+                input_log=True,
+            )
         else:
-            return self.params.loss_function
+            msg = f"Loss function {self.params.loss_function} cannot be recognized."
+            raise ValueError(msg)
+        return loss_func
 
     # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
     def build_validation_function(self) -> Callable:
@@ -1208,10 +1206,10 @@ class GMModel:
         # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
         #  `typing.Dict` to avoid runtime subscripting errors.
         fcst_store: Dict,
-    # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
-    #  `typing.Dict` to avoid runtime subscripting errors.
-    # pyre-fixme[24]: Generic type `list` expects 1 type parameter, use
-    #  `typing.List` to avoid runtime subscripting errors.
+        # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
+        #  `typing.Dict` to avoid runtime subscripting errors.
+        # pyre-fixme[24]: Generic type `list` expects 1 type parameter, use
+        #  `typing.List` to avoid runtime subscripting errors.
     ) -> Tuple[Union[float, Tensor], List, Dict]:
         """Calculate and store training or validation losses and forecasts."""
 

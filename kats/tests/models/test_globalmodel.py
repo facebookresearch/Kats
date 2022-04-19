@@ -34,7 +34,7 @@ from kats.models.globalmodel.utils import (
     get_filters,
     split,
 )
-
+from parameterized.parameterized import parameterized
 
 # pyre-fixme[3]: Return type must be annotated.
 # pyre-fixme[2]: Parameter must be annotated.
@@ -54,8 +54,12 @@ def get_ts(n, start_time, seed: int = 560, freq: str = "D", has_nans: bool = Tru
 
 # pyre-fixme[3]: Return type must be annotated.
 def _gm_mock_predict_func(
-    # pyre-fixme[2]: Parameter must be annotated.
-    TSs, steps, fcst_window, len_quantile, raw: bool = True, test_batch_size: int = 500
+    TSs: TimeSeriesData,
+    steps: int,
+    fcst_window: int,
+    len_quantile: int,
+    raw: bool = True,
+    test_batch_size: int = 500,
 ):
     """
     Helper function for building predict method for mock GMModel.
@@ -84,6 +88,21 @@ def get_gmmodel_mock(gmparam):
 TSs = [get_ts(i * 5, "2020-05-06", i) for i in range(20, 30)]
 # pyre-fixme[5]: Global expression must be annotated.
 valid_TSs = [get_ts(i * 2, "2020-05-06", i) for i in range(20, 30)]
+
+ts_missing_val = TimeSeriesData(
+    pd.DataFrame(
+        {
+            "time": [
+                "2021-05-06",
+                "2021-05-07",
+                "2021-05-10",
+                "2021-05-11",
+                "2021-05-13",
+            ],
+            "value": np.arange(5),
+        }
+    )
+)
 
 
 class TestGMParam(TestCase):
@@ -124,29 +143,6 @@ class TestGMParam(TestCase):
             freq=0,
             input_window=168,
             fcst_window=168,
-        )
-
-    def test_valid_list(self) -> None:
-        # test list validation with invalid type
-
-        # invalid list type
-        self.assertRaises(
-            ValueError,
-            GMParam,
-            freq="H",
-            input_window=168,
-            fcst_window=168,
-            quantile="0.5, 0.05, 0.95, 0.99",
-        )
-
-        # invalid list entry type
-        self.assertRaises(
-            ValueError,
-            GMParam,
-            freq="H",
-            input_window=168,
-            fcst_window=168,
-            quantile=["0.5", "0.05", "0.95", "0.99"],
         )
 
     def test_valid_optimizer(self) -> None:
@@ -201,16 +197,6 @@ class TestGMParam(TestCase):
             input_window=168,
             fcst_window=168,
             loss_function="nonexistent_loss_func",
-        )
-
-        # test with invalid loss function type
-        self.assertRaises(
-            ValueError,
-            GMParam,
-            freq="H",
-            input_window=168,
-            fcst_window=168,
-            loss_function=None,
         )
 
     def test_valid_union_dict(self) -> None:
@@ -1108,19 +1094,28 @@ class HelperFunctionsTest(TestCase):
 
         pad_ts(ts, 1, freq)
 
-    def test_filling_missing_value(self) -> None:
-        # test helper function fill_missing_value_na
-        ts = TSs[0]
-
-        _ = fill_missing_value_na(ts, 1, "H")
-        _ = fill_missing_value_na(ts, 1, "1H")
-        _ = fill_missing_value_na(ts, 3)
-        self.assertRaises(
-            ValueError,
-            fill_missing_value_na,
-            ts,
-            3,
-            freq=3,
+    # pyre-fixme
+    @parameterized.expand(
+        [
+            ["non_season_mising", ts_missing_val, 1, "D", 5],
+            ["season_2_missing", ts_missing_val, 2, "1D", 6],
+            ["season_3_missing", ts_missing_val, 3, "D", 8],
+            ["missing_1_day", ts_missing_val[-3:], 4, "D", 4],
+        ]
+    )
+    def test_filling_missing_value(
+        self,
+        test_name: str,
+        test_ts: TimeSeriesData,
+        seasonality: int,
+        freq: str,
+        target_len: int,
+    ) -> None:
+        new_ts = fill_missing_value_na(test_ts, seasonality, freq)
+        self.assertEqual(
+            len(new_ts),
+            target_len,
+            f"Expect filled time series of length {target_len} but receives {len(new_ts)}.",
         )
 
     def test_get_filters(self) -> None:

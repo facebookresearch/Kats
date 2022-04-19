@@ -5,7 +5,7 @@
 
 import json
 import logging
-from typing import List, Optional, Any, Dict, Union, Tuple
+from typing import cast, Type, List, Optional, Any, Dict, Union, Tuple
 
 import numpy as np
 import torch
@@ -108,7 +108,7 @@ def fill_missing_value_na(
         msg = f"freq should be either str or pd.Timedela but receives {type(freq)}."
         logging.error(msg)
         raise ValueError(msg)
-    if len(ts) == (ts.time.max() - ts.time.min()) / freq or seasonality == 1:
+    if len(ts) == ((ts.time.max() - ts.time.min()) / freq + 1) or seasonality == 1:
         return ts
     else:
         df = ts.to_dataframe()
@@ -1145,7 +1145,7 @@ class GMParam:
         state_size: Optional; An integer representing the c state size. Default is 50.
         h_size: Optional; An integer representing the h state size. When cell_name is 'LSTM2Cell' or 'S2Cell', h_size should be a positive integer which is less than state_size. Default is None, i.e., not specified.
         optimizer: Optional; A string or a dictionary representing the name and the parameters of the optimizer for training NN. Default is {'name':'Adam', params:{'eps': 1e-7}}.
-        loss_function: Optonal; A string or a `torch.nn.modules.loss._Loss` object representing the loss function, can be 'Pinball' and 'AdjustedPinball'. Default is 'Pinball'.
+        loss_function: Optonal; A string representing the loss function, can be 'Pinball' or 'AdjustedPinball'. Default is 'Pinball'.
         quantile: Optional; A list of floats representing the forecast quantiles. Default value is [0.5,0.05,0.95,0.99].
         training_quantile: Optional; A list of floats representing quantiles used for training. Default is None, which takes training_quantile the same value as quantile.
         quantile_weight: Optional; A list of floats representing weights for quantiles during training. Default is None, which sets weight as torch.Tensor([1/n,...,1/n]), where n is the length of quantil.
@@ -1184,7 +1184,7 @@ class GMParam:
         state_size: int = 50,
         h_size: Optional[int] = None,
         optimizer: Optional[Union[str, Dict[str, Any]]] = None,
-        loss_function: Union[str, torch.nn.Module] = "Pinball",
+        loss_function: str = "Pinball",
         quantile: Optional[List[float]] = None,
         training_quantile: Optional[List[float]] = None,
         quantile_weight: Optional[List[float]] = None,
@@ -1207,8 +1207,7 @@ class GMParam:
 
         self._valid_freq(freq)
 
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.model_type = self._valid_model_type(model_type)
+        self.model_type: str = self._valid_model_type(model_type)
 
         # valid uplifiting ratio
         if uplifting_ratio < 0:
@@ -1217,10 +1216,11 @@ class GMParam:
             raise ValueError(msg)
         self.uplifting_ratio = uplifting_ratio
 
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.nn_structure, self.decoder_nn_structure = self._valid_nn_structure(
+        nn_structure, decoder_nn_structure = self._valid_nn_structure(
             nn_structure, decoder_nn_structure
         )
+        self.nn_structure: List[List[int]] = nn_structure
+        self.decoder_nn_structure: List[List[int]] = decoder_nn_structure
 
         self.cell_name = cell_name
         self.state_size = state_size
@@ -1231,25 +1231,25 @@ class GMParam:
             if batch_size is not None
             else {0: 2, 3: 5, 4: 15, 5: 50, 6: 150, 7: 500}
         )
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.batch_size = self._valid_union_dict(batch_size, "batch_size", int, int)
+        self.batch_size: Dict[int, int] = cast(
+            Dict[int, int],
+            # pyre-fixme: pyre fail to infer correct data type
+            self._valid_union_dict(batch_size, "batch_size", int, int),
+        )
         learning_rate = (
             learning_rate if learning_rate is not None else {0: 1e-3, 2: 1e-3 / 3.0}
         )
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.learning_rate = self._valid_union_dict(
+        self.learning_rate: Dict[int, float] = self._valid_union_dict(
             learning_rate, "learning_rate", int, float
         )
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.loss_function = None
-        self._valid_loss_function(loss_function)
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.optimizer = None
-        self._valid_optimizer(optimizer)
+        self.loss_function: str = self._valid_loss_function(loss_function)
 
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.quantile = quantile if quantile is not None else [0.5, 0.05, 0.95, 0.99]
-        self._valid_list(self.quantile, "quantile", float, 0, 1)
+        self.optimizer: Dict[str, Any] = self._valid_optimizer(optimizer)
+
+        self.quantile: List[float] = (
+            quantile if quantile is not None else [0.5, 0.05, 0.95, 0.99]
+        )
+        self._valid_list(self.quantile, "quantile", 0, 1)
 
         # additional check needed for filling NaNs during training.
         if self.quantile[0] != 0.5:
@@ -1258,21 +1258,21 @@ class GMParam:
             raise ValueError(msg)
 
         if training_quantile is None:
-            # pyre-fixme[4]: Attribute must be annotated.
-            self.training_quantile = self.quantile
+            self.training_quantile: List[float] = self.quantile
         else:
-            self._valid_list(training_quantile, "training_quantile", float, 0, 1)
+            self._valid_list(training_quantile, "training_quantile", 0, 1)
             self.training_quantile = training_quantile
 
         if quantile_weight is None:
-            # pyre-fixme[4]: Attribute must be annotated.
-            self.quantile_weight = [1.0 / len(self.quantile)] * len(self.quantile)
+            self.quantile_weight: List[float] = [1.0 / len(self.quantile)] * len(
+                self.quantile
+            )
         else:
             if len(quantile_weight) != len(self.quantile):
                 msg = "quantile and quantile_weight should be of the same length."
                 logging.error(msg)
                 raise ValueError(msg)
-            self._valid_list(quantile_weight, "quantile_weight", float, 0, np.inf)
+            self._valid_list(quantile_weight, "quantile_weight", 0, np.inf)
             self.quantile_weight = quantile_weight
 
         if validation_metric is None:
@@ -1291,18 +1291,15 @@ class GMParam:
                 logging.error(msg)
                 raise ValueError(msg)
 
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.init_seasonality = (
+        self.init_seasonality: List[float] = (
             init_seasonality if init_seasonality is not None else [0.1, 10.0]
         )
-        self._valid_list(self.init_seasonality, "init_seasonality", float, 0, np.inf)
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.init_smoothing_params = (
+        self._valid_list(self.init_seasonality, "init_seasonality", 0, np.inf)
+
+        self.init_smoothing_params: List[float] = (
             init_smoothing_params if init_smoothing_params is not None else [0.4, 0.6]
         )
-        self._valid_list(
-            self.init_smoothing_params, "init_smoothing_params", float, 0, np.inf
-        )
+        self._valid_list(self.init_smoothing_params, "init_smoothing_params", 0, np.inf)
 
         if min_training_step_length <= 0:
             min_training_step_length = max(1, seasonality - 1)
@@ -1344,8 +1341,9 @@ class GMParam:
         self.fcst_step_num = fcst_step_num
 
         # max_step_delta needed for training/testing
-        # pyre-fixme[4]: Attribute must be annotated.
-        self.max_step_delta = min(input_window, fcst_window) // min_training_step_length
+        self.max_step_delta: int = (
+            min(input_window, fcst_window) // min_training_step_length
+        )
 
         self.jit = jit
         self.gmname = gmname
@@ -1363,7 +1361,7 @@ class GMParam:
         self,
         nn_structure: Optional[List[List[int]]],
         decoder_nn_structure: Optional[List[List[int]]],
-    ) -> Tuple[List[List[int]], Optional[List[List[int]]]]:
+    ) -> Tuple[List[List[int]], List[List[int]]]:
         nn_structure = nn_structure if nn_structure is not None else [[1, 3]]
         if self.model_type == "s2s":
             decoder_nn_structure = (
@@ -1372,87 +1370,57 @@ class GMParam:
                 else nn_structure
             )
         else:
-            decoder_nn_structure = None
+            decoder_nn_structure = []
         return nn_structure, decoder_nn_structure
 
-    # pyre-fixme[2]: Parameter must be annotated.
-    def _valid_optimizer(self, optimizer) -> None:
+    def _valid_optimizer(
+        self, optimizer: Union[str, Dict[str, Any], None]
+    ) -> Dict[str, Any]:
         opt_methods = ["adam"]
         if optimizer is None:
-            self.optimizer = {"name": "Adam", "params": {"eps": 1e-7}}
-        elif isinstance(optimizer, str):
-            if optimizer.lower() in opt_methods:
-                self.optimizer = optimizer
-            else:
-                msg = f"optimizer {optimizer} is not implemented."
-                logging.error(msg)
-                raise ValueError(msg)
+            return {"name": "Adam", "params": {"eps": 1e-7}}
+        elif isinstance(optimizer, str) and optimizer.lower() == "adam":
+            return {"name": "Adam"}
         elif isinstance(optimizer, dict):
             if "name" in optimizer and optimizer["name"].lower() in opt_methods:
-                self.optimizer = optimizer
-            else:
-                msg = f"optimizer {optimizer} is invalid."
-                logging.error(msg)
-                raise ValueError(msg)
-        else:
-            msg = f"optimizer should be either a str or a dict but receives {type(optimizer)}."
-            logging.error(msg)
-            raise ValueError(msg)
+                return optimizer
+        msg = f"`optimizer`={optimizer} is invalid."
+        logging.error(msg)
+        raise ValueError(msg)
 
-    # pyre-fixme[2]: Parameter must be annotated.
-    def _valid_loss_function(self, loss_function) -> None:
+    def _valid_loss_function(self, loss_function: str) -> str:
         """Helper function to verify loss function."""
-        if isinstance(loss_function, str):
-            if loss_function.lower() in ["pinball", "adjustedpinball"]:
-                self.loss_function = loss_function.lower()
-            else:
-                msg = f"loss function {loss_function} is not implemented."
-                logging.error(msg)
-                raise ValueError(msg)
-        elif isinstance(loss_function, _Loss):
-            self.loss_function = loss_function
+
+        if loss_function.lower() in ["pinball", "adjustedpinball"]:
+            return loss_function.lower()
         else:
-            msg = f"loss function should be either a str or a _Loss object but receives {type(loss_function)}."
+            msg = f"loss function {loss_function} is not implemented."
             logging.error(msg)
             raise ValueError(msg)
 
     def _valid_list(
-        # pyre-fixme[24]: Generic type `list` expects 1 type parameter, use
-        #  `typing.List` to avoid runtime subscripting errors.
-        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
-        #  `typing.Type` to avoid runtime subscripting errors.
-        self, value: List, name: str, value_type: type, lower: float, upper: float
+        self,
+        value: List[float],
+        name: str,
+        lower: float,
+        upper: float,
     ) -> None:
         """
         Helper function to verify list inputs.
         """
-        if isinstance(value, list):
-            for q in value:
-                if isinstance(q, value_type) and q < upper and q > lower:
-                    continue
-                else:
-                    msg = f"Each element in {name} should be a {value_type} in ({lower}, {upper}) but receives {q} of type {type(q)}."
-                    logging.error(msg)
-                    raise ValueError(msg)
-        else:
-            msg = f"{name} should be a list."
-            logging.error(msg)
-            raise ValueError(msg)
+        for q in value:
+            if q >= upper or q <= lower:
+                msg = f"Each element in `{name}` should be a float in ({lower}, {upper}) but receives {q}."
+                logging.error(msg)
+                raise ValueError(msg)
 
-    # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _valid_union_dict(
         self,
-        # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
-        #  `typing.Dict` to avoid runtime subscripting errors.
-        value: Union[int, float, dict],
+        value: Union[int, float, Dict[int, Union[int, float]]],
         name: str,
-        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
-        #  `typing.Type` to avoid runtime subscripting errors.
-        key_type: type,
-        # pyre-fixme[24]: Generic type `type` expects 1 type parameter, use
-        #  `typing.Type` to avoid runtime subscripting errors.
-        value_type: type,
-    ) -> Dict[Any, Any]:
+        key_type: Type[int],
+        value_type: Type[Union[int, float]],
+    ) -> Dict[int, Union[int, float]]:
         """
         Helper function to verify batch_size and learning_rate.
         """
@@ -1585,7 +1553,9 @@ def gmparam_from_string(gmstring: str) -> GMParam:
     return gmparam
 
 
-def calc_exceed(fcst: np.ndarray, actuals: np.ndarray, quantile: np.ndarray) -> np.ndarray:
+def calc_exceed(
+    fcst: np.ndarray, actuals: np.ndarray, quantile: np.ndarray
+) -> np.ndarray:
     """Compute exceed rate for quantile estimates.
 
     For quantile q (0<q<=0.5), the exceed rate of q is defined as:
