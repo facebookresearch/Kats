@@ -108,9 +108,11 @@ class RobustStatDetector(Detector):
         _, ax = plt.subplots()
         ax.plot(data_df[time_col_name].to_numpy(), data_df[val_col_name].to_numpy())
 
+        changepoint_annotated = False
         for change in change_points:
             ax.axvline(x=change.start_time, color="red")
-        else:
+            changepoint_annotated = True
+        if not changepoint_annotated:
             logging.warning("No change points detected!")
 
         return ax

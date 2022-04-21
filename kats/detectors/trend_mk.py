@@ -650,8 +650,10 @@ class MKDetector(Detector):
 
             ax.plot(ts.index, ts.values)
 
+            trend_annotated = False
             for t in detected_time_points:
                 ax.axvline(x=t.start_time, color=changepoint_color)
-            else:
+                trend_annotated = True
+            if not trend_annotated:
                 logging.warning("No trend detected!")
             return ax

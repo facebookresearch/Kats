@@ -14,7 +14,18 @@ import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union, cast, Callable
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    Callable,
+)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,13 +45,17 @@ except ImportError:
 _MIN_POINTS = 10
 _LOG_SQRT2PI: float = 0.5 * np.log(2 * np.pi)
 
-SupportedModelParameterType = Union['NormalKnownParameters', 'TrendChangeParameters', 'PoissonModelParameters']
-SupportedModelType = Union['_BayesianLinReg',
-     '_NormalKnownPrec', '_PoissonProcessModel']
+SupportedModelParameterType = Union[
+    "NormalKnownParameters", "TrendChangeParameters", "PoissonModelParameters"
+]
+SupportedModelType = Union[
+    "_BayesianLinReg", "_NormalKnownPrec", "_PoissonProcessModel"
+]
 
 # from np.typing import ArrayLike
 # The current version of numpy doesn't support typing but future ones do
 ArrayLike = np.ndarray
+
 
 class BOCPDModelType(Enum):
     """Bayesian Online Change Point Detection model type.
@@ -81,7 +96,7 @@ class BOCPDChangePoint(TimeSeriesChangePoint):
         self._ts_name = ts_name
 
     @property
-    def detector_type(self) -> Type['BOCPDetector']:
+    def detector_type(self) -> Type["BOCPDetector"]:
         return self._detector_type
 
     @property
@@ -254,8 +269,6 @@ class BOCPDetector(Detector):
         data: TimeSeriesData, data on which we will run the BOCPD algorithm.
     """
 
-
-
     models: Dict[BOCPDModelType, Type[SupportedModelType]]
 
     parameter_type: Dict[BOCPDModelType, Type[SupportedModelParameterType]]
@@ -386,13 +399,11 @@ class BOCPDetector(Detector):
 
         assert isinstance(model_parameters, self.parameter_type[model])
         underlying_model = self.models[model](
-        # pyre-fixme[6]: Incompatible parameter type [6]: In call `_BayesianLinReg.__init__`,
-        # for 2nd parameter `parameters` expected `TrendChangeParameters` but got `BOCPDModelParameters`.
-        # pyre-fixme[6]: Incompatible parameter type [6]: In call `_NormalKnownPrec.__init__`,
-        # for 2nd parameter `parameters` expected `NormalKnownParameters` but got `BOCPDModelParameters`
-        # pyre-fixme[6]: Incompatible parameter type [6]: In call `_PoissonProcessModel.__init__`,
-        # for 2nd parameter `parameters` expected `PoissonModelParameters` but got `BOCPDModelParameters`
-            data=self.data, parameters=model_parameters
+            data=self.data,
+            # pyre-fixme[6]: In call `_BayesianLinReg.__init__`, for 2nd parameter `parameters` expected `TrendChangeParameters` but got `Union[NormalKnownParameters, PoissonModelParameters, TrendChangeParameters]`.
+            # pyre-fixme[6]: In call `_NormalKnownPrec.__init__`, for 2nd parameter `parameters` expected `NormalKnownParameters` but got `Union[NormalKnownParameters, PoissonModelParameters, TrendChangeParameters]`.
+            # pyre-fixme[6]: In call `_PoissonProcessModel.__init__`, for 2nd parameter `parameters` expected `PoissonModelParameters` but got `Union[NormalKnownParameters, PoissonModelParameters, TrendChangeParameters]`.
+            parameters=model_parameters,
         )
         underlying_model.setup()
 
@@ -474,9 +485,11 @@ class BOCPDetector(Detector):
             )
             ax.plot(data_df[time_col_name], data_df[ts_name])
 
+            changepoint_annotated = False
             for change in ts_changepoints:
                 ax.axvline(x=change.start_time, color="red")
-            else:
+                changepoint_annotated = True
+            if not changepoint_annotated:
                 logging.warning(f"No change points detected for {ts_name}!")
 
         return axs
@@ -574,13 +587,11 @@ class BOCPDetector(Detector):
             logging.debug(params_to_eval)
             assert isinstance(model_parameters, self.parameter_type[model])
             underlying_model = self.models[model](
-            # pyre-fixme[6]: Incompatible parameter type [6]: In call `_BayesianLinReg.__init__`,
-            # for 2nd parameter `parameters` expected `TrendChangeParameters` but got `BOCPDModelParameters`.
-            # pyre-fixme[6]: Incompatible parameter type [6]: In call `_NormalKnownPrec.__init__`,
-            # for 2nd parameter `parameters` expected `NormalKnownParameters` but got `BOCPDModelParameters`
-            # pyre-fixme[6]: Incompatible parameter type [6]: In call `_PoissonProcessModel.__init__`,
-            # for 2nd parameter `parameters` expected `PoissonModelParameters` but got `BOCPDModelParameters`
-                data=self.data, parameters=model_parameters
+                data=self.data,
+                # pyre-fixme[6]: In call `_BayesianLinReg.__init__`, for 2nd parameter `parameters` expected `TrendChangeParameters` but got `Union[NormalKnownParameters, PoissonModelParameters, TrendChangeParameters]`.
+                # pyre-fixme[6]: Incompatible parameter type [6]: In call `_NormalKnownPrec.__init__`, for 2nd parameter `parameters` expected `NormalKnownParameters` but got `Union[NormalKnownParameters, PoissonModelParameters, TrendChangeParameters]`.
+                # pyre-fixme[6]: [6]: In call `_PoissonProcessModel.__init__`, for 2nd parameter `parameters` expected `PoissonModelParameters` but got `Union[NormalKnownParameters, PoissonModelParameters, TrendChangeParameters]`.
+                parameters=model_parameters,
             )
             change_point = _BayesOnlineChangePoint(data=self.data, lag=3, debug=False)
             change_point.detector(
@@ -759,7 +770,7 @@ class _BayesOnlineChangePoint(Detector):
     # pyre-fixme[15]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
         self,
-        model: Union[SupportedModelType, '_PredictiveModel'],
+        model: Union[SupportedModelType, "_PredictiveModel"],
         threshold: Union[float, np.ndarray] = 0.5,
         changepoint_prior: Union[float, np.ndarray] = 0.01,
     ) -> Dict[str, Any]:
@@ -800,7 +811,11 @@ class _BayesOnlineChangePoint(Detector):
 
         return self.posterior_predictive
 
-    def _find_posterior(self, model: Union[SupportedModelType, '_PredictiveModel'], changepoint_prior: np.ndarray) -> np.ndarray:
+    def _find_posterior(
+        self,
+        model: Union[SupportedModelType, "_PredictiveModel"],
+        changepoint_prior: np.ndarray,
+    ) -> np.ndarray:
         """
         This calculates the posterior distribution over changepoints.
         The steps here are the same as the algorithm described in
@@ -1175,6 +1190,7 @@ class _NormalKnownPrec(_PredictiveModel):
     """
 
     _data_shape: Union[int, Tuple[int, int]]
+
     def __init__(self, data: TimeSeriesData, parameters: NormalKnownParameters) -> None:
 
         # \mu \sim N(\mu0, \frac{1}{\lambda0})
@@ -1236,7 +1252,9 @@ class _NormalKnownPrec(_PredictiveModel):
                 np.expand_dims(self.lambda_0, axis=0), self._maxT, axis=0
             )
         else:
-            raise ValueError("Priors for NormalKnownPrec should not be None if not empirically set")
+            raise ValueError(
+                "Priors for NormalKnownPrec should not be None if not empirically set"
+            )
 
     def setup(self) -> None:
         # everything is already set up in __init__!
@@ -1353,7 +1371,9 @@ class _NormalKnownPrec(_PredictiveModel):
         self._prec_arr[self._maxT + self._ptr : self._maxT] += self.lambda_val
 
         # update the numerator of the mean array
-        self._mean_arr_num[self._maxT + self._ptr : self._maxT] += x * cast(float, self.lambda_val)
+        self._mean_arr_num[self._maxT + self._ptr : self._maxT] += x * cast(
+            float, self.lambda_val
+        )
 
         # This is now handled by initializing the array with this value.
         # self._prec_arr[self._ptr] = self.lambda_0 + 1. * self.lambda_val
@@ -1428,14 +1448,14 @@ class _BayesianLinReg(_PredictiveModel):
         self.all_time: np.ndarray = np.array(range(data.time.shape[0]))
         self.all_vals: Union[pd.DataFrame, pd.Series, np.ndarray] = data.value
 
-        self.lambda_prior: np.ndarray = np.multiply(2e-7,  np.identity(2))
+        self.lambda_prior: np.ndarray = np.multiply(2e-7, np.identity(2))
 
         self.num_likelihood_samples: int = num_likelihood_samples
         self.min_sum_samples: int = int(
             math.sqrt(self.num_likelihood_samples) / 10000
         )  # TODO: Hack for getting around probabilities of 0 -- cap it at some minimum
 
-        self._mean_arr: Dict[int,List[float]] = {}
+        self._mean_arr: Dict[int, List[float]] = {}
         self._std_arr: Dict[int, List[float]] = {}
 
     def setup(self) -> None:
@@ -1502,7 +1522,10 @@ class _BayesianLinReg(_PredictiveModel):
 
     @staticmethod
     def _plot_regression(
-        x: np.ndarray, y: Union[np.ndarray, pd.DataFrame, pd.Series], intercept: float, slope: float
+        x: np.ndarray,
+        y: Union[np.ndarray, pd.DataFrame, pd.Series],
+        intercept: float,
+        slope: float,
     ) -> None:
         plt.plot(x, y, ".")
         plt.plot(x, intercept + slope * x, "-")
@@ -1668,7 +1691,6 @@ class _BayesianLinReg(_PredictiveModel):
 
         return pred_arr
 
-
     def pred_mean(self, t: int, x: float) -> np.ndarray:
         """Predicted mean at the next time point.
 
@@ -1681,7 +1703,6 @@ class _BayesianLinReg(_PredictiveModel):
         """
 
         return np.asarray(self._mean_arr[t])
-
 
     def pred_std(self, t: int, x: float) -> np.ndarray:
         """
@@ -1743,7 +1764,9 @@ class _PoissonProcessModel(_PredictiveModel):
         parameters: Specifying all the priors.
     """
 
-    def __init__(self, data: TimeSeriesData, parameters: PoissonModelParameters) -> None:
+    def __init__(
+        self, data: TimeSeriesData, parameters: PoissonModelParameters
+    ) -> None:
         self.data = data
 
         self.gamma_alpha: float = (
@@ -1756,8 +1779,8 @@ class _PoissonProcessModel(_PredictiveModel):
         self._events: List[float] = []
         self._p: Dict[int, ArrayLike] = {}
         self._n: Dict[int, ArrayLike] = {}
-        self._mean_arr: Dict[int, List[float]]  = {}
-        self._std_arr:  Dict[int, List[float]]  = {}
+        self._mean_arr: Dict[int, List[float]] = {}
+        self._std_arr: Dict[int, List[float]] = {}
 
         self._t = 0
 
