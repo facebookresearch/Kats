@@ -312,7 +312,7 @@ class MetricsTest(TestCase):
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator...
     @parameterized.expand(
         [
-            ("normal", 2.125/2, [-2, 2, 3, 4], [0.5, 2.5, 1.5, 0]),
+            ("normal", 2.125 / 2, [-2, 2, 3, 4], [0.5, 2.5, 1.5, 0]),
             # TODO: more numerical combinations
             ("zero_baseline", np.nan, [1, 1, 1, 1], [3.5, 2.5, 1.5, 0]),
             ("empty", np.nan, [], []),

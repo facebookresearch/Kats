@@ -88,15 +88,6 @@ KatsMetric = Union[
     Metric, ArrayMetric, WeightedMetric, MultiOutputMetric, ThresholdMetric
 ]
 
-# Imported metrics
-
-from kats.compat.sklearn import (  # noqa
-    # mean_absolute_error,  # doesn't handle empty arrays, nan values
-    # mean_pinball_loss
-    mean_squared_error as sklearn_mse,
-    mean_squared_log_error as sklearn_msle,
-)
-
 
 def _arrays(*args: Optional[ArrayLike]) -> Generator[np.ndarray, None, None]:
     """Ensure all arguments are arrays of matching size.
@@ -515,9 +506,15 @@ def mean_squared_error(
     """
     if not len(y_true):
         return np.nan
-    # pyre-ignore[6]: For 1st param expected `bool` but got `ndarray`.
-    # pyre-ignore[6]: For 1st param expected `str` but got `ndarray`.
-    return sklearn_mse(*_arrays(y_true, y_pred, sample_weight))
+    if sample_weight is None:
+        y_true, y_pred = _arrays(y_true, y_pred)
+        return np.nanmean((y_true - y_pred) ** 2)
+
+    y_true, y_pred, sample_weight = _arrays(y_true, y_pred, sample_weight)
+    se = np.nanmean((y_true - y_pred) ** 2 * sample_weight, axis=0) / np.average(
+        sample_weight, axis=0
+    )
+    return np.nanmean(se)
 
 
 def root_mean_squared_error(
@@ -537,8 +534,7 @@ def root_mean_squared_error(
     """
     if not len(y_true):
         return np.nan
-    # pyre-ignore[6]: For 1st param expected `str` but got `ndarray`.
-    return sklearn_mse(*_arrays(y_true, y_pred, sample_weight), squared=False)
+    return np.sqrt(mean_squared_error(y_true, y_pred, sample_weight))
 
 
 def root_mean_squared_log_error(
@@ -558,8 +554,9 @@ def root_mean_squared_log_error(
     """
     if not len(y_true):
         return np.nan
-    # pyre-ignore[6]: For 1st param expected `str` but got `ndarray`.
-    return sklearn_msle(*_arrays(y_true, y_pred, sample_weight), squared=False)
+    return np.sqrt(
+        mean_squared_error(np.log1p(y_true), np.log1p(y_pred), sample_weight)
+    )
 
 
 def root_mean_squared_percentage_error(
@@ -632,7 +629,7 @@ def symmetric_mean_absolute_percentage_error(
     Returns:
         The symmetric mean absolute percentage error (SMAPE) value.
     """
-    return 2.0*scaled_symmetric_mean_absolute_percentage_error(y_true, y_pred)
+    return 2.0 * scaled_symmetric_mean_absolute_percentage_error(y_true, y_pred)
 
 
 def tracking_signal(y_true: ArrayLike, y_pred: ArrayLike) -> float:
@@ -748,8 +745,10 @@ def metric(name: str) -> KatsMetric:
 CoreMetric = Union[Metric, WeightedMetric, MultiOutputMetric]
 
 CORE_METRICS: Dict[str, CoreMetric] = {
-    name: cast(CoreMetric, method) for name, method in ALL_METRICS.items()
-    if name not in {
+    name: cast(CoreMetric, method)
+    for name, method in ALL_METRICS.items()
+    if name
+    not in {
         "error",
         "absolute_error",
         "percentage_error",
