@@ -80,6 +80,8 @@ def get_default_prophet_parameter_search_space() -> List[Dict[str, Any]]:
             "is_ordered": True,
         },
         {
+
+
             "name": "changepoint_range",
             "type": "choice",
             "value_type": "float",
@@ -374,3 +376,60 @@ def get_default_var_parameter_search_space() -> List[Dict[str, Any]]:
     raise NotImplementedError(
         "get_parameter_search_space() method has not been implemented for " "VAR model."
     )
+
+
+def get_default_lightgbm_parameter_search_space() -> List[Dict[str, Any]]:
+    """Generates default search space as a list of dictionaries and returns it for lightgbm model.
+
+    Each dictionary in the list corresponds to a hyperparameter, having properties
+    defining that hyperparameter. Properties are name, type, value_type, values,
+    is_ordered. Hyperparameters that are included: n_estimators, max_depth, learning_rate,
+    min_split_gain, num_leaves, reg_alpha, subsample_for_bin
+
+    Args:
+        N/A
+
+    Returns:
+        As described above
+
+    Raises:
+        N/A
+    """
+
+    return [
+        {
+            "name": "n_estimators",
+            "type": "choice",
+            "value_type": "int",
+            "values": list(np.arange(100, 800, 50)),
+            "is_ordered": True,
+        },
+        {
+            "name": "max_depth",
+            "type": "choice",
+            "value_type": "int",
+            "values": list(np.arange(5, 20, 2)),
+            "is_ordered": True,
+        },
+        {
+            "name": "learning_rate",
+            "type": "choice",
+            "value_type": "float",
+            "values": list(np.logspace(1e-3, 0.8, endpoint=True)),
+            "is_ordered": True,
+        },
+        {
+            "name": "min_split_gain",
+            "type": "choice",
+            "value_type": "float",
+            "values": list(np.arange(1e-4, 1e-1, 0.5e-3)),
+            "is_ordered": True,
+        },
+        {
+            "name": "num_leaves",
+            "type": "choice",
+            "value_type": "int",
+            "values": list(np.arange(2 ** 5, 2 ** 11, 128)),
+            "is_ordered": True,
+        },
+    ]
