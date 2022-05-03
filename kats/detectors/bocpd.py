@@ -623,7 +623,7 @@ class BOCPDetector(Detector):
 
         if self.data.is_univariate():
             data_df = self.data.to_dataframe()
-            ts_names = [x for x in data_df.columns if x != "time"]
+            ts_names = [x for x in data_df.columns if x != self.data.time_col_name]
         else:
             # Multivariate
             ts_names = self.data.value.columns
@@ -758,7 +758,7 @@ class _BayesOnlineChangePoint(Detector):
             self.P = 1
             self._ts_slice = 0
             data_df = self.data.to_dataframe()
-            self._ts_names = [x for x in data_df.columns if x != "time"]
+            self._ts_names = [x for x in data_df.columns if x != self.data.time_col_name]
 
             self.data_values = np.expand_dims(data.value.values, axis=1)
 
