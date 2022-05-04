@@ -390,3 +390,14 @@ class BOCPDTest(TestCase):
         self.assert_changepoints_exist(
             self.poisson_ts, self.poisson_cp_arr, self.poisson_cps
         )
+
+    def test_time_col_name(self) -> None:
+
+        df = self.normal_ts.to_dataframe()
+        df.rename(columns={'time': 'ds'}, inplace=True)
+        ts = TimeSeriesData(df, time_col_name="ds")
+        try:
+            detector = BOCPDetector(data=ts)
+            detector.detector()
+        except Exception:
+            self.assertTrue(False)
