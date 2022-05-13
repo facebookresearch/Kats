@@ -99,7 +99,6 @@ class TestIntervalAnomalyEvaluator(TestCase):
         self.assertEquals(len(r2), 3)
         self.assertEquals(len(r3), 2)
 
-        return
 
     def test_get_cp_index_from_alert_score(self) -> None:
         np.random.seed(0)
