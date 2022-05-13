@@ -1056,6 +1056,23 @@ class Params:
         pass
 
 
+class IntervalAnomaly:
+    def __init__(
+        self,
+        start: pd.Timestamp,
+        end: pd.Timestamp,
+    ) -> None:
+        if start >= end:
+            raise ValueError(
+                "Start value is supposed to be larger than end value."
+            )
+        self.start: pd.Timestamp = start
+        self.end: pd.Timestamp = end
+
+    @property
+    def second_len(self) -> int:
+        return (self.end - self.start) / np.timedelta64(1, "s")
+
 @unique
 class ModelEnum(Enum):
     """
