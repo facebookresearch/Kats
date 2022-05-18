@@ -48,7 +48,7 @@ def assert_frame_equal(
         "obj": obj,
     }
     if version < "1.1":
-        kwargs["check_less_precise"] = check_less_precise
+        kwargs["check_less_precise"] = check_less_precise or (rtol > 1e-05)
     else:
         kwargs["check_freq"] = check_freq
         kwargs["rtol"] = rtol
@@ -97,9 +97,9 @@ def assert_series_equal(
         "obj": obj,
     }
     if version < "1.0.2":
-        kwargs["check_less_precise"] = check_less_precise
+        kwargs["check_less_precise"] = check_less_precise or (rtol > 1e-05)
     elif version < "1.1":
-        kwargs["check_less_precise"] = check_less_precise
+        kwargs["check_less_precise"] = check_less_precise or (rtol > 1e-05)
         kwargs["check_category_order"] = check_category_order
     elif version < "1.2":
         kwargs["check_category_order"] = check_category_order
@@ -171,7 +171,7 @@ def assert_index_equal(
         "obj": obj,
     }
     if version < "1.1":
-        kwargs["check_less_precise"] = check_less_precise
+        kwargs["check_less_precise"] = check_less_precise or (rtol > 1e-05)
     elif version < "1.2":
         kwargs["rtol"] = rtol
         kwargs["atol"] = atol
