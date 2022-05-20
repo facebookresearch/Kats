@@ -108,17 +108,24 @@ class OutlierDetectorModel(DetectorModel):
             AnomalyResponse object. The length of this obj.ect is same as data. The score property
             gives the score for anomaly.
         """
+        # When no iterpolate argument is given by default it is taking False
+        if 'interpolate' not in kwargs:
+            interpolate = bool(False)
+        else:
+            interpolate = bool(kwargs['interpolate'])
+
         if self.model is None:
             self.fit(data=data, historical_data=historical_data)
 
         assert self.model is not None
         output_scores_df = self.model.output_scores
+        output_detector_remover = self.model.remover(interpolate=interpolate)
 
         assert output_scores_df is not None
         output_scores_df = output_scores_df[output_scores_df.index >= data.time.min()]
 
         zeros = np.zeros(shape=output_scores_df.shape)
-        # all fields other than scores are left as TimeSeriesData with all zero values
+        # all fields other than scores and predicted_ts are left as TimeSeriesData with all zero values
         response = AnomalyResponse(
             scores=TimeSeriesData(
                 time=data.time,
@@ -128,7 +135,7 @@ class OutlierDetectorModel(DetectorModel):
                 upper=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
                 lower=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
             ),
-            predicted_ts=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
+            predicted_ts=TimeSeriesData(time=output_detector_remover.time, value=pd.DataFrame(output_detector_remover.value)),
             anomaly_magnitude_ts=TimeSeriesData(
                 time=data.time, value=pd.DataFrame(zeros)
             ),
@@ -158,4 +165,4 @@ class OutlierDetectorModel(DetectorModel):
         """
         self.fit(data=data, historical_data=historical_data)
 
-        return self.predict(data=data)
+        return self.predict(data=data,**kwargs)

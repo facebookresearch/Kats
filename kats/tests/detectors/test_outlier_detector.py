@@ -94,3 +94,36 @@ class TestOutlierDetectorModel(TestCase):
         self.assertEqual(
             response_wo_historical_data.scores.value.shape, hist_ts.value.shape
         )
+
+    def test_remover_usecase(self) -> None:
+        # manually add outlier on the date of '1950-12-01'
+        self.data.loc[self.data.time == '1950-12-01','y']*=5
+        # manually add outlier on the date of '1959-12-01'
+        self.data.loc[self.data.time == '1959-12-01','y']*=4
+
+        single_ts = TimeSeriesData(self.data)
+
+
+        response_with_interpolate = self.outlier_detector.fit_predict(
+            single_ts, historical_ts=None, interpolate=True
+        )
+
+        response_with_no_interpolate = self.outlier_detector.fit_predict(
+            data=single_ts, historical_data=None, interpolate=False
+        )
+
+        # When no iterpolate argument is given by default it is taking False
+        response_with_default_interpolate = self.outlier_detector.fit_predict(
+            data=single_ts, historical_data=None
+        )
+
+        # pyre-fixme[16]: Optional type has no attribute `value`.
+        self.assertEqual(response_with_interpolate.predicted_ts.time.shape, single_ts.time.shape)
+        # pyre-fixme[16]: Optional type has no attribute `value`.
+        self.assertEqual(response_with_interpolate.predicted_ts.value.shape, single_ts.value.shape)
+
+        self.assertEqual(response_with_no_interpolate.predicted_ts.time.shape, single_ts.time.shape)
+        self.assertEqual(response_with_no_interpolate.predicted_ts.value.shape, single_ts.value.shape)
+
+        self.assertEqual(response_with_default_interpolate.predicted_ts.time.shape, single_ts.time.shape)
+        self.assertEqual(response_with_default_interpolate.predicted_ts.value.shape, single_ts.value.shape)
