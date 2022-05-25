@@ -3,6 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import math
 from typing import Any, Dict, Union
 
 import pandas as pd
@@ -12,6 +13,18 @@ from pandas.core.algorithms import safe_sort
 
 
 version: compat.Version = compat.Version("pandas")
+
+
+def convert_precision(check_less_precise: Union[bool, int], rtol: float) -> int:
+    """Convert rtol and check_less_precise argument."""
+    if check_less_precise is True:
+        precise = 3
+    elif check_less_precise is False:
+        precise = 5
+    else:
+        precise = check_less_precise
+    precise = min(precise, int(abs(math.log10(rtol))))
+    return precise
 
 
 def assert_frame_equal(
@@ -48,7 +61,7 @@ def assert_frame_equal(
         "obj": obj,
     }
     if version < "1.1":
-        kwargs["check_less_precise"] = check_less_precise or (rtol > 1e-05)
+        kwargs["check_less_precise"] = convert_precision(check_less_precise, rtol)
     else:
         kwargs["check_freq"] = check_freq
         kwargs["rtol"] = rtol
@@ -60,10 +73,16 @@ def assert_frame_equal(
         check_freq
         and version < "1.1"
         and isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex))
-        and hasattr(left.index, "freq") and hasattr(right.index, "freq")
+        and hasattr(left.index, "freq")
+        and hasattr(right.index, "freq")
     ):
         assert left.index.freq == right.index.freq, (left.index.freq, right.index.freq)
-    if check_flags and version < "1.2" and hasattr(left, "flags") and hasattr(right, "flags"):
+    if (
+        check_flags
+        and version < "1.2"
+        and hasattr(left, "flags")
+        and hasattr(right, "flags")
+    ):
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
 
@@ -97,9 +116,9 @@ def assert_series_equal(
         "obj": obj,
     }
     if version < "1.0.2":
-        kwargs["check_less_precise"] = check_less_precise or (rtol > 1e-05)
+        kwargs["check_less_precise"] = convert_precision(check_less_precise, rtol)
     elif version < "1.1":
-        kwargs["check_less_precise"] = check_less_precise or (rtol > 1e-05)
+        kwargs["check_less_precise"] = convert_precision(check_less_precise, rtol)
         kwargs["check_category_order"] = check_category_order
     elif version < "1.2":
         kwargs["check_category_order"] = check_category_order
@@ -125,11 +144,17 @@ def assert_series_equal(
         check_freq
         and version < "1.1"
         and isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex))
-        and hasattr(left.index, "freq") and hasattr(right.index, "freq")
+        and hasattr(left.index, "freq")
+        and hasattr(right.index, "freq")
     ):
         # pyre-fixme[16]: `Index` has no attribute `freq`.
         assert left.index.freq == right.index.freq, (left.index.freq, right.index.freq)
-    if check_flags and version < "1.2" and hasattr(left, "flags") and hasattr(right, "flags"):
+    if (
+        check_flags
+        and version < "1.2"
+        and hasattr(left, "flags")
+        and hasattr(right, "flags")
+    ):
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
     if check_index and version < "1.3":
         assert_index_equal(
@@ -171,7 +196,7 @@ def assert_index_equal(
         "obj": obj,
     }
     if version < "1.1":
-        kwargs["check_less_precise"] = check_less_precise or (rtol > 1e-05)
+        kwargs["check_less_precise"] = convert_precision(check_less_precise, rtol)
     elif version < "1.2":
         kwargs["rtol"] = rtol
         kwargs["atol"] = atol

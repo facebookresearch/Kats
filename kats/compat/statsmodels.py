@@ -26,40 +26,40 @@ class HoltWintersResults(holtwinters.HoltWintersResults):
             super().__init__(results.model, results.params)
             self.params["smoothing_trend"] = self.params["smoothing_slope"]
         else:
-            # pyre-fixme[19]: Expected 3 positional arguments.
+            #pyre-fixme
             super().__init__(
                 results.model,
                 results.params,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `sse`.
+                #pyre-fixme
                 results.sse,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `aic`.
+                #pyre-fixme
                 results.aic,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `aicc`.
+                #pyre-fixme
                 results.aicc,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `bic`.
+                #pyre-fixme
                 results.bic,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `optimized`.
+                #pyre-fixme
                 results.optimized,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `level`.
+                #pyre-fixme
                 results.level,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `trend`.
+                #pyre-fixme
                 results.trend,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `season`.
+                #pyre-fixme
                 results.season,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute
-                #  `params_formatted`.
+
+                #pyre-fixme
                 results.params_formatted,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `resid`.
+                #pyre-fixme
                 results.resid,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `k`.
+                #pyre-fixme
                 results.k,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `fittedvalues`.
+                #pyre-fixme
                 results.fittedvalues,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `fittedfcast`.
+                #pyre-fixme
                 results.fittedfcast,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `fcastvalues`.
+                #pyre-fixme
                 results.fcastvalues,
-                # pyre-fixme[16]: `HoltWintersResults` has no attribute `mle_retvals`.
+                #pyre-fixme
                 results.mle_retvals,
             )
 
@@ -124,7 +124,7 @@ class ExponentialSmoothing(holtwinters.ExponentialSmoothing):
                 missing,
             )
         else:
-            # pyre-fixme[28]: Unexpected keyword argument `initialization_method`.
+            #pyre-fixme
             super().__init__(
                 endog,
                 trend,

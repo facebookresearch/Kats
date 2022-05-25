@@ -39,7 +39,7 @@ class TestPandas(unittest.TestCase):
         assert_frame_equal.return_value = False
         df = pd.DataFrame()
         result = pandas.assert_frame_equal(
-            df, df, check_less_precise=2, check_flags=False, check_freq=False, rtol=0.5
+            df, df, check_less_precise=2, check_flags=False, check_freq=False, rtol=0.01
         )
         self.assertFalse(result)
         args = dict(self.assert_frame_equal_args)
@@ -58,11 +58,11 @@ class TestPandas(unittest.TestCase):
         assert_frame_equal.return_value = False
         df = pd.DataFrame()
         result = pandas.assert_frame_equal(
-            df, df, check_less_precise=2, check_flags=False, rtol=0.001
+            df, df, check_less_precise=2, check_flags=False, rtol=0.01
         )
         self.assertFalse(result)
         args = dict(self.assert_frame_equal_args)
-        args["rtol"] = 0.001
+        args["rtol"] = 0.01
         # drop args from other versions
         del args["check_less_precise"]
         del args["check_flags"]
@@ -74,25 +74,28 @@ class TestPandas(unittest.TestCase):
     def test_assert_frame_equal_12(self, assert_frame_equal: Any) -> None:
         assert_frame_equal.return_value = False
         df = pd.DataFrame()
-        result = pandas.assert_frame_equal(df, df, check_less_precise=2, rtol=0.001)
+        result = pandas.assert_frame_equal(df, df, check_less_precise=2, rtol=0.01)
         self.assertFalse(result)
         args = dict(self.assert_frame_equal_args)
         # drop args from other versions
         del args["check_less_precise"]
-        args["rtol"] = 0.001
+        args["rtol"] = 0.01
         assert_frame_equal.assert_called_once_with(df, df, **args)
 
     @patch("kats.compat.pandas.version", compat.Version("1.0"))
     @patch("kats.compat.pandas.pdt.assert_index_equal")
     @patch("kats.compat.pandas.pdt.assert_series_equal")
     def test_assert_series_equal_10(
+        self,
         # pyre-fixme[2]: Parameter annotation cannot be `Any`.
-        self, assert_series_equal: Any, assert_index_equal: Any
+        assert_series_equal: Any,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
+        assert_index_equal: Any,
     ) -> None:
         assert_series_equal.return_value = False
         s = pd.Series(dtype=int)
         result = pandas.assert_series_equal(
-            s, s, check_less_precise=2, check_flags=False, check_freq=False, rtol=0.5
+            s, s, check_less_precise=2, check_flags=False, check_freq=False, rtol=0.01
         )
         self.assertFalse(result)
         args = dict(self.assert_series_equal_args)
@@ -110,8 +113,11 @@ class TestPandas(unittest.TestCase):
     @patch("kats.compat.pandas.pdt.assert_index_equal")
     @patch("kats.compat.pandas.pdt.assert_series_equal")
     def test_assert_series_equal_102(
+        self,
         # pyre-fixme[2]: Parameter annotation cannot be `Any`.
-        self, assert_series_equal: Any, assert_index_equal: Any
+        assert_series_equal: Any,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
+        assert_index_equal: Any,
     ) -> None:
         # Check that on pandas 1.0.2, `check_less_precise` is passed and not later args
         assert_series_equal.return_value = False
@@ -123,7 +129,7 @@ class TestPandas(unittest.TestCase):
             check_category_order=True,
             check_flags=False,
             check_freq=False,
-            rtol=0.5,
+            rtol=0.01,
         )
         self.assertFalse(result)
         args = dict(self.assert_series_equal_args)
@@ -141,8 +147,11 @@ class TestPandas(unittest.TestCase):
     @patch("kats.compat.pandas.pdt.assert_index_equal")
     @patch("kats.compat.pandas.pdt.assert_series_equal")
     def test_assert_series_equal_11(
+        self,
         # pyre-fixme[2]: Parameter annotation cannot be `Any`.
-        self, assert_series_equal: Any, assert_index_equal: Any
+        assert_series_equal: Any,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
+        assert_index_equal: Any,
     ) -> None:
         # Check that on pandas 1.1, `check_less_precise` is passed and not later args
         assert_series_equal.return_value = False
@@ -154,13 +163,13 @@ class TestPandas(unittest.TestCase):
             check_category_order=True,
             check_flags=False,
             check_freq=False,
-            rtol=0.5,
+            rtol=0.01,
         )
         self.assertFalse(result)
         args = dict(self.assert_series_equal_args)
         args["check_category_order"] = True
         args["check_freq"] = False
-        args["rtol"] = 0.5
+        args["rtol"] = 0.01
         # drop args from other versions
         del args["check_less_precise"]
         del args["check_flags"]
@@ -171,8 +180,11 @@ class TestPandas(unittest.TestCase):
     @patch("kats.compat.pandas.pdt.assert_index_equal")
     @patch("kats.compat.pandas.pdt.assert_series_equal")
     def test_assert_series_equal_12(
+        self,
         # pyre-fixme[2]: Parameter annotation cannot be `Any`.
-        self, assert_series_equal: Any, assert_index_equal: Any
+        assert_series_equal: Any,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
+        assert_index_equal: Any,
     ) -> None:
         # Check that on pandas 1.2, `check_less_precise` is not passed and not later args
         assert_series_equal.return_value = False
@@ -184,14 +196,14 @@ class TestPandas(unittest.TestCase):
             check_category_order=True,
             check_flags=False,
             check_freq=False,
-            rtol=0.5,
+            rtol=0.01,
         )
         self.assertFalse(result)
         args = dict(self.assert_series_equal_args)
         args["check_category_order"] = True
         args["check_freq"] = False
         args["check_flags"] = False
-        args["rtol"] = 0.5
+        args["rtol"] = 0.01
         # drop args from other versions
         del args["check_less_precise"]
         del args["check_index"]
@@ -201,8 +213,11 @@ class TestPandas(unittest.TestCase):
     @patch("kats.compat.pandas.pdt.assert_index_equal")
     @patch("kats.compat.pandas.pdt.assert_series_equal")
     def test_assert_series_equal_13(
+        self,
         # pyre-fixme[2]: Parameter annotation cannot be `Any`.
-        self, assert_series_equal: Any, assert_index_equal: Any
+        assert_series_equal: Any,
+        # pyre-fixme[2]: Parameter annotation cannot be `Any`.
+        assert_index_equal: Any,
     ) -> None:
         assert_series_equal.return_value = False
         s = pd.Series(dtype=int)
@@ -213,7 +228,7 @@ class TestPandas(unittest.TestCase):
             check_category_order=True,
             check_flags=False,
             check_freq=False,
-            rtol=0.5,
+            rtol=0.01,
             check_index=False,
         )
         self.assertFalse(result)
@@ -221,7 +236,7 @@ class TestPandas(unittest.TestCase):
         args["check_category_order"] = True
         args["check_freq"] = False
         args["check_flags"] = False
-        args["rtol"] = 0.5
+        args["rtol"] = 0.01
         args["check_index"] = False
         # drop args from other versions
         del args["check_less_precise"]
