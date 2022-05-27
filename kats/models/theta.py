@@ -212,7 +212,6 @@ class ThetaModel(Model[ThetaParams]):
         # to estimation error and will therefore give intervals
         # which are too narrow", as stated in Hyndman et. al)
         p = 2  # 2 params: slope and level
-        #pyre-fixme
         sigma2 = np.sqrt(ses_model.sse / (self.n - p))
         se = sigma2 * np.sqrt(np.arange(steps) * smoothing_level ** 2 + 1)
         zt = -norm.ppf(alpha / 2)

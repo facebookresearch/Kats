@@ -23,43 +23,28 @@ class HoltWintersResults(holtwinters.HoltWintersResults):
 
     def __init__(self, results: holtwinters.HoltWintersResults) -> None:
         if version < "0.12":
+            # pyre-fixme[20]: Argument `aic` expected.
             super().__init__(results.model, results.params)
             self.params["smoothing_trend"] = self.params["smoothing_slope"]
         else:
-            #pyre-fixme
             super().__init__(
                 results.model,
                 results.params,
-                #pyre-fixme
                 results.sse,
-                #pyre-fixme
                 results.aic,
-                #pyre-fixme
                 results.aicc,
-                #pyre-fixme
                 results.bic,
-                #pyre-fixme
                 results.optimized,
-                #pyre-fixme
                 results.level,
-                #pyre-fixme
                 results.trend,
-                #pyre-fixme
                 results.season,
 
-                #pyre-fixme
                 results.params_formatted,
-                #pyre-fixme
                 results.resid,
-                #pyre-fixme
                 results.k,
-                #pyre-fixme
                 results.fittedvalues,
-                #pyre-fixme
                 results.fittedfcast,
-                #pyre-fixme
                 results.fcastvalues,
-                #pyre-fixme
                 results.mle_retvals,
             )
 
@@ -124,7 +109,6 @@ class ExponentialSmoothing(holtwinters.ExponentialSmoothing):
                 missing,
             )
         else:
-            #pyre-fixme
             super().__init__(
                 endog,
                 trend,
