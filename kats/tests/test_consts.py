@@ -402,32 +402,41 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
 
     # Testing incorrect initializations
     def test_incorrect_init_types(self) -> None:
+        # Incorrect initialization with DF
         with self.assertRaises(ValueError):
-            # Incorret initialization with DF
             # pyre-fixme[6]: Expected `Optional[pd.core.frame.DataFrame]` for 1st
             #  param but got `List[Variable[_T]]`.
             TimeSeriesData(df=[])
-            # Incorrect initialization with value
+
+        # Incorrect initialization with value
+        with self.assertRaises(ValueError):
             TimeSeriesData(time=self.AIR_TIME_SERIES, value=None)
+        with self.assertRaises(ValueError):
             # pyre-fixme[6]: Expected `Union[None, pd.core.frame.DataFrame,
             #  pd.core.series.Series]` for 2nd param but got `List[Variable[_T]]`.
             TimeSeriesData(time=self.AIR_TIME_SERIES, value=[])
-            # Incorrect initialization with time
+
+        # Incorrect initialization with time
+        with self.assertRaises(ValueError):
             TimeSeriesData(time=None, value=self.AIR_VALUE_SERIES)
+        with self.assertRaises(ValueError):
             # pyre-fixme[6]: Expected `Union[None,
             #  pd.core.indexes.datetimes.DatetimeIndex, pd.core.series.Series]` for 1st
             #  param but got `List[Variable[_T]]`.
             TimeSeriesData(time=[], value=self.AIR_VALUE_SERIES)
-            # Incorrect initialization with time and value
+
+        # Incorrect initialization with time and value
+        with self.assertRaises(ValueError):
             # pyre-fixme[6]: Expected `Union[None,
             #  pd.core.indexes.datetimes.DatetimeIndex, pd.core.series.Series]` for 1st
             #  param but got `List[Variable[_T]]`.
             TimeSeriesData(time=[], value=[])
-            # Incorrect initialization with different length time and values
-            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES[:-1])
-            TimeSeriesData(time=self.AIR_TIME_SERIES[:-1], value=self.AIR_VALUE_SERIES)
-            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF[:-1])
-            TimeSeriesData(time=self.AIR_TIME_SERIES[:-1], value=self.MULTIVAR_VALUE_DF)
+
+        # Incorrect initialization with value dtypes
+        with self.assertRaises(ValueError):
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES.map(str))
+        with self.assertRaises(ValueError):
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF.applymap(str))
 
     # Testing DataFrame conversion
     def test_to_dataframe(self) -> None:

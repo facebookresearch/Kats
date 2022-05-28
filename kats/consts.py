@@ -337,7 +337,11 @@ class TimeSeriesData:
                 and all(is_numeric_dtype(self.value[col]) for col in self.value)
             )
         ):
-            msg = f"Time series data is type {self.value.dtype} but must be numeric"
+            if isinstance(self.value, pd.core.series.Series):
+                value_dtypes = self.value.dtypes
+            else:  # DataFrame
+                value_dtypes = list(self.value.dtypes)
+            msg = f"Time series data is type {value_dtypes} but must be numeric"
             raise _log_error(msg)
 
         self._calc_min_max_values()
