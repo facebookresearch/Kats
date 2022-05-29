@@ -9,13 +9,18 @@ This module implements the multivariate Outlier Detection algorithm as a Detecto
 """
 import json
 from typing import Any, Optional
+
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData, Params
+from kats.consts import Params, TimeSeriesData
 from kats.detectors.detector import DetectorModel
-from kats.detectors.detector_consts import ConfidenceBand, AnomalyResponse
-from kats.detectors.outlier import MultivariateAnomalyDetector, MultivariateAnomalyDetectorType
+from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
+from kats.detectors.outlier import (
+    MultivariateAnomalyDetector,
+    MultivariateAnomalyDetectorType,
+)
 from kats.models.var import VARParams
+
 
 class MultivariateAnomalyDetectorModel(DetectorModel):
     """Anamoly detection model based on outlier detector.
@@ -39,19 +44,17 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
     def __init__(
         self,
         params: Params = params,
-        training_days: float =60.0,
-        serialized_model: Optional[bytes] = None
+        training_days: float = 60.0,
+        serialized_model: Optional[bytes] = None,
     ) -> None:
         if serialized_model:
             model_dict = json.loads(serialized_model)
-            self.params = model_dict['params']
-            self.training_days = model_dict['training_days']
+            self.params = model_dict["params"]
+            self.training_days = model_dict["training_days"]
         else:
             if params:
                 self.params = params
             self.training_days = training_days
-
-
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -61,12 +64,21 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
         Returns:
             json containing information of the model.
         """
-        model_dict = {"params": self.params, "training_days": self.training_days, "model_type": self.model_type}
+        model_dict = {
+            "params": self.params,
+            "training_days": self.training_days,
+            "model_type": self.model_type,
+        }
 
-        #model_dict = {"training_days": self.training_days, "model_type": self.model_type}
+        # model_dict = {"training_days": self.training_days, "model_type": self.model_type}
         return json.dumps(model_dict).encode("utf-8")
 
-    def fit(self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None, **kwargs: Any) -> None:
+    def fit(
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any
+    ) -> None:
         """Fit MultivariateAnomalyDetector.
 
         Fit MultivariateAnomalyDetector using both data and historical_data (if provided).
@@ -86,12 +98,18 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
             total_data = historical_data
 
         self.model = MultivariateAnomalyDetector(
-            data=total_data, params=self.params, training_days=self.training_days, model_type=self.model_type
+            data=total_data,
+            params=self.params,
+            training_days=self.training_days,
+            model_type=self.model_type,
         )
         self.model.detector()
 
     def predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None, **kwargs: Any
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any
     ) -> AnomalyResponse:
         """Get anomaly scores.
 
@@ -115,33 +133,51 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
         assert output_scores_df is not None
         output_scores_df = output_scores_df[output_scores_df.index >= data.time.min()]
 
-        zeros = np.zeros(shape=output_scores_df.shape)
-        padding = np.empty(shape=[len(data) - output_scores_df.shape[0], output_scores_df.shape[1]])
+        zeros = np.zeros(shape=(data.time.shape[0], output_scores_df.shape[1]))
+        padding = np.empty(
+            shape=[len(data) - output_scores_df.shape[0], output_scores_df.shape[1]]
+        )
         padding[:] = np.NaN
         padding = pd.DataFrame(padding, columns=output_scores_df.columns)
         # all fields other than scores are left as TimeSeriesData with all zero values
         response = AnomalyResponse(
             scores=TimeSeriesData(
                 time=data.time,
-                value=pd.concat([padding.iloc[:, :-2], output_scores_df.iloc[:, :-2]], ignore_index=True),
+                value=pd.concat(
+                    [padding.iloc[:, :-2], output_scores_df.iloc[:, :-2]],
+                    ignore_index=True,
+                ),
             ),
             confidence_band=ConfidenceBand(
                 upper=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
                 lower=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
             ),
-            predicted_ts=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros).iloc[:, :-2]),
+            predicted_ts=TimeSeriesData(
+                time=data.time, value=pd.DataFrame(zeros).iloc[:, :-2]
+            ),
             anomaly_magnitude_ts=TimeSeriesData(
                 time=data.time,
-                value=pd.concat([padding.iloc[:, -2], output_scores_df.iloc[:, -2]], ignore_index=True),
+                value=pd.concat(
+                    [padding.iloc[:, -2], output_scores_df.iloc[:, -2]],
+                    ignore_index=True,
+                ),
             ),
-            stat_sig_ts=TimeSeriesData(time=data.time, value=output_scores_df.iloc[:, -1]),
+            stat_sig_ts=TimeSeriesData(
+                time=data.time,
+                value=pd.concat(
+                    [padding.iloc[:, -1], output_scores_df.iloc[:, -1]],
+                    ignore_index=True,
+                ),
+            ),
         )
-
 
         return response
 
     def fit_predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None, **kwargs: Any
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any
     ) -> AnomalyResponse:
         """Fit a model and return the anomaly scores.
 

@@ -23,8 +23,8 @@ import copy
 import datetime
 import logging
 from collections.abc import Iterable
-from enum import Enum, auto, unique
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from enum import auto, Enum, unique
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import dateutil
 import matplotlib.pyplot as plt
@@ -308,6 +308,10 @@ class TimeSeriesData:
                         tz_nonexistent=tz_nonexistent,
                     ).reset_index(drop=True),
                 )
+
+            # Validate that time & value have equal lengths
+            self.validate_data(validate_frequency=False, validate_dimension=True)
+
             df = self.to_dataframe()
             df = self._sort_by_time(sort_by_time=sort_by_time, df=df)
             self._extract_from_df(df=df)
@@ -322,9 +326,6 @@ class TimeSeriesData:
         else:
             msg = "One of time or value is empty while the other is not"
             raise _log_error(msg)
-
-        # Validate that time & value have equal lengths
-        self.validate_data(validate_frequency=False, validate_dimension=True)
 
         # Validate values
         if not self.value.empty and not (
@@ -637,7 +638,10 @@ class TimeSeriesData:
             raise ValueError("Only constant frequency is supported for time!")
 
         if validate_dimension and len(self.time) != self.value.shape[0]:
-            raise ValueError("time and value have different lengths (dimensions)!")
+            raise ValueError(
+                "time and value have different lengths (dimensions)! "
+                f"({len(self.time)} vs. {self.value.shape[0]})"
+            )
 
     def _calc_min_max_values(self) -> None:
         # Get maximum and minimum values
@@ -1067,15 +1071,14 @@ class IntervalAnomaly:
         end: pd.Timestamp,
     ) -> None:
         if start >= end:
-            raise ValueError(
-                "Start value is supposed to be larger than end value."
-            )
+            raise ValueError("Start value is supposed to be larger than end value.")
         self.start: pd.Timestamp = start
         self.end: pd.Timestamp = end
 
     @property
     def second_len(self) -> int:
         return (self.end - self.start) / np.timedelta64(1, "s")
+
 
 @unique
 class ModelEnum(Enum):

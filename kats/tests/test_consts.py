@@ -438,6 +438,18 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         with self.assertRaises(ValueError):
             TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF.applymap(str))
 
+    # Testing incorrect initializations
+    def test_incorrect_init_lengths(self) -> None:
+        # Incorrect initialization with different length time and values
+        with self.assertRaises(ValueError):
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES[:-1])
+        with self.assertRaises(ValueError):
+            TimeSeriesData(time=self.AIR_TIME_SERIES[:-1], value=self.AIR_VALUE_SERIES)
+        with self.assertRaises(ValueError):
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF[:-1])
+        with self.assertRaises(ValueError):
+            TimeSeriesData(time=self.AIR_TIME_SERIES[:-1], value=self.MULTIVAR_VALUE_DF)
+
     # Testing DataFrame conversion
     def test_to_dataframe(self) -> None:
         # Univariate case
