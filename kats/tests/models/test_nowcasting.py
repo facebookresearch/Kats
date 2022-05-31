@@ -271,10 +271,10 @@ class testNowcasting(TestCase):
             expected = expected_dict[name]
             roc_df = ROC(df, 3)
             for actual_val, expected_val in zip(
-                    to_list(roc_df['ROC_2']), expected
+                    to_list(roc_df['ROC_3']), expected
             ):
                 self.assertAlmostEqual(
-                    actual_val, expected_val, 9, f'test_ROC_two failed for {name}'
+                    actual_val, expected_val, 9, f'test_ROC_three failed for {name}'
                 )
 
     def test_ROC_exceed_index(self) -> None:
