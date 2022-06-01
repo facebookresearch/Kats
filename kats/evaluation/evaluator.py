@@ -103,6 +103,6 @@ class Evaluator(ABC):
             metric_to_result[metric] = [metric_vals]
 
         # Save and return evaluation results
-        aggregated_results = pd.DataFrame(metric_to_result)
+        aggregated_results = pd.DataFrame(metric_to_result, copy=False)
         evaluator.results = aggregated_results
         return evaluator.results

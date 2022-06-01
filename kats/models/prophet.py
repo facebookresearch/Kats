@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Union, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 
@@ -18,9 +18,7 @@ except ImportError:
 
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
-from kats.utils.parameter_tuning_utils import (
-    get_default_prophet_parameter_search_space,
-)
+from kats.utils.parameter_tuning_utils import get_default_prophet_parameter_search_space
 
 
 def _error_msg(msg: str) -> None:
@@ -266,7 +264,7 @@ class ProphetModel(Model[ProphetParams]):
     def _ts_to_df(self) -> pd.DataFrame:
         if self.data.is_univariate():
             # handel corner case: `value` column is not named as `y`.
-            df = pd.DataFrame({"ds": self.data.time, "y": self.data.value})
+            df = pd.DataFrame({"ds": self.data.time, "y": self.data.value}, copy=False)
         else:
             df = self.data.to_dataframe()
             df.rename(columns={self.data.time_col_name: "ds"}, inplace=True)
@@ -434,7 +432,8 @@ class ProphetModel(Model[ProphetParams]):
                 "fcst": fcst.yhat,
                 "fcst_lower": fcst.yhat_lower,
                 "fcst_upper": fcst.yhat_upper,
-            }
+            },
+            copy=False,
         )
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))

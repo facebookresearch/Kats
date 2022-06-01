@@ -30,18 +30,12 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Dict, cast, Any, List, Optional, Union, NamedTuple
+from typing import Any, cast, Dict, List, NamedTuple, Optional, Union
 
 import numpy as np
 import pandas as pd
-from kats.consts import (
-    DEFAULT_VALUE_NAME,
-    TimeSeriesData,
-)
-from kats.detectors.cusum_detection import (
-    CUSUMDetector,
-    CUSUM_DEFAULT_ARGS,
-)
+from kats.consts import DEFAULT_VALUE_NAME, TimeSeriesData
+from kats.detectors.cusum_detection import CUSUM_DEFAULT_ARGS, CUSUMDetector
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.utils.decomposition import TimeSeriesDecomposition
@@ -409,6 +403,7 @@ class CUSUMDetectorModel(DetectorModel):
             value=pd.Series(
                 np.zeros(len(data)),
                 name=data.value.name if data.value.name else DEFAULT_VALUE_NAME,
+                copy=False,
             ),
         )
 
@@ -499,6 +494,7 @@ class CUSUMDetectorModel(DetectorModel):
                 decomp["rem"][historical_data_time_idx].value
                 + decomp["trend"][historical_data_time_idx].value,
                 name=historical_data.value.name,
+                copy=False,
             )
 
         smooth_window = int(scan_window.total_seconds() / frequency.total_seconds())
@@ -509,6 +505,7 @@ class CUSUMDetectorModel(DetectorModel):
                 )[: 1 - smooth_window]
                 / smooth_window,
                 name=historical_data.value.name,
+                copy=False,
             )
             smooth_historical_data = TimeSeriesData(
                 time=historical_data.time, value=smooth_historical_value

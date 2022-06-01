@@ -87,7 +87,9 @@ class MetaDetectModelSelect(object):
         results = self.results
         if results is None:
             results = self.train()
-        summary = pd.DataFrame([results["fit_error"], results["pred_error"]])
+        summary = pd.DataFrame(
+            [results["fit_error"], results["pred_error"]], copy=False
+        )
         summary["type"] = ["fit_error", "pred_error"]
         summary["error_metric"] = "Inverted F-score"
         return summary

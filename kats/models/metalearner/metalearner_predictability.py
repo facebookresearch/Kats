@@ -124,7 +124,7 @@ class MetaLearnPredictability:
             except Exception as e:
                 logging.exception(e)
         self.labels = (np.array(self.labels) > self.threshold).astype(int)
-        self.features = pd.DataFrame(self.features)
+        self.features = pd.DataFrame(self.features, copy=False)
         self.features.fillna(0, inplace=True)
         self.features_mean = np.average(self.features.values, axis=0)
 
@@ -160,7 +160,7 @@ class MetaLearnPredictability:
 
         self.rescale = True
         features = (self.features.values - self.features_mean) / self.features_std
-        self.features = pd.DataFrame(features, columns=self.features.columns)
+        self.features = pd.DataFrame(features, columns=self.features.columns, copy=False)
 
     def train(
         self,

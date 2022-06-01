@@ -171,7 +171,9 @@ class Simulator:
             periods=self.n,
         )
 
-        ts = TimeSeriesData(time=time, value=pd.Series(x[-self.n :].reshape(-1)))
+        ts = TimeSeriesData(
+            time=time, value=pd.Series(x[-self.n :].reshape(-1), copy=False)
+        )
         return ts
 
     def add_trend(
@@ -301,7 +303,9 @@ class Simulator:
         >>> sim_ts = sim.stl_sim()
         """
 
-        ts = TimeSeriesData(time=self.time, value=pd.Series(self.timeseries))
+        ts = TimeSeriesData(
+            time=self.time, value=pd.Series(self.timeseries, copy=False)
+        )
         return ts
 
     def _adjust_length(self, length: int) -> None:
@@ -395,7 +399,7 @@ class Simulator:
             (np.pi / seasonal_period) * np.arange(self.n)
         )
 
-        return pd.Series(y_val)
+        return pd.Series(y_val, copy=False)
 
     def level_shift_sim(
         self,
@@ -538,7 +542,7 @@ class Simulator:
             )
             df_dict[f"value{i+1}"] = yval
 
-        ts_df = pd.DataFrame(df_dict)
+        ts_df = pd.DataFrame(df_dict, copy=False)
 
         return TimeSeriesData(ts_df)
 
@@ -660,7 +664,7 @@ class Simulator:
 
         y_val += noise_arr
 
-        ts = TimeSeriesData(time=self.time, value=pd.Series(y_val))
+        ts = TimeSeriesData(time=self.time, value=pd.Series(y_val, copy=False))
 
         return ts
 

@@ -122,10 +122,12 @@ class MetaLearnModelSelect:
             metadataY_list.append(self.metadata[i]["best_model"])
 
         self.col_namesX = list(self.metadata[0]["features"].keys())
-        self.hpt = pd.Series(hpt_list, name="hpt")
-        self.metadataX = pd.DataFrame(metadataX_list, columns=self.col_namesX)
+        self.hpt = pd.Series(hpt_list, name="hpt", copy=False)
+        self.metadataX = pd.DataFrame(
+            metadataX_list, columns=self.col_namesX, copy=False
+        )
         self.metadataX.fillna(0, inplace=True)
-        self.metadataY = pd.Series(metadataY_list, name="y")
+        self.metadataY = pd.Series(metadataY_list, name="y", copy=False)
         self.x_mean = np.average(self.metadataX.values, axis=0)
         self.x_std = np.std(self.metadataX.values, axis=0)
         self.x_std[self.x_std == 0] = 1.0
@@ -208,7 +210,9 @@ class MetaLearnModelSelect:
             The matplotlib Axes.
         """
 
-        combined = pd.concat([self.metadataX.iloc[i], self.metadataX.iloc[j]], axis=1)
+        combined = pd.concat(
+            [self.metadataX.iloc[i], self.metadataX.iloc[j]], axis=1, copy=False
+        )
         combined.columns = [
             f"{self.metadataY.iloc[i]} model",
             f"{self.metadataY.iloc[j]} model",
@@ -550,10 +554,10 @@ class RandomDownSampler:
             resampled_y += list(self.dataY.iloc[np.asarray(idx_dict[key])])
             resampled_hpt += list(self.hpt.iloc[np.asarray(idx_dict[key])])
 
-        resampled_x = pd.DataFrame(resampled_x)
+        resampled_x = pd.DataFrame(resampled_x, copy=False)
         resampled_x.columns = self.col_namesX
 
-        resampled_y = pd.Series(resampled_y, name="y")
-        resampled_hpt = pd.Series(resampled_hpt, name="hpt")
+        resampled_y = pd.Series(resampled_y, name="y", copy=False)
+        resampled_hpt = pd.Series(resampled_hpt, name="hpt", copy=False)
 
         return resampled_hpt, resampled_x, resampled_y

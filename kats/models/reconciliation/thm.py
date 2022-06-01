@@ -24,10 +24,7 @@ from kats.models import (
     theta,
 )
 from kats.models.model import Model
-from kats.models.reconciliation.base_models import (
-    BaseTHModel,
-    GetAggregateTS,
-)
+from kats.models.reconciliation.base_models import BaseTHModel, GetAggregateTS
 from sklearn.covariance import MinCovDet
 
 
@@ -293,7 +290,7 @@ class TemporalHierarchicalModel:
             ) / sqrt  # due to symmetry, no need to transpose the matrix again.
             mask = ~np.eye(cor.shape[0], dtype=bool)
             cor = cor[mask]
-            lam = np.var(cor) / np.sum(cor ** 2)
+            lam = np.var(cor) / np.sum(cor**2)
             lam = np.max([0, lam])
             cov = np.diag(np.diag(cov)) * lam + (1.0 - lam) * cov
             cov += np.eye(len(cov)) * eps
@@ -479,13 +476,16 @@ class TemporalHierarchicalModel:
                     last_timestamp + freq * k * fcst_num,
                     periods=fcst_num,
                 )
-                tmp[k] = pd.DataFrame({"time": time, "fcst": fcsts[elm][k]})
+                tmp[k] = pd.DataFrame({"time": time, "fcst": fcsts[elm][k]}, copy=False)
             ans[elm] = tmp
         return ans
 
     def median_validation(
+        self,
         # pyre-fixme[2]: Parameter must be annotated.
-        self, steps, dist_metric: str = "mae", threshold: float = 5.0
+        steps,
+        dist_metric: str = "mae",
+        threshold: float = 5.0,
     ) -> List[int]:
         """Filtering out bad fcsts based on median forecasts.
 

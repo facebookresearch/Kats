@@ -262,7 +262,7 @@ class TimeSeriesData:
                 )
                 raise _log_error(msg)
             if isinstance(time, pd.DatetimeIndex):
-                self._time = pd.Series(time)
+                self._time = pd.Series(time, copy=False)
             else:
                 self._time = cast(pd.Series, time.reset_index(drop=True))
             self._value = value.reset_index(drop=True)
@@ -586,20 +586,20 @@ class TimeSeriesData:
         if not isinstance(other, TimeSeriesData):
             raise TypeError("extend must take another TimeSeriesData object")
         # Concatenate times
-        self.time = pd.concat([self.time, other.time], ignore_index=True).reset_index(
-            drop=True
-        )
+        self.time = pd.concat(
+            [self.time, other.time], ignore_index=True, copy=False
+        ).reset_index(drop=True)
         # Convert values to DataFrame if needed
         cur_value = self.value
         other_value = other.value
         if isinstance(self.value, pd.Series):
-            cur_value = pd.DataFrame(cur_value)
+            cur_value = pd.DataFrame(cur_value, copy=False)
         if isinstance(other.value, pd.Series):
-            other_value = pd.DataFrame(other_value)
+            other_value = pd.DataFrame(other_value, copy=False)
         # Concatenate values
-        self.value = pd.concat([cur_value, other_value], ignore_index=True).reset_index(
-            drop=True
-        )
+        self.value = pd.concat(
+            [cur_value, other_value], ignore_index=True, copy=False
+        ).reset_index(drop=True)
         # Merge value back to Series if required
         self._set_univariate_values_to_series()
         # Validate that frequency is constant if required
@@ -728,16 +728,16 @@ class TimeSeriesData:
         time_col_name = (
             DEFAULT_TIME_NAME if standard_time_col_name else self.time_col_name
         )
-        output_df = pd.DataFrame(dict(zip((time_col_name,), (self.time,))))
+        output_df = pd.DataFrame(dict(zip((time_col_name,), (self.time,))), copy=False)
         if isinstance(self.value, pd.Series):
             if self.value.name is not None:
                 output_df[self.value.name] = self.value
             else:
                 output_df[DEFAULT_VALUE_NAME] = self.value
         elif isinstance(self.value, pd.DataFrame):
-            output_df = pd.concat([output_df, self.value], axis=1).reset_index(
-                drop=True
-            )
+            output_df = pd.concat(
+                [output_df, self.value], axis=1, copy=False
+            ).reset_index(drop=True)
         else:
             raise ValueError(f"Wrong value type: {type(self.value)}")
         return output_df
@@ -759,9 +759,13 @@ class TimeSeriesData:
                         dict(
                             zip(
                                 (DEFAULT_TIME_NAME, self.value.name),
-                                (self.time, pd.Series(other, index=self.time.index)),
+                                (
+                                    self.time,
+                                    pd.Series(other, index=self.time.index, copy=False),
+                                ),
                             )
-                        )
+                        ),
+                        copy=False,
                     )
                 )
             else:
@@ -787,6 +791,7 @@ class TimeSeriesData:
             on=DEFAULT_TIME_NAME,
             how="outer",
             suffixes=(PREFIX_OP_1, PREFIX_OP_2),
+            copy=False,
         )
         # Map the final column name to the sub column names
         col_map = {}
@@ -998,12 +1003,15 @@ class TimeSeriesIterator:
 
     def __init__(self, ts: TimeSeriesData) -> None:
         self.ts: TimeSeriesData = copy.deepcopy(ts)
-        self.ts.value = pd.DataFrame(ts.value)
+        self.ts.value = pd.DataFrame(ts.value, copy=False)
         self.start = 0
 
     def __iter__(self) -> TimeSeriesIterator:
         self.a = pd.DataFrame(
-            list(self.ts.value.iloc[:, 0]), index=list(self.ts.time), columns=["y"]
+            list(self.ts.value.iloc[:, 0]),
+            index=list(self.ts.time),
+            columns=["y"],
+            copy=False,
         )
         return self
 
@@ -1013,6 +1021,7 @@ class TimeSeriesIterator:
                 list(self.ts.value.iloc[:, self.start]),
                 index=list(self.ts.time),
                 columns=["y"],
+                copy=False,
             )
             self.start += 1
             return x
@@ -1042,12 +1051,14 @@ class TSIterator:
         if self.curr < len(self.ts.time):
             if self.ts.is_univariate():
                 ret = TimeSeriesData(
-                    time=pd.Series(self.ts.time[self.curr]),
-                    value=pd.Series(self.ts.value.iloc[self.curr], name=self.curr),
+                    time=pd.Series(self.ts.time[self.curr], copy=False),
+                    value=pd.Series(
+                        self.ts.value.iloc[self.curr], name=self.curr, copy=False
+                    ),
                 )
             else:
                 ret = TimeSeriesData(
-                    time=pd.Series(self.ts.time[self.curr]),
+                    time=pd.Series(self.ts.time[self.curr], copy=False),
                     value=self.ts.value.loc[[self.curr]],
                 )
             self.curr += 1

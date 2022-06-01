@@ -20,7 +20,7 @@ Kats development style.
 """
 
 import logging
-from typing import List, Dict, Optional, Callable, Any
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -238,7 +238,8 @@ class ARIMAModel(Model[ARIMAParams]):
                 "fcst": self.y_fcst,
                 "fcst_lower": lower,
                 "fcst_upper": upper,
-            }
+            },
+            copy=False,
         )
         if self.include_history:
             try:
@@ -249,7 +250,7 @@ class ARIMAModel(Model[ARIMAParams]):
                     .reset_index()
                     .rename(columns={"index": "time", 0: "fcst"})
                 )
-                self.fcst_df = fcst_df = pd.concat([hist_fcst, fcst_df])
+                self.fcst_df = fcst_df = pd.concat([hist_fcst, fcst_df], copy=False)
             except Exception as e:
                 msg = (
                     "Fail to generate in-sample forecasts for historical data "

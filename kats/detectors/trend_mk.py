@@ -6,8 +6,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import matplotlib.pyplot as plt
@@ -196,10 +195,10 @@ class MKDetector(Detector):
                         end=ts_c.index[-1],
                     )
                     smoothed_ts = pd.concat(
-                        [smoothed_ts, smoothed_ts_tmp.rename(c)], axis=1
+                        [smoothed_ts, smoothed_ts_tmp.rename(c)], axis=1, copy=False
                     )
                 except FloatingPointError:
-                    smoothed_ts = pd.concat([smoothed_ts, ts_c], axis=1)
+                    smoothed_ts = pd.concat([smoothed_ts, ts_c], axis=1, copy=False)
                     logging.debug(
                         "Your data does not have noise. No need for smoothing"
                     )
@@ -548,7 +547,7 @@ class MKDetector(Detector):
         # obtain the Tau for all metrics at the time point
         Tau_df_tp = Tau_df.loc[Tau_df["ds"] == time_point, :]
         trend_df_tp = trend_df.loc[trend_df["ds"] == time_point, :]
-        MK_statistics_tp = pd.merge(Tau_df_tp, trend_df_tp)
+        MK_statistics_tp = pd.merge(Tau_df_tp, trend_df_tp, copy=False)
 
         # sort the metrics according to their Tau
         if self.direction == "down":

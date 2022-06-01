@@ -11,7 +11,7 @@ model, we take the median from each time point as the final results
 """
 
 import logging
-from typing import List, Optional, cast
+from typing import cast, List, Optional
 
 import pandas as pd
 from kats.consts import TimeSeriesData
@@ -68,6 +68,7 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
             # pyre-fixme[16]: `Model` has no attribute `fcst`.
             [x.fcst.reset_index(drop=True) for x in pred_dict.values()],
             axis=1,
+            copy=False,
         )
         fcst_all.columns = cast(List[str], pred_dict.keys())
         self.fcst = fcst_all.median(axis=1)
@@ -78,7 +79,9 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
         dates = dates[dates != last_date]
         self.fcst_dates = dates.to_pydatetime()
         self.dates = dates[dates != last_date]
-        self.fcst_df = fcst_df = pd.DataFrame({"time": self.dates, "fcst": self.fcst})
+        self.fcst_df = fcst_df = pd.DataFrame(
+            {"time": self.dates, "fcst": self.fcst}, copy=False
+        )
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return fcst_df

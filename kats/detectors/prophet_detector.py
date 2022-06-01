@@ -16,12 +16,9 @@ import numpy as np
 import pandas as pd
 from fbprophet import Prophet
 from fbprophet.serialize import model_from_json, model_to_json
-from kats.consts import TimeSeriesData, DEFAULT_VALUE_NAME
+from kats.consts import DEFAULT_VALUE_NAME, TimeSeriesData
 from kats.detectors.detector import DetectorModel
-from kats.detectors.detector_consts import (
-    AnomalyResponse,
-    ConfidenceBand,
-)
+from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 
 PROPHET_TIME_COLUMN = "ds"
 PROPHET_VALUE_COLUMN = "y"
@@ -49,7 +46,8 @@ def timeseries_to_prophet_df(ts_data: TimeSeriesData) -> pd.DataFrame:
         {
             PROPHET_TIME_COLUMN: ts_data.time,
             PROPHET_VALUE_COLUMN: ts_data.value,
-        }
+        },
+        copy=False,
     )
 
 
@@ -73,12 +71,12 @@ def z_score(
     # asymmetric confidence band => points above the prediction use upper bound in calculation, points below the prediction use lower bound
 
     actual_upper_std = (
-        (uncertainty_samples ** 0.5)
+        (uncertainty_samples**0.5)
         * (predict_df[PROPHET_YHAT_UPPER_COLUMN] - predict_df[PROPHET_YHAT_COLUMN])
         / ci_threshold
     )
     actual_lower_std = (
-        (uncertainty_samples ** 0.5)
+        (uncertainty_samples**0.5)
         * (predict_df[PROPHET_YHAT_COLUMN] - predict_df[PROPHET_YHAT_LOWER_COLUMN])
         / ci_threshold
     )
@@ -247,9 +245,9 @@ class ProphetDetectorModel(DetectorModel):
             logging.error(msg)
             raise ValueError(msg)
 
-        time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time})
+        time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time}, copy=False)
         predict_df = model.predict(time_df)
-        zeros = np.zeros(len(data))
+        zeros = pd.Series(np.zeros(len(data)), copy=False)
         response = AnomalyResponse(
             scores=TimeSeriesData(
                 time=data.time,
@@ -271,8 +269,8 @@ class ProphetDetectorModel(DetectorModel):
             predicted_ts=TimeSeriesData(
                 time=data.time, value=predict_df[PROPHET_YHAT_COLUMN]
             ),
-            anomaly_magnitude_ts=TimeSeriesData(time=data.time, value=pd.Series(zeros)),
-            stat_sig_ts=TimeSeriesData(time=data.time, value=pd.Series(zeros)),
+            anomaly_magnitude_ts=TimeSeriesData(time=data.time, value=zeros),
+            stat_sig_ts=TimeSeriesData(time=data.time, value=zeros),
         )
         return response
 

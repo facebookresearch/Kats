@@ -138,9 +138,9 @@ class QuadraticModel(Model[QuadraticModelParams]):
             self.model, exog=X_fcst, alpha=self.params.alpha
         )
         self.sdev = sdev
-        self.y_fcst = pd.Series(y_fcst)
-        self.y_fcst_lower = pd.Series(y_fcst_lower)
-        self.y_fcst_upper = pd.Series(y_fcst_upper)
+        self.y_fcst = pd.Series(y_fcst, copy=False)
+        self.y_fcst_lower = pd.Series(y_fcst_lower, copy=False)
+        self.y_fcst_upper = pd.Series(y_fcst_upper, copy=False)
 
         # create future dates
         # pyre-fixme[16]: `Optional` has no attribute `time`.
@@ -157,7 +157,8 @@ class QuadraticModel(Model[QuadraticModelParams]):
                 "fcst": self.y_fcst,
                 "fcst_lower": self.y_fcst_lower,
                 "fcst_upper": self.y_fcst_upper,
-            }
+            },
+            copy=False,
         )
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return fcst_df

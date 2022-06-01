@@ -138,7 +138,7 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
             shape=[len(data) - output_scores_df.shape[0], output_scores_df.shape[1]]
         )
         padding[:] = np.NaN
-        padding = pd.DataFrame(padding, columns=output_scores_df.columns)
+        padding = pd.DataFrame(padding, columns=output_scores_df.columns, copy=False)
         # all fields other than scores are left as TimeSeriesData with all zero values
         response = AnomalyResponse(
             scores=TimeSeriesData(
@@ -146,11 +146,16 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
                 value=pd.concat(
                     [padding.iloc[:, :-2], output_scores_df.iloc[:, :-2]],
                     ignore_index=True,
+                    copy=False,
                 ),
             ),
             confidence_band=ConfidenceBand(
-                upper=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
-                lower=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
+                upper=TimeSeriesData(
+                    time=data.time, value=pd.DataFrame(zeros, copy=False)
+                ),
+                lower=TimeSeriesData(
+                    time=data.time, value=pd.DataFrame(zeros, copy=False)
+                ),
             ),
             predicted_ts=TimeSeriesData(
                 time=data.time, value=pd.DataFrame(zeros).iloc[:, :-2]
@@ -160,6 +165,7 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
                 value=pd.concat(
                     [padding.iloc[:, -2], output_scores_df.iloc[:, -2]],
                     ignore_index=True,
+                    copy=False,
                 ),
             ),
             stat_sig_ts=TimeSeriesData(
@@ -167,6 +173,7 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
                 value=pd.concat(
                     [padding.iloc[:, -1], output_scores_df.iloc[:, -1]],
                     ignore_index=True,
+                    copy=False,
                 ),
             ),
         )

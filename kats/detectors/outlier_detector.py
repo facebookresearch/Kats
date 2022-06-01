@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import DetectorModel
-from kats.detectors.detector_consts import ConfidenceBand, AnomalyResponse
+from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from kats.detectors.outlier import OutlierDetector
 
 
@@ -109,10 +109,10 @@ class OutlierDetectorModel(DetectorModel):
             gives the score for anomaly.
         """
         # When no iterpolate argument is given by default it is taking False
-        if 'interpolate' not in kwargs:
+        if "interpolate" not in kwargs:
             interpolate = bool(False)
         else:
-            interpolate = bool(kwargs['interpolate'])
+            interpolate = bool(kwargs["interpolate"])
 
         if self.model is None:
             self.fit(data=data, historical_data=historical_data)
@@ -124,7 +124,7 @@ class OutlierDetectorModel(DetectorModel):
         assert output_scores_df is not None
         output_scores_df = output_scores_df[output_scores_df.index >= data.time.min()]
 
-        zeros = np.zeros(shape=output_scores_df.shape)
+        zeros = pd.DataFrame(np.zeros(shape=output_scores_df.shape), copy=False)
         # all fields other than scores and predicted_ts are left as TimeSeriesData with all zero values
         response = AnomalyResponse(
             scores=TimeSeriesData(
@@ -132,14 +132,15 @@ class OutlierDetectorModel(DetectorModel):
                 value=output_scores_df,
             ),
             confidence_band=ConfidenceBand(
-                upper=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
-                lower=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
+                upper=TimeSeriesData(time=data.time, value=zeros),
+                lower=TimeSeriesData(time=data.time, value=zeros),
             ),
-            predicted_ts=TimeSeriesData(time=output_detector_remover.time, value=pd.DataFrame(output_detector_remover.value)),
-            anomaly_magnitude_ts=TimeSeriesData(
-                time=data.time, value=pd.DataFrame(zeros)
+            predicted_ts=TimeSeriesData(
+                time=output_detector_remover.time,
+                value=pd.DataFrame(output_detector_remover.value, copy=False),
             ),
-            stat_sig_ts=TimeSeriesData(time=data.time, value=pd.DataFrame(zeros)),
+            anomaly_magnitude_ts=TimeSeriesData(time=data.time, value=zeros),
+            stat_sig_ts=TimeSeriesData(time=data.time, value=zeros),
         )
 
         return response
@@ -165,4 +166,4 @@ class OutlierDetectorModel(DetectorModel):
         """
         self.fit(data=data, historical_data=historical_data)
 
-        return self.predict(data=data,**kwargs)
+        return self.predict(data=data, **kwargs)

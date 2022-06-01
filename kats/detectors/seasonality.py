@@ -274,7 +274,7 @@ class FFTDetector(Detector):
         freq = (fftfreq[pos_freq_ix],)
         ampl = (10 * np.log10(data_psd[pos_freq_ix]),)
 
-        return pd.DataFrame({"freq": freq[0], "ampl": ampl[0]})
+        return pd.DataFrame({"freq": freq[0], "ampl": ampl[0]}, copy=False)
 
     def get_fft_peaks(
         self, fft: pd.DataFrame, mad_threshold: float = 6.0

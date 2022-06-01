@@ -205,7 +205,7 @@ class HoltWintersModel(Model[HoltWintersParams]):
         else:
             fcst = model.forecast(steps)
             self.y_fcst = fcst
-            fcst = pd.DataFrame({"time": self.dates, "fcst": fcst})
+            fcst = pd.DataFrame({"time": self.dates, "fcst": fcst}, copy=False)
         logging.info("Generated forecast data from Holt-Winters model.")
 
         if include_history:
@@ -216,10 +216,12 @@ class HoltWintersModel(Model[HoltWintersParams]):
                         {
                             "time": self.data.time,
                             "fcst": history_fcst,
-                        }
+                        },
+                        copy=False,
                     ),
                     fcst,
-                ]
+                ],
+                copy=False,
             )
         else:
             self.fcst_df = fcst

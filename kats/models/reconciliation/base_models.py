@@ -8,7 +8,7 @@ This module contains 1) the BaseTHModel class for storing information of base mo
 and 2) the GetAggregateTS class for aggregating base time series to higher levels.
 """
 
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 from kats.consts import TimeSeriesData
 from kats.models import (
@@ -119,8 +119,8 @@ class GetAggregateTS:
         n = len(ts)
         m = (n // k) * k
 
-        value = pd.Series(ts.value.values[-m:].reshape(-1, k).sum(axis=1))
-        time = pd.Series(ts.time.values[(n - m + k - 1) : n : k])
+        value = pd.Series(ts.value.values[-m:].reshape(-1, k).sum(axis=1), copy=False)
+        time = pd.Series(ts.time.values[(n - m + k - 1) : n : k], copy=False)
         return TimeSeriesData(time=time, value=value)
 
     def aggregate(self, levels: List[int]) -> Dict[int, TimeSeriesData]:

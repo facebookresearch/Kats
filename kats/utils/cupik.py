@@ -221,7 +221,7 @@ class Pipeline:
             type(data[0]) == dict
         ), "Require data preprocessed by TsFeatures, please set useFeatures = True"
         assert y is not None, "Missing dependent variable"
-        df = pd.DataFrame(data).dropna(axis=1)
+        df = pd.DataFrame(data, copy=False).dropna(axis=1)
         return step.fit(df.values, y)
 
     def __fit__(

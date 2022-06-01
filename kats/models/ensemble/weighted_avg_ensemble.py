@@ -12,8 +12,8 @@ weight.
 """
 import logging
 import sys
-from multiprocessing import Pool, cpu_count
-from typing import Any, Dict, List, Optional, Type, Union, cast
+from multiprocessing import cpu_count, Pool
+from typing import Any, cast, Dict, List, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -144,6 +144,7 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
             # pyre-fixme[16]: `Model` has no attribute `fcst`.
             [x.fcst.reset_index(drop=True) for x in pred_dict.values()],
             axis=1,
+            copy=False,
         )
         fcst_all.columns = cast(List[str], pred_dict.keys())
         weights = self.weights
@@ -157,7 +158,7 @@ class WeightedAvgEnsemble(ensemble.BaseEnsemble):
         self.fcst_dates = dates.to_pydatetime()
         self.dates = dates[dates != last_date]
         self.fcst_df = fcst_df = pd.DataFrame(
-            {"time": self.dates, "fcst": self.fcst_weighted}
+            {"time": self.dates, "fcst": self.fcst_weighted}, copy=False
         )
 
         logging.debug("Return forecast data: {fcst_df}")

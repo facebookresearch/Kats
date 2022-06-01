@@ -277,7 +277,8 @@ class LSTMModel(Model[LSTMParams]):
                 "fcst": self.y_fcst,
                 "fcst_lower": self.y_fcst_lower,
                 "fcst_upper": self.y_fcst_upper,
-            }
+            },
+            copy=False,
         )
 
         logging.debug(f"Return forecast data: {self.fcst_df}")

@@ -7,7 +7,7 @@ import logging
 import time
 from multiprocessing import cpu_count
 from multiprocessing.dummy import Pool
-from typing import List, Optional, Union, Any, Tuple, Dict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import joblib
 import numpy as np
@@ -273,7 +273,7 @@ class GMEnsemble:
             n_quantile = len(self.params.quantile)
 
             df = pd.DataFrame(
-                np.column_stack([t.reshape(n_quantile, -1) for t in fcst]).T
+                np.column_stack([t.reshape(n_quantile, -1) for t in fcst]).T, copy=False
             ).iloc[:steps]
 
             df.columns = col_names
@@ -512,7 +512,7 @@ class GMEnsemble:
                 tmp["step"] = j
                 tmp["idx"] = k
                 ans.append(tmp)
-        return pd.DataFrame(ans)
+        return pd.DataFrame(ans, copy=False)
 
 
 def load_gmensemble_from_file(file_name: str) -> GMEnsemble:

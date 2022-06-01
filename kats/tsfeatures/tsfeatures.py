@@ -30,7 +30,7 @@ from scipy import stats
 from scipy.signal import periodogram  # @manual
 from statsmodels.stats.diagnostic import het_arch
 from statsmodels.tsa.seasonal import STL
-from statsmodels.tsa.stattools import acf, pacf, kpss
+from statsmodels.tsa.stattools import acf, kpss, pacf
 
 try:
     from numba import jit  # @manual
@@ -47,12 +47,12 @@ except ImportError:
 from kats.compat.statsmodels import ExponentialSmoothing
 from kats.consts import TimeSeriesData
 from kats.detectors import (
-    cusum_detection,
     bocpd,
-    robust_stat_detection,
+    cusum_detection,
     outlier,
-    trend_mk,
+    robust_stat_detection,
     seasonality,
+    trend_mk,
 )
 
 """
@@ -497,7 +497,8 @@ class TsFeatures:
             )
             # make sure that values are numpy array for feeding to Numba
             df = pd.DataFrame(
-                {"time": x.time.values, "value": np.array(x.value.values, dtype=float)}
+                {"time": x.time.values, "value": np.array(x.value.values, dtype=float)},
+                copy=False,
             )
             x = TimeSeriesData(df)
 
@@ -1291,7 +1292,7 @@ class TsFeatures:
         """
 
         _, _, r_value, _, _ = stats.linregress(np.arange(len(x)), x)
-        return r_value ** 2
+        return r_value**2
 
     # Holt Parameters (2)
     @staticmethod
@@ -1877,7 +1878,8 @@ class TsFeatures:
                     {
                         "time": len(ts.value.values) - 1,
                         "value": ts.value.values[1:] - ts.value.values[:-1],
-                    }
+                    },
+                    copy=False,
                 )
             )
             detected = seasonality.FFTDetector(detrended).detector()

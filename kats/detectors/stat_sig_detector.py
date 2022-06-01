@@ -92,7 +92,9 @@ class StatSigDetectorModel(DetectorModel):
             self.time_unit: str = model_dict["time_unit"]
             # for seasonality
             self.rem_season: bool = model_dict.get("rem_season", rem_season)
-            self.seasonal_period: str = model_dict.get("seasonal_period", seasonal_period)
+            self.seasonal_period: str = model_dict.get(
+                "seasonal_period", seasonal_period
+            )
 
             # for big data and correct t-scores
             self.use_corrected_scores: bool = model_dict.get(
@@ -256,7 +258,8 @@ class StatSigDetectorModel(DetectorModel):
                 current_time = data.time.iloc[i]
 
                 ts_pt = TimeSeriesData(
-                    time=pd.Series(current_time), value=pd.Series(data.value.iloc[i])
+                    time=pd.Series(current_time, copy=False),
+                    value=pd.Series(data.value.iloc[i], copy=False),
                 )
 
                 self._update_data(ts_pt)
@@ -283,19 +286,18 @@ class StatSigDetectorModel(DetectorModel):
                         value=pd.concat(
                             [
                                 pd.Series(
-                                    confidence_band.upper.value.values[
-                                        :start_idx
-                                    ]
+                                    confidence_band.upper.value.values[:start_idx],
+                                    copy=False,
                                 ),
                                 pd.Series(
                                     np.asarray(
-                                        confidence_band.upper.value.values[
-                                            start_idx:
-                                        ]
+                                        confidence_band.upper.value.values[start_idx:]
                                     )
-                                    + np.asarray(data_season.value.values)
+                                    + np.asarray(data_season.value.values),
+                                    copy=False,
                                 ),
-                            ]
+                            ],
+                            copy=False,
                         ),
                     ),
                     lower=TimeSeriesData(
@@ -303,19 +305,18 @@ class StatSigDetectorModel(DetectorModel):
                         value=pd.concat(
                             [
                                 pd.Series(
-                                    confidence_band.lower.value.values[
-                                        :start_idx
-                                    ]
+                                    confidence_band.lower.value.values[:start_idx],
+                                    copy=False,
                                 ),
                                 pd.Series(
                                     np.asarray(
-                                        confidence_band.lower.value.values[
-                                            start_idx:
-                                        ]
+                                        confidence_band.lower.value.values[start_idx:]
                                     )
-                                    + np.asarray(data_season.value.values)
+                                    + np.asarray(data_season.value.values),
+                                    copy=False,
                                 ),
-                            ]
+                            ],
+                            copy=False,
                         ),
                     ),
                 ),
@@ -324,15 +325,15 @@ class StatSigDetectorModel(DetectorModel):
                     value=pd.concat(
                         [
                             pd.Series(
-                                predicted_ts.value.values[:start_idx]
+                                predicted_ts.value.values[:start_idx], copy=False
                             ),
                             pd.Series(
-                                np.asarray(
-                                    predicted_ts.value.values[start_idx:]
-                                )
-                                + np.asarray(data_season.value.values)
+                                np.asarray(predicted_ts.value.values[start_idx:])
+                                + np.asarray(data_season.value.values),
+                                copy=False,
                             ),
-                        ]
+                        ],
+                        copy=False,
                     ),
                 ),
                 anomaly_magnitude_ts=response.anomaly_magnitude_ts,
@@ -354,13 +355,15 @@ class StatSigDetectorModel(DetectorModel):
         remaining = (max_split_ts_length * n_seq - len(data)) % max_split_ts_length
 
         time_need = pd.concat(
-            [data_history.time[:], data.time[:max_split_ts_length]]
+            [data_history.time[:], data.time[:max_split_ts_length]],
+            copy=False,
         )
 
         new_ts = [
             list(
                 pd.concat(
-                    [data_history.value[:], data.value[:max_split_ts_length]]
+                    [data_history.value[:], data.value[:max_split_ts_length]],
+                    copy=False,
                 )
             )
         ]
@@ -376,7 +379,8 @@ class StatSigDetectorModel(DetectorModel):
                 {
                     **{"time": time_need},
                     **{f"ts_{i}": new_ts[i] for i in range(len(new_ts))},
-                }
+                },
+                copy=False,
             )
         )
         self.remaining = remaining
@@ -400,71 +404,82 @@ class StatSigDetectorModel(DetectorModel):
 
         start_point = len(data_history)
         res_score_val = pd.Series(
-            pd.DataFrame(anom.scores.value)
+            pd.DataFrame(anom.scores.value, copy=False)
             .iloc[start_point:, :]
-            .values.T.flatten()[: -remaining]
+            .values.T.flatten()[:-remaining],
+            copy=False,
         )
 
         res_predicted_ts_val = pd.Series(
-            pd.DataFrame(anom_predicted_ts.value)
+            pd.DataFrame(anom_predicted_ts.value, copy=False)
             .iloc[start_point:, :]
-            .values.T.flatten()[: -remaining]
+            .values.T.flatten()[:-remaining],
+            copy=False,
         )
 
         res_anomaly_magnitude_ts_val = pd.Series(
-            pd.DataFrame(anom.anomaly_magnitude_ts.value)
+            pd.DataFrame(anom.anomaly_magnitude_ts.value, copy=False)
             .iloc[start_point:, :]
-            .values.T.flatten()[: -remaining]
+            .values.T.flatten()[:-remaining],
+            copy=False,
         )
 
         res_stat_sig_ts_val = pd.Series(
-            pd.DataFrame(anom_stat_sig_ts.value)
+            pd.DataFrame(anom_stat_sig_ts.value, copy=False)
             .iloc[start_point:, :]
-            .values.T.flatten()[: -remaining]
+            .values.T.flatten()[:-remaining],
+            copy=False,
         )
 
         res_confidence_band_lower_val = pd.Series(
-            pd.DataFrame(anom_confidence_band.lower.value)
+            pd.DataFrame(anom_confidence_band.lower.value, copy=False)
             .iloc[start_point:, :]
-            .values.T.flatten()[: -remaining]
+            .values.T.flatten()[:-remaining],
+            copy=False,
         )
 
         res_confidence_band_upper_val = pd.Series(
-            pd.DataFrame(anom_confidence_band.upper.value)
+            pd.DataFrame(anom_confidence_band.upper.value, copy=False)
             .iloc[start_point:, :]
-            .values.T.flatten()[: -remaining]
+            .values.T.flatten()[:-remaining],
+            copy=False,
         )
 
         datatime = response.scores.time
-        zeros = pd.Series(np.zeros(len(datatime) - len(res_score_val)))
+        zeros = pd.Series(np.zeros(len(datatime) - len(res_score_val)), copy=False)
         datavalues = pd.Series(
-            response_predicted_ts.value.values[
-                : len(datatime) - len(res_score_val)
-            ]
+            response_predicted_ts.value.values[: len(datatime) - len(res_score_val)],
+            copy=False,
         )
 
         self.response = AnomalyResponse(
             scores=TimeSeriesData(
-                time=datatime, value=pd.concat([zeros, res_score_val])
+                time=datatime, value=pd.concat([zeros, res_score_val], copy=False)
             ),
             confidence_band=ConfidenceBand(
                 upper=TimeSeriesData(
                     time=datatime,
-                    value=pd.concat([datavalues, res_confidence_band_upper_val]),
+                    value=pd.concat(
+                        [datavalues, res_confidence_band_upper_val], copy=False
+                    ),
                 ),
                 lower=TimeSeriesData(
                     time=datatime,
-                    value=pd.concat([datavalues, res_confidence_band_lower_val]),
+                    value=pd.concat(
+                        [datavalues, res_confidence_band_lower_val], copy=False
+                    ),
                 ),
             ),
             predicted_ts=TimeSeriesData(
-                time=datatime, value=pd.concat([datavalues, res_predicted_ts_val])
+                time=datatime,
+                value=pd.concat([datavalues, res_predicted_ts_val], copy=False),
             ),
             anomaly_magnitude_ts=TimeSeriesData(
-                time=datatime, value=pd.concat([zeros, res_anomaly_magnitude_ts_val])
+                time=datatime,
+                value=pd.concat([zeros, res_anomaly_magnitude_ts_val], copy=False),
             ),
             stat_sig_ts=TimeSeriesData(
-                time=datatime, value=pd.concat([zeros, res_stat_sig_ts_val])
+                time=datatime, value=pd.concat([zeros, res_stat_sig_ts_val], copy=False)
             ),
         )
 
@@ -641,20 +656,24 @@ class StatSigDetectorModel(DetectorModel):
 
         zeros = np.zeros(len(data))
         self.response = AnomalyResponse(
-            scores=TimeSeriesData(time=data.time, value=pd.Series(zeros)),
+            scores=TimeSeriesData(time=data.time, value=pd.Series(zeros, copy=False)),
             confidence_band=ConfidenceBand(
                 upper=TimeSeriesData(
-                    time=data.time, value=pd.Series(data.value.values)
+                    time=data.time, value=pd.Series(data.value.values, copy=False)
                 ),
                 lower=TimeSeriesData(
-                    time=data.time, value=pd.Series(data.value.values)
+                    time=data.time, value=pd.Series(data.value.values, copy=False)
                 ),
             ),
             predicted_ts=TimeSeriesData(
-                time=data.time, value=pd.Series(data.value.values)
+                time=data.time, value=pd.Series(data.value.values, copy=False)
             ),
-            anomaly_magnitude_ts=TimeSeriesData(time=data.time, value=pd.Series(zeros)),
-            stat_sig_ts=TimeSeriesData(time=data.time, value=pd.Series(zeros)),
+            anomaly_magnitude_ts=TimeSeriesData(
+                time=data.time, value=pd.Series(zeros, copy=False)
+            ),
+            stat_sig_ts=TimeSeriesData(
+                time=data.time, value=pd.Series(zeros, copy=False)
+            ),
         )
 
     def _update_response(self, date: pd.Timestamp) -> None:
@@ -748,8 +767,8 @@ class StatSigDetectorModel(DetectorModel):
         data_history = self.data_history
         assert data_history is not None
         self.data_history = TimeSeriesData(
-            time=pd.concat([data_history.time, data.time]),
-            value=pd.concat([data_history.value, data.value]),
+            time=pd.concat([data_history.time, data.time], copy=False),
+            value=pd.concat([data_history.value, data.value], copy=False),
         )
 
     def predict(
@@ -932,6 +951,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
                         **{c: data.value[c].iloc[i] for c in data.value.columns},
                     },
                     index=[0],
+                    copy=False,
                 )
             )
             self._update_data(ts_pt)
@@ -958,9 +978,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
                         value=pd.concat(
                             [
                                 pd.DataFrame(
-                                    confidence_band.upper.value.values[
-                                        :start_idx, :
-                                    ]
+                                    confidence_band.upper.value.values[:start_idx, :],
+                                    copy=False,
                                 ),
                                 pd.DataFrame(
                                     np.asarray(
@@ -968,9 +987,11 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
                                             start_idx:, :
                                         ]
                                     )
-                                    + np.asarray(data_season.value.values)
+                                    + np.asarray(data_season.value.values),
+                                    copy=False,
                                 ),
-                            ]
+                            ],
+                            copy=False,
                         ),
                     ),
                     lower=TimeSeriesData(
@@ -978,9 +999,8 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
                         value=pd.concat(
                             [
                                 pd.DataFrame(
-                                    confidence_band.lower.value.values[
-                                        :start_idx, :
-                                    ]
+                                    confidence_band.lower.value.values[:start_idx, :],
+                                    copy=False,
                                 ),
                                 pd.DataFrame(
                                     np.asarray(
@@ -988,9 +1008,11 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
                                             start_idx:, :
                                         ]
                                     )
-                                    + np.asarray(data_season.value.values)
+                                    + np.asarray(data_season.value.values),
+                                    copy=False,
                                 ),
-                            ]
+                            ],
+                            copy=False,
                         ),
                     ),
                 ),
@@ -999,17 +1021,15 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
                     value=pd.concat(
                         [
                             pd.DataFrame(
-                                predicted_ts.value.values[:start_idx, :]
+                                predicted_ts.value.values[:start_idx, :], copy=False
                             ),
                             pd.DataFrame(
-                                np.asarray(
-                                    predicted_ts.value.values[
-                                        start_idx:, :
-                                    ]
-                                )
-                                + np.asarray(data_season.value.values)
+                                np.asarray(predicted_ts.value.values[start_idx:, :])
+                                + np.asarray(data_season.value.values),
+                                copy=False,
                             ),
-                        ]
+                        ],
+                        copy=False,
                     ),
                 ),
                 anomaly_magnitude_ts=response.anomaly_magnitude_ts,
@@ -1024,14 +1044,16 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             {
                 **{"time": data.time},
                 **{c: pd.Series(np.zeros(len(data))) for c in data.value.columns},
-            }
+            },
+            copy=False,
         )
 
         init_df = pd.DataFrame(
             {
                 **{"time": data.time},
                 **{c: data.value[c].values for c in data.value.columns},
-            }
+            },
+            copy=False,
         )
 
         self.response = AnomalyResponse(
@@ -1189,7 +1211,7 @@ class SeasonalityHandler:
         for i in range(self.num_seq):
             temp_ts = TimeSeriesData(
                 time=self.decomposer_input.time,
-                value=pd.Series(self.decomposer_input.value.values[:, i]),
+                value=pd.Series(self.decomposer_input.value.values[:, i], copy=False),
             )
             decomposer = TimeSeriesDecomposition(
                 temp_ts,
@@ -1216,6 +1238,7 @@ class SeasonalityHandler:
                 decomp["rem"][data_time_idx].value
                 + decomp["trend"][data_time_idx].value,
                 name=self.data_nonseason.value.name,
+                copy=False,
             )
             return self.data_nonseason
         decomp = self.decomp
@@ -1226,6 +1249,7 @@ class SeasonalityHandler:
                 decomp[str(i)]["rem"][data_time_idx].value
                 + decomp[str(i)]["trend"][data_time_idx].value,
                 name=self.data_nonseason.value.iloc[:, i].name,
+                copy=False,
             )
 
         return self.data_nonseason
@@ -1241,6 +1265,7 @@ class SeasonalityHandler:
             self.data_season.value = pd.Series(
                 decomp["seasonal"][data_time_idx].value,
                 name=self.data_season.value.name,
+                copy=False,
             )
             return self.data_season
 
@@ -1249,6 +1274,7 @@ class SeasonalityHandler:
             self.data_season.value.iloc[:, i] = pd.Series(
                 decomp[str(i)]["seasonal"][data_time_idx].value,
                 name=self.data_season.value.iloc[:, i].name,
+                copy=False,
             )
 
         return self.data_season

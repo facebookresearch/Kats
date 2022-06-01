@@ -146,7 +146,8 @@ class GetMetaData:
                 {
                     "time": self.data.time[:split_idx],
                     "value": self.data.value[:split_idx],
-                }
+                },
+                copy=False,
             )
         )
         self.test_series = TimeSeriesData(
@@ -154,7 +155,8 @@ class GetMetaData:
                 {
                     "time": self.data.time[split_idx:],
                     "value": self.data.value[split_idx:],
-                }
+                },
+                copy=False,
             )
         )
 
@@ -202,10 +204,13 @@ class GetMetaData:
         logging.info(msg)
 
     def _tune_single(
+        self,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
-        self, single_model: Callable, single_params: Callable
-    # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
-    #  `typing.Dict` to avoid runtime subscripting errors.
+        single_model: Callable,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
+        single_params: Callable
+        # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
+        #  `typing.Dict` to avoid runtime subscripting errors.
     ) -> Tuple[Dict, float]:
         """Fit and evaluate a single candidate model."""
 

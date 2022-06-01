@@ -23,7 +23,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData, Params
+from kats.consts import Params, TimeSeriesData
 
 # Seasonality detector
 from kats.detectors.seasonality import ACFDetector
@@ -241,7 +241,8 @@ class KatsEnsemble(Model):
                             "fcst": tmp_fcst,
                             "fcst_lower": np.nan,
                             "fcst_upper": np.nan,
-                        }
+                        },
+                        copy=False,
                     ).set_index("time")
 
             else:
@@ -272,7 +273,8 @@ class KatsEnsemble(Model):
                             "fcst": tmp_fcst,
                             "fcst_lower": 0,
                             "fcst_upper": 0,
-                        }
+                        },
+                        copy=False,
                     ).set_index("time")
 
         return predicted
@@ -657,7 +659,9 @@ class KatsEnsemble(Model):
         fcsts = {}
         for col in ["fcst", "fcst_lower", "fcst_upper"]:
             fcsts[col] = pd.concat(
-                [x[col].reset_index(drop=True) for x in predicted.values()], axis=1
+                [x[col].reset_index(drop=True) for x in predicted.values()],
+                axis=1,
+                copy=False,
             )
             fcsts[col].columns = predicted.keys()
 
@@ -670,7 +674,8 @@ class KatsEnsemble(Model):
                     "fcst": fcsts["fcst"].median(axis=1),
                     "fcst_lower": fcsts["fcst_lower"].median(axis=1),
                     "fcst_upper": fcsts["fcst_upper"].median(axis=1),
-                }
+                },
+                copy=False,
             )
         else:
             if (
@@ -688,7 +693,8 @@ class KatsEnsemble(Model):
                     "fcst": fcsts["fcst"].dot(weights),
                     "fcst_lower": fcsts["fcst_lower"].dot(weights),
                     "fcst_upper": fcsts["fcst_upper"].dot(weights),
-                }
+                },
+                copy=False,
             )
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=fcst_df))

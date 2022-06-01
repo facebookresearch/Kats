@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional, Tuple, Union, cast
+from typing import cast, List, Optional, Tuple, Union
 
 import attr
 import numpy as np
@@ -119,7 +119,7 @@ class ChangePointInterval:
         new_data_df.columns = ["time"] + self._ts_cols
         df = self.data_df
         if df is not None:
-            new_data_df = pd.concat([df, new_data_df])
+            new_data_df = pd.concat([df, new_data_df], copy=False)
         self.data_df = new_data_df.loc[
             (new_data_df.time >= self.start_time) & (new_data_df.time < self.end_time)
         ]
@@ -455,7 +455,12 @@ class PercentageChange:
 
         # for multivariate TS data
         if self.num_series > 1:
-            return np.asarray([np.cov(current[:, c], previous[:, c])[0, 1] / n_min for c in range(self.num_series)])
+            return np.asarray(
+                [
+                    np.cov(current[:, c], previous[:, c])[0, 1] / n_min
+                    for c in range(self.num_series)
+                ]
+            )
 
         return np.cov(current, previous)[0, 1] / n_min
 
@@ -471,9 +476,9 @@ class PercentageChange:
         cov_xy = self._calc_cov()
 
         sigma_sq_ratio = (
-            test_var / (n_test * (control_mean ** 2))
-            - 2 * (test_mean * cov_xy) / (control_mean ** 3)
-            + (control_var * (test_mean ** 2)) / (n_control * (control_mean ** 4))
+            test_var / (n_test * (control_mean**2))
+            - 2 * (test_mean * cov_xy) / (control_mean**3)
+            + (control_var * (test_mean**2)) / (n_control * (control_mean**4))
         )
         # the signs appear flipped because norm.ppf(0.025) ~ -1.96
         self.lower = self.ratio_estimate + norm.ppf(self.alpha / 2) * np.sqrt(
@@ -550,10 +555,10 @@ class AnomalyResponse:
     def _update_ts_slice(
         self, ts: TimeSeriesData, time: datetime, value: Union[float, ArrayLike]
     ) -> TimeSeriesData:
-        time = ts.time.iloc[1:].append(pd.Series(time))
+        time = ts.time.iloc[1:].append(pd.Series(time, copy=False))
         time.reset_index(drop=True, inplace=True)
         if self.num_series == 1:
-            value = ts.value.iloc[1:].append(pd.Series(value))
+            value = ts.value.iloc[1:].append(pd.Series(value, copy=False))
             value.reset_index(drop=True, inplace=True)
             return TimeSeriesData(time=time, value=value)
         else:
@@ -564,7 +569,7 @@ class AnomalyResponse:
             value_dict = {}
             for i, value_col in enumerate(self.key_mapping):
                 value_dict[value_col] = (
-                    ts.value[value_col].iloc[1:].append(pd.Series(value[i]))
+                    ts.value[value_col].iloc[1:].append(pd.Series(value[i], copy=False))
                 )
                 value_dict[value_col].reset_index(drop=True, inplace=True)
             return TimeSeriesData(
@@ -575,7 +580,8 @@ class AnomalyResponse:
                             value_col: value_dict[value_col]
                             for value_col in self.key_mapping
                         },
-                    }
+                    },
+                    copy=False,
                 )
             )
 

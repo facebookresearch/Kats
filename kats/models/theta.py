@@ -113,7 +113,7 @@ class ThetaModel(Model[ThetaParams]):
             # pyre-fixme[6]: For 1st param expected `TimeSeriesData` but got
             #  `Optional[TimeSeriesData]`.
             decomp = TimeSeriesDecomposition(deseas_data, "multiplicative").decomposer()
-            if (abs(decomp["seasonal"].value) < 10 ** -10).sum():
+            if (abs(decomp["seasonal"].value) < 10**-10).sum():
                 logging.info(
                     "Seasonal indexes equal to zero. Using non-seasonal Theta method"
                 )
@@ -213,7 +213,7 @@ class ThetaModel(Model[ThetaParams]):
         # which are too narrow", as stated in Hyndman et. al)
         p = 2  # 2 params: slope and level
         sigma2 = np.sqrt(ses_model.sse / (self.n - p))
-        se = sigma2 * np.sqrt(np.arange(steps) * smoothing_level ** 2 + 1)
+        se = sigma2 * np.sqrt(np.arange(steps) * smoothing_level**2 + 1)
         zt = -norm.ppf(alpha / 2)
         self.y_fcst_lower = y_fcst - zt * se
         self.y_fcst_upper = y_fcst + zt * se
@@ -239,7 +239,8 @@ class ThetaModel(Model[ThetaParams]):
                     "fcst_upper": np.concatenate(
                         (fitted_values + zt * sigma2, self.y_fcst_upper)
                     ),
-                }
+                },
+                copy=False,
             )
         else:
             fcst_df = pd.DataFrame(
@@ -248,7 +249,8 @@ class ThetaModel(Model[ThetaParams]):
                     "fcst": self.y_fcst,
                     "fcst_lower": self.y_fcst_lower,
                     "fcst_upper": self.y_fcst_upper,
-                }
+                },
+                copy=False,
             )
         self.fcst_df = fcst_df
         logging.debug(f"Return forecast data: {fcst_df}")

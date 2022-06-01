@@ -144,7 +144,9 @@ class EmpConfidenceInt:
 
         logging.info("Run backtesting.")
         backtester.run_backtest()
-        self.SE = pd.DataFrame(backtester.raw_errors).transpose().std(axis=1)
+        self.SE = (
+            pd.DataFrame(backtester.raw_errors, copy=False).transpose().std(axis=1)
+        )
 
     def get_lr(self) -> None:
         """Fit linear regression model
@@ -160,7 +162,8 @@ class EmpConfidenceInt:
             {
                 "horizon": np.arange(1, len(y) + 1),
                 "const": np.ones(len(y), dtype=int),
-            }
+            },
+            copy=False,
         )
         logging.info("Fit the OLS model and get the coefs.")
         self.coefs = np.linalg.lstsq(X, y)[0]
@@ -202,7 +205,8 @@ class EmpConfidenceInt:
                 "fcst": predicted.fcst,
                 "fcst_lower": predicted.fcst - me,
                 "fcst_upper": predicted.fcst + me,
-            }
+            },
+            copy=False,
         )
         return df
 

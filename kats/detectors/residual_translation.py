@@ -184,7 +184,8 @@ class KDEResidualTranslator:
                 # pyre-fixme[16]: `KDEResidualTranslator` has no attribute `_kde`.
                 "value": self._kde.score_samples(residual.value.to_frame()),
                 "time": residual.time,
-            }
+            },
+            copy=False,
         )
 
         return TimeSeriesData(log_proba)

@@ -3,7 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, cast, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -87,7 +87,7 @@ def date_features(s: pd.Series, result: Optional[pd.DataFrame] = None) -> pd.Dat
         The result with date features added.
     """
     if result is None:
-        result = pd.DataFrame(s)
+        result = pd.DataFrame(s, copy=False)
     index = cast(pd.DatetimeIndex, s.index)
 
     result["year"] = index.year
@@ -131,7 +131,7 @@ def time_features(s: pd.Series, result: Optional[pd.DataFrame] = None) -> pd.Dat
         The result with time features added.
     """
     if result is None:
-        result = pd.DataFrame(s)
+        result = pd.DataFrame(s, copy=False)
     index = cast(pd.DatetimeIndex, s.index)
 
     result["hour"] = index.hour

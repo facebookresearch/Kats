@@ -8,11 +8,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData, Params
+from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
-from kats.utils.parameter_tuning_utils import (
-    get_default_sarima_parameter_search_space,
-)
+from kats.utils.parameter_tuning_utils import get_default_sarima_parameter_search_space
 from statsmodels.tsa.statespace.mlemodel import MLEResults
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
@@ -390,7 +388,8 @@ class SARIMAModel(Model[SARIMAParams]):
                     "fcst_upper": np.concatenate(
                         (history_ci[ci_upper_name], self.y_fcst_upper)
                     ),
-                }
+                },
+                copy=False,
             )
 
             # the first k elements of the fcst and lower/upper are not legitmate
@@ -410,7 +409,8 @@ class SARIMAModel(Model[SARIMAParams]):
                     "fcst": self.y_fcst,
                     "fcst_lower": self.y_fcst_lower,
                     "fcst_upper": self.y_fcst_upper,
-                }
+                },
+                copy=False,
             )
 
         logging.debug(f"Return forecast data: {fcst_df}")

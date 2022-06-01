@@ -12,7 +12,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-from typing import List, Optional, Any, Dict, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -129,9 +129,9 @@ class LinearModel(Model[LinearModelParams]):
             self.model, exog=X_fcst, alpha=self.params.alpha
         )
 
-        self.y_fcst = pd.Series(y_fcst)
-        self.y_fcst_lower = pd.Series(self.y_fcst_lower)
-        self.y_fcst_upper = pd.Series(self.y_fcst_upper)
+        self.y_fcst = pd.Series(y_fcst, copy=False)
+        self.y_fcst_lower = pd.Series(self.y_fcst_lower, copy=False)
+        self.y_fcst_upper = pd.Series(self.y_fcst_upper, copy=False)
 
         # create future dates
         last_date = self.data.time.max()
@@ -147,7 +147,8 @@ class LinearModel(Model[LinearModelParams]):
                 "fcst": self.y_fcst,
                 "fcst_lower": self.y_fcst_lower,
                 "fcst_upper": self.y_fcst_upper,
-            }
+            },
+            copy=False,
         )
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return self.fcst_df

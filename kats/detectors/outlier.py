@@ -16,7 +16,7 @@ import traceback
 from datetime import datetime
 from enum import Enum
 from importlib import import_module
-from typing import Tuple, Any, Dict, List, Optional, Union, cast
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -142,7 +142,9 @@ class OutlierDetector(Detector):
                 outliers.append([])
 
         if output_scores_dict:
-            self.output_scores = pd.DataFrame(output_scores_dict, index=time_index)
+            self.output_scores = pd.DataFrame(
+                output_scores_dict, index=time_index, copy=False
+            )
 
 
 class MultivariateAnomalyDetectorType(Enum):
@@ -186,7 +188,7 @@ class MultivariateAnomalyDetector(Detector):
         time_diff = data.time.sort_values().diff().dropna()
         if len(time_diff.unique()) == 1:  # check constant frequenccy
             freq = time_diff.unique()[0].astype("int")
-            self.granularity_days: float = freq / (24 * 3600 * (10 ** 9))
+            self.granularity_days: float = freq / (24 * 3600 * (10**9))
         else:
             raise RuntimeError(
                 "Frequency of metrics is not constant."
@@ -268,9 +270,9 @@ class MultivariateAnomalyDetector(Detector):
         # predict
         pred = model.predict(steps=1)
         forecast = [[k, float(pred[k].value["fcst"])] for k, v in pred.items()]
-        pred_df = pd.DataFrame(columns=["index", "est"], data=forecast).set_index(
-            "index"
-        )
+        pred_df = pd.DataFrame(
+            columns=["index", "est"], data=forecast, copy=False
+        ).set_index("index")
         test = self.df.loc[t + dt.timedelta(days=self.granularity_days), :]
         pred_df["actual"] = test
 
@@ -333,7 +335,9 @@ class MultivariateAnomalyDetector(Detector):
             anomaly_scores_t = self._calc_anomaly_scores(pred_df)
             # process next observation
             fcstTime += dt.timedelta(days=self.granularity_days)
-            anomaly_scores_t = pd.DataFrame(anomaly_scores_t, index=[fcstTime])
+            anomaly_scores_t = pd.DataFrame(
+                anomaly_scores_t, index=[fcstTime], copy=False
+            )
             anomaly_score_df = anomaly_score_df.append(anomaly_scores_t)
 
         self.anomaly_score_df = anomaly_score_df
@@ -411,6 +415,7 @@ class MultivariateAnomalyDetector(Detector):
             left_index=True,
             right_index=True,
             how="right",
+            copy=False,
         )
         axs[0].plot(a.drop(columns=["overall_anomaly_score"]))
         axs[0].set_title("Input time series metrics")

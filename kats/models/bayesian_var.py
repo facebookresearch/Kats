@@ -23,7 +23,7 @@ import kats.models.model as m
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from kats.consts import Params, TimeSeriesData, _log_error
+from kats.consts import _log_error, Params, TimeSeriesData
 from numpy.linalg import inv
 from scipy.linalg import block_diag
 
@@ -169,7 +169,9 @@ class BayesianVAR(m.Model[BayesianVARParams]):
             point_pred = self._evaluate_point_t(self.X, self.Y, t)
             forecast_vals.append(point_pred)
             residuals.append(self.Y[:, t] - point_pred)
-        df_resid = pd.DataFrame(residuals, index=times, columns=self.data.value.columns)
+        df_resid = pd.DataFrame(
+            residuals, index=times, columns=self.data.value.columns, copy=False
+        )
 
         return df_resid
 
@@ -300,7 +302,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
         """
 
         def h(x: float) -> float:
-            return x ** self.phi_3
+            return x**self.phi_3
 
         if i == j:
             assert lag is not None
@@ -455,7 +457,8 @@ class BayesianVAR(m.Model[BayesianVARParams]):
                     "fcst": [forecast_vals[f_t][i] for f_t in range(forecast_length)],
                     "fcst_lower": [-1] * forecast_length,
                     "fcst_upper": [-1] * forecast_length,
-                }
+                },
+                copy=False,
             )
             indiv_forecasts[c] = TimeSeriesData(c_forecast)
 
@@ -495,6 +498,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
             self.sigma_ols,
             index=self.data.value.columns,
             columns=self.data.value.columns,
+            copy=False,
         )
 
     @property

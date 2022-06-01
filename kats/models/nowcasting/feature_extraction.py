@@ -35,9 +35,9 @@ def ROC(df: pd.DataFrame, n: int, column: str = "y") -> pd.DataFrame:
     M = df[column].diff(n - 1)
     N = df[column].shift(n - 1)
     if column == "y":
-        ROC = pd.Series(M / N, name="ROC_" + str(n))
+        ROC = pd.Series(M / N, name="ROC_" + str(n), copy=False)
     else:
-        ROC = pd.Series(M / N, name=column + "_ROC_" + str(n))
+        ROC = pd.Series(M / N, name=column + "_ROC_" + str(n), copy=False)
     df = df.join(ROC)
     return df
 
@@ -56,9 +56,9 @@ def MOM(df: pd.DataFrame, n: int, column: str = "y") -> pd.DataFrame:
     """
 
     if column == "y":
-        M = pd.Series(df[column].diff(n), name="MOM_" + str(n))
+        M = pd.Series(df[column].diff(n), name="MOM_" + str(n), copy=False)
     else:
-        M = pd.Series(df[column].diff(n), name=column + "_MOM_" + str(n))
+        M = pd.Series(df[column].diff(n), name=column + "_MOM_" + str(n), copy=False)
     df = df.join(M)
     return df
 
@@ -77,9 +77,11 @@ def MA(df: pd.DataFrame, n: int, column: str = "y") -> pd.DataFrame:
     """
 
     if column == "y":
-        MA = pd.Series(df[column].rolling(n).mean(), name="MA_" + str(n))
+        MA = pd.Series(df[column].rolling(n).mean(), name="MA_" + str(n), copy=False)
     else:
-        MA = pd.Series(df[column].rolling(n).mean(), name=column + "_MA_" + str(n))
+        MA = pd.Series(
+            df[column].rolling(n).mean(), name=column + "_MA_" + str(n), copy=False
+        )
     df = df.join(MA)
     return df
 
@@ -99,9 +101,9 @@ def LAG(df: pd.DataFrame, n: int, column: str = "y") -> pd.DataFrame:
 
     N = df[column].shift(n)
     if column == "y":
-        LAG = pd.Series(N, name="LAG_" + str(n))
+        LAG = pd.Series(N, name="LAG_" + str(n), copy=False)
     else:
-        LAG = pd.Series(N, name=column + "_LAG_" + str(n))
+        LAG = pd.Series(N, name=column + "_LAG_" + str(n), copy=False)
     df = df.join(LAG)
     return df
 
@@ -122,30 +124,43 @@ def MACD(
         A dataframe with all the columns from input df, and the added 3 columns.
     """
 
-    EMAfast = pd.Series(df[column].ewm(span=n_fast, min_periods=n_slow - 1).mean())
-    EMAslow = pd.Series(df[column].ewm(span=n_slow, min_periods=n_slow - 1).mean())
+    EMAfast = pd.Series(
+        df[column].ewm(span=n_fast, min_periods=n_slow - 1).mean(), copy=False
+    )
+    EMAslow = pd.Series(
+        df[column].ewm(span=n_slow, min_periods=n_slow - 1).mean(), copy=False
+    )
     if column == "y":
         MACD = pd.Series(
-            EMAfast - EMAslow, name="MACD_" + str(n_fast) + "_" + str(n_slow)
+            EMAfast - EMAslow,
+            name="MACD_" + str(n_fast) + "_" + str(n_slow),
+            copy=False,
         )
         MACDsign = pd.Series(
             MACD.ewm(span=9, min_periods=8).mean(),
             name="MACDsign_" + str(n_fast) + "_" + str(n_slow),
+            copy=False,
         )
         MACDdiff = pd.Series(
-            MACD - MACDsign, name="MACDdiff_" + str(n_fast) + "_" + str(n_slow)
+            MACD - MACDsign,
+            name="MACDdiff_" + str(n_fast) + "_" + str(n_slow),
+            copy=False,
         )
     else:
         MACD = pd.Series(
-            EMAfast - EMAslow, name=column + "_MACD_" + str(n_fast) + "_" + str(n_slow)
+            EMAfast - EMAslow,
+            name=column + "_MACD_" + str(n_fast) + "_" + str(n_slow),
+            copy=False,
         )
         MACDsign = pd.Series(
             MACD.ewm(span=9, min_periods=8).mean(),
             name=column + "_MACDsign_" + str(n_fast) + "_" + str(n_slow),
+            copy=False,
         )
         MACDdiff = pd.Series(
             MACD - MACDsign,
             name=column + "_MACDdiff_" + str(n_fast) + "_" + str(n_slow),
+            copy=False,
         )
     df = df.join(MACD)
     df = df.join(MACDsign)
@@ -299,13 +314,13 @@ def BBANDS(df, n: int, column: str = "y") -> pd.DataFrame:
         A dataframe with all the columns from input df, and the added 2 BollingerBand columns.
     """
     close = df[column]
-    MA = pd.Series(close.rolling(n).mean())
-    MSD = pd.Series(close.rolling(n).std())
+    MA = pd.Series(close.rolling(n).mean(), copy=False)
+    MSD = pd.Series(close.rolling(n).std(), copy=False)
     b1 = 4 * MSD / MA
-    B1 = pd.Series(b1, name="BollingerBand1_" + str(n))
+    B1 = pd.Series(b1, name="BollingerBand1_" + str(n), copy=False)
     df = df.join(B1)
     b2 = (close - MA + 2 * MSD) / (4 * MSD)
-    B2 = pd.Series(b2, name="BollingerBand2_" + str(n))
+    B2 = pd.Series(b2, name="BollingerBand2_" + str(n), copy=False)
     df = df.join(B2)
     return df
 
@@ -339,7 +354,7 @@ def TRIX(df, n: int, column: str = "y") -> pd.DataFrame:
         ROC = (EX3[i + 1] - EX3[i]) / EX3[i]
         ROC_l.append(ROC)
         i = i + 1
-    Trix = pd.Series(ROC_l, name="TRIX_" + str(n))
+    Trix = pd.Series(ROC_l, name="TRIX_" + str(n), copy=False)
     df = df.join(Trix)
     return df
 
@@ -364,7 +379,9 @@ def EMA(df, n: int, column: str = "y") -> pd.DataFrame:
         A dataframe with all the columns from input df, and the added EMA column.
     """
     close = df[column]
-    EMA = pd.Series(close.ewm(span=n, min_periods=n - 1).mean(), name="EMA_" + str(n))
+    EMA = pd.Series(
+        close.ewm(span=n, min_periods=n - 1).mean(), name="EMA_" + str(n), copy=False
+    )
     df = df.join(EMA)
     return df
 
@@ -388,13 +405,13 @@ def TSI(df, r: int, s: int, column: str = "y") -> pd.DataFrame:
         A dataframe with all the columns from input df, and the added TSI column.
     """
     close = df[column]
-    M = pd.Series(close.diff(1))
+    M = pd.Series(close.diff(1), copy=False)
     aM = abs(M)
-    EMA1 = pd.Series(M.ewm(span=r, min_periods=r - 1).mean())
-    aEMA1 = pd.Series(aM.ewm(span=r, min_periods=r - 1).mean())
-    EMA2 = pd.Series(EMA1.ewm(span=s, min_periods=s - 1).mean())
-    aEMA2 = pd.Series(aEMA1.ewm(span=s, min_periods=s - 1).mean())
-    TSI = pd.Series(EMA2 / aEMA2, name="TSI_" + str(r) + "_" + str(s))
+    EMA1 = pd.Series(M.ewm(span=r, min_periods=r - 1).mean(), copy=False)
+    aEMA1 = pd.Series(aM.ewm(span=r, min_periods=r - 1).mean(), copy=False)
+    EMA2 = pd.Series(EMA1.ewm(span=s, min_periods=s - 1).mean(), copy=False)
+    aEMA2 = pd.Series(aEMA1.ewm(span=s, min_periods=s - 1).mean(), copy=False)
+    TSI = pd.Series(EMA2 / aEMA2, name="TSI_" + str(r) + "_" + str(s), copy=False)
     df = df.join(TSI)
     return df
 
@@ -432,6 +449,7 @@ def RSI(df, n: int, column: str = "y") -> pd.DataFrame:
     rsi_col = pd.Series(
         np.where(emadn == 0, 100, 100 - (100 / (1 + relative_strength))),
         name="RSI_" + str(n),
+        copy=False,
     )
     df = df.join(rsi_col)
     return df

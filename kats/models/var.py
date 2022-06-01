@@ -176,7 +176,8 @@ class VARModel(Model[VARParams]):
                     "fcst": fcst[0][:, i],
                     "fcst_lower": fcst[1][:, i],
                     "fcst_upper": fcst[2][:, i],
-                }
+                },
+                copy=False,
             )
             fcst_dict[name] = fcst_df
 
@@ -185,12 +186,20 @@ class VARModel(Model[VARParams]):
                 hist_fcst = model.fittedvalues.values
                 hist_dates = self.data.time.iloc[-len(hist_fcst) :]
                 for i, name in enumerate(ts_names):
-                    print(pd.DataFrame({"time": hist_dates, "fcst": hist_fcst[:, i]}))
+                    print(
+                        pd.DataFrame(
+                            {"time": hist_dates, "fcst": hist_fcst[:, i]}, copy=False
+                        )
+                    )
                     fcst_df = pd.concat(
                         [
-                            pd.DataFrame({"time": hist_dates, "fcst": hist_fcst[:, i]}),
+                            pd.DataFrame(
+                                {"time": hist_dates, "fcst": hist_fcst[:, i]},
+                                copy=False,
+                            ),
                             fcst_dict[name],
-                        ]
+                        ],
+                        copy=False,
                     )
                     fcst_dict[name] = fcst_df
 

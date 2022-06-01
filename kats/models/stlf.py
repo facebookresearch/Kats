@@ -22,17 +22,12 @@ from __future__ import (
 import logging
 import math
 from copy import copy
-from typing import Any, List, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
-from kats.models import (
-    linear_model,
-    prophet,
-    quadratic_model,
-    theta,
-)
+from kats.models import linear_model, prophet, quadratic_model, theta
 from kats.models.linear_model import LinearModel
 from kats.models.model import Model
 from kats.models.prophet import ProphetModel
@@ -239,7 +234,8 @@ class STLFModel(Model[STLFParams]):
                 "fcst": self.y_fcst,
                 "fcst_lower": self.fcst_lower,
                 "fcst_upper": self.fcst_upper,
-            }
+            },
+            copy=False,
         )
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=fcst_df))

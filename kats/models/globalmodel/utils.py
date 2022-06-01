@@ -5,7 +5,7 @@
 
 import json
 import logging
-from typing import cast, Type, List, Optional, Any, Dict, Union, Tuple
+from typing import Any, cast, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import torch
@@ -118,6 +118,7 @@ def fill_missing_value_na(
         all_ds = pd.DataFrame(
             pd.date_range(df.time.iloc[0], df.time.iloc[-1], freq=freq),
             columns=[time_name],
+            copy=False,
         )
         all_ds = all_ds.merge(df, on=time_name, how="left")
         isna_idx = all_ds[col_name].isna().values
@@ -932,7 +933,7 @@ class GMFeature:
                             .transform(
                                 TimeSeriesData(
                                     pd.DataFrame(
-                                        {"time": time[i], "value": x[i]}
+                                        {"time": time[i], "value": x[i]}, copy=False
                                     ).dropna()  # NaNs would mess-up tsfeatures
                                 )
                             )

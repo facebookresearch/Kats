@@ -7,7 +7,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from numbers import Real
-from typing import Any, Optional, Tuple, Callable
+from typing import Any, Callable, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -86,7 +86,7 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
             dates, self.regression_params.period, self.regression_params.fourier_order
         )
         result = np.sum(self.params * harmonics, axis=1)
-        return pd.DataFrame({"time": dates, "fcst": result.tolist()})
+        return pd.DataFrame({"time": dates, "fcst": result.tolist()}, copy=False)
 
     def plot(
         self,
@@ -211,7 +211,9 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
 
         harms = HarmonicRegressionModel.fourier_series(
             # pyre-fixme[16]: `Optional` has no attribute `time`.
-            self.data.time, period, fourier_order
+            self.data.time,
+            period,
+            fourier_order,
         )
 
         steps = np.array(list(range(0, len(time_series.index))))

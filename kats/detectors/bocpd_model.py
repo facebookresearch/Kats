@@ -14,15 +14,9 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.detectors.bocpd import (
-    BOCPDetector,
-    BOCPDModelType,
-)
+from kats.detectors.bocpd import BOCPDetector, BOCPDModelType
 from kats.detectors.detector import DetectorModel
-from kats.detectors.detector_consts import (
-    AnomalyResponse,
-    ConfidenceBand,
-)
+from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 
@@ -111,7 +105,8 @@ class BocpdDetectorModel(DetectorModel):
                         for i in range(len(historical_data))
                         if historical_data.time.iloc[i] in original_time_list
                     ],
-                }
+                },
+                copy=False,
             ),
             use_unix_time=True,
             unix_time_units="s",
@@ -189,8 +184,12 @@ class BocpdDetectorModel(DetectorModel):
 
         # construct the object
         N = len(data)
-        default_ts = TimeSeriesData(time=data.time, value=pd.Series(N * [0.0]))
-        score_ts = TimeSeriesData(time=data.time, value=pd.Series(change_prob))
+        default_ts = TimeSeriesData(
+            time=data.time, value=pd.Series(N * [0.0], copy=False)
+        )
+        score_ts = TimeSeriesData(
+            time=data.time, value=pd.Series(change_prob, copy=False)
+        )
 
         self.response = AnomalyResponse(
             scores=score_ts,
@@ -262,7 +261,9 @@ class BocpdTrendDetectorModel(DetectorModel):
         fit_arr = [x + y for x, y in zip(level_arr, trend_arr)]
         fit_diff = np.diff(fit_arr)
         fit_diff = np.concatenate(([fit_diff[0]], fit_diff))
-        trend_ts = TimeSeriesData(time=data_ts.time, value=pd.Series(fit_diff))
+        trend_ts = TimeSeriesData(
+            time=data_ts.time, value=pd.Series(fit_diff, copy=False)
+        )
         return trend_ts
 
     def fit_predict(

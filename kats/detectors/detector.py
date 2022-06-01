@@ -64,7 +64,7 @@ class Detector(ABC):
             df.append(ts)
 
         # Need to make this a ts object
-        df_final = pd.concat(df, axis=1)
+        df_final = pd.concat(df, axis=1, copy=False)
 
         if interpolate:
             df_final.interpolate(method="linear", limit_direction="both", inplace=True)
