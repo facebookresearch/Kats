@@ -284,7 +284,10 @@ class GetMetaData:
         tuned_res = {model: res.get() for model, res in tuned_models.items()}
         return tuned_res
 
-    def get_meta_data(self) -> Dict[str, Any]:
+    def get_meta_data(
+        self,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """Get meta data, as well as search method and type of error metric
 
         Meta data includes time series features, best hyper-params for each candidate models, and best model.
@@ -294,7 +297,7 @@ class GetMetaData:
             the error metric used for model evaluation and the corresponding best model.
         """
 
-        features_dict = TsFeatures().transform(self.data)
+        features_dict = TsFeatures(**kwargs).transform(self.data)
 
         # feature contains nan, pass
         # pyre-fixme[16]: `List` has no attribute `values`.
