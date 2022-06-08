@@ -1553,37 +1553,6 @@ def gmparam_from_string(gmstring: str) -> GMParam:
     gmparam = GMParam(**gmparam_dict)
     return gmparam
 
-
-def calc_exceed(
-    fcst: np.ndarray, actuals: np.ndarray, quantile: np.ndarray
-) -> np.ndarray:
-    """Compute exceed rate for quantile estimates.
-
-    For quantile q (0<q<=0.5), the exceed rate of q is defined as:
-        er(fcst, actuals, q) = mean(fcst<actuals).
-    For a list quantile Q = [q_1, ..., q_d], the exceed rate of Q is defined as:
-        er(Q) = [er(fcst, actuals, q_1), ..., er(fcst, actuals, q_d)].
-
-    Args:
-        fcst: A `numpy.ndarray` object representing the forecasts.
-        actuals: A `numpy.ndarray` object representing the true values.
-
-    Returns:
-        A `numpy.ndarray` object representing exceed rates.
-    """
-    if len(fcst.shape) == 1:
-        fcst = fcst.reshape(-1, 1)
-    if len(actuals.shape) == 1:
-        actuals = actuals.reshape(-1, 1)
-    m = len(quantile)
-    n, horizon = actuals.shape
-    actuals = np.tile(actuals, m)
-    mask = np.repeat((quantile > 0.5) * 2 - 1, horizon)
-
-    diff = (actuals - fcst) * mask > 0
-    return np.nanmean(diff.reshape(n, m, -1), axis=2).mean(axis=0)
-
-
 # pyre-fixme[3]: Return annotation cannot contain `Any`.
 def gmpreprocess(
     gmparam: GMParam,

@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import warnings
+import logging
 from typing import cast, Dict, Generator, Optional, Sequence, Union
 
 try:
@@ -83,11 +84,18 @@ class ThresholdMetric(Protocol):
     ) -> float:
         ...  # pragma: no cover
 
+class MultiThresholdMetric(Protocol):
+    def __call__(
+        self,
+        y_true: ArrayLike,
+        y_pred: ArrayLike,
+        threshold: ArrayLike,
+    ) -> np.ndarray:
+        ...  # pragma: no cover
 
 KatsMetric = Union[
-    Metric, ArrayMetric, WeightedMetric, MultiOutputMetric, ThresholdMetric
+    Metric, ArrayMetric, WeightedMetric, MultiOutputMetric, ThresholdMetric, MultiThresholdMetric
 ]
-
 
 def _arrays(*args: Optional[ArrayLike]) -> Generator[np.ndarray, None, None]:
     """Ensure all arguments are arrays of matching size.
@@ -649,6 +657,85 @@ def tracking_signal(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     err = mean_absolute_error(y_true, y_pred)
     return np.nan if err == 0 else np.sum(y_true - y_pred) / err
 
+def mult_exceed(
+    y_true: ArrayLike, y_pred: ArrayLike, threshold: ArrayLike
+) -> np.ndarray:
+    """Compute exceed rate for quantile estimates.
+
+    For threshold t (0<t<=0.5), the exceed rate of t is defined as:
+        er(y_true, y_pred, t) = mean(y_pred<y_true).
+    For threshold t (0.5<t<=1), the exceed rate of t is defined as:
+        er(y_true, y_pred, t) = mean(y_pred>y_true).
+    For a list threshold T = [t_1, ..., t_d], the exceed rate of T is defined as:
+        er(T) = [er(y_true, y_pred, t_1), ..., er(y_true, y_pred, t_d)].
+
+    Args:
+        y_true: the actual values.
+        y_pred: the predicted values.
+        threshold: Thresholds to be calculated.
+
+    Returns:
+        A `numpy.ndarray` object representing exceed rates.
+    """
+    if not isinstance(y_true, np.ndarray):
+        y_true = np.array(y_true)
+    if not isinstance(y_pred, np.ndarray):
+        y_pred = np.array(y_pred)
+    if not isinstance(threshold, np.ndarray):
+        threshold = np.array(threshold)
+    if len(y_pred.shape) == 1:
+        y_pred = y_pred.reshape(1, -1)
+    if len(y_true.shape) == 1:
+        y_true = y_true.reshape(1, -1)
+
+    m = len(threshold)
+    n, horizon = y_true.shape
+
+    if y_pred.shape[0] != n:
+        raise ValueError(
+            f"Arrays have different number of samples ({y_pred.shape}, expected {n, m*horizon})"
+            )
+    elif y_pred.shape[1] != (m*horizon):
+        raise ValueError(
+            f"Arrays have different number of samples ({y_pred.shape}, expected {n, m*horizon})"
+            )
+
+    y_true = np.tile(y_true, m)
+    mask = np.repeat((threshold > 0.5) * 2 - 1, horizon)
+
+    diff = (y_true - y_pred) * mask > 0
+    return np.nanmean(diff.reshape(n, m, -1), axis=2).mean(axis=0)
+
+def pinball_loss(
+    y_true: ArrayLike, y_pred: ArrayLike, threshold: float
+) -> float:
+    """Pinball Loss function module.
+
+    For threshold t (0<t<1), true value y_true and forecast value y_pred, the pinball loss function is defined as:
+        For y_true > y_pred,
+            pinball(y_true, y_pred, t)=(y_true-y_pred)*t,
+        otherwise
+            pinball(y_true, y_pred, t)=(y_true-y_pred)*(t-1).
+
+    This module provides functionality for computing pinball loss.
+
+    Attributes:
+        y_true: the actual values.
+        y_pred: the predicted values.
+        threshold:  A float representing the threshold to be calculated.
+    """
+    y_true, y_pred = _arrays(y_true, y_pred)
+    if threshold<0:
+        msg = "threshold should not be less than zero."
+        logging.error(msg)
+        raise ValueError(msg)
+    if threshold>1:
+        msg = "threshold should not be greater than one."
+        logging.error(msg)
+        raise ValueError(msg)
+
+    diff = y_true - y_pred
+    return np.nanmean(np.nanmax((diff*threshold, diff*(threshold-1)), axis=0))
 
 # Name aliases (sorted alphabetically by alias)
 
@@ -676,6 +763,8 @@ rmspe: WeightedMetric = root_mean_squared_percentage_error
 sbias: Metric = symmetric_bias
 scaled_smape: Metric = scaled_symmetric_mean_absolute_percentage_error
 smape: Metric = symmetric_mean_absolute_percentage_error
+mexceed: MultiThresholdMetric = mult_exceed
+ploss: ThresholdMetric = pinball_loss
 
 ALL_METRICS: Dict[str, KatsMetric] = {
     # Array Metrics
@@ -684,6 +773,8 @@ ALL_METRICS: Dict[str, KatsMetric] = {
     "percentage_error": percentage_error,
     "absolute_percentage_error": absolute_percentage_error,
     # Other Metrics
+    "mult_exceed": mult_exceed,
+    "pinball_loss": pinball_loss,
     "continuous_rank_probability_score": continuous_rank_probability_score,
     "frequency_exceeds_relative_threshold": frequency_exceeds_relative_threshold,
     "linear_error_in_probability_space": linear_error_in_probability_space,

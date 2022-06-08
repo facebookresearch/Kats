@@ -503,6 +503,7 @@ class MetricsTest(TestCase):
     @parameterized.expand(
         [
             ("normal", 2 / 3, [1, 2, 3], [3.5, 2.5, 1.5]),
+            ("normal", 0.673220686123912, [0.2, 0.2, 0.2, 0.8, 0.8], [0.0, 0.25, 0.5, 0.75, 1.0]),
             # TODO: more numerical combinations
             ("empty", np.nan, [], []),
         ]
@@ -544,3 +545,49 @@ class MetricsTest(TestCase):
         self.assertEqual(metrics.mae, metrics.core_metric("mae"))
         with self.assertRaises(ValueError):
             _ = metrics.metric("mango")
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator...
+    @parameterized.expand(
+        [
+            ("normal", [0.4, 0.2, 0.33333333],
+            [(0.40547657, 0.21700191, -0.63343906, 0.24662161, -1.9395454),
+            (-0.04428768, 0.5543952 , -0.40847492, -0.46409416, 0.4180088),
+            (-2.0893543 , -0.12981987, -0.58653784, -0.58653784, 0.29072)],
+            [(-1.5253627 , -2.0157309 , -1.3632555 , 1.8552899 , 5.08259 , 8.782536 , 4.62253 , -0.73543787, 2.656838 , 2.5200548 , 9.273176 , 2.6641555 , -0.39546585, 0.5721655 , -1.0635448),
+            (-3.8493829 , -3.2209146 , -2.5079165 , -1.3597498 , 4.16947 , 3.6076689 , 3.6549635 , -1.8097634 , -0.76120234, 1.5070448 , 4.0525684 , 1.6184692 , -1.4960217 , -2.3242073 , -2.226036),
+            (-2.127775 , -2.4119477 , -0.58012056, 0.4478078 , 3.292698 , 5.592966 , 2.9125519 , 0.27569342, 1.0328965 , 1.2424107 , 6.086138 , 1.2846599 , 0.6023383 , -0.61473894, -1.641422)],
+            [0.05, 0.95, 0.99]),
+        ]
+    )
+    def test_mult_exceed(
+        self,
+        _name: str,
+        expected: List[float],
+        y_true: List[float],
+        y_pred: List[float],
+        threshold: List[float],
+        ) -> None:
+        result = metrics.mult_exceed(y_true, y_pred, threshold)
+        self.validate(np.array(expected), result)
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator...
+    @parameterized.expand(
+        [
+            ("normal", 1.3333333, [1, 5, 1], [5, 1, 1], 0),
+            ("normal", 1.3333333, [1, 5, 1], [5, 1, 1], 0.5),
+            ("normal", 1.3333333, [1, 5, 1], [5, 1, 1], 0.75),
+            ("normal", 1.3333333, [1, 5, 1], [5, 1, 1], 1),
+            # # TODO: more numerical combinations
+            ("empty", np.nan, [], [], 1.0),
+        ]
+    )
+    def test_pinball_loss(
+        self,
+        _name: str,
+        expected: float,
+        y_true: List[float],
+        y_pred: List[float],
+        threshold: float,
+    ) -> None:
+        result = metrics.pinball_loss(y_true, y_pred, threshold)
+        self.validate(expected, result)

@@ -23,7 +23,6 @@ from kats.models.globalmodel.utils import (
     DilatedRNNStack,
     PinballLoss,
     AdjustedPinballLoss,
-    calc_exceed,
     gmparam_from_string,
 )
 from torch import Tensor
@@ -221,7 +220,7 @@ class GMModel:
                 elif name == "sbias":
                     ans["sbias"] = metrics.sbias(target, fcst[:, :d])
                 elif name == "exceed" and len(quantile) > 1:
-                    tmp_val = calc_exceed(fcst[:, d:], target, quantile)
+                    tmp_val = metrics.mult_exceed(target, fcst[:, d:], quantile)
                     tmp_dict = {
                         f"exceed_{quantile[i]}": tmp_val[i]
                         for i in range(len(quantile))
