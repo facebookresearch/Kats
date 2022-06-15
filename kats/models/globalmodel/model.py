@@ -252,8 +252,6 @@ class GMModel:
         return optimizer, optimizer_param
 
     @staticmethod
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
-    #  `torch.jit.script`.
     @torch.jit.script
     def _process(
         prev_idx: int,
@@ -997,8 +995,6 @@ class GMModel:
         return
 
     @staticmethod
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
-    #  `torch.jit.script`.
     @torch.jit.script
     def _process_s2s(
         prev_idx: int,

@@ -426,6 +426,10 @@ class MetaLearnHPT:
             if self.numerical_idx
             else None
         )
+        # pyre-fixme[7]: Expected `Tuple[FloatTensor, Optional[LongTensor],
+        #  Optional[FloatTensor], FloatTensor, Optional[LongTensor],
+        #  Optional[FloatTensor]]` but got `Tuple[Tensor, Optional[Tensor],
+        #  Optional[Tensor], Tensor, Optional[Tensor], Optional[Tensor]]`.
         return x_fs, y_cat, y_num, x_fs_val, y_cat_val, y_num_val
 
     def _loss_function(

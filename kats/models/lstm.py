@@ -157,6 +157,7 @@ class LSTMModel(Model[LSTMParams]):
         train_data_scaled = self.scaler.fit_transform(train_data.reshape(-1, 1))
         # converting to Tensor
         train_data_normalized = torch.FloatTensor(train_data_scaled).view(-1)
+        # pyre-fixme[8]: Attribute has type `Optional[FloatTensor]`; used as `Tensor`.
         self.train_data_normalized = train_data_normalized
 
         # generating sequence
@@ -194,6 +195,7 @@ class LSTMModel(Model[LSTMParams]):
         loss_function = nn.MSELoss()
 
         # optimizer
+        # pyre-fixme[6]: For 2nd param expected `float` but got `Optional[float]`.
         optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
 
         # inout_seq
