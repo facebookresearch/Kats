@@ -554,7 +554,6 @@ class TestProphetDetector(TestCase):
         ts.value[93 * 24] += 100
         ts.value[96 * 24] += 100
 
-        # pyre-fixme[6]: For 1st param expected `ProphetScoreFunction` but got `str`.
         model = ProphetDetectorModel(score_func="z_score")
         response = model.fit_predict(ts[90 * 24 :], ts[: 90 * 24])
 

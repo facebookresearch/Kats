@@ -109,6 +109,12 @@ SCORE_FUNC_DICT: Dict[str, Any] = {
     ProphetScoreFunction.z_score.value: z_score,
 }
 
+DEFAULT_SCORE_FUNCTION: ProphetScoreFunction = ProphetScoreFunction.deviation_from_predicted_val
+STR_TO_SCORE_FUNC: Dict[str, ProphetScoreFunction] = {  # Used for param tuning
+    "deviation_from_predicted_val": ProphetScoreFunction.deviation_from_predicted_val,
+    "z_score": ProphetScoreFunction.z_score,
+}
+
 
 class ProphetDetectorModel(DetectorModel):
     """Prophet based anomaly detection model.
@@ -132,7 +138,7 @@ class ProphetDetectorModel(DetectorModel):
     def __init__(
         self,
         serialized_model: Optional[bytes] = None,
-        score_func: ProphetScoreFunction = ProphetScoreFunction.deviation_from_predicted_val,
+        score_func: Union[str, ProphetScoreFunction] = DEFAULT_SCORE_FUNCTION,
         scoring_confidence_interval: float = 0.8,
         remove_outliers: bool = False,
         outlier_threshold: float = 0.99,
@@ -143,7 +149,14 @@ class ProphetDetectorModel(DetectorModel):
         else:
             self.model = None
 
-        self.score_func = score_func
+        # We allow score_function to be a str for compatibility with param tuning
+        if isinstance(score_func, str):
+            if score_func in STR_TO_SCORE_FUNC:
+                score_func = STR_TO_SCORE_FUNC[score_func]
+            else:
+                score_func = DEFAULT_SCORE_FUNCTION
+        self.score_func: ProphetScoreFunction = score_func
+
         self.scoring_confidence_interval = scoring_confidence_interval
         self.remove_outliers = remove_outliers
         self.outlier_threshold = outlier_threshold
@@ -159,10 +172,11 @@ class ProphetDetectorModel(DetectorModel):
         """
         return str.encode(model_to_json(self.model))
 
-    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def fit_predict(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """Trains a model, and returns the anomaly scores.
 
@@ -184,9 +198,11 @@ class ProphetDetectorModel(DetectorModel):
         self.fit(data=historical_data, historical_data=None)
         return self.predict(data)
 
-    # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel` inconsistently.
     def fit(
-        self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
+        self,
+        data: TimeSeriesData,
+        historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> None:
         """Used to train a model.
 
@@ -219,12 +235,11 @@ class ProphetDetectorModel(DetectorModel):
         )
         self.model = model.fit(data_df)
 
-    # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def predict(
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """Predicts anomaly score for future data.
 
