@@ -7,7 +7,6 @@ from typing import Tuple
 import unittest
 from unittest import TestCase
 
-import numpy as np
 from numpy.random import RandomState
 import pandas as pd
 
@@ -22,7 +21,6 @@ import kats.utils.time_series_parameter_tuning as tpt
 
 class GridSearchTest(TestCase):
     def test_time_series_parameter_tuning_arima(self) -> None:
-        # pyre-fixme[11]: Annotation `RandomState` is not defined as a type.
         random_state: RandomState = RandomState(seed=0)
 
         # pyre-fixme[2]: Parameter must be annotated.
@@ -50,7 +48,7 @@ class GridSearchTest(TestCase):
 
         # pyre-fixme[2]: Parameter must be annotated.
         def prophet_evaluation_function(params) -> Tuple[float, float]:
-            error: RandomState = random_state.random()
+            error: float = random_state.random()
             sem = 0.0  # standard error of the mean of model's estimation error.
             return error, sem
 
