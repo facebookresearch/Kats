@@ -91,6 +91,58 @@ def get_default_prophet_parameter_search_space() -> List[Dict[str, Any]]:
     ]
 
 
+def get_default_neuralprophet_parameter_search_space() -> List[Dict[str, Any]]:
+    """Generates default search space as a list of dictionaries and returns it for neuralprophet model.
+
+    Each dictionary in the list corresponds to a hyperparameter, having properties
+    defining that hyperparameter. Properties are name, type, value_type, values,
+    is_ordered. Hyperparameters that are included: yearly_seasonality,
+    weekly_seasonality, daily_seasonality, seasonality_mode, changepoints_range.
+
+    Args:
+        N/A
+
+    Returns:
+        As described above
+
+    Raises:
+        N/A
+    """
+    return [
+        {
+            "name": "yearly_seasonality",
+            "type": "choice",
+            "value_type": "bool",
+            "values": [True, False],
+        },
+        {
+            "name": "weekly_seasonality",
+            "type": "choice",
+            "value_type": "bool",
+            "values": [True, False],
+        },
+        {
+            "name": "daily_seasonality",
+            "type": "choice",
+            "value_type": "bool",
+            "values": [True, False],
+        },
+        {
+            "name": "seasonality_mode",
+            "type": "choice",
+            "value_type": "str",
+            "values": ["additive", "multiplicative"],
+        },
+        {
+            "name": "changepoints_range",
+            "type": "choice",
+            "value_type": "float",
+            "values": list(np.arange(0.85, 1.96, 0.01)),  # last value is 0.95
+            "is_ordered": True,
+        },
+    ]
+
+
 def get_default_arnet_parameter_search_space() -> List[Dict[str, Any]]:
     """Generates default search space as a list of dictionaries and returns it for arnet.
 

@@ -22,6 +22,7 @@ from kats.consts import SearchMethodEnum, TimeSeriesData
 from kats.metrics.metrics import core_metric
 from kats.models.arima import ARIMAModel, ARIMAParams
 from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
+from kats.models.neuralprophet import NeuralProphetModel, NeuralProphetParams
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.models.sarima import SARIMAModel, SARIMAParams
 from kats.models.stlf import STLFModel, STLFParams
@@ -32,6 +33,7 @@ from kats.tsfeatures.tsfeatures import TsFeatures
 candidate_models = {
     "arima": ARIMAModel,
     "holtwinters": HoltWintersModel,
+    "neuralprophet": NeuralProphetModel,
     "prophet": ProphetModel,
     "theta": ThetaModel,
     "stlf": STLFModel,
@@ -41,6 +43,7 @@ candidate_models = {
 candidate_params = {
     "arima": ARIMAParams,
     "holtwinters": HoltWintersParams,
+    "neuralprophet": NeuralProphetParams,
     "prophet": ProphetParams,
     "theta": ThetaParams,
     "stlf": STLFParams,

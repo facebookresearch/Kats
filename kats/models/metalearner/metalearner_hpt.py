@@ -37,6 +37,16 @@ default_model_params = {
     },
     "theta": {"categorical_idx": ["m"], "numerical_idx": []},
     "stlf": {"categorical_idx": ["method", "m"], "numerical_idx": []},
+    "neuralprophet": {
+        "categorical_idx": [
+            "yearly_seasonality",
+            "weekly_seasonality",
+            "daily_seasonality",
+            "seasonality_mode",
+            "changepoints_range",
+        ],
+        "numerical_idx": [],
+    },
     "prophet": {
         "categorical_idx": [
             "yearly_seasonality",
@@ -82,6 +92,11 @@ default_model_networks = {
         "n_hidden_cat_combo": [[5], [5]],
         "n_hidden_num": [],
     },
+    "neuralprophet": {
+        "n_hidden_shared": [40],
+        "n_hidden_cat_combo": [[5], [5], [2], [3], [5]],
+        "n_hidden_num": [],
+    },
     "prophet": {
         "n_hidden_shared": [40],
         "n_hidden_cat_combo": [[5], [5], [2], [3], [5], [5], [5]],
@@ -118,7 +133,7 @@ class MetaLearnHPT:
         categorical_idx: Optional; A list of strings of the names of the categorical hyper-parameters. Default is None.
         numerical_idx: Optional; A list of strings of the names of the numerical hyper-parameters. Default is None.
         default_model: Optional; A string of the name of the forecast model whose default settings will be used.
-                       Can be 'arima', 'sarima', 'theta', 'prophet', 'holtwinters', 'stlf' or None. Default is None.
+                       Can be 'arima', 'sarima', 'theta', 'neuralprophet', 'prophet', 'holtwinters', 'stlf' or None. Default is None.
         scale: Optional; A boolean to specify whether or not to normalize time series features to zero mean and unit variance. Default is True.
         load_model: Optional; A boolean to specify whether or not to load a trained model. Default is False.
 
@@ -189,7 +204,7 @@ class MetaLearnHPT:
                     numerical_idx = default_model_params[default_model]["numerical_idx"]
 
                 else:
-                    msg = f"default_model={default_model} is not available! Please choose one from 'prophet', 'arima', 'sarima', 'holtwinters', 'stlf', 'theta', 'cusum', 'statsig'"
+                    msg = f"default_model={default_model} is not available! Please choose one from 'neuralprophet', 'prophet', 'arima', 'sarima', 'holtwinters', 'stlf', 'theta', 'cusum', 'statsig'"
                     raise _log_error(msg)
 
             if (not numerical_idx) and (not categorical_idx):
