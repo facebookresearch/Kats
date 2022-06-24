@@ -8,6 +8,6 @@ numba>=0.52.0
 parameterized>=0.8.1
 plotly>=2.2.1
 pymannkendall>=1.4.1
-pytest-mpl>=0.12
+pytest-mpl>=0.12,<0.16
 torch
 tqdm>=4.36.1
