@@ -21,12 +21,12 @@ class TestMinimal(unittest.TestCase):
         try:
             from kats.detectors import prophet_detector
             from kats.models import lstm
-            from kats.models import neural_prophet
+            from kats.models import neuralprophet
 
             self.assertFalse(
                 (
                     lstm is not None
-                    and neural_prophet is not None
+                    and neuralprophet is not None
                     and prophet_detector is not None
                 )
             )

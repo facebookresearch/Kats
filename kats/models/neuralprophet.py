@@ -11,8 +11,9 @@ Facebook Prophet and AR-Net, built on PyTorch.
 """
 
 import logging
-from typing import Any, Dict, Callable, Optional, Union, List
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -30,6 +31,11 @@ TorchLoss = torch.nn.modules.loss._Loss
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import get_default_neuralprophet_parameter_search_space
+
+
+def _error_msg(msg: str) -> None:
+    logging.error(msg)
+    raise ValueError(msg)
 
 
 class NeuralProphetParams(Params):
@@ -124,14 +130,12 @@ class NeuralProphetParams(Params):
           impute_missing (bool): whether to automatically impute missing dates/values
               imputation follows a linear method up to 10 missing values, more are filled with trend.
       ## Other Parameters
-          cap: capacity, provided for logistic growth
-          floor: provided for logistic growth
           custom_seasonalities: customized seasonalities, dict with keys
               "name", "period", "fourier_order"
           extra_future_regressors: A list of dictionaries representing the additional regressors.
               Each regressor is a dictionary with required key "name" (and optional keys "regularization" (float) and "normalize" (bool).
           extra_lagged_regressors: A list of dictionaries representing the additional regressors.
-              Each regressor is a dictionary with required key "name" (and optional keys "n_lags" (int) and "regularization" (float).
+              Each regressor is a dictionary with required key "names" (and optional keys "regularization" (float) and "normalize" (bool).
     """
 
     changepoints: Optional[
@@ -160,8 +164,6 @@ class NeuralProphetParams(Params):
     optimizer: str
     normalize: str
     impute_missing: bool
-    cap: Optional[float]
-    floor: Optional[float]
     custom_seasonalities: List[Dict[str, Any]]
     extra_future_regressors: List[Dict[str, Any]]
     extra_lagged_regressors: List[Dict[str, Any]]
@@ -199,12 +201,12 @@ class NeuralProphetParams(Params):
         optimizer: str = "AdamW",
         normalize: str = "auto",
         impute_missing: bool = True,
-        cap: Optional[float] = None,
-        floor: Optional[float] = None,
         custom_seasonalities: List[Dict[str, Any]] = None,
         extra_future_regressors: List[Dict[str, Any]] = None,
         extra_lagged_regressors: List[Dict[str, Any]] = None,
     ) -> None:
+        if _no_neuralprophet:
+            raise RuntimeError("requires neuralprophet to be installed")
         super().__init__()
         self.growth = growth
         self.changepoints = changepoints
@@ -231,8 +233,6 @@ class NeuralProphetParams(Params):
         self.optimizer = optimizer
         self.normalize = normalize
         self.impute_missing = impute_missing
-        self.cap = cap
-        self.floor = floor
         self.custom_seasonalities = (
             [] if custom_seasonalities is None else custom_seasonalities
         )
@@ -275,12 +275,6 @@ class NeuralProphetParams(Params):
 
     def validate_params(self) -> None:
         """Validate Neural Prophet Parameters"""
-        # cap must be given when using logistic growth
-        if (self.growth == "logistic") and (self.cap is None):
-            msg = "Capacity must be provided for logistic growth"
-            logging.error(msg)
-            raise ValueError(msg)
-
         # If custom_seasonalities passed, ensure they contain the required keys.
         reqd_seasonality_keys = ["name", "period", "fourier_order"]
         if not all(
@@ -292,6 +286,8 @@ class NeuralProphetParams(Params):
             logging.error(msg)
             raise ValueError(msg)
 
+        self._reqd_regressor_names = []
+
         # If extra_future_regressors or extra_lagged_regressors passed, ensure
         # they contain the required keys.
         all_future_regressor_keys = {"name", "regularization", "normalize"}
@@ -302,24 +298,25 @@ class NeuralProphetParams(Params):
             if "name" not in regressor:
                 msg = "Extra regressor dicts must contain the following keys: 'name'."
                 _error_msg(msg)
+            else:
+                self._reqd_regressor_names.append(regressor["name"])
             if not set(regressor.keys()).issubset(all_future_regressor_keys):
                 msg = f"Elements in `extra_future_regressor` should only contain keys in {all_future_regressor_keys} but receives {regressor.keys()}."
                 _error_msg(msg)
 
-        all_lagged_regressor_keys = {"name", "n_lags", "regularization"}
+        all_lagged_regressor_keys = {"names", "regularization", "normalize"}
         for regressor in self.extra_lagged_regressors:
             if not isinstance(regressor, dict):
                 msg = f"Elements in `extra_lagged_regressors` should be a dictionary but receives {type(regressor)}."
                 _error_msg(msg)
-            if "name" not in regressor:
+            if "names" not in regressor:
                 msg = "Extra regressor dicts must contain the following keys: 'name'."
                 _error_msg(msg)
-            if not set(regressor.keys()).issubset(all_future_regressor_keys):
-                msg = f"Elements in `extra_lagged_regressor` should only contain keys in {all_future_regressor_keys} but receives {regressor.keys()}."
+            else:
+                self._reqd_regressor_names.append(regressor["names"])
+            if not set(regressor.keys()).issubset(all_lagged_regressor_keys):
+                msg = f"Elements in `extra_lagged_regressor` should only contain keys in {all_lagged_regressor_keys} but receives {regressor.keys()}."
                 _error_msg(msg)
-        self._reqd_regressor_names = [
-            regressor["name"] for regressor in self.extra_future_regressors + self.extra_lagged_regressors
-        ]
 
 
 class NeuralProphetModel(Model[NeuralProphetParams]):
@@ -352,7 +349,7 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
                 msg = f"`data` should contain all columns listed in {extra_regressor_names}."
                 raise ValueError(msg)
 
-    def _ts_to_df(self) ->pd.DataFrame:
+    def _ts_to_df(self) -> pd.DataFrame:
         if self.data.is_univariate():
             # handel corner case: `value` column is not named as `y`.
             df = pd.DataFrame({"ds": self.data.time, "y": self.data.value}, copy=False)
@@ -361,22 +358,14 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
             df.rename(columns={self.data.time_col_name: "ds"}, inplace=True)
 
         col_names = self.params._reqd_regressor_names + ["y", "ds"]
-        # add "cap" if needed
-        if self.params.growth == "logistic":
-            df["cap"] = self.params.cap
-            col_names.append("cap")
-        # add "floor" if needed
-        if self.params.floor is not None:
-            df["floor"] = self.params.floor
-            col_names.append("floor")
 
         return df[col_names]
 
-    def fit(self, **kwargs: Any) -> None:
+    def fit(self, freq: Optional[str] = None, **kwargs: Any) -> None:
         """Fit NeuralProphet model
 
         Args:
-            None
+            freq: Optional; A string representing the frequency of timestamps.
 
         Returns:
             The fitted neuralprophet model object
@@ -451,14 +440,13 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
         for lagged_regressor in self.params.extra_lagged_regressors:
             neuralprophet.add_lagged_regressor(**lagged_regressor)
 
-        neuralprophet.fit(df=self.df)
+        neuralprophet.fit(df=self.df, freq=freq)
         self.model = neuralprophet
         logging.info("Fitted NeuralProphet model.")
 
     def predict(
         self,
         steps: int,
-        include_history: bool = False,
         raw: bool = False,
         future: Optional[pd.DataFrame] = None,
         *args: Any,
@@ -468,7 +456,6 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
 
         Args:
             steps: The steps or length of prediction horizon
-            include_history: Optional; If include the historical data, default as False.
             raw: Optional; Whether to return the raw forecasts of prophet model, default is False.
             future: Optional; A `pd.DataFrame` object containing necessary information (e.g., extra regressors) to generate forecasts.
                 The length of `future` should be no less than `steps` and it should contain a column named `ds` representing the timestamps.
@@ -483,10 +470,9 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
 
         logging.debug(
             "Call predict() with parameters: "
-            f"steps:{steps}, include_history:{include_history}, raw:{raw}, future:{future} kwargs:{kwargs}."
+            f"steps:{steps}, raw:{raw}, future:{future}, kwargs:{kwargs}."
         )
 
-        self.include_history = include_history
 
         # when extra_regressors are needed
         if len(self.params.extra_future_regressors) + len(self.params.extra_lagged_regressors) > 0:
@@ -501,30 +487,16 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
                 _error_msg(msg)
         elif future is None:
             future = model.make_future_dataframe(
-                df=self.df, periods=steps, n_historic_predictions=self.include_history,
+                df=self.df,
+                periods=steps,
             )
 
-        if include_history:
-            future = future.merge(
-                # pyre-fixme
-                self.model.history,
-                on=["ds"] + self.params._reqd_regressor_names,
-                how="outer",
-            )
-
-        reqd_length = steps + int(len(self.data) * include_history)
-        if len(future) < reqd_length:
+        if len(future) < steps:
             msg = f"Input `future` is not long enough to generate forecasts of {steps} steps."
             _error_msg(msg)
         future.sort_values("ds", inplace=True)
-        future = future[:reqd_length]
 
-        if self.params.growth == "logistic":
-            # assign cap to a new col as Prophet required
-            future["cap"] = self.params.cap
-        if self.params.floor is not None:
-            future["floor"] = self.params.floor
-
+        future["y"] = 0.
         fcst = model.predict(future)
         if raw:
             return fcst
@@ -541,6 +513,14 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
 
         logging.debug("Return forecast data: {fcst_df}".format(fcst_df=self.fcst_df))
         return fcst_df
+
+    def plot(
+        self,
+        fcst: pd.DataFrame,
+        figsize: Optional[Tuple[int, int]] = None
+    ) -> plt.Axes:
+        fcst["y"] = None
+        return self.model.plot(fcst, figsize=figsize)
 
     def __str__(self) -> str:
         return "NeuralProphet"

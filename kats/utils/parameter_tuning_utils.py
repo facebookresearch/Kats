@@ -137,7 +137,7 @@ def get_default_neuralprophet_parameter_search_space() -> List[Dict[str, Any]]:
             "name": "changepoints_range",
             "type": "choice",
             "value_type": "float",
-            "values": list(np.arange(0.85, 1.96, 0.01)),  # last value is 0.95
+            "values": list(np.arange(0.85, 0.96, 0.01)),  # last value is 0.95
             "is_ordered": True,
         },
     ]
