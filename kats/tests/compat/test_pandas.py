@@ -9,6 +9,7 @@ from typing import Any, Dict
 from unittest.mock import ANY, patch
 
 import pandas as pd
+
 from kats.compat import compat, pandas
 
 

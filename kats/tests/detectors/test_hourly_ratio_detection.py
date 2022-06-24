@@ -3,15 +3,16 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import cast, Union
+from typing import Union, cast
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+from parameterized import parameterized
+
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.detectors.hourly_ratio_detection import HourlyRatioDetector
-from parameterized import parameterized
 
 
 class HourlyRatioDectorTest(TestCase):

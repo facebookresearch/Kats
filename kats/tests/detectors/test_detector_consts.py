@@ -10,6 +10,8 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+from parameterized.parameterized import parameterized
+
 from kats.consts import TimeSeriesData
 from kats.detectors.detector_consts import (
     AnomalyResponse,
@@ -18,7 +20,6 @@ from kats.detectors.detector_consts import (
     PercentageChange,
     SingleSpike,
 )
-from parameterized.parameterized import parameterized
 
 
 class SingleSpikeTest(TestCase):

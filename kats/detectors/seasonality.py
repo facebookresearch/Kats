@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+
 try:
     import plotly.graph_objs as go
 
@@ -37,12 +38,14 @@ except ImportError:
     Figure = object
 import scipy.fftpack as fp
 import statsmodels.api as sm
+from scipy.signal import find_peaks  # @manual
+from statsmodels.tsa.stattools import acf
+
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import Detector
 from kats.graphics.plots import make_fourier_plot
 from kats.utils.decomposition import TimeSeriesDecomposition
-from scipy.signal import find_peaks  # @manual
-from statsmodels.tsa.stattools import acf
+
 
 # from numpy.typing import ArrayLike
 ArrayLike = Union[np.ndarray, Sequence[float]]

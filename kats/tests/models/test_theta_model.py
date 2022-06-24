@@ -4,29 +4,30 @@
 # LICENSE file in the root directory of this source tree.
 
 import unittest
-from typing import cast, Dict, Optional, Union
+from typing import Dict, Optional, Union, cast
 from unittest import TestCase
 from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
+from parameterized.parameterized import parameterized
+
 from kats.compat import statsmodels
 from kats.compat.pandas import assert_frame_equal, assert_series_equal
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_data, load_air_passengers
+from kats.data.utils import load_air_passengers, load_data
 from kats.models.theta import ThetaModel, ThetaParams
 from kats.tests.models.test_models_dummy_data import (
-    NONSEASONAL_INPUT,
-    AIR_FCST_15_THETA_SM_11,
     AIR_FCST_15_THETA_INCL_HIST_SM_11,
-    PEYTON_FCST_30_THETA_SM_11,
-    PEYTON_FCST_30_THETA_INCL_HIST_SM_11,
-    AIR_FCST_15_THETA_SM_12,
     AIR_FCST_15_THETA_INCL_HIST_SM_12,
-    PEYTON_FCST_30_THETA_SM_12,
+    AIR_FCST_15_THETA_SM_11,
+    AIR_FCST_15_THETA_SM_12,
+    NONSEASONAL_INPUT,
+    PEYTON_FCST_30_THETA_INCL_HIST_SM_11,
     PEYTON_FCST_30_THETA_INCL_HIST_SM_12,
+    PEYTON_FCST_30_THETA_SM_11,
+    PEYTON_FCST_30_THETA_SM_12,
 )
-from parameterized.parameterized import parameterized
 
 
 TEST_DATA: Dict[str, Dict[str, Union[ThetaParams, TimeSeriesData, pd.DataFrame]]] = {

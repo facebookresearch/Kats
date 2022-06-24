@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import (
     Any,
+    Callable,
     Dict,
     List,
     Optional,
@@ -24,16 +25,17 @@ from typing import (
     Type,
     Union,
     cast,
-    Callable,
 )
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesChangePoint, TimeSeriesData, SearchMethodEnum
-from kats.detectors.detector import Detector
 from scipy.special import logsumexp  # @manual
-from scipy.stats import invgamma, linregress, norm, nbinom  # @manual
+from scipy.stats import invgamma, linregress, nbinom, norm  # @manual
+
+from kats.consts import SearchMethodEnum, TimeSeriesChangePoint, TimeSeriesData
+from kats.detectors.detector import Detector
+
 
 try:
     import kats.utils.time_series_parameter_tuning as tpt
@@ -758,7 +760,9 @@ class _BayesOnlineChangePoint(Detector):
             self.P = 1
             self._ts_slice = 0
             data_df = self.data.to_dataframe()
-            self._ts_names = [x for x in data_df.columns if x != self.data.time_col_name]
+            self._ts_names = [
+                x for x in data_df.columns if x != self.data.time_col_name
+            ]
 
             self.data_values = np.expand_dims(data.value.values, axis=1)
 

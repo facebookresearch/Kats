@@ -4,34 +4,32 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
-from typing import Any, Dict
 import unittest
 import unittest.mock as mock
+from typing import Any, Dict
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+from parameterized.parameterized import parameterized
+
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_data, load_air_passengers
+from kats.data.utils import load_air_passengers, load_data
 from kats.models import (
     arima,
     holtwinters,
     linear_model,
     prophet,
     quadratic_model,
-    theta,
     sarima,
+    theta,
 )
-from kats.models.ensemble.ensemble import (
-    BaseEnsemble,
-    BaseModelParams,
-    EnsembleParams,
-)
+from kats.models.ensemble.ensemble import BaseEnsemble, BaseModelParams, EnsembleParams
 from kats.models.ensemble.kats_ensemble import KatsEnsemble
 from kats.models.ensemble.median_ensemble import MedianEnsembleModel
 from kats.models.ensemble.weighted_avg_ensemble import WeightedAvgEnsemble
 from kats.models.model import Model
-from parameterized.parameterized import parameterized
+
 
 np.random.seed(123321)
 DATA_dummy = pd.DataFrame(
@@ -463,7 +461,9 @@ class testEnsembleModels(TestCase):
         ]
     )
     # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
-    def test_invalid_params_ensemble_params(self, ts_model_name: str, model: Model) -> None:
+    def test_invalid_params_ensemble_params(
+        self, ts_model_name: str, model: Model
+    ) -> None:
         # validate params in EnsembleParams
         TSData_multi = TEST_DATA["multivariate"]["ts"]
         params = TEST_DATA["multivariate"]["params"]
@@ -506,7 +506,12 @@ class testKatsEnsemble(TestCase):
         ]
     )
     def test_fit_median_forecast(
-        self, ts_data_name: str, ts_data: TimeSeriesData, params: Dict[str, Any], steps: int, freq: str
+        self,
+        ts_data_name: str,
+        ts_data: TimeSeriesData,
+        params: Dict[str, Any],
+        steps: int,
+        freq: str,
     ) -> None:
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
 
@@ -563,7 +568,12 @@ class testKatsEnsemble(TestCase):
         ]
     )
     def test_fit_weightedavg_forecast(
-        self, ts_data_name: str, ts_data: TimeSeriesData, params: Dict[str, Any], steps: int, freq: str
+        self,
+        ts_data_name: str,
+        ts_data: TimeSeriesData,
+        params: Dict[str, Any],
+        steps: int,
+        freq: str,
     ) -> None:
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
 

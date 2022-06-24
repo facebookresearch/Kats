@@ -45,12 +45,10 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from kats.consts import (
-    TimeSeriesChangePoint,
-    TimeSeriesData,
-)
-from kats.detectors.detector import Detector
 from scipy.stats import chi2  # @manual
+
+from kats.consts import TimeSeriesChangePoint, TimeSeriesData
+from kats.detectors.detector import Detector
 
 
 pd.options.plotting.matplotlib.register_converters = True

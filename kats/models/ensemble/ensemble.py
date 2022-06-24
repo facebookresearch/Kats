@@ -14,6 +14,7 @@ from multiprocessing import Pool, cpu_count
 from typing import Dict, List, Optional, Type
 
 import pandas as pd
+
 from kats.consts import Params, TimeSeriesData
 from kats.models import (
     arima,

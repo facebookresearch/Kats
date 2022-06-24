@@ -4,9 +4,8 @@
 # LICENSE file in the root directory of this source tree.
 
 try:
-    from . import backtester  # noqa
-
     # from . import data_processor  # noqa
+    from . import backtester  # noqa
     from . import ensemble  # noqa
     from . import model  # noqa
     from . import utils  # noqa

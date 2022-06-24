@@ -9,12 +9,10 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData
-from kats.detectors.cusum_model import (
-    CUSUMDetectorModel,
-    CusumScoreFunction,
-)
 from parameterized.parameterized import parameterized
+
+from kats.consts import TimeSeriesData
+from kats.detectors.cusum_model import CUSUMDetectorModel, CusumScoreFunction
 
 
 class TestIncreaseCUSUMDetectorModel(TestCase):

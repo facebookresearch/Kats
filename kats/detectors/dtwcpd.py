@@ -11,20 +11,20 @@ algorithm as a DetectorModel, to provide a common interface.
 from __future__ import annotations
 
 import logging
-
-# Put code into Kats class
-
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Type
 
 import numpy as np
 import pandas as pd
-from kats.consts import (
-    TimeSeriesData,
-    TimeSeriesChangePoint,
-)
+
+from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
+
+
+# Put code into Kats class
+
+
 
 
 class DTWCPDChangePoint(TimeSeriesChangePoint):

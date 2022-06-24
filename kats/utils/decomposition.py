@@ -9,8 +9,10 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from statsmodels.tsa.seasonal import STL, seasonal_decompose
+
 from kats.consts import TimeSeriesData
-from statsmodels.tsa.seasonal import seasonal_decompose, STL
+
 
 # from numpy.typing import ArrayLike
 ArrayLike = Union[np.ndarray, Sequence[float]]

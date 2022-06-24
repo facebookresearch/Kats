@@ -3,20 +3,20 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
 import unittest
+from typing import Tuple
 from unittest import TestCase
 
-from numpy.random import RandomState
 import pandas as pd
-
 from ax.core.parameter import ChoiceParameter, FixedParameter, ParameterType
 from ax.models.random.sobol import SobolGenerator
 from ax.models.random.uniform import UniformGenerator
+from numpy.random import RandomState
+
+import kats.utils.time_series_parameter_tuning as tpt
 from kats.consts import SearchMethodEnum
 from kats.models.arima import ARIMAModel
 from kats.models.prophet import ProphetModel
-import kats.utils.time_series_parameter_tuning as tpt
 
 
 class GridSearchTest(TestCase):
@@ -44,7 +44,7 @@ class GridSearchTest(TestCase):
         self.assertEqual(len(parameter_values_with_scores.index), 50)
 
     def test_time_series_parameter_tuning_prophet(self) -> None:
-        random_state: RandomState =RandomState(seed=0)
+        random_state: RandomState = RandomState(seed=0)
 
         # pyre-fixme[2]: Parameter must be annotated.
         def prophet_evaluation_function(params) -> Tuple[float, float]:

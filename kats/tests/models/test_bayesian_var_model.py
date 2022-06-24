@@ -10,11 +10,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 import seaborn as sns
+from parameterized.parameterized import parameterized
+
 from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.models.bayesian_var import BayesianVAR, BayesianVARParams
-from parameterized.parameterized import parameterized
 
 
 class testBayesianVARModel(TestCase):
@@ -158,7 +159,13 @@ class testBayesianVARModel(TestCase):
     )
     def test_bad_params(
         # pyre-fixme[2]: Parameter must be annotated.
-        self, name, p: int, phi0: float, phi1: float, phi2: float, phi3: float
+        self,
+        name,
+        p: int,
+        phi0: float,
+        phi1: float,
+        phi2: float,
+        phi3: float,
     ) -> None:
         params = BayesianVARParams()
         params.p = p

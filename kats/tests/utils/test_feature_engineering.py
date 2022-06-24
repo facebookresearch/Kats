@@ -8,6 +8,7 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+
 from kats.compat.pandas import assert_frame_equal
 from kats.utils import feature_engineering as fe
 

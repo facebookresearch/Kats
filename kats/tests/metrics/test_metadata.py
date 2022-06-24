@@ -6,12 +6,10 @@
 # from typing import List, Optional, Union
 from unittest import TestCase
 
-from kats.metrics import metadata
-from kats.metrics.metadata import (
-    inspect,
-    MetricMetadata,
-)
 from parameterized.parameterized import parameterized
+
+from kats.metrics import metadata
+from kats.metrics.metadata import MetricMetadata, inspect
 
 
 class MetricsMetadataTest(TestCase):

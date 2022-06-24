@@ -8,11 +8,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from statsmodels.tsa.statespace.mlemodel import MLEResults
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import get_default_sarima_parameter_search_space
-from statsmodels.tsa.statespace.mlemodel import MLEResults
-from statsmodels.tsa.statespace.sarimax import SARIMAX
+
 
 ArrayLike = np.ndarray
 

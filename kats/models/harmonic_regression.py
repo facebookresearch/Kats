@@ -12,9 +12,10 @@ from typing import Any, Callable, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import optimize
+
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
-from scipy import optimize
 
 
 @dataclass

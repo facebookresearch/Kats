@@ -7,9 +7,10 @@ from operator import attrgetter
 from unittest import TestCase
 
 import pandas as pd
+from parameterized.parameterized import parameterized
+
 from kats.detectors.trend_mk import MKDetector
 from kats.tests.detectors.utils import gen_no_trend_data_ndim, gen_trend_data_ndim
-from parameterized.parameterized import parameterized
 
 
 class UnivariateMKDetectorTest(TestCase):

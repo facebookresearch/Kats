@@ -6,8 +6,9 @@
 from typing import Optional
 
 import numpy as np
-from kats.compat import compat
 from sklearn.metrics import mean_squared_error as mse, mean_squared_log_error as msle
+
+from kats.compat import compat
 
 
 version: compat.Version = compat.Version("sklearn")
@@ -21,7 +22,13 @@ def mean_squared_error(
     squared: bool = True,
 ) -> float:
     # sklearn >= 1.0 expects args beyond the first two to be passed as named kwargs
-    return mse(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput, squared=squared)
+    return mse(
+        y_true,
+        y_pred,
+        sample_weight=sample_weight,
+        multioutput=multioutput,
+        squared=squared,
+    )
 
 
 def mean_squared_log_error(
@@ -32,11 +39,19 @@ def mean_squared_log_error(
     squared: bool = True,
 ) -> float:
     if version <= "0.24":
-        result = msle(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput)
+        result = msle(
+            y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput
+        )
         if not squared:
             result = np.sqrt(result)
     else:
         # sklearn >= 1.0 expects args beyond the first two to be passed as named kwargs
         # pyre-ignore
-        result = msle(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput, squared=squared)
+        result = msle(
+            y_true,
+            y_pred,
+            sample_weight=sample_weight,
+            multioutput=multioutput,
+            squared=squared,
+        )
     return result

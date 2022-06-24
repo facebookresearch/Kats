@@ -7,6 +7,7 @@ import logging
 import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+
 if sys.version_info >= (3, 8):
     from typing import Protocol
 else:
@@ -14,6 +15,7 @@ else:
 
 import numpy as np
 import pandas as pd
+
 from kats.consts import TimeSeriesData
 
 

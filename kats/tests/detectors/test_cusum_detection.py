@@ -9,15 +9,16 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+from parameterized.parameterized import parameterized
+from scipy.stats import chi2  # @manual
+from sklearn.datasets import make_spd_matrix
+
 from kats.consts import TimeSeriesData
 from kats.detectors.cusum_detection import (
     CUSUMDetector,
     MultiCUSUMDetector,
     VectorizedCUSUMDetector,
 )
-from parameterized.parameterized import parameterized
-from scipy.stats import chi2  # @manual
-from sklearn.datasets import make_spd_matrix
 
 
 class CUSUMDetectorTest(TestCase):

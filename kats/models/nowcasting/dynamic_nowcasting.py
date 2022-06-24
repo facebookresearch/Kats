@@ -22,19 +22,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 from typing import Any, List
 
-import kats.models.model as m
 import numpy as np
 import pandas as pd
-from kats.consts import Params, TimeSeriesData
-from kats.models.nowcasting.feature_extraction import LAG, ROC, MA, MOM
-from kats.models.nowcasting.model_io import (
-    serialize_for_zippy,
-    deserialize_from_zippy,
-)
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PowerTransformer
+
+import kats.models.model as m
+from kats.consts import Params, TimeSeriesData
+from kats.models.nowcasting.feature_extraction import LAG, MA, MOM, ROC
+from kats.models.nowcasting.model_io import deserialize_from_zippy, serialize_for_zippy
 
 
 # pyre-fixme[3]: Return type must be annotated.
@@ -44,7 +42,7 @@ def poly(df, n):
     Takes the column x from the dataframe df and takes
     the value from x to the power n
     """
-    poly = pd.Series(df.x ** n, name="poly_" + str(n))
+    poly = pd.Series(df.x**n, name="poly_" + str(n))
     df = df.join(poly)
     return df
 

@@ -7,15 +7,18 @@ import unittest
 from unittest import TestCase
 
 import pandas as pd
+from parameterized.parameterized import parameterized
+
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.models.stlf import STLFModel, STLFParams
-from parameterized.parameterized import parameterized
+
 
 def load_data_std_cols(path: str) -> pd.DataFrame:
     df = load_data(path)
     df.columns = ["time", "y"]
     return df
+
 
 METHODS = ["theta", "prophet", "linear", "quadratic"]
 
@@ -28,7 +31,9 @@ class testSTLFModel(TestCase):
                 "ts": TimeSeriesData(load_data_std_cols("peyton_manning.csv")),
             },
             "multi": {
-                "ts": TimeSeriesData(load_data("multivariate_anomaly_simulated_data.csv")),
+                "ts": TimeSeriesData(
+                    load_data("multivariate_anomaly_simulated_data.csv")
+                ),
             },
         }
 
@@ -46,7 +51,6 @@ class testSTLFModel(TestCase):
         truth = truth.to_dataframe().y.to_numpy()
         self.assertTrue((truth - pred[:, 1]).max() < 2)  # check actual vs true
         self.assertTrue(all(pred[:, 2] > pred[:, 0]))  # check upper > lower bounds
-
 
     # pyre-fixme[56]
     @parameterized.expand([("multi", m) for m in METHODS])

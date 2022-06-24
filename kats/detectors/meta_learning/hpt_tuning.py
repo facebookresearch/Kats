@@ -23,11 +23,11 @@ from ...models.metalearner.metalearner_hpt import MetaLearnHPT
 from ..cusum_model import CUSUMDetectorModel
 from ..stat_sig_detector import StatSigDetectorModel
 from .exceptions import (
-    KatsDetectorHPTTrainError,
     KatsDetectorHPTIllegalHyperParameter,
-    KatsDetectorUnsupportedAlgoName,
-    KatsDetectorsUnimplemented,
     KatsDetectorHPTModelUsedBeforeTraining,
+    KatsDetectorHPTTrainError,
+    KatsDetectorsUnimplemented,
+    KatsDetectorUnsupportedAlgoName,
 )
 
 
@@ -46,7 +46,9 @@ class MetaDetectHptSelect:
         "lr": 0.001,
     }
 
-    def __init__(self, data_x: pd.DataFrame, data_y: pd.DataFrame, algorithm_name: str) -> None:
+    def __init__(
+        self, data_x: pd.DataFrame, data_y: pd.DataFrame, algorithm_name: str
+    ) -> None:
         self._check_valid_input(data_x, data_y, algorithm_name)
         self._data_x: pd.DataFrame = data_x
         self._data_y: pd.DataFrame = data_y
@@ -77,7 +79,9 @@ class MetaDetectHptSelect:
                 )
 
     @staticmethod
-    def _init_detection_model(algorithm_name: str, hyper_parameters: Dict[str, Any]) -> DetectionAlgoMeta:
+    def _init_detection_model(
+        algorithm_name: str, hyper_parameters: Dict[str, Any]
+    ) -> DetectionAlgoMeta:
         """
         returns detection algorithm for given algorithm name initialized with given hyper parameters
         """
@@ -104,7 +108,9 @@ class MetaDetectHptSelect:
         self._meta_hpt_model = model
         return self
 
-    def _train_model(self, model: MetaLearnHPT, meta_learn_hpt_kwargs: Dict[str, Any]) -> None:
+    def _train_model(
+        self, model: MetaLearnHPT, meta_learn_hpt_kwargs: Dict[str, Any]
+    ) -> None:
         model.train(**meta_learn_hpt_kwargs)
 
     def plot(self, **kwargs: Any) -> Sequence[plt.Axes]:

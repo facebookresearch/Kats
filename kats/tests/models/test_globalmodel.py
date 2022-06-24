@@ -11,9 +11,11 @@ from unittest import TestCase, mock
 import numpy as np
 import pandas as pd
 import torch
+from parameterized.parameterized import parameterized
+
 from kats.consts import TimeSeriesData
 from kats.models.globalmodel.backtester import GMBackTester, GMBackTesterExpandingWindow
-from kats.models.globalmodel.data_processor import GMDataLoader, GMBatch
+from kats.models.globalmodel.data_processor import GMBatch, GMDataLoader
 from kats.models.globalmodel.ensemble import GMEnsemble, load_gmensemble_from_file
 from kats.models.globalmodel.model import GMModel, load_gmmodel_from_file
 from kats.models.globalmodel.serialize import (
@@ -21,20 +23,20 @@ from kats.models.globalmodel.serialize import (
     load_global_model_from_json,
 )
 from kats.models.globalmodel.utils import (
-    LSTM2Cell,
-    S2Cell,
-    DilatedRNNStack,
-    PinballLoss,
-    GMParam,
     AdjustedPinballLoss,
+    DilatedRNNStack,
     GMFeature,
-    gmparam_from_string,
-    pad_ts,
+    GMParam,
+    LSTM2Cell,
+    PinballLoss,
+    S2Cell,
     fill_missing_value_na,
     get_filters,
+    gmparam_from_string,
+    pad_ts,
     split,
 )
-from parameterized.parameterized import parameterized
+
 
 # pyre-fixme[3]: Return type must be annotated.
 # pyre-fixme[2]: Parameter must be annotated.

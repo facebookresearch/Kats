@@ -11,16 +11,17 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+from parameterized.parameterized import parameterized
+
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.detectors.prophet_detector import (
     ProphetDetectorModel,
-    ProphetTrendDetectorModel,
     ProphetScoreFunction,
+    ProphetTrendDetectorModel,
 )
 from kats.utils.simulator import Simulator
-from parameterized.parameterized import parameterized
 
 
 class TestProphetDetector(TestCase):
@@ -239,8 +240,8 @@ class TestProphetDetector(TestCase):
     def calc_stds(
         self, predicted_val: float, upper_bound: float, lower_bound: float
     ) -> Tuple[float, float]:
-        actual_upper_std = (50 ** 0.5) * (upper_bound - predicted_val) / 0.8
-        actual_lower_std = (50 ** 0.5) * (predicted_val - lower_bound) / 0.8
+        actual_upper_std = (50**0.5) * (upper_bound - predicted_val) / 0.8
+        actual_lower_std = (50**0.5) * (predicted_val - lower_bound) / 0.8
 
         upper_std = max(actual_upper_std, 1e-9)
         lower_std = max(actual_lower_std, 1e-9)

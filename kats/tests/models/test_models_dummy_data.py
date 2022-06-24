@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from pandas import Timestamp
 
+
 AIR_FCST_LINEAR_95 = pd.DataFrame(
     {
         "time": {

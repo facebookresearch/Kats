@@ -7,9 +7,11 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+
 from kats.detectors.meta_learning.metalearning_detection_model import (
     MetaDetectModelSelect,
 )
+
 
 base_models = ["cusum", "statsig", "bocpd"]
 

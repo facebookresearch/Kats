@@ -80,8 +80,6 @@ def get_default_prophet_parameter_search_space() -> List[Dict[str, Any]]:
             "is_ordered": True,
         },
         {
-
-
             "name": "changepoint_range",
             "type": "choice",
             "value_type": "float",
@@ -481,7 +479,7 @@ def get_default_lightgbm_parameter_search_space() -> List[Dict[str, Any]]:
             "name": "num_leaves",
             "type": "choice",
             "value_type": "int",
-            "values": list(np.arange(2 ** 5, 2 ** 11, 128)),
+            "values": list(np.arange(2**5, 2**11, 128)),
             "is_ordered": True,
         },
     ]

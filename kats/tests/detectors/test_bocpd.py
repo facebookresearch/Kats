@@ -10,6 +10,8 @@ from typing import Sequence
 from unittest import TestCase
 
 import numpy as np
+from parameterized.parameterized import parameterized
+
 from kats.consts import TimeSeriesData
 from kats.detectors.bocpd import (
     BOCPDChangePoint,
@@ -20,7 +22,6 @@ from kats.detectors.bocpd import (
     TrendChangeParameters,
 )
 from kats.utils.simulator import Simulator
-from parameterized.parameterized import parameterized
 
 
 class BOCPDTest(TestCase):
@@ -394,7 +395,7 @@ class BOCPDTest(TestCase):
     def test_time_col_name(self) -> None:
 
         df = self.normal_ts.to_dataframe()
-        df.rename(columns={'time': 'ds'}, inplace=True)
+        df.rename(columns={"time": "ds"}, inplace=True)
         ts = TimeSeriesData(df, time_col_name="ds")
         try:
             detector = BOCPDetector(data=ts)

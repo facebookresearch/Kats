@@ -10,13 +10,14 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+from parameterized.parameterized import parameterized
+from sklearn.datasets import make_spd_matrix
+
 from kats.consts import TimeSeriesData
 from kats.detectors.robust_stat_detection import (
     RobustStatChangePoint,
     RobustStatDetector,
 )
-from parameterized.parameterized import parameterized
-from sklearn.datasets import make_spd_matrix
 
 
 class RobustStatTest(TestCase):

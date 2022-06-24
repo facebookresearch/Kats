@@ -9,16 +9,17 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 import pandas as pd
+from parameterized.parameterized import parameterized
+
 from kats.detectors.meta_learning.exceptions import (
     KatsDetectorHPTIllegalHyperParameter,
-    KatsDetectorUnsupportedAlgoName,
-    KatsDetectorsUnimplemented,
-    KatsDetectorHPTTrainError,
     KatsDetectorHPTModelUsedBeforeTraining,
+    KatsDetectorHPTTrainError,
+    KatsDetectorsUnimplemented,
+    KatsDetectorUnsupportedAlgoName,
 )
 from kats.detectors.meta_learning.hpt_tuning import MetaDetectHptSelect
 from kats.detectors.meta_learning.synth_metadata_reader import SynthMetadataReader
-from parameterized.parameterized import parameterized
 
 
 class TestMetaDetectHptSelect(TestCase):

@@ -15,9 +15,11 @@ from typing import Any, Callable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData
 from pandas.tseries.frequencies import to_offset
 from scipy.stats import norm  # @manual
+
+from kats.consts import TimeSeriesData
+
 
 # A TimedeltaLike object represents a time offset.
 # E.g., length of 1 day can be represented by timedelta(days=1),or by

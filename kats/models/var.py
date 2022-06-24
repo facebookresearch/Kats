@@ -24,12 +24,13 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from kats.consts import Params, TimeSeriesData
-from kats.models.model import Model
-from kats.utils.parameter_tuning_utils import get_default_var_parameter_search_space
 from matplotlib import pyplot as plt
 from statsmodels.tsa.api import VAR
 from statsmodels.tsa.vector_ar.var_model import VARResults
+
+from kats.consts import Params, TimeSeriesData
+from kats.models.model import Model
+from kats.utils.parameter_tuning_utils import get_default_var_parameter_search_space
 
 
 class VARParams(Params):

@@ -10,6 +10,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 
+
 try:
     import plotly.graph_objs as go
 

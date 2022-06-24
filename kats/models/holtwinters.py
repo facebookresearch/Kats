@@ -17,15 +17,16 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+from statsmodels.tsa.holtwinters import (
+    ExponentialSmoothing as HoltWinters,
+    HoltWintersResults,
+)
+
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
 from kats.utils.emp_confidence_int import EmpConfidenceInt
 from kats.utils.parameter_tuning_utils import (
     get_default_holtwinters_parameter_search_space,
-)
-from statsmodels.tsa.holtwinters import (
-    ExponentialSmoothing as HoltWinters,
-    HoltWintersResults,
 )
 
 

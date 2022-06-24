@@ -19,13 +19,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-import kats.models.model as m
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from kats.consts import _log_error, Params, TimeSeriesData
 from numpy.linalg import inv
 from scipy.linalg import block_diag
+
+import kats.models.model as m
+from kats.consts import Params, TimeSeriesData, _log_error
 
 
 @dataclass

@@ -16,9 +16,10 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+from statsmodels.sandbox.regression.predstd import wls_prediction_std
+
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
-from statsmodels.sandbox.regression.predstd import wls_prediction_std
 
 
 class QuadraticModelParams(Params):

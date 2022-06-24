@@ -12,31 +12,32 @@ from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
-from kats.compat import statsmodels, pandas
+from parameterized.parameterized import parameterized
+
+from kats.compat import pandas, statsmodels
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_data, load_air_passengers
+from kats.data.utils import load_air_passengers, load_data
 from kats.models.neuralprophet import NeuralProphetModel, NeuralProphetParams
 from kats.tests.models.test_models_dummy_data import (
-    NONSEASONAL_INPUT,
-    NONSEASONAL_FUTURE_DF,
-    AIR_FCST_30_PROPHET_SM_11,
-    AIR_FCST_30_PROPHET_INCL_HIST_SM_11,
-    PEYTON_FCST_15_PROPHET_INCL_HIST_SM_11,
     AIR_FCST_15_PROPHET_LOGISTIC_CAP_SM_11,
-    PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_11,
-    AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11,
-    PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11,
-    NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_11,
-    AIR_FCST_30_PROPHET_SM_12,
-    AIR_FCST_30_PROPHET_INCL_HIST_SM_12,
-    PEYTON_FCST_15_PROPHET_INCL_HIST_SM_12,
     AIR_FCST_15_PROPHET_LOGISTIC_CAP_SM_12,
-    PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_12,
+    AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11,
     AIR_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12,
-    PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12,
+    AIR_FCST_30_PROPHET_INCL_HIST_SM_11,
+    AIR_FCST_30_PROPHET_INCL_HIST_SM_12,
+    AIR_FCST_30_PROPHET_SM_11,
+    AIR_FCST_30_PROPHET_SM_12,
+    NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_11,
     NONSEASONAL_FCST_15_PROPHET_ARG_FUTURE_SM_12,
+    NONSEASONAL_FUTURE_DF,
+    NONSEASONAL_INPUT,
+    PEYTON_FCST_15_PROPHET_INCL_HIST_SM_11,
+    PEYTON_FCST_15_PROPHET_INCL_HIST_SM_12,
+    PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_11,
+    PEYTON_FCST_30_PROPHET_CUSTOM_SEASONALITY_SM_12,
+    PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_11,
+    PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_12,
 )
-from parameterized.parameterized import parameterized
 
 
 TEST_DATA: Dict[str, Any] = {
@@ -101,14 +102,19 @@ class NeuralProphetModelTest(TestCase):
             else:
                 return original_import_fn(module, *args, **kwargs)
 
-        cls.mock_imports = patch("builtins.__import__", side_effect=mock_neuralprophet_import)
+        cls.mock_imports = patch(
+            "builtins.__import__", side_effect=mock_neuralprophet_import
+        )
 
     def test_neuralprophet_not_installed(self) -> None:
         # Unload prophet module so its imports can be mocked as necessary
         del sys.modules["kats.models.neuralprophet"]
 
         with self.mock_imports:
-            from kats.models.neuralprophet import NeuralProphetModel, NeuralProphetParams
+            from kats.models.neuralprophet import (
+                NeuralProphetModel,
+                NeuralProphetParams,
+            )
 
             self.assertRaises(RuntimeError, NeuralProphetParams)
             self.assertRaises(
@@ -341,7 +347,7 @@ class NeuralProphetModelTest(TestCase):
                 {
                     "names": "reg2",
                 },
-            ]
+            ],
         )
         params2 = NeuralProphetParams(
             extra_future_regressors=[

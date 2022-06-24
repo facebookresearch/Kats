@@ -30,10 +30,11 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Any, cast, Dict, List, NamedTuple, Optional, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
+
 from kats.consts import DEFAULT_VALUE_NAME, TimeSeriesData
 from kats.detectors.cusum_detection import CUSUM_DEFAULT_ARGS, CUSUMDetector
 from kats.detectors.detector import DetectorModel
