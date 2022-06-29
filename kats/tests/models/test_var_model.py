@@ -5,15 +5,14 @@
 
 import unittest
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from parameterized.parameterized import parameterized
-
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.models.var import VARModel, VARParams
+from parameterized.parameterized import parameterized
 
 
 TEST_DATA = {

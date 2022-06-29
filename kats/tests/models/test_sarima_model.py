@@ -9,26 +9,24 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from parameterized.parameterized import parameterized
-
 from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_air_passengers, load_data
+from kats.data.utils import load_data, load_air_passengers
 from kats.models.sarima import SARIMAModel, SARIMAParams
 from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_15_SARIMA_PARAM_1_MODEL_1,
-    AIR_FCST_15_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
-    AIR_FCST_15_SARIMA_PARAM_1_MODEL_2,
     AIR_FCST_15_SARIMA_PARAM_2_MODEL_1,
-    AIR_FCST_15_SARIMA_PARAM_2_MODEL_2,
     AIR_FCST_30_SARIMA_PARAM_1_MODEL_1,
-    AIR_FCST_30_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
-    AIR_FCST_30_SARIMA_PARAM_1_MODEL_2,
     AIR_FCST_30_SARIMA_PARAM_2_MODEL_1,
+    AIR_FCST_15_SARIMA_PARAM_2_MODEL_2,
     AIR_FCST_30_SARIMA_PARAM_2_MODEL_2,
+    AIR_FCST_15_SARIMA_PARAM_1_MODEL_2,
+    AIR_FCST_30_SARIMA_PARAM_1_MODEL_2,
+    AIR_FCST_15_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
+    AIR_FCST_30_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
     EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1,
 )
-
+from parameterized.parameterized import parameterized
 
 AIR_TS: pd.DataFrame = load_air_passengers()
 MULTI_DF: pd.DataFrame = load_data("multivariate_anomaly_simulated_data.csv")

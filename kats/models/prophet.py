@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 
-
 try:
     from fbprophet import Prophet
 

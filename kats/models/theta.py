@@ -19,14 +19,13 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from scipy.stats import norm  # @manual
-from statsmodels.tsa.holtwinters import HoltWintersResults, SimpleExpSmoothing
-from statsmodels.tsa.stattools import acf
-
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.parameter_tuning_utils import get_default_theta_parameter_search_space
+from scipy.stats import norm  # @manual
+from statsmodels.tsa.holtwinters import HoltWintersResults, SimpleExpSmoothing
+from statsmodels.tsa.stattools import acf
 
 
 class ThetaParams(Params):

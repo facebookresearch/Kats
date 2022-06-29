@@ -26,7 +26,6 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-
 from kats.consts import Params, TimeSeriesData
 from kats.models import linear_model, prophet, quadratic_model, theta
 from kats.models.linear_model import LinearModel
@@ -36,7 +35,6 @@ from kats.models.quadratic_model import QuadraticModel
 from kats.models.theta import ThetaModel
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.parameter_tuning_utils import get_default_stlf_parameter_search_space
-
 
 MODELS = ["prophet", "linear", "quadratic", "theta"]
 

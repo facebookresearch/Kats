@@ -11,10 +11,9 @@ model, we take the median from each time point as the final results
 """
 
 import logging
-from typing import List, Optional, cast
+from typing import cast, List, Optional
 
 import pandas as pd
-
 from kats.consts import TimeSeriesData
 from kats.models.ensemble import ensemble
 from kats.models.ensemble.ensemble import EnsembleParams

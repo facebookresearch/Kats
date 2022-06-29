@@ -8,9 +8,7 @@ from typing import Any, Generic, Optional, Tuple, TypeVar
 
 import matplotlib.pyplot as plt
 import pandas as pd
-
 from kats.consts import TimeSeriesData
-
 
 ParamsType = TypeVar("ParamsType")
 

@@ -8,25 +8,23 @@ from typing import Dict, Optional, Union
 from unittest import TestCase
 
 import pandas as pd
-from parameterized.parameterized import parameterized
-
 from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data  # @manual
 from kats.models.arima import ARIMAModel, ARIMAParams
 from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_15_ARIMA_PARAM_1_MODEL_1,
-    PEYTON_FCST_15_ARIMA_PARAM_1_MODEL_1_INCL_HIST,
-    PEYTON_FCST_15_ARIMA_PARAM_1_MODEL_2,
     PEYTON_FCST_15_ARIMA_PARAM_2_MODEL_1,
+    PEYTON_FCST_15_ARIMA_PARAM_1_MODEL_2,
     PEYTON_FCST_15_ARIMA_PARAM_2_MODEL_2,
+    PEYTON_FCST_15_ARIMA_PARAM_1_MODEL_1_INCL_HIST,
     PEYTON_FCST_30_ARIMA_PARAM_1_MODEL_1,
-    PEYTON_FCST_30_ARIMA_PARAM_1_MODEL_1_INCL_HIST,
-    PEYTON_FCST_30_ARIMA_PARAM_1_MODEL_2,
     PEYTON_FCST_30_ARIMA_PARAM_2_MODEL_1,
+    PEYTON_FCST_30_ARIMA_PARAM_1_MODEL_2,
     PEYTON_FCST_30_ARIMA_PARAM_2_MODEL_2,
+    PEYTON_FCST_30_ARIMA_PARAM_1_MODEL_1_INCL_HIST,
 )
-
+from parameterized.parameterized import parameterized
 
 STEPS_1 = 15
 STEPS_2 = 30

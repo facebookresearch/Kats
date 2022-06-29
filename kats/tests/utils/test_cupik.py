@@ -6,11 +6,10 @@
 from unittest import TestCase
 
 import numpy as np
-
 from kats.compat import statsmodels
 from kats.data.utils import load_air_passengers
 from kats.detectors.trend_mk import MKDetector
-from kats.models.theta import ThetaModel, ThetaParams
+from kats.models.theta import ThetaParams, ThetaModel
 from kats.utils.cupik import Pipeline
 
 

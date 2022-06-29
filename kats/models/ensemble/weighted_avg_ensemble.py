@@ -12,12 +12,11 @@ weight.
 """
 import logging
 import sys
-from multiprocessing import Pool, cpu_count
-from typing import Any, Dict, List, Optional, Type, Union, cast
+from multiprocessing import cpu_count, Pool
+from typing import Any, cast, Dict, List, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
-
 from kats.consts import Params, TimeSeriesData
 from kats.models.ensemble import ensemble
 from kats.models.ensemble.ensemble import BASE_MODELS, EnsembleParams

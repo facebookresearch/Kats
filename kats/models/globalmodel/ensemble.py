@@ -13,7 +13,6 @@ import joblib
 import numpy as np
 import pandas as pd
 import torch
-
 from kats.consts import TimeSeriesData
 from kats.models.globalmodel.model import GMModel, gmparam_from_string
 from kats.models.globalmodel.utils import GMParam, gmpreprocess, split

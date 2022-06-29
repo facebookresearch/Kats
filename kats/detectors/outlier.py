@@ -16,19 +16,18 @@ import traceback
 from datetime import datetime
 from enum import Enum
 from importlib import import_module
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy import stats
-from scipy.spatial import distance
-from statsmodels.tsa.seasonal import seasonal_decompose
-
 from kats.consts import Params, TimeSeriesData, TimeSeriesIterator
 from kats.detectors.detector import Detector
 from kats.models.bayesian_var import BayesianVAR
 from kats.models.var import VARModel
+from scipy import stats
+from scipy.spatial import distance
+from statsmodels.tsa.seasonal import seasonal_decompose
 
 
 class OutlierDetector(Detector):

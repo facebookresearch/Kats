@@ -7,10 +7,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-
 from kats.consts import TimeSeriesData
 from kats.models.metalearner.metalearner_modelselect import MetaLearnModelSelect
-
 
 NUM_SECS_IN_DAY: int = 3600 * 24
 PARAMS_TO_SCALE_DOWN = {"n_control", "n_test", "historical_window", "scan_window"}

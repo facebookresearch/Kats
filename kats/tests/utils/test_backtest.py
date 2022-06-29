@@ -12,18 +12,17 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.metrics.metrics import core_metric
 from kats.tests.test_backtester_dummy_data import (
-    PROPHET_0_72_FCST_DUMMY_DATA,
-    PROPHET_0_72_GAP_36_FCST_DUMMY_DATA,
-    PROPHET_0_90_FCST_DUMMY_DATA,
+    PROPHET_EMPTY_DUMMY_DATA,
     PROPHET_0_108_FCST_DUMMY_DATA,
+    PROPHET_0_72_FCST_DUMMY_DATA,
+    PROPHET_0_90_FCST_DUMMY_DATA,
     PROPHET_18_90_FCST_DUMMY_DATA,
     PROPHET_36_108_FCST_DUMMY_DATA,
-    PROPHET_EMPTY_DUMMY_DATA,
+    PROPHET_0_72_GAP_36_FCST_DUMMY_DATA,
 )
 from kats.utils.backtesters import (
     BackTesterExpandingWindow,
@@ -33,7 +32,6 @@ from kats.utils.backtesters import (
     CrossValidation,
     _return_fold_offsets as return_fold_offsets,
 )
-
 
 # Constants
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]  # Errors to test

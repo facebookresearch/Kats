@@ -12,7 +12,6 @@ from . import detector_consts  # noqa # usort: skip
 from . import hourly_ratio_detection  # noqa # usort: skip
 from . import outlier  # noqa # usort: skip
 
-
 try:
     from . import prophet_detector  # noqa # usort: skip
 except ImportError:

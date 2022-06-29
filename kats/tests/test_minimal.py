@@ -6,9 +6,8 @@
 import sys
 import unittest
 
-import pytest
-
 import kats
+import pytest
 
 
 class TestMinimal(unittest.TestCase):
@@ -21,7 +20,8 @@ class TestMinimal(unittest.TestCase):
     def test_minimal_install(self) -> None:
         try:
             from kats.detectors import prophet_detector
-            from kats.models import lstm, neuralprophet
+            from kats.models import lstm
+            from kats.models import neuralprophet
 
             self.assertFalse(
                 (

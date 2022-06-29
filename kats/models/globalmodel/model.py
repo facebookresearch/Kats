@@ -5,28 +5,29 @@
 
 import collections
 import logging
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import List, Optional, Union, Callable, Any, Tuple, Dict, Generator
 
 import joblib
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+from kats.consts import TimeSeriesData
+from kats.metrics import metrics
+from kats.models.globalmodel.data_processor import (
+    GMBatch,
+    GMDataLoader,
+)
+from kats.models.globalmodel.utils import (
+    GMParam,
+    DilatedRNNStack,
+    PinballLoss,
+    AdjustedPinballLoss,
+    gmparam_from_string,
+)
 from torch import Tensor
 from torch.nn.modules.loss import _Loss
 from torch.optim import Adam
-
-from kats.consts import TimeSeriesData
-from kats.metrics import metrics
-from kats.models.globalmodel.data_processor import GMBatch, GMDataLoader
-from kats.models.globalmodel.utils import (
-    AdjustedPinballLoss,
-    DilatedRNNStack,
-    GMParam,
-    PinballLoss,
-    gmparam_from_string,
-)
-
 
 NoneT = torch.FloatTensor([-1e38])
 

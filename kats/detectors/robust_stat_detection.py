@@ -9,10 +9,9 @@ from typing import Any, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import norm, zscore  # @manual
-
-from kats.consts import TimeSeriesChangePoint, TimeSeriesData
+from kats.consts import TimeSeriesData, TimeSeriesChangePoint
 from kats.detectors.detector import Detector
+from scipy.stats import norm, zscore  # @manual
 
 
 class RobustStatChangePoint(TimeSeriesChangePoint):

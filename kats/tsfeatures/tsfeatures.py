@@ -32,7 +32,6 @@ from statsmodels.stats.diagnostic import het_arch
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.stattools import acf, kpss, pacf
 
-
 try:
     from numba import jit  # @manual
 except ImportError:
@@ -55,7 +54,6 @@ from kats.detectors import (
     seasonality,
     trend_mk,
 )
-
 
 """
 Each entry in _ALL_TS_FEATURES is of the form

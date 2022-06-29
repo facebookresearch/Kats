@@ -7,9 +7,10 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 from kats.consts import TimeSeriesData
-from kats.detectors.threshold_detector import StaticThresholdModel
+from kats.detectors.threshold_detector import (
+    StaticThresholdModel,
+)
 
 
 class TestStaticThresholdModel(TestCase):

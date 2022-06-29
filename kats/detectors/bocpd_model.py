@@ -13,12 +13,11 @@ from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
-
 from kats.consts import TimeSeriesData
 from kats.detectors.bocpd import BOCPDetector, BOCPDModelType
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 
 class BocpdDetectorModel(DetectorModel):

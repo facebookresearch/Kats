@@ -5,22 +5,19 @@
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import Any, cast, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import torch
+from kats.consts import TimeSeriesData
+from kats.tsfeatures.tsfeatures import TsFeatures
 from numba import jit
 from torch import Tensor
 from torch.nn.modules.loss import _Loss
 
-from kats.consts import TimeSeriesData
-from kats.tsfeatures.tsfeatures import TsFeatures
-
-
 all_validation_metric_name = ["smape", "sbias", "exceed"]
 
 import pandas as pd
-
 
 """
 A module for utility functions of global models, including:
@@ -1555,7 +1552,6 @@ def gmparam_from_string(gmstring: str) -> GMParam:
         }
     gmparam = GMParam(**gmparam_dict)
     return gmparam
-
 
 # pyre-fixme[3]: Return annotation cannot contain `Any`.
 def gmpreprocess(

@@ -20,11 +20,9 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from sklearn.model_selection import train_test_split
-
 from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
-
+from sklearn.model_selection import train_test_split
 
 # pyre-fixme[5]: Global expression must be annotated.
 default_model_params = {

@@ -3,12 +3,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Union, cast
+from typing import cast, Any, Dict, List, Union
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 from kats.compat import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers

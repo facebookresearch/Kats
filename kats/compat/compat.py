@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-
 try:
     from importlib import metadata
 except ImportError:

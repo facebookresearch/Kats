@@ -11,19 +11,18 @@ The predictability of a time series is determined by whether the forecasting err
 
 import ast
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import joblib
 import numpy as np
 import pandas as pd
+from kats.consts import TimeSeriesData
+from kats.tsfeatures.tsfeatures import TsFeatures
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.metrics import precision_recall_curve, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-
-from kats.consts import TimeSeriesData
-from kats.tsfeatures.tsfeatures import TsFeatures
 
 
 class MetaLearnPredictability:
@@ -161,9 +160,7 @@ class MetaLearnPredictability:
 
         self.rescale = True
         features = (self.features.values - self.features_mean) / self.features_std
-        self.features = pd.DataFrame(
-            features, columns=self.features.columns, copy=False
-        )
+        self.features = pd.DataFrame(features, columns=self.features.columns, copy=False)
 
     def train(
         self,

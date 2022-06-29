@@ -17,10 +17,9 @@ from typing import List, Optional, Tuple, Type
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy import stats
-
 from kats.consts import Params, TimeSeriesData
 from kats.utils.backtesters import BackTesterRollingWindow
+from scipy import stats
 
 
 FigSize = Tuple[int, int]

@@ -5,17 +5,15 @@
 
 
 import logging
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence, Tuple, Union, List
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import chi2
-from sklearn.covariance import MinCovDet
-
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
-
+from scipy.stats import chi2
+from sklearn.covariance import MinCovDet
 
 """A module for detecting abnormal in hourly ratio.
 

@@ -19,12 +19,10 @@ purposes. We currently support the following data sets:
 """
 
 from typing import List, Tuple
-
 import numpy as np
 import pandas as pd
-from scipy.special import expit  # @manual
-
 from kats.consts import TimeSeriesData
+from scipy.special import expit  # @manual
 
 
 def gen_no_trend_data_ndim(time: pd.Series, ndim: int = 1) -> TimeSeriesData:

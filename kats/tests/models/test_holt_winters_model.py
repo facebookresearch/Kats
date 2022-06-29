@@ -5,20 +5,19 @@
 
 import re
 import unittest
-from typing import Any, Dict, cast
+from typing import cast, Any, Dict
 from unittest import TestCase
 
 import pandas as pd
-from parameterized.parameterized import parameterized
-
 from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers, load_data
 from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
-from kats.tests.models.test_models_dummy_data import \
-    AIR_FCST_HW_1  # first param combination results
-from kats.tests.models.test_models_dummy_data import AIR_FCST_HW_2
-
+from kats.tests.models.test_models_dummy_data import (
+    AIR_FCST_HW_1,  # first param combination results
+    AIR_FCST_HW_2,
+)
+from parameterized.parameterized import parameterized
 
 pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])
 

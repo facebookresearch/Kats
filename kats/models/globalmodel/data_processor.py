@@ -4,16 +4,14 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List, Union, Dict, Optional, Any, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
-from torch import Tensor
-
 from kats.consts import TimeSeriesData
 from kats.models.globalmodel.utils import GMParam
-
+from torch import Tensor
 
 """
 This module provides two Classes for data processing for global models: :class:`GMDataLoader` and :class:`GMBatch`.
@@ -77,8 +75,7 @@ class GMDataLoader:
 
     def _valid_dataset(
         # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
-        self,
-        dataset: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]],
+        self, dataset: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]]
     ) -> Tuple[np.ndarray, np.ndarray]:
         if len(dataset) < 1:
             msg = "Input dataset should be non-empty."

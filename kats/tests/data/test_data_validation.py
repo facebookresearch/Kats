@@ -7,7 +7,6 @@ import unittest
 from unittest import TestCase
 
 import pandas as pd
-
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
 

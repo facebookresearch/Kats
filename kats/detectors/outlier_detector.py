@@ -12,7 +12,6 @@ from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
-
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand

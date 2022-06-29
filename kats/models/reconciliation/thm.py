@@ -12,8 +12,6 @@ from typing import Dict, List, Optional, Type
 
 import numpy as np
 import pandas as pd
-from sklearn.covariance import MinCovDet
-
 from kats.consts import TimeSeriesData
 from kats.metrics import metrics
 from kats.models import (
@@ -27,6 +25,7 @@ from kats.models import (
 )
 from kats.models.model import Model
 from kats.models.reconciliation.base_models import BaseTHModel, GetAggregateTS
+from sklearn.covariance import MinCovDet
 
 
 # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.

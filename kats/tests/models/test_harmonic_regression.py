@@ -8,14 +8,13 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from parameterized import parameterized
-
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.models.harmonic_regression import (
     HarmonicRegressionModel,
     HarmonicRegressionParams,
 )
+from parameterized import parameterized
 
 
 TEST_DATA = {

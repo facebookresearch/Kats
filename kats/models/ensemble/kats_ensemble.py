@@ -23,8 +23,8 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
-
 from kats.consts import Params, TimeSeriesData
+
 # Seasonality detector
 from kats.detectors.seasonality import ACFDetector
 from kats.models import (
@@ -39,9 +39,9 @@ from kats.models import (
 from kats.models.ensemble.ensemble import EnsembleParams
 from kats.models.model import Model
 from kats.utils.backtesters import BackTesterSimple
+
 # STL decomposition
 from kats.utils.decomposition import TimeSeriesDecomposition
-
 
 # from numpy.typing import ArrayLike
 ArrayLike = Union[Sequence[float], np.ndarray]

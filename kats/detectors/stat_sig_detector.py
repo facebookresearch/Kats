@@ -11,7 +11,6 @@ from typing import Any, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (
@@ -21,7 +20,6 @@ from kats.detectors.detector_consts import (
     PercentageChange,
 )
 from kats.utils.decomposition import TimeSeriesDecomposition
-
 
 """Statistical Significance Detector Module
 This module contains simple detectors that apply a t-test over a rolling window to compare

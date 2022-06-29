@@ -16,11 +16,9 @@ import numpy as np
 import pandas as pd
 from fbprophet import Prophet
 from fbprophet.serialize import model_from_json, model_to_json
-
 from kats.consts import DEFAULT_VALUE_NAME, TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
-
 
 PROPHET_TIME_COLUMN = "ds"
 PROPHET_VALUE_COLUMN = "y"
@@ -111,9 +109,7 @@ SCORE_FUNC_DICT: Dict[str, Any] = {
     ProphetScoreFunction.z_score.value: z_score,
 }
 
-DEFAULT_SCORE_FUNCTION: ProphetScoreFunction = (
-    ProphetScoreFunction.deviation_from_predicted_val
-)
+DEFAULT_SCORE_FUNCTION: ProphetScoreFunction = ProphetScoreFunction.deviation_from_predicted_val
 STR_TO_SCORE_FUNC: Dict[str, ProphetScoreFunction] = {  # Used for param tuning
     "deviation_from_predicted_val": ProphetScoreFunction.deviation_from_predicted_val,
     "z_score": ProphetScoreFunction.z_score,

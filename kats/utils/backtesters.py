@@ -23,14 +23,12 @@ For more information, check out the Kats tutorial notebook on backtesting!
 import logging
 import multiprocessing as mp
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-
 from kats.consts import Params, TimeSeriesData
-from kats.metrics.metrics import CoreMetric, core_metric
-
+from kats.metrics.metrics import core_metric, CoreMetric
 
 if TYPE_CHECKING:
     from kats.models.model import Model

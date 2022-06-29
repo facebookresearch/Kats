@@ -13,18 +13,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-
 try:
     import pymannkendall as mk
 
     _no_mk = False
 except ImportError:
     _no_mk = True
-from statsmodels.tsa.api import SimpleExpSmoothing
-
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
-
+from statsmodels.tsa.api import SimpleExpSmoothing
 
 """Mann-Kendall (MK) Trend Detector Module
 

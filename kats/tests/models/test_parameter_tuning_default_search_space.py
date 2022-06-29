@@ -15,7 +15,9 @@ from kats.models.quadratic_model import QuadraticModel
 from kats.models.sarima import SARIMAModel
 from kats.models.theta import ThetaModel
 from kats.models.var import VARModel
-from kats.utils.time_series_parameter_tuning import TimeSeriesParameterTuning
+from kats.utils.time_series_parameter_tuning import (
+    TimeSeriesParameterTuning,
+)
 
 
 class TestParameterTuningDefaultSearchSpace(TestCase):

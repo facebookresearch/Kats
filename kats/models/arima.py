@@ -24,11 +24,10 @@ from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from statsmodels.tsa.arima_model import ARIMA, ARIMAResults
-
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import get_default_arima_parameter_search_space
+from statsmodels.tsa.arima_model import ARIMA, ARIMAResults
 
 
 class ARIMAParams(Params):

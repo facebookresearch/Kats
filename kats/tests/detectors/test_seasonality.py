@@ -7,7 +7,6 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.detectors.seasonality import ACFDetector, FFTDetector

@@ -23,10 +23,9 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from sklearn.preprocessing import MinMaxScaler
-
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
+from sklearn.preprocessing import MinMaxScaler
 
 
 class LSTMParams(Params):

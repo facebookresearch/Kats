@@ -8,10 +8,8 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from statsmodels.tsa import holtwinters
-
 from kats.compat import compat
-
+from statsmodels.tsa import holtwinters
 
 ArrayLike = Union[np.ndarray, Sequence[float]]
 Frequency = Union[int, str, pd.Timedelta]
@@ -40,6 +38,7 @@ class HoltWintersResults(holtwinters.HoltWintersResults):
                 results.level,
                 results.trend,
                 results.season,
+
                 results.params_formatted,
                 results.resid,
                 results.k,

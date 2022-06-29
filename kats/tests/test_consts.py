@@ -7,7 +7,7 @@ import io
 import os
 import pkgutil
 from datetime import datetime
-from typing import List, cast
+from typing import cast, List
 from unittest import TestCase
 
 import matplotlib.pyplot as plt
@@ -17,7 +17,6 @@ import pytest
 import pytz
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
-
 from kats.compat.pandas import (
     assert_frame_equal,
     assert_index_equal,
@@ -51,9 +50,7 @@ EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME, dtype=float)
 EMPTY_VALUE_SERIES = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
 EMPTY_VALUE_SERIES_NO_NAME = pd.Series([], dtype=float)
 EMPTY_TIME_DATETIME_INDEX = pd.DatetimeIndex(pd.Series([], dtype=object))
-EMPTY_DF_WITH_COLS: pd.DataFrame = pd.concat(
-    [EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1
-)
+EMPTY_DF_WITH_COLS: pd.DataFrame = pd.concat([EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1)
 NUM_YEARS_OFFSET = 12
 
 
@@ -437,13 +434,9 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
 
         # Incorrect initialization with value dtypes
         with self.assertRaises(ValueError):
-            TimeSeriesData(
-                time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES.map(str)
-            )
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES.map(str))
         with self.assertRaises(ValueError):
-            TimeSeriesData(
-                time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF.applymap(str)
-            )
+            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF.applymap(str))
 
     # Testing incorrect initializations
     def test_incorrect_init_lengths(self) -> None:

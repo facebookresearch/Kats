@@ -8,7 +8,6 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.detectors.outlier_detector import OutlierDetectorModel
@@ -98,11 +97,12 @@ class TestOutlierDetectorModel(TestCase):
 
     def test_remover_usecase(self) -> None:
         # manually add outlier on the date of '1950-12-01'
-        self.data.loc[self.data.time == "1950-12-01", "y"] *= 5
+        self.data.loc[self.data.time == '1950-12-01','y']*=5
         # manually add outlier on the date of '1959-12-01'
-        self.data.loc[self.data.time == "1959-12-01", "y"] *= 4
+        self.data.loc[self.data.time == '1959-12-01','y']*=4
 
         single_ts = TimeSeriesData(self.data)
+
 
         response_with_interpolate = self.outlier_detector.fit_predict(
             single_ts, historical_ts=None, interpolate=True
@@ -118,26 +118,12 @@ class TestOutlierDetectorModel(TestCase):
         )
 
         # pyre-fixme[16]: Optional type has no attribute `value`.
-        self.assertEqual(
-            response_with_interpolate.predicted_ts.time.shape, single_ts.time.shape
-        )
+        self.assertEqual(response_with_interpolate.predicted_ts.time.shape, single_ts.time.shape)
         # pyre-fixme[16]: Optional type has no attribute `value`.
-        self.assertEqual(
-            response_with_interpolate.predicted_ts.value.shape, single_ts.value.shape
-        )
+        self.assertEqual(response_with_interpolate.predicted_ts.value.shape, single_ts.value.shape)
 
-        self.assertEqual(
-            response_with_no_interpolate.predicted_ts.time.shape, single_ts.time.shape
-        )
-        self.assertEqual(
-            response_with_no_interpolate.predicted_ts.value.shape, single_ts.value.shape
-        )
+        self.assertEqual(response_with_no_interpolate.predicted_ts.time.shape, single_ts.time.shape)
+        self.assertEqual(response_with_no_interpolate.predicted_ts.value.shape, single_ts.value.shape)
 
-        self.assertEqual(
-            response_with_default_interpolate.predicted_ts.time.shape,
-            single_ts.time.shape,
-        )
-        self.assertEqual(
-            response_with_default_interpolate.predicted_ts.value.shape,
-            single_ts.value.shape,
-        )
+        self.assertEqual(response_with_default_interpolate.predicted_ts.time.shape, single_ts.time.shape)
+        self.assertEqual(response_with_default_interpolate.predicted_ts.value.shape, single_ts.value.shape)

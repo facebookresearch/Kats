@@ -12,7 +12,6 @@ try:
 except ImportError:
     Figure = object
 
-
 class PlotlyAdapter:
     def __init__(self, fig: Figure) -> None:
         self.fig = fig

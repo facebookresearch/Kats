@@ -15,10 +15,9 @@ from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 from typing import Any, Callable, Dict, Tuple
 
+import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
 import pandas as pd
-
-import kats.utils.time_series_parameter_tuning as tpt
 from kats.consts import SearchMethodEnum, TimeSeriesData
 from kats.metrics.metrics import core_metric
 from kats.models.arima import ARIMAModel, ARIMAParams

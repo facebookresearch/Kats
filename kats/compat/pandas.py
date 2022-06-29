@@ -8,9 +8,8 @@ from typing import Any, Dict, Union
 
 import pandas as pd
 import pandas.testing as pdt
-from pandas.core.algorithms import safe_sort
-
 from kats.compat import compat
+from pandas.core.algorithms import safe_sort
 
 
 version: compat.Version = compat.Version("pandas")

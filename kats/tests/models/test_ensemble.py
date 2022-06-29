@@ -10,24 +10,26 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from parameterized.parameterized import parameterized
-
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_air_passengers, load_data
+from kats.data.utils import load_data, load_air_passengers
 from kats.models import (
     arima,
     holtwinters,
     linear_model,
     prophet,
     quadratic_model,
-    sarima,
     theta,
+    sarima,
 )
-from kats.models.ensemble.ensemble import BaseEnsemble, BaseModelParams, EnsembleParams
+from kats.models.ensemble.ensemble import (
+    BaseEnsemble,
+    BaseModelParams,
+    EnsembleParams,
+)
 from kats.models.ensemble.kats_ensemble import KatsEnsemble
 from kats.models.ensemble.median_ensemble import MedianEnsembleModel
 from kats.models.ensemble.weighted_avg_ensemble import WeightedAvgEnsemble
-
+from parameterized.parameterized import parameterized
 
 np.random.seed(123321)
 DATA_dummy = pd.DataFrame(
@@ -433,10 +435,7 @@ class testKatsEnsemble(TestCase):
     )
     def test_fit_weightedavg_forecast(
         # pyre-fixme[2]: Parameter must be annotated.
-        self,
-        ts_data_name,
-        steps: int,
-        freq: str,
+        self, ts_data_name, steps: int, freq: str
     ) -> None:
         ts_data = getattr(self, ts_data_name)
         preds = get_fake_preds(ts_data, fcst_periods=steps, fcst_freq=freq)
