@@ -1627,11 +1627,11 @@ class TsFeatures:
             if extra_args is not None and extra_args.get(
                 "trend_num_increasing", default_status
             ):
-                num_decreasing = 0
+                num_increasing = 0
                 for p in tdetected_time_points:
-                    if p.trend_direction == "decreasing":
-                        num_decreasing += 1
-                trend_detector_features["trend_num_increasing"] = num_decreasing
+                    if p.trend_direction == "increasing":
+                        num_increasing += 1
+                trend_detector_features["trend_num_increasing"] = num_increasing
             if extra_args is not None and extra_args.get(
                 "trend_avg_abs_tau", default_status
             ):

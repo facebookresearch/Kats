@@ -380,7 +380,7 @@ class TSfeaturesTest(TestCase):
             "bocp_conf_mean": 0.587680,
             "outlier_num": 0,
             "trend_num": 2,
-            "trend_num_increasing": 0,
+            "trend_num_increasing": 2,
             "trend_avg_abs_tau": 0.821053,
             "nowcast_roc": 0.062858,
             "nowcast_ma": 280.417143,
