@@ -591,3 +591,31 @@ class MetricsTest(TestCase):
     ) -> None:
         result = metrics.pinball_loss(y_true, y_pred, threshold)
         self.validate(expected, result)
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator...
+    @parameterized.expand(
+        [
+            ("normal", 0.6,
+            [(0.40547657, 0.21700191, -0.63343906, 0.24662161, -1.9395454),
+            (-0.04428768, 0.5543952 , -0.40847492, -0.46409416, 0.4180088),
+            (-2.0893543 , -0.12981987, -0.58653784, -0.58653784, 0.29072)],
+            [(-1.5253627 , -2.0157309 , -1.3632555 , 1.8552899 , 5.08259),
+            (-3.8493829 , -3.2209146 , -2.5079165 , -1.3597498 , 4.16947),
+            (-2.127775 , -2.4119477 , -0.58012056, 0.4478078 , 3.292698)],
+            0.95),
+            ("normal", 0.67, [1, 2, 3], [3.5, 2.5, 1.5], 0.25),
+            ("normal", 0.67, [1, 2, 3], [3.5, 2.5, 1.5], 0.50),
+            ("normal", 0.33, [1, 2, 3], [3.5, 2.5, 1.5], 0.75),
+            ("empty", np.nan, [], [], 1.0),
+        ]
+    )
+    def test_exceed(
+        self,
+        _name: str,
+        expected: float,
+        y_true: List[float],
+        y_pred: List[float],
+        threshold: float,
+        ) -> None:
+        result = metrics.exceed(y_true, y_pred, threshold)
+        self.validate(expected, round(result,2))

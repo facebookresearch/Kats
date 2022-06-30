@@ -737,6 +737,31 @@ def pinball_loss(
     diff = y_true - y_pred
     return np.nanmean(np.nanmax((diff*threshold, diff*(threshold-1)), axis=0))
 
+def exceed(
+    y_true: ArrayLike, y_pred: ArrayLike, threshold: float
+) -> float:
+    """Compute exceed rate for quantile estimates.
+
+    For threshold t (0<t<=0.5), the exceed rate of t is defined as:
+        er(y_true, y_pred, t) = mean(y_pred<y_true).
+    For threshold t (0.5<t<=1), the exceed rate of t is defined as:
+        er(y_true, y_pred, t) = mean(y_pred>y_true).
+    For a list threshold T = [t_1, ..., t_d], the exceed rate of T is defined as:
+        er(T) = [er(y_true, y_pred, t_1), ..., er(y_true, y_pred, t_d)].
+
+    Args:
+        y_true: the actual values.
+        y_pred: the predicted values.
+        threshold: Thresholds to be calculated.
+
+    Returns:
+        A `numpy.ndarray` object representing exceed rates.
+    """
+    y_true, y_pred = _arrays(y_true, y_pred)
+    mask = (threshold > 0.5) * 2 - 1
+    diff = (y_true - y_pred) * mask > 0
+    return np.nanmean(diff)
+
 # Name aliases (sorted alphabetically by alias)
 
 ae: ArrayMetric = absolute_error
@@ -765,6 +790,7 @@ scaled_smape: Metric = scaled_symmetric_mean_absolute_percentage_error
 smape: Metric = symmetric_mean_absolute_percentage_error
 mexceed: MultiThresholdMetric = mult_exceed
 ploss: ThresholdMetric = pinball_loss
+excd: ThresholdMetric = exceed
 
 ALL_METRICS: Dict[str, KatsMetric] = {
     # Array Metrics
@@ -775,6 +801,7 @@ ALL_METRICS: Dict[str, KatsMetric] = {
     # Other Metrics
     "mult_exceed": mult_exceed,
     "pinball_loss": pinball_loss,
+    "exceed": exceed,
     "continuous_rank_probability_score": continuous_rank_probability_score,
     "frequency_exceeds_relative_threshold": frequency_exceeds_relative_threshold,
     "linear_error_in_probability_space": linear_error_in_probability_space,
