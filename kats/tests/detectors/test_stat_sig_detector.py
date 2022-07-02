@@ -21,7 +21,7 @@ from parameterized.parameterized import parameterized
 from operator import attrgetter
 
 _SERIALIZED = b'{"n_control": 20, "n_test": 7, "time_unit": "s"}'
-_SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "s", "rem_season": false, "seasonal_period": "weekly", "use_corrected_scores": true, "max_split_ts_length": 500}'
+_SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "1s", "rem_season": false, "seasonal_period": "weekly", "use_corrected_scores": true, "max_split_ts_length": 500}'
 
 
 class TestStatSigDetector(TestCase):
@@ -86,7 +86,7 @@ class TestStatSigDetector(TestCase):
         [
             ["n_control", 20],
             ["n_test", 7],
-            ["time_unit", "s"],
+            ["time_unit", "1s"],
             ["rem_season", False],
             ["seasonal_period", "weekly"],
         ]
@@ -138,7 +138,7 @@ class TestStatSigDetector(TestCase):
         )
         detector = StatSigDetectorModel(n_control=20, n_test=7)
         detector.fit_predict(data=data, historical_data=self.ts_init)
-        self.assertEqual("D", detector.time_unit)
+        self.assertEqual("86400.0S", detector.time_unit)
 
     def test_remove_season(self) -> None:
         sim3 = Simulator(n=120, start="2018-01-01")
@@ -694,3 +694,87 @@ class TestMultiStatSigDetectorHistorical(TestCase):
 
         for j in range(self.anom_not_enough_hist.scores.value.shape[1]):
             self.assertNotEqual(self.anom_not_enough_hist.scores.value.iloc[-1, j], 0.0)
+
+class TestStatSigDetectorTimeUnit(TestCase):
+    def setUp(self) -> None:
+        random.seed(0)
+
+        self.num_periods = 35
+        control_time = pd.date_range(start="2018-01-01", freq="D", periods=self.num_periods)
+        control_val = [random.normalvariate(100, 10) for _ in range(self.num_periods)]
+        test_time = pd.date_range(start="2018-02-05", freq="D", periods=100)
+        test_val = [random.normalvariate(0, 5) for _ in range(100)]
+        hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+        data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
+
+        # time unit = 2D
+        n_control, n_test=28, 7
+        self.ss_detect1 = StatSigDetectorModel(n_control=n_control, n_test=n_test, time_unit="2D")
+        self.anom1 = self.ss_detect1.fit_predict(data=data_ts, historical_data=hist_ts)
+
+        hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+        data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
+        self.ss_detect2 = StatSigDetectorModel(n_control=n_control*2, n_test=n_test*2, time_unit="D")
+        self.anom2 = self.ss_detect2.fit_predict(data=data_ts, historical_data=hist_ts)
+
+        # without providing time_unit
+        hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+        data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
+        self.ss_detect3 = StatSigDetectorModel(n_control=n_control*2, n_test=n_test*2)
+        self.anom3 = self.ss_detect3.fit_predict(data=data_ts, historical_data=hist_ts)
+
+        # both historical data and data have a missing value
+        control_time_miss = pd.Series(
+            list(np.asarray(control_time)[:10]) + list(np.asarray(control_time)[11:])
+        )
+        test_time_miss = pd.Series(
+            list(np.asarray(test_time)[:19]) + list(np.asarray(test_time)[20:])
+        )
+        hist_ts_miss = TimeSeriesData(time=control_time_miss, value=pd.Series(control_val[:-1]))
+        data_ts_miss = TimeSeriesData(time=test_time_miss, value=pd.Series(test_val[:-1]))
+        self.ss_detect4 = StatSigDetectorModel(n_control=n_control, n_test=n_test, time_unit="D")
+        self.anom4 = self.ss_detect4.fit_predict(data=data_ts_miss, historical_data=hist_ts_miss)
+
+        # without providing time_unit
+        hist_ts_miss = TimeSeriesData(time=control_time_miss, value=pd.Series(control_val[:-1]))
+        data_ts_miss = TimeSeriesData(time=test_time_miss, value=pd.Series(test_val[:-1]))
+        self.ss_detect5 = StatSigDetectorModel(n_control=n_control, n_test=n_test)
+        self.anom5 = self.ss_detect5.fit_predict(data=data_ts_miss, historical_data=hist_ts_miss)
+
+        # gap is '2D'
+        control_time_jump = pd.Series(np.asarray(control_time)[range(0, self.num_periods, 2)])
+        test_time_jump = pd.Series(np.asarray(test_time)[range(1, 100, 2)])
+        hist_ts_jump = TimeSeriesData(
+            time=control_time_jump,
+            value=pd.Series(np.asarray(control_val)[range(0, self.num_periods, 2)])
+        )
+        data_ts_jump = TimeSeriesData(time=test_time_jump, value=pd.Series(np.asarray(test_val)[range(1, 100, 2)]))
+        self.ss_detect6 = StatSigDetectorModel(n_control=n_control, n_test=n_test, time_unit="D")
+        self.anom6 = self.ss_detect6.fit_predict(data=data_ts_jump, historical_data=hist_ts_jump)
+
+        # without providing time_unit
+        hist_ts_jump = TimeSeriesData(
+            time=control_time_jump,
+            value=pd.Series(np.asarray(control_val)[range(0, self.num_periods, 2)])
+        )
+        data_ts_jump = TimeSeriesData(time=test_time_jump, value=pd.Series(np.asarray(test_val)[range(1, 100, 2)]))
+        self.ss_detect7 = StatSigDetectorModel(n_control=n_control, n_test=n_test)
+        self.anom7 = self.ss_detect7.fit_predict(data=data_ts_jump, historical_data=hist_ts_jump)
+
+    def test_time_unit_and_multiplier(self) -> None:
+        # infer time unit
+        self.assertEqual(self.ss_detect3.time_unit, "86400.0S")
+        self.assertEqual(self.ss_detect5.time_unit, "86400.0S")
+        self.assertEqual(self.ss_detect7.time_unit, "172800.0S")
+
+        # test adding 1 before a unit
+        self.assertEqual(self.ss_detect6.time_unit, "1D")
+
+    def test_without_time_unit(self) -> None:
+        self.assertEqual(self.anom2.scores, self.anom3.scores)
+        self.assertEqual(self.anom5.scores, self.anom4.scores)
+
+    def test_not_enough_historical_data(self) -> None:
+        self.assertEqual([self.anom1.scores.value.iloc[32]==0, self.anom1.scores.value.iloc[33]!=0], [True, True])
+        self.assertEqual([self.anom2.scores.value.iloc[33]==0, self.anom2.scores.value.iloc[34]!=0], [True, True])
+        self.assertEqual([self.anom6.scores.value.iloc[0]!=0, self.anom7.scores.value.iloc[0]==0], [True, True])

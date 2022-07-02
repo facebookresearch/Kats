@@ -7,7 +7,6 @@ import json
 import logging
 from datetime import datetime
 from typing import Any, Optional, Tuple
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -20,6 +19,7 @@ from kats.detectors.detector_consts import (
     PercentageChange,
 )
 from kats.utils.decomposition import TimeSeriesDecomposition
+
 
 """Statistical Significance Detector Module
 This module contains simple detectors that apply a t-test over a rolling window to compare
@@ -138,6 +138,20 @@ class StatSigDetectorModel(DetectorModel):
         self.bigdata_trans_flag: Optional[bool] = None
         self.remaining: Optional[int] = None
 
+        # validate time_unit
+        if self.time_unit is not None:
+            try:
+                # for digit+str ('3D', '10h') cases
+                _ = pd.Timedelta(self.time_unit)
+            except ValueError:
+                try:
+                    _ = pd.Timedelta(1, unit=self.time_unit)
+                    assert self.time_unit is not None
+                    self.time_unit = "1" + self.time_unit
+                    _ = pd.Timedelta(self.time_unit)
+                except ValueError:
+                    raise ValueError("Invalide time_unit value.")
+
     def serialize(self) -> bytes:
         """
         Serializes by putting model parameters in a json
@@ -223,6 +237,7 @@ class StatSigDetectorModel(DetectorModel):
             if (
                 len(data) > self.max_split_ts_length
                 # pyre-ignore[16]: `Optional` has no attribute `time`.
+                and pd.infer_freq(historical_data.time)  # not None
                 and pd.infer_freq(historical_data.time) == pd.infer_freq(data.time)
             ):
                 self.bigdata_trans_flag = True
@@ -560,10 +575,32 @@ class StatSigDetectorModel(DetectorModel):
         if the time unit is not set, this function tries to set it.
         """
         if not self.time_unit:
-            time_unit = pd.infer_freq(data.time)
-            if not time_unit and historical_data:
-                time_unit = pd.infer_freq(historical_data.time)
-            self.time_unit = time_unit
+            if len(data) >= 3:
+                # frequency is pd.TimeDelta
+                frequency = data.infer_freq_robust()
+            elif historical_data and len(historical_data) >= 3:
+                frequency = historical_data.infer_freq_robust()
+            else:
+                raise ValueError(
+                    "Not able to infer freqency of the time series. "
+                    "Please use longer time series data or pass the time_unit parameter to the initializer."
+                )
+
+            # Timedelta string
+            self.time_unit = f"{frequency.total_seconds()}S"
+
+        # validate the time_unit
+        try:
+            # for digit+str ('3D', '10h') cases
+            _ = pd.Timedelta(self.time_unit)
+        except ValueError:
+            try:
+                _ = pd.Timedelta(1, unit=self.time_unit)
+                assert self.time_unit is not None
+                self.time_unit = "1" + self.time_unit
+                _ = pd.Timedelta(self.time_unit)
+            except ValueError:
+                raise ValueError("Invalide time_unit value.")
 
     def _should_update(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
@@ -583,11 +620,9 @@ class StatSigDetectorModel(DetectorModel):
         end_time = data.time.iloc[-1]
         assert self.n_control is not None
         assert self.n_test is not None
+
         return end_time >= (
-            start_time
-            + pd.Timedelta(
-                value=(self.n_control + self.n_test - 1), unit=self.time_unit
-            )
+            start_time + (self.n_control + self.n_test - 1) * pd.Timedelta(self.time_unit)
         )
 
     def _handle_not_enough_history(
@@ -607,9 +642,7 @@ class StatSigDetectorModel(DetectorModel):
         if historical_data:
             history_first = historical_data.time.iloc[0]
             history_last = historical_data.time.iloc[-1]
-            min_history_last = history_first + pd.Timedelta(
-                value=num_hist_points, unit=self.time_unit
-            )
+            min_history_last = history_first + num_hist_points * pd.Timedelta(self.time_unit)
 
             if history_last >= min_history_last:
                 return data, historical_data
@@ -618,12 +651,12 @@ class StatSigDetectorModel(DetectorModel):
         if historical_data is None:
             total_data = data
         else:
-            historical_data.extend(data)
+            historical_data.extend(data, validate=False)
             total_data = historical_data
 
         first_dt = total_data.time.iloc[0]  # first date of the data
 
-        last_dt = first_dt + pd.Timedelta(value=num_hist_points, unit=self.time_unit)
+        last_dt = first_dt + num_hist_points * pd.Timedelta(self.time_unit)
 
         historical_data = TimeSeriesData(
             time=total_data.time[total_data.time < last_dt],
@@ -707,15 +740,15 @@ class StatSigDetectorModel(DetectorModel):
 
         last_dt = data.time.iloc[-1]
 
-        test_end_dt = last_dt + pd.Timedelta(value=1, unit=self.time_unit)
-        test_start_dt = test_end_dt - pd.Timedelta(
-            value=self.n_test, unit=self.time_unit
-        )
+        test_end_dt = last_dt + pd.Timedelta(self.time_unit)
+
+        assert self.n_test is not None
+        test_start_dt = test_end_dt - self.n_test * pd.Timedelta(self.time_unit)
+
         assert self.n_test is not None
         assert self.n_control is not None
-        control_start_dt = test_end_dt - pd.Timedelta(
-            value=(self.n_test + self.n_control), unit=self.time_unit
-        )
+        control_start_dt = test_end_dt - (self.n_test + self.n_control) * pd.Timedelta(self.time_unit)
+
         control_end_dt = test_start_dt
 
         return control_start_dt, control_end_dt, test_start_dt, test_end_dt
