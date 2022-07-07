@@ -69,8 +69,10 @@ TEST_DATA: Dict[str, Any] = {
     "monthly": {
         "ts": load_air_passengers(),
         "params": ProphetParams(),
-        "params_cap_and_floor": ProphetParams(cap=1000, floor=10, growth="logistic"),
-        "params_logistic_cap": ProphetParams(growth="logistic", cap=1000),
+        "params_cap_and_floor": ProphetParams(
+            cap=1000.0, floor=10.0, growth="logistic"
+        ),
+        "params_logistic_cap": ProphetParams(growth="logistic", cap=1000.0),
         "params_custom_seasonality": ProphetParams(
             custom_seasonalities=[
                 {

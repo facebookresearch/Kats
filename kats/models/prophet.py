@@ -78,8 +78,10 @@ class ProphetParams(Params):
         uncertainty_samples: Number of simulated draws used to estimate
             uncertainty intervals. Settings this value to 0 or False will disable
             uncertainty estimation and speed up the calculation.
-        cap: capacity, provided for logistic growth
-        floor: floor, the fcst value must be greater than the specified floor
+        cap: A boolean or a float representing the capacity, provided for logistic growth. When `cap` is a float, the capacity will be automatically set the value.
+            When `cap=False`, no capacity will be provided. When `cap=True`, the model expects `data` to contain the capacity information. Default is None, which is equivalent to False.
+        floor: A boolean or a float representing the floor. When `floor` is a float, the floor will be automatically set the value.
+            When `floor=False`, no floor will be provided. When `floor=True`, the model expects `data` to contain the floor information. Default is None, which is equivalent to False.
         custom_seasonlities: customized seasonalities, dict with keys
             "name", "period", "fourier_order"
         extra_regressors: A list of dictionary representing the additional regressors. each regressor is a dictionary with required key "name"
@@ -101,8 +103,8 @@ class ProphetParams(Params):
     mcmc_samples: int
     interval_width: float
     uncertainty_samples: int
-    cap: Optional[float]
-    floor: Optional[float]
+    cap: Union[bool, float, None] = None
+    floor: Union[bool, float, None] = None
     custom_seasonalities: List[Dict[str, Any]]
     extra_regressors: List[Dict[str, Any]]
 
@@ -123,8 +125,8 @@ class ProphetParams(Params):
         mcmc_samples: int = 0,
         interval_width: float = 0.80,
         uncertainty_samples: int = 1000,
-        cap: Optional[float] = None,
-        floor: Optional[float] = None,
+        cap: Union[bool, float, int, None] = None,
+        floor: Union[bool, float, int, None] = None,
         custom_seasonalities: Optional[List[Dict[str, Any]]] = None,
         extra_regressors: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
@@ -146,13 +148,14 @@ class ProphetParams(Params):
         self.mcmc_samples = mcmc_samples
         self.interval_width = interval_width
         self.uncertainty_samples = uncertainty_samples
-        self.cap = cap
-        self.floor = floor
+        self.cap = cap if cap is not None else False
+        self.floor = floor if floor is not None else False
         self.custom_seasonalities = (
             [] if custom_seasonalities is None else custom_seasonalities
         )
         self.extra_regressors = [] if extra_regressors is None else extra_regressors
         self._reqd_regressor_names: List[str] = []
+        self._reqd_cap_floor_names: List[str] = []
         logging.debug(
             "Initialized Prophet with parameters. "
             f"growth:{growth},"
@@ -184,7 +187,7 @@ class ProphetParams(Params):
         and custom_seasonalities.
         """
         # cap must be given when using logistic growth
-        if (self.growth == "logistic") and (self.cap is None):
+        if (self.growth == "logistic") and (self.cap is False):
             msg = "Capacity must be provided for logistic growth"
             logging.error(msg)
             raise ValueError(msg)
@@ -215,6 +218,11 @@ class ProphetParams(Params):
         self._reqd_regressor_names = [
             regressor["name"] for regressor in self.extra_regressors
         ]
+        # check floor and cap
+        if (self.cap is not False) and ("cap" not in self._reqd_cap_floor_names):
+            self._reqd_cap_floor_names.append("cap")
+        if self.floor is not False and ("floor" not in self._reqd_cap_floor_names):
+            self._reqd_cap_floor_names.append("floor")
 
 
 class ProphetModel(Model[ProphetParams]):
@@ -260,6 +268,14 @@ class ProphetModel(Model[ProphetParams]):
             if not extra_regressor_names.issubset(value_cols):
                 msg = f"`data` should contain all columns listed in {extra_regressor_names}."
                 raise ValueError(msg)
+        # validate cap
+        if (self.params.cap is True) and ("cap" not in self.data.value.columns):
+            msg = "`data` should contain a column called `cap` representing the cap when `cap = True`."
+            _error_msg(msg)
+        # validate floor
+        if (self.params.floor is True) and ("floor" not in self.data.value.columns):
+            msg = "`data` should contain a column called `floor` representing the floor when `floor = True`."
+            _error_msg(msg)
 
     def _ts_to_df(self) -> pd.DataFrame:
         if self.data.is_univariate():
@@ -269,17 +285,69 @@ class ProphetModel(Model[ProphetParams]):
             df = self.data.to_dataframe()
             df.rename(columns={self.data.time_col_name: "ds"}, inplace=True)
 
-        col_names = self.params._reqd_regressor_names + ["y", "ds"]
-        # add "cap" if needed
-        if self.params.growth == "logistic":
+        # add cap
+        if not isinstance(self.params.cap, bool):
             df["cap"] = self.params.cap
-            col_names.append("cap")
-        # add "floor" if needed
-        if self.params.floor is not None:
+        # add floor
+        if not isinstance(self.params.floor, bool):
             df["floor"] = self.params.floor
-            col_names.append("floor")
 
+        col_names = (
+            self.params._reqd_regressor_names
+            + ["y", "ds"]
+            + self.params._reqd_cap_floor_names
+        )
         return df[col_names]
+
+    def _future_validation(
+        self, steps: int, future: Optional[pd.DataFrame]
+    ) -> pd.DataFrame:
+        non_future = future is None
+        if future is None:
+            # pyre-fixme
+            future = self.model.make_future_dataframe(
+                periods=steps, freq=self.freq, include_history=self.include_history
+            )
+        if "ds" not in future.columns:
+            msg = "`future` should be specified and `future` should contain a column named 'ds' representing the timestamps."
+            _error_msg(msg)
+        if not set(self.params._reqd_regressor_names).issubset(future.columns):
+            msg = (
+                "`future` should be specified and `future` is missing some regressors!"
+            )
+            _error_msg(msg)
+        if self.params.cap is True and ("cap" not in future.columns):
+            msg = "`future` should be specified and `future` should contain a column named 'cap' representing future capacity."
+            _error_msg(msg)
+        if self.params.floor is True and ("floor" not in future.columns):
+            msg = "`future` should be specified and `future` should contain a column named 'floor' representing future floor."
+            _error_msg(msg)
+        if not isinstance(self.params.floor, bool):
+            future["floor"] = self.params.floor
+        if not isinstance(self.params.cap, bool):
+            future["cap"] = self.params.cap
+        if non_future:  # when `future` not generated by helper functions
+            if self.include_history:
+                future = future.merge(
+                    # pyre-fixme
+                    self.model.history,
+                    on=(
+                        ["ds"]
+                        + self.params._reqd_regressor_names
+                        + self.params._reqd_cap_floor_names
+                    ),
+                    how="outer",
+                )
+            else:
+                future = future[future.ds > self.data.time.max()]
+
+            reqd_length = steps + int(len(self.data) * self.include_history)
+            if len(future) < reqd_length:
+                msg = f"Input `future` is not long enough to generate forecasts of {steps} steps."
+                _error_msg(msg)
+            future.sort_values("ds", inplace=True)
+            future = future[:reqd_length]
+        return future
 
     def fit(self, **kwargs: Any) -> None:
         """fit Prophet model
@@ -342,7 +410,14 @@ class ProphetModel(Model[ProphetParams]):
         for regressor in self.params.extra_regressors:
             prophet.add_regressor(**regressor)
 
-        self.model = prophet.fit(df=df)
+        try:
+            self.model = prophet.fit(df=df)
+        except Exception as e:
+            logging.error(e)
+            logging.error(f"df = {df}")
+            raise ValueError(
+                f" error_message = {e} and df={df}, raw_ts = {self.data}, {self.params._reqd_cap_floor_names}."
+            )
         logging.info("Fitted Prophet model. ")
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
@@ -381,44 +456,7 @@ class ProphetModel(Model[ProphetParams]):
 
         self.freq = freq if freq is not None else self.data.infer_freq_robust()
         self.include_history = include_history
-
-        # when extra_regressors are needed
-        if len(self.params.extra_regressors) > 0:
-            if future is None:
-                msg = "`future` should not be None when extra regressors are needed."
-                _error_msg(msg)
-            elif not set(self.params._reqd_regressor_names).issubset(future.columns):
-                msg = "`future` is missing some regressors!"
-                _error_msg(msg)
-            elif "ds" not in future.columns:
-                msg = "`future` should contain a column named 'ds' representing the timestamps."
-                _error_msg(msg)
-        elif future is None:
-            future = model.make_future_dataframe(
-                periods=steps, freq=self.freq, include_history=self.include_history
-            )
-
-        if include_history:
-            future = future.merge(
-                # pyre-fixme
-                self.model.history,
-                on=["ds"] + self.params._reqd_regressor_names,
-                how="outer",
-            )
-
-        reqd_length = steps + int(len(self.data) * include_history)
-        if len(future) < reqd_length:
-            msg = f"Input `future` is not long enough to generate forecasts of {steps} steps."
-            _error_msg(msg)
-        future.sort_values("ds", inplace=True)
-        future = future[:reqd_length]
-
-        if self.params.growth == "logistic":
-            # assign cap to a new col as Prophet required
-            future["cap"] = self.params.cap
-        if self.params.floor is not None:
-            future["floor"] = self.params.floor
-
+        future = self._future_validation(steps, future)
         fcst = model.predict(future)
         if raw:
             return fcst
