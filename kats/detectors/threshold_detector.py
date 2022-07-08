@@ -3,7 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
+from typing import Optional, Any
 
 import numpy as np
 import pandas as pd
@@ -56,12 +56,11 @@ class StaticThresholdModel(DetectorModel):
             ),
         )
 
-    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def fit_predict(
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """Copy the TimeSeriesData.
 
@@ -85,22 +84,20 @@ class StaticThresholdModel(DetectorModel):
             stat_sig_ts=None,
         )
 
-    # pyre-fixme[14]: `fit` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def fit(
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData],
+        **kwargs: Any,
     ) -> None:
         self.fit_predict(data, historical_data)
         return
 
-    # pyre-fixme[14]: `predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def predict(
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData],
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """
         predict is not implemented
