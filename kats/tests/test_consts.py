@@ -641,6 +641,47 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             ),
         )
 
+    # Testing Data interpolate with base
+    def test_interpolate_base(self) -> None:
+        # create time series with missing data
+        np.random.seed(0)
+        x = np.random.normal(0.5, 3, 998)
+        time_val0 = list(pd.date_range(start="2018-02-03 14:59:59", freq="1800s", periods=1000))
+        time_val = time_val0[:300] + time_val0[301:605]+ time_val0[606:]
+        ts0 = TimeSeriesData(pd.DataFrame({"time": time_val, "value": pd.Series(x)}))
+
+        # calculate frequency first
+        frequency = str(int(ts0.infer_freq_robust().total_seconds())) + "s"
+
+        # without base value, interpolate won't work, will return all NaN
+        # this is because start time is not from "**:00:00" or "**:30:00" type.
+        self.assertEqual(
+            ts0.interpolate(freq=frequency).to_dataframe().fillna(0).value.sum(),
+            0,
+        )
+        # with base value, will start from "**:59:59" ("**:00:00" - 1 sec)
+        # or "**:29:59" ("**:30:00" -1 sec).
+        self.assertEqual(
+            ts0.interpolate(freq=frequency, base=-1).to_dataframe().isna().value.sum(),
+            0,
+        )
+
+        # second example, base = 4
+        time_val0 = list(pd.date_range(start="2018-02-03 14:00:04", freq="1800s", periods=1000))
+        time_val = time_val0[:300] + time_val0[301:605]+ time_val0[606:]
+        ts0 = TimeSeriesData(pd.DataFrame({"time": time_val, "value": pd.Series(x)}))
+
+        frequency = str(int(ts0.infer_freq_robust().total_seconds())) + "s"
+
+        self.assertEqual(
+            ts0.interpolate(freq=frequency).to_dataframe().fillna(0).value.sum(),
+            0,
+        )
+        self.assertEqual(
+            ts0.interpolate(freq=frequency, base=4).to_dataframe().isna().value.sum(),
+            0,
+        )
+
     def test_to_array(self) -> None:
         # Univariate case
         np.testing.assert_array_equal(

@@ -502,6 +502,38 @@ class TestDecomposingSeasonalityCUSUMDetectorModel(TestCase):
             func_sup(func_1(attrgetter(attr1)(self)), func_2(attrgetter(attr2)(self)))
         )
 
+class TestMissingDataRemoveSeasonalityCUSUMDetectorModel(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(0)
+        x = np.random.normal(0.5, 3, 998)
+        time_val0 = list(pd.date_range(start="2018-02-03 14:59:59", freq="1800s", periods=1000))
+        time_val = time_val0[:300] + time_val0[301:605]+ time_val0[606:]
+        self.tsd = TimeSeriesData(pd.DataFrame({"time": time_val, "value": pd.Series(x)}))
+
+        time_val01 = list(pd.date_range(start="2018-02-03 14:00:04", freq="1800s", periods=1000))
+        time_val1 = time_val01[:300] + time_val01[301:605]+ time_val01[606:]
+        self.tsd1 = TimeSeriesData(pd.DataFrame({"time": time_val1, "value": pd.Series(x)}))
+
+    def test_interpolation(self) -> None:
+        # base = 59 * 60 + 59 or = -1
+        model = CUSUMDetectorModel(
+            scan_window=360000,
+            historical_window=360000,
+            remove_seasonality=True,
+        )
+        score_tsd = model.fit_predict(data=self.tsd).scores
+        self.assertEqual(len(score_tsd), len(self.tsd))
+        self.assertTrue((score_tsd.time.values == self.tsd.time.values).all())
+
+        # base = 4
+        model1 = CUSUMDetectorModel(
+            scan_window=360000,
+            historical_window=360000,
+            remove_seasonality=True,
+        )
+        score_tsd1 = model1.fit_predict(data=self.tsd1).scores
+        self.assertEqual(len(score_tsd1), len(self.tsd1))
+        self.assertTrue((score_tsd1.time.values == self.tsd1.time.values).all())
 
 class TestRaiseCUSUMDetectorModel(TestCase):
     def setUp(self) -> None:

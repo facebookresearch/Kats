@@ -877,6 +877,7 @@ class TimeSeriesData:
     def interpolate(
         self,
         freq: Optional[Union[str, pd.Timedelta]] = None,
+        base: int = 0,
         method: str = "linear",
         remove_duplicate_time: bool = False,
     ) -> TimeSeriesData:
@@ -893,6 +894,10 @@ class TimeSeriesData:
 
         Args:
           freq: A string representing the pre-defined freq of the time series.
+          base: base argument for resample().
+            See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.resample.html
+            Note that base will be deprecated since version 1.1.0.
+            The new arguments that you should use are ‘offset’ or ‘origin’.
           method: A string representing the method to impute the missing time
             and data. See the above options (default "linear").
           remove_duplicate_index: A boolean to auto-remove any duplicate time
@@ -927,13 +932,13 @@ class TimeSeriesData:
             df = df[~df.index.duplicated()]
 
         if method == "linear":
-            df = df.resample(freq).interpolate(method="linear")
+            df = df.resample(rule=freq, base=base).interpolate(method="linear")
 
         elif method == "ffill":
-            df = df.resample(freq).ffill()
+            df = df.resample(rule=freq, base=base).ffill()
 
         elif method == "bfill":
-            df = df.resample(freq).bfill()
+            df = df.resample(rule=freq, base=base).bfill()
 
         else:
             # method is not supported

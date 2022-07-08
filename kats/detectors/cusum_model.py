@@ -175,6 +175,7 @@ class CUSUMDetectorModel(DetectorModel):
                 self.remove_seasonality: bool = previous_model["remove_seasonality"]
             else:
                 self.remove_seasonality: bool = remove_seasonality
+
         elif scan_window is not None and historical_window is not None:
             self.cps = []
             self.alert_fired = False
@@ -471,7 +472,15 @@ class CUSUMDetectorModel(DetectorModel):
                 raise ValueError("Not able to infer freqency of the time series")
 
         if remove_seasonality:
-            decomposer_input = historical_data.interpolate(frequency)
+            frequency_sec = str(int(frequency.total_seconds())) + "s"
+
+            # calculate resample base in second level
+            resample_base_sec = pd.to_datetime(historical_data.time[0]).minute * 60 + pd.to_datetime(historical_data.time[0]).second
+
+            decomposer_input = historical_data.interpolate(
+                freq=frequency_sec,
+                base=resample_base_sec,
+            )
 
             # fixing the period to 24 hours as indicated in T81530775
             period = int(24 * 60 * 60 / frequency.total_seconds())
