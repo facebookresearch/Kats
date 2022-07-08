@@ -19,6 +19,7 @@ from kats.detectors.detector_consts import (
     PercentageChange,
 )
 from kats.utils.decomposition import TimeSeriesDecomposition
+import scipy.stats as stats
 
 
 """Statistical Significance Detector Module
@@ -83,6 +84,7 @@ class StatSigDetectorModel(DetectorModel):
         seasonal_period: str = "weekly",
         use_corrected_scores: bool = True,
         max_split_ts_length: int = 500,
+        anomaly_scores_only: bool = False,
     ) -> None:
 
         if serialized_model:
@@ -152,6 +154,8 @@ class StatSigDetectorModel(DetectorModel):
                 except ValueError:
                     raise ValueError("Invalide time_unit value.")
 
+        self.anomaly_scores_only: bool = anomaly_scores_only
+
     def serialize(self) -> bytes:
         """
         Serializes by putting model parameters in a json
@@ -205,7 +209,14 @@ class StatSigDetectorModel(DetectorModel):
         if not self._should_update(data=data, historical_data=historical_data):
             return response
 
-        # handle cases where there is either no historical  data, or
+        # if we only need anomaly scores
+        if self.anomaly_scores_only:
+            return self._get_anomaly_scores_only(
+                historical_data=historical_data,
+                data=data,
+            )
+
+        # handle cases where there is either no historical data, or
         # not enough historical data
         data, historical_data = self._handle_not_enough_history(
             data=data,
@@ -356,6 +367,58 @@ class StatSigDetectorModel(DetectorModel):
             )
         assert self.response is not None
         return self.response.get_last_n(self.last_N)
+
+    def _get_anomaly_scores_only(
+        self,
+        historical_data: Optional[TimeSeriesData],
+        data: TimeSeriesData,
+    ) -> AnomalyResponse:
+        if historical_data is None:
+            total_data = data
+        else:
+            historical_data.extend(data, validate=False)
+            total_data = historical_data
+
+        total_data_df = total_data.to_dataframe()
+        total_data_df.columns = ['time', 'value']
+        total_data_df = total_data_df.set_index('time')
+
+        res = []
+        i = 0
+        while i < len(data.time):
+            test_end_dt = data.time[i]
+
+            assert self.n_test is not None
+            test_start_dt = test_end_dt - (self.n_test - 1) * pd.Timedelta(self.time_unit)
+
+            control_end_dt = test_start_dt
+            assert self.n_control is not None
+            control_start_dt = control_end_dt - self.n_control * pd.Timedelta(self.time_unit)
+
+            if control_end_dt in total_data_df.index:
+                # exclude index control_end_dt
+                group1 = total_data_df[control_start_dt:control_end_dt].value.to_list()[:-1]
+            else:
+                group1 = total_data_df[control_start_dt:control_end_dt].value.to_list()
+            group2 = total_data_df[test_start_dt:test_end_dt].value.to_list()
+
+            # 2 sample t-test
+            if control_start_dt >= total_data.time[0]:
+                res.append(stats.ttest_ind(a=group2, b=group1, equal_var=True)[0])
+            else:
+                res.append(0)
+
+            i += 1
+
+        scores = TimeSeriesData(pd.DataFrame({"time": list(data.time), "value": res}))
+
+        return AnomalyResponse(
+            scores=scores,
+            confidence_band=None,
+            predicted_ts=None,
+            anomaly_magnitude_ts=TimeSeriesData(),
+            stat_sig_ts=None,
+        )
 
     def _reorganize_big_data(self, max_split_ts_length: int) -> TimeSeriesData:
         data_history = self.data_history

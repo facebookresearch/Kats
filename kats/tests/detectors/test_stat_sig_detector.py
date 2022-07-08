@@ -778,3 +778,137 @@ class TestStatSigDetectorTimeUnit(TestCase):
         self.assertEqual([self.anom1.scores.value.iloc[32]==0, self.anom1.scores.value.iloc[33]!=0], [True, True])
         self.assertEqual([self.anom2.scores.value.iloc[33]==0, self.anom2.scores.value.iloc[34]!=0], [True, True])
         self.assertEqual([self.anom6.scores.value.iloc[0]!=0, self.anom7.scores.value.iloc[0]==0], [True, True])
+
+
+class TestStatSigDetectorAnomalyScoresOnly(TestCase):
+    def test_anomaly_scores_only(self) -> None:
+        # no missing data, no historical data
+        np.random.seed(0)
+        x = np.random.normal(0.5, 3, 100)
+        time = pd.date_range(start="2018-01-01", freq="h", periods=100)
+
+        ts = TimeSeriesData(pd.DataFrame({"time": time, "value": pd.Series(x)}))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=20, n_test=20
+        )
+        anom1 = ss_detect1.fit_predict(data=ts)
+
+        ts = TimeSeriesData(pd.DataFrame({"time": time, "value": pd.Series(x)}))
+        ss_detect2 = StatSigDetectorModel(
+            n_control=20, n_test=20, anomaly_scores_only=True,
+        )
+        anom2 = ss_detect2.fit_predict(data=ts)
+
+        res = np.sum(np.round(np.asarray(anom1.scores.value.to_list()), 10) == np.round(np.asarray(anom2.scores.value.to_list()), 10))
+        self.assertEqual(res, 100)
+
+        # no missing data, enough historical data
+        ts = TimeSeriesData(pd.DataFrame({"time": time[40:], "value": pd.Series(x[40:])}))
+        ts_hist = TimeSeriesData(pd.DataFrame({"time": time[:40], "value": pd.Series(x[:40])}))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=20, n_test=20
+        )
+        anom1 = ss_detect1.fit_predict(historical_data=ts_hist, data=ts)
+
+        ts = TimeSeriesData(pd.DataFrame({"time": time[40:], "value": pd.Series(x[40:])}))
+        ts_hist = TimeSeriesData(pd.DataFrame({"time": time[:40], "value": pd.Series(x[:40])}))
+        ss_detect2 = StatSigDetectorModel(
+            n_control=20, n_test=20, anomaly_scores_only=True,
+        )
+        anom2 = ss_detect2.fit_predict(historical_data=ts_hist, data=ts)
+
+        res = np.sum(np.round(np.asarray(anom1.scores.value.to_list()), 10) == np.round(np.asarray(anom2.scores.value.to_list()), 10))
+        self.assertEqual(res, len(ts))
+
+        # no missing data, not enough historical data
+        ts = TimeSeriesData(pd.DataFrame({"time": time[30:], "value": pd.Series(x[30:])}))
+        ts_hist = TimeSeriesData(pd.DataFrame({"time": time[:30], "value": pd.Series(x[:30])}))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=20, n_test=20
+        )
+        anom1 = ss_detect1.fit_predict(historical_data=ts_hist, data=ts)
+
+        ts = TimeSeriesData(pd.DataFrame({"time": time[30:], "value": pd.Series(x[30:])}))
+        ts_hist = TimeSeriesData(pd.DataFrame({"time": time[:30], "value": pd.Series(x[:30])}))
+        ss_detect2 = StatSigDetectorModel(
+            n_control=20, n_test=20, anomaly_scores_only=True,
+        )
+        anom2 = ss_detect2.fit_predict(historical_data=ts_hist, data=ts)
+
+        res = np.sum(np.round(np.asarray(anom1.scores.value.to_list()), 10) == np.round(np.asarray(anom2.scores.value.to_list()), 10))
+        self.assertEqual(res, len(ts))
+
+        # have missing data, no historical data
+        x0 = x[:98]
+        time = list(pd.date_range(start="2018-01-01", freq="h", periods=100))
+        time0 = time[:30] + time[31:65]+ time[66:]
+        ts = TimeSeriesData(pd.DataFrame({"time": time0, "value": pd.Series(x0)}))
+        ss_detect11 = StatSigDetectorModel(
+            n_control=20, n_test=20
+        )
+        anom11 = ss_detect11.fit_predict(data=ts)
+
+        ts = TimeSeriesData(pd.DataFrame({"time": time0, "value": pd.Series(x0)}))
+        ss_detect22 = StatSigDetectorModel(
+            n_control=20, n_test=20, anomaly_scores_only=True,
+        )
+        anom22 = ss_detect22.fit_predict(data=ts)
+
+        res = np.sum(np.round(np.asarray(anom11.scores.value.to_list()), 10) == np.round(np.asarray(anom22.scores.value.to_list()), 10))
+        self.assertEqual(res, len(ts))
+
+        # have missing data, not enough historical data
+        ts = TimeSeriesData(pd.DataFrame({"time": time0[20:], "value": pd.Series(x0[20:])}))
+        ts_hist = TimeSeriesData(pd.DataFrame({"time": time0[:20], "value": pd.Series(x0[:20])}))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=20, n_test=20
+        )
+        anom1 = ss_detect1.fit_predict(historical_data=ts_hist, data=ts)
+
+        ts = TimeSeriesData(pd.DataFrame({"time": time0[20:], "value": pd.Series(x0[20:])}))
+        ts_hist = TimeSeriesData(pd.DataFrame({"time": time0[:20], "value": pd.Series(x0[:20])}))
+        ss_detect2 = StatSigDetectorModel(
+            n_control=20, n_test=20, anomaly_scores_only=True,
+        )
+        anom2 = ss_detect2.fit_predict(historical_data=ts_hist, data=ts)
+
+        res = np.sum(np.round(np.asarray(anom1.scores.value.to_list()), 10) == np.round(np.asarray(anom2.scores.value.to_list()), 10))
+        self.assertEqual(res, len(ts))
+
+        # have missing data, enough historical data
+        ts = TimeSeriesData(pd.DataFrame({"time": time0[40:], "value": pd.Series(x0[40:])}))
+        ts_hist = TimeSeriesData(pd.DataFrame({"time": time0[:40], "value": pd.Series(x0[:40])}))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=20, n_test=20
+        )
+        anom1 = ss_detect1.fit_predict(historical_data=ts_hist, data=ts)
+
+        ts = TimeSeriesData(pd.DataFrame({"time": time0[40:], "value": pd.Series(x0[40:])}))
+        ts_hist = TimeSeriesData(pd.DataFrame({"time": time0[:40], "value": pd.Series(x0[:40])}))
+        ss_detect2 = StatSigDetectorModel(
+            n_control=20, n_test=20, anomaly_scores_only=True,
+        )
+        anom2 = ss_detect2.fit_predict(historical_data=ts_hist, data=ts)
+
+        res = np.sum(np.round(np.asarray(anom1.scores.value.to_list()), 10) == np.round(np.asarray(anom2.scores.value.to_list()), 10))
+        self.assertEqual(res, len(ts))
+
+        # no missing data, 2h granularity
+        time = pd.date_range(start="2018-01-01", freq="2h", periods=100)
+
+        ts = TimeSeriesData(pd.DataFrame({"time": time, "value": pd.Series(x)}))
+        ss_detect1 = StatSigDetectorModel(
+            n_control=20, n_test=20
+        )
+        anom1 = ss_detect1.fit_predict(data=ts)
+
+        ts = TimeSeriesData(pd.DataFrame({"time": time, "value": pd.Series(x)}))
+        ss_detect2 = StatSigDetectorModel(
+            n_control=20, n_test=20, anomaly_scores_only=True,
+        )
+        anom2 = ss_detect2.fit_predict(data=ts)
+
+        res = np.sum(np.round(np.asarray(anom1.scores.value.to_list()), 10) == np.round(np.asarray(anom2.scores.value.to_list()), 10))
+        self.assertEqual(res, 100)
+        self.assertEqual(ss_detect1.time_unit, "7200.0S")
+        self.assertEqual(ss_detect2.time_unit, "7200.0S")
