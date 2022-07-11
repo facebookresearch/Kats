@@ -1258,8 +1258,18 @@ class SeasonalityHandler:
         self.low_pass_jump_factor: float = kwargs.get("lpj_factor", 0.15)
         self.trend_jump_factor: float = kwargs.get("tj_factor", 0.15)
 
-        self.frequency: pd.Timedelta = self.data.freq_to_timedelta()
-        self.decomposer_input: TimeSeriesData = self.data.interpolate(self.frequency)
+        self.frequency: pd.Timedelta = self.data.infer_freq_robust()
+        self.frequency_sec_str: str = str(int(self.frequency.total_seconds())) + "s"
+
+        # calculate resample base in second level
+        time0 = pd.to_datetime(self.data.time[0])
+        resample_base_sec = time0.minute * 60 + time0.second
+
+        self.decomposer_input: TimeSeriesData = self.data.interpolate(
+            freq=self.frequency_sec_str,
+            base=resample_base_sec,
+        )
+
         self.period = int(
             self.seasonal_period * 60 * 60 / self.frequency.total_seconds()
         )

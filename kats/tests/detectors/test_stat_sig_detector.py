@@ -912,3 +912,62 @@ class TestStatSigDetectorAnomalyScoresOnly(TestCase):
         self.assertEqual(res, 100)
         self.assertEqual(ss_detect1.time_unit, "7200.0S")
         self.assertEqual(ss_detect2.time_unit, "7200.0S")
+
+
+class TestInterpolateBase(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(0)
+        x = np.random.normal(0.5, 3, 199)
+        time_val0 = list(pd.date_range(start="2018-02-03 14:59:59", freq="1800s", periods=200))
+        time_val = time_val0[:130] + time_val0[131:]
+        self.tsd = TimeSeriesData(pd.DataFrame({"time": time_val, "value": pd.Series(x)}))
+
+        time_val01 = list(pd.date_range(start="2018-02-03 14:00:04", freq="1800s", periods=200))
+        time_val1 = time_val01[:130] + time_val01[131:]
+        self.tsd1 = TimeSeriesData(pd.DataFrame({"time": time_val1, "value": pd.Series(x)}))
+
+    def test_seasonhandler_for_missing_data_with_nonzero_base(self) -> None:
+        # example 1, base = -1
+        sh = SeasonalityHandler(self.tsd)
+        data_nonseason = sh.remove_seasonality()
+        data_season = sh.get_seasonality()
+        self.assertEqual(sh.frequency_sec_str, "1800s")
+        self.assertEqual(len(data_nonseason), len(self.tsd))
+        self.assertEqual(len(data_season), len(self.tsd))
+        # successfully interpolate -> No NaNs
+        self.assertEqual(
+            sh.decomposer_input.to_dataframe().isna().value.sum(),
+            0,
+        )
+
+        # example 2, base = 4
+        sh1 = SeasonalityHandler(self.tsd1)
+        data_nonseason1 = sh1.remove_seasonality()
+        data_season1 = sh1.get_seasonality()
+        self.assertEqual(sh1.frequency_sec_str, "1800s")
+        self.assertEqual(len(data_nonseason1), len(self.tsd1))
+        self.assertEqual(len(data_season1), len(self.tsd1))
+        # successfully interpolate -> No NaNs
+        self.assertEqual(
+            sh1.decomposer_input.to_dataframe().isna().value.sum(),
+            0,
+        )
+
+    def test_statsig_for_missing_data_with_nonzero_base(self) -> None:
+        ss_detect = StatSigDetectorModel(
+            n_control=20,
+            n_test=20,
+            time_unit="1800s",
+            rem_season=True,
+        )
+        anom = ss_detect.fit_predict(data=self.tsd)
+        self.assertEqual(len(anom.scores), len(self.tsd))
+
+        ss_detect1 = StatSigDetectorModel(
+            n_control=20,
+            n_test=20,
+            time_unit="1800s",
+            rem_season=True,
+        )
+        anom1 = ss_detect1.fit_predict(data=self.tsd1)
+        self.assertEqual(len(anom1.scores), len(self.tsd1))
