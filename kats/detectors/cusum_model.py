@@ -487,14 +487,17 @@ class CUSUMDetectorModel(DetectorModel):
 
             decomposer = TimeSeriesDecomposition(
                 decomposer_input,
-                period=period,
+                # statsmodels.STL requires that period must be a positive integer >= 2
+                period=max(period, 2),
                 robust=True,
                 seasonal_deg=0,
                 trend_deg=1,
                 low_pass_deg=1,
-                low_pass_jump=int((period + 1) * 0.15),  # save run time
+                # statsmodels.STL requires that low_pass_jump must be a positive integer
+                low_pass_jump=max(int((period + 1) * 0.15), 1),  # save run time
                 seasonal_jump=1,
-                trend_jump=int((period + 1) * 0.15),  # save run time
+                # statsmodels.STL requires that trend_jump must be a positive integer
+                trend_jump=max(int((period + 1) * 0.15), 1),  # save run time
             )
 
             decomp = decomposer.decomposer()
