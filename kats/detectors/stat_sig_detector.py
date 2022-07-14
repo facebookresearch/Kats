@@ -54,6 +54,7 @@ class StatSigDetectorModel(DetectorModel):
         use_corrected_scores: bool, default value is False, using original t-scores or correct t-scores.
         max_split_ts_length: int, default value is 500. If the given TS (except historical part) is longer than max_split_ts_length,
                     we will transform a long univariate TS into a multi-variate TS and then use multistatsig detector, which is faster,
+        anomaly_scores_only: bool = False. Only calculate anomaly scores without using advanced classes, which is much faster.
 
     >>> # Example usage:
     >>> # history and ts_pt are TimeSeriesData objects and history is larger
@@ -69,6 +70,9 @@ class StatSigDetectorModel(DetectorModel):
     >>> hist_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
     >>> data_ts = TimeSeriesData(time=test_time, value=pd.Series(test_val))
     >>> ss_detect = StatSigDetectorModel(n_control=n_control, n_test=n_test)
+    >>> anom = ss_detect.fit_predict(data=data_ts, historical_data=hist_ts)
+    >>> # if only caculate anomaly scores
+    >>> ss_detect = StatSigDetectorModel(n_control=n_control, n_test=n_test, anomaly_scores_only=True)
     >>> anom = ss_detect.fit_predict(data=data_ts, historical_data=hist_ts)
     """
 
