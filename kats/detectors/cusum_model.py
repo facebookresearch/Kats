@@ -45,6 +45,7 @@ NORMAL_TOLERENCE = 1  # number of window
 CHANGEPOINT_RETENTION: int = 7 * 24 * 60 * 60  # in seconds
 MAX_CHANGEPOINT = 10
 
+_log: logging.Logger = logging.getLogger("cusum_model")
 
 def percentage_change(
     data: TimeSeriesData, pre_mean: float, **kwargs: Any
@@ -495,7 +496,7 @@ class CUSUMDetectorModel(DetectorModel):
             if freq_counts.iloc[0] >= int(len(historical_data)) * 0.8 - 1:
                 frequency = freq_counts.index[0]
             else:
-                logging.debug(f"freq_counts: {freq_counts}")
+                _log.debug(f"freq_counts: {freq_counts}")
                 raise ValueError("Not able to infer freqency of the time series")
 
         # check if historical_window, scan_window, and step_window are suitable for given TSs
@@ -614,15 +615,15 @@ class CUSUMDetectorModel(DetectorModel):
             ),
             freq=step_window,
         ):
-            logging.debug(f"start_time {start_time}")
+            _log.debug(f"start_time {start_time}")
             historical_start = self._time2idx(
                 historical_data, start_time - historical_window, "right"
             )
-            logging.debug(f"historical_start {historical_start}")
+            _log.debug(f"historical_start {historical_start}")
             historical_end = self._time2idx(historical_data, start_time, "right")
-            logging.debug(f"historical_end {historical_end}")
+            _log.debug(f"historical_end {historical_end}")
             scan_end = self._time2idx(historical_data, start_time + step_window, "left")
-            logging.debug(f"scan_end {scan_end}")
+            _log.debug(f"scan_end {scan_end}")
             in_data = historical_data[historical_end : scan_end + 1]
             if len(in_data) == 0:
                 # skip if there is no data in the step_window

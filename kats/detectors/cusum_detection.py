@@ -55,6 +55,8 @@ from dataclasses import dataclass, asdict
 
 pd.options.plotting.matplotlib.register_converters = True
 
+_log: logging.Logger = logging.getLogger("cusum_detection")
+
 @dataclass
 class CUSUMDefaultArgs:
     threshold: float = 0.01
@@ -230,7 +232,7 @@ class CUSUMDetector(Detector):
                 f"{type(self.data.value)}.  For multivariate time series, use "
                 "MultiCUSUMDetector or VectorizedCUSUMDetector"
             )
-            logging.error(msg)
+            _log.error(msg)
             raise ValueError(msg)
 
     def _get_change_point(
@@ -244,11 +246,11 @@ class CUSUMDetector(Detector):
         # locate the change point using cusum method
         if change_direction == "increase":
             changepoint_func = np.argmin
-            logging.debug("Detecting increase changepoint.")
+            _log.debug("Detecting increase changepoint.")
         else:
             assert change_direction == "decrease"
             changepoint_func = np.argmax
-            logging.debug("Detecting decrease changepoint.")
+            _log.debug("Detecting decrease changepoint.")
         n = 0
         # use the middle point as initial change point to estimate mu0 and mu1
         if interest_window is not None:
@@ -277,7 +279,7 @@ class CUSUMDetector(Detector):
             changepoint = next_changepoint
 
         if n == max_iter:
-            logging.info("Max iteration reached and no stable changepoint found.")
+            _log.info("Max iteration reached and no stable changepoint found.")
             stable_changepoint = False
         else:
             stable_changepoint = True
@@ -484,7 +486,7 @@ class CUSUMDetector(Detector):
             else:
                 mag_change = True
                 if magnitude_quantile:
-                    logging.warning(
+                    _log.warning(
                         (
                             "The minimal value is less than 0. Cannot perform "
                             "magnitude comparison."
@@ -581,7 +583,7 @@ class CUSUMDetector(Detector):
                 ax.axvline(x=change.start_time, color="red")
                 changepoint_annotated = True
         if not changepoint_annotated:
-            logging.warning("No change points detected!")
+            _log.warning("No change points detected!")
 
         interest_window = self.interest_window
         if interest_window is not None:
@@ -697,7 +699,7 @@ class MultiCUSUMDetector(CUSUMDetector):
             log_det_sigma1 = np.log(np.linalg.det(sigma1))
         except np.linalg.linalg.LinAlgError:
             msg = "One or more covariance matrix is singular."
-            logging.error(msg)
+            _log.error(msg)
             raise ValueError(msg)
 
         return len(x) / 2 * (log_det_sigma0 - log_det_sigma1) + np.sum(
@@ -745,7 +747,7 @@ class MultiCUSUMDetector(CUSUMDetector):
                 sigma1_inverse = np.linalg.inv(sigma1)
             except np.linalg.linalg.LinAlgError:
                 msg = "One or more covariance matrix is singular."
-                logging.error(msg)
+                _log.error(msg)
                 raise ValueError(msg)
 
             si_values = np.diag(
@@ -766,7 +768,7 @@ class MultiCUSUMDetector(CUSUMDetector):
                 changepoint = next_changepoint
 
         if n == max_iter:
-            logging.info("Max iteration reached and no stable changepoint found.")
+            _log.info("Max iteration reached and no stable changepoint found.")
             stable_changepoint = False
         else:
             stable_changepoint = True
@@ -813,7 +815,7 @@ class VectorizedCUSUMDetector(CUSUMDetector):
 
     def detector(self, **kwargs: Any) -> Sequence[CUSUMChangePoint]:
         msg = "VectorizedCUSUMDetector is in beta and please use detector_()"
-        logging.error(msg)
+        _log.error(msg)
         raise ValueError(msg)
 
     def detector_(self, **kwargs: Any) -> List[List[CUSUMChangePoint]]:
@@ -896,11 +898,11 @@ class VectorizedCUSUMDetector(CUSUMDetector):
         # locate the change point using cusum method
         if change_direction == "increase":
             changepoint_func = np.argmin
-            logging.debug("Detecting increase changepoint.")
+            _log.debug("Detecting increase changepoint.")
         else:
             assert change_direction == "decrease"
             changepoint_func = np.argmax
-            logging.debug("Detecting decrease changepoint.")
+            _log.debug("Detecting decrease changepoint.")
 
         n_ts = ts.shape[1]
         n_pts = ts.shape[0]
