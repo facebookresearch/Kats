@@ -244,7 +244,7 @@ class TestAdhocCUSUMDetectorModel(TestCase):
             data=self.tsd[-4:], historical_data=self.tsd[-8:-4]
         ).scores
 
-        model = CUSUMDetectorModel(scan_window=self.scan_window, historical_window=3600)
+        model = CUSUMDetectorModel(scan_window=self.scan_window, historical_window=2*3600)
         self.score_tsd_fixed_historical_window = model.fit_predict(
             data=self.tsd[-8:]
         ).scores
@@ -343,7 +343,7 @@ class TestMissingDataCUSUMDetectorModel(TestCase):
         self.tsd = TimeSeriesData(df)
         # We also assume a bad input here
         model = CUSUMDetectorModel(
-            scan_window=24 * 3600,
+            scan_window=2 * 24 * 3600,
             historical_window=2 * 24 * 3600,
         )
         self.score_tsd = model.fit_predict(
@@ -551,17 +551,6 @@ class TestRaiseCUSUMDetectorModel(TestCase):
 
         self.tsd = TimeSeriesData(df_increase)
 
-    def test_raise_window_size(self) -> None:
-        with self.assertRaisesRegex(
-            ValueError,
-            "Step window should be smaller than scan window to ensure we have overlap for scan windows.",
-        ):
-            _ = CUSUMDetectorModel(
-                scan_window=self.scan_window,
-                step_window=self.scan_window * 2,
-                historical_window=self.historical_window,
-            )
-
     def test_raise_direction(self) -> None:
         with self.assertRaisesRegex(ValueError, "direction can only be right or left"):
             model = CUSUMDetectorModel(
@@ -654,3 +643,40 @@ class TestDeltaReturnCUSUMDetectorModel(TestCase):
         # attr2: str,
     ) -> None:
         self.assertTrue(func_(attrgetter(attr1)(self)) > 0)
+
+
+class TestCUSUMDetectorModelWindowsErrors(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(100)
+        control_time = pd.date_range(start="2018-01-06", freq="D", periods=(100))
+        control_val = np.random.normal(0, 5, 100)
+        self.data_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+
+    def test_errors(self) -> None:
+        # case 1: scan_window < 2 * frequency_sec
+        model = CUSUMDetectorModel(
+            scan_window=1*24*60*60, historical_window=2*24*60*60
+        )
+        with self.assertRaises(ValueError):
+            _ = model.fit_predict(data=self.data_ts)
+
+        # case 2: historical_window < 2 * frequency_sec
+        model = CUSUMDetectorModel(
+            scan_window=2*24*60*60, historical_window=1*24*60*60
+        )
+        with self.assertRaises(ValueError):
+            _ = model.fit_predict(data=self.data_ts)
+
+        # case 3: step_window < frequency_sec
+        model = CUSUMDetectorModel(
+            scan_window=5*24*60*60, historical_window=5*24*60*60, step_window=24*60*60//2
+        )
+        with self.assertRaises(ValueError):
+            _ = model.fit_predict(data=self.data_ts)
+
+        # case 4: step_window >= scan_window
+        model = CUSUMDetectorModel(
+                scan_window=5*24*60*60, historical_window=5*24*60*60, step_window=20*24*60*60
+            )
+        with self.assertRaises(ValueError):
+            _ = model.fit_predict(data=self.data_ts)

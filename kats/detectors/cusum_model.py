@@ -206,11 +206,6 @@ class CUSUMDetectorModel(DetectorModel):
                 "You must provide either serialized model or values for "
                 "scan_window and historical_window."
             )
-        if step_window is not None and step_window >= scan_window:
-            raise ValueError(
-                "Step window should be smaller than scan window to ensure we "
-                "have overlap for scan windows."
-            )
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, CUSUMDetectorModel):
@@ -408,6 +403,37 @@ class CUSUMDetectorModel(DetectorModel):
             ),
         )
 
+    def _check_window_sizes(self, frequency_sec: int) -> None:
+        """
+        Function to check if historical_window, scan_window, and step_window
+        are suitable for a given TS data and a given TS historical_data.
+        We have already checked if self.step_window < self.scan_window in init func
+        when self.step_window is not None.
+        """
+        if self.step_window is not None:
+            if self.step_window >= self.scan_window:
+                raise ValueError(
+                    "Step window is supposed to be smaller than scan window to ensure we "
+                    "have overlap for scan windows."
+                )
+            if self.step_window < frequency_sec:
+                raise ValueError(
+                    "Step window is supposed to be greater than TS granularity. "
+                    f"TS granularity is: {frequency_sec} seconds. "
+                    "Please provide a larger step window."
+                )
+
+        # if step_window is None, step_window = min(self.scan_window/2, *** + frequency_sec)
+        # in order to make sure step_window >= frequency_sec, we need to make sure
+        # self.scan_window >= 2 * frequency_sec
+
+        if self.scan_window < 2 * frequency_sec or self.historical_window < 2 * frequency_sec:
+            raise ValueError(
+                "Scan window and historical window are supposed to be >= 2 * TS granularity. "
+                f"TS granularity is: {frequency_sec} seconds. "
+                "Please provide a larger scan window or historical_window."
+            )
+
     def fit_predict(
         self,
         data: TimeSeriesData,
@@ -423,6 +449,7 @@ class CUSUMDetectorModel(DetectorModel):
         >>>                                           |-step_window-|
         >>>               |---historical_window---|---scan_window---|
 
+        # requirement: scan window > step window
         * scan_window: the window size in seconds to detect change point
         * historical_window: the window size in seconds to provide historical data
         * step_window: the window size in seconds to specify the step size between two scans
@@ -470,6 +497,9 @@ class CUSUMDetectorModel(DetectorModel):
             else:
                 logging.debug(f"freq_counts: {freq_counts}")
                 raise ValueError("Not able to infer freqency of the time series")
+
+        # check if historical_window, scan_window, and step_window are suitable for given TSs
+        self._check_window_sizes(frequency.total_seconds())
 
         if remove_seasonality:
             frequency_sec = str(int(frequency.total_seconds())) + "s"
