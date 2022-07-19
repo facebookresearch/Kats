@@ -680,3 +680,39 @@ class TestCUSUMDetectorModelWindowsErrors(TestCase):
             )
         with self.assertRaises(ValueError):
             _ = model.fit_predict(data=self.data_ts)
+
+
+class TestCUSUMDetectorModelChangeDirection(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(100)
+        control_time = pd.date_range(start="2018-01-06", freq="D", periods=(100))
+        control_val = np.random.normal(0, 5, 100)
+        self.data_ts = TimeSeriesData(time=control_time, value=pd.Series(control_val))
+
+    def test_direction_list(self) -> None:
+        model = CUSUMDetectorModel(
+            scan_window=10*24*60*60,
+            historical_window=10*24*60*60,
+            threshold=0.01,
+            delta_std_ratio=1.0,
+            serialized_model=None,
+            change_directions=["increase"],
+            score_func=CusumScoreFunction.percentage_change,
+        )
+        anom = model.fit_predict(data=self.data_ts)
+        self.assertEqual(len(anom.scores), len(self.data_ts))
+
+    def test_direction_str(self) -> None:
+        # case 1: scan_window < 2 * frequency_sec
+        model = CUSUMDetectorModel(
+            scan_window=10*24*60*60,
+            historical_window=10*24*60*60,
+            threshold=0.01,
+            delta_std_ratio=1.0,
+            serialized_model=None,
+            change_directions="increase",
+            score_func=CusumScoreFunction.percentage_change,
+        )
+        self.assertEqual(model.change_directions, ["increase"])
+        anom = model.fit_predict(data=self.data_ts)
+        self.assertEqual(len(anom.scores), len(self.data_ts))

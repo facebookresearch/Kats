@@ -149,7 +149,7 @@ class CUSUMDetectorModel(DetectorModel):
         delta_std_ratio: float = CUSUMDefaultArgs.delta_std_ratio,
         magnitude_quantile: Optional[float] = CUSUMDefaultArgs.magnitude_quantile,
         magnitude_ratio: float = CUSUMDefaultArgs.magnitude_ratio,
-        change_directions: Optional[List[str]] = CUSUMDefaultArgs.change_directions,
+        change_directions: Optional[Union[List[str], str]] = CUSUMDefaultArgs.change_directions,
         score_func: Union[str, CusumScoreFunction] = DEFAULT_SCORE_FUNCTION,
         remove_seasonality: bool = CUSUMDefaultArgs.remove_seasonality,
     ) -> None:
@@ -191,7 +191,13 @@ class CUSUMDetectorModel(DetectorModel):
             self.delta_std_ratio = delta_std_ratio
             self.magnitude_quantile = magnitude_quantile
             self.magnitude_ratio = magnitude_ratio
-            self.change_directions = change_directions
+
+            if isinstance(change_directions, str):
+                self.change_directions = [change_directions]
+            else:
+                # List[str]
+                self.change_directions = change_directions
+
             self.remove_seasonality = remove_seasonality
 
             # We allow score_function to be a str for compatibility with param tuning
@@ -297,7 +303,7 @@ class CUSUMDetectorModel(DetectorModel):
             magnitude_quantile: float, the quantile for magnitude comparison, if
                 none, will skip the magnitude comparison;
             magnitude_ratio: float, comparable ratio;
-            change_directions: a list contain either or both 'increas' and 'decrease' to
+            change_directions: a list contain either or both 'increase' and 'decrease' to
                 specify what type of change to detect;
         """
         historical_data.extend(data, validate=False)
