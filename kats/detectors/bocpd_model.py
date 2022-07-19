@@ -73,49 +73,6 @@ class BocpdDetectorModel(DetectorModel):
         model_dict = {"slow_drift": self.slow_drift}
         return json.dumps(model_dict).encode("utf-8")
 
-    def _handle_missing_data_extend(
-        self, data: TimeSeriesData, historical_data: TimeSeriesData
-    ) -> TimeSeriesData:
-
-        # extend() works only when there is no missing data
-        # hence, we will interpolate if there is missing data
-        # but we will remove the interpolated data when we
-        # evaluate, to make sure that the anomaly score is
-        # the same length as data
-        original_time_list = list(historical_data.time) + list(data.time)
-
-        if historical_data.is_data_missing():
-            historical_data = historical_data.interpolate()
-        if data.is_data_missing():
-            data = data.interpolate()
-
-        historical_data.extend(data)
-
-        # extend has been done, now remove the interpolated data
-        data = TimeSeriesData(
-            pd.DataFrame(
-                {
-                    "time": [
-                        historical_data.time.iloc[i]
-                        for i in range(len(historical_data))
-                        if historical_data.time.iloc[i] in original_time_list
-                    ],
-                    "value": [
-                        historical_data.value.iloc[i]
-                        for i in range(len(historical_data))
-                        if historical_data.time.iloc[i] in original_time_list
-                    ],
-                },
-                copy=False,
-            ),
-            use_unix_time=True,
-            unix_time_units="s",
-            tz="US/Pacific",
-        )
-
-        return data
-
-    #  inconsistently.
     def fit_predict(
         self,
         data: TimeSeriesData,
@@ -145,12 +102,14 @@ class BocpdDetectorModel(DetectorModel):
         # we prepend it to data, and run
         # the detector as if we only saw data
         if historical_data is not None:
-            data = self._handle_missing_data_extend(data, historical_data)
+            historical_data.extend(data, validate=False)
+            data = TimeSeriesData(
+                pd.DataFrame({"time": list(historical_data.time), "value": list(historical_data.value)})
+            )
 
         bocpd_model = BOCPDetector(data=data)
 
         if not self.slow_drift:
-
             if self.threshold is not None:
                 _ = bocpd_model.detector(
                     model=BOCPDModelType.NORMAL_KNOWN_MODEL,
