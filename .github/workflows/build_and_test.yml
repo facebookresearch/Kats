@@ -1,4 +1,4 @@
-name: Kats build and test in minimal then full modes
+name: Build
 
 on: [push]
 
