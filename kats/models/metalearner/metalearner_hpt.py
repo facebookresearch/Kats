@@ -37,6 +37,16 @@ default_model_params = {
     },
     "theta": {"categorical_idx": ["m"], "numerical_idx": []},
     "stlf": {"categorical_idx": ["method", "m"], "numerical_idx": []},
+    "neuralprophet": {
+        "categorical_idx": [
+            "yearly_seasonality",
+            "weekly_seasonality",
+            "daily_seasonality",
+            "seasonality_mode",
+            "changepoints_range",
+        ],
+        "numerical_idx": [],
+    },
     "prophet": {
         "categorical_idx": [
             "yearly_seasonality",
@@ -80,6 +90,11 @@ default_model_networks = {
     "stlf": {
         "n_hidden_shared": [20],
         "n_hidden_cat_combo": [[5], [5]],
+        "n_hidden_num": [],
+    },
+    "neuralprophet": {
+        "n_hidden_shared": [40],
+        "n_hidden_cat_combo": [[5], [5], [2], [3], [5]],
         "n_hidden_num": [],
     },
     "prophet": {

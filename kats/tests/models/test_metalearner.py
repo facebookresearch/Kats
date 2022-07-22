@@ -23,6 +23,7 @@ from kats.models.metalearner.metalearner_modelselect import (
 from kats.models.metalearner.metalearner_predictability import (
     MetaLearnPredictability,
 )
+from kats.models.neuralprophet import NeuralProphetModel, NeuralProphetParams
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.models.sarima import SARIMAModel, SARIMAParams
 from kats.models.stlf import STLFModel, STLFParams
@@ -73,6 +74,7 @@ base_models = {
     "arima": ARIMAModel,
     "holtwinters": HoltWintersModel,
     "sarima": SARIMAModel,
+    "neuralprophet": NeuralProphetModel,
     "prophet": ProphetModel,
     "stlf": STLFModel,
     "theta": ThetaModel,
@@ -144,11 +146,12 @@ METALEARNING_METADATA = generate_meta_data(35)
 # pyre-fixme[5]: Global expression must be annotated.
 METALEARNING_METADATA_BY_MODEL = {
     t: generate_meta_data_by_model(t, 150)
-    for t in ["arima", "holtwinters", "sarima", "theta", "stlf", "prophet"]
+    for t in ["arima", "holtwinters", "sarima", "theta", "stlf", "neuralprophet", "prophet"]
 }
 
 candidate_models = {
     "holtwinters": HoltWintersModel,
+    "neuralprophet": NeuralProphetModel,
     "prophet": ProphetModel,
     "theta": ThetaModel,
     "stlf": STLFModel,
@@ -157,6 +160,7 @@ candidate_models = {
 
 candidate_params = {
     "holtwinters": HoltWintersParams,
+    "neuralprophet": NeuralProphetParams,
     "prophet": ProphetParams,
     "theta": ThetaParams,
     "stlf": STLFParams,
@@ -352,7 +356,7 @@ class MetaLearnHPTTest(TestCase):
             list(feature2),
             feature3.copy(),
         )
-        for model in ["prophet", "arima", "sarima", "theta", "stlf", "holtwinters"]:
+        for model in ["neuralprophet", "prophet", "arima", "sarima", "theta", "stlf", "holtwinters"]:
             x, y = METALEARNING_METADATA_BY_MODEL[model]
             # Check default models initialization and training
             mlhpt = MetaLearnHPT(x, y, default_model=model)
