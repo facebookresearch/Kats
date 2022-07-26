@@ -12,6 +12,7 @@ This module contains two classes, including:
 
 import collections
 import logging
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import joblib
@@ -24,95 +25,108 @@ from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
 from sklearn.model_selection import train_test_split
 
-# pyre-fixme[5]: Global expression must be annotated.
-default_model_params = {
-    "holtwinters": {
-        "categorical_idx": ["trend", "damped", "seasonal", "seasonal_periods"],
-        "numerical_idx": [],
-    },
-    "arima": {"categorical_idx": ["p", "d", "q"], "numerical_idx": []},
-    "sarima": {
-        "categorical_idx": ["seasonal_order", "trend", "p", "d", "q"],
-        "numerical_idx": [],
-    },
-    "theta": {"categorical_idx": ["m"], "numerical_idx": []},
-    "stlf": {"categorical_idx": ["method", "m"], "numerical_idx": []},
-    "neuralprophet": {
-        "categorical_idx": [
-            "yearly_seasonality",
-            "weekly_seasonality",
-            "daily_seasonality",
-            "seasonality_mode",
-            "changepoints_range",
-        ],
-        "numerical_idx": [],
-    },
-    "prophet": {
-        "categorical_idx": [
-            "yearly_seasonality",
-            "weekly_seasonality",
-            "daily_seasonality",
-            "seasonality_mode",
-            "seasonality_prior_scale",
-            "changepoint_prior_scale",
-            "changepoint_range",
-        ],
-        "numerical_idx": [],
-    },
-    "cusum": {
-        "categorical_idx": ["score_func"],
-        "numerical_idx": ["delta_std_ratio", "scan_window", "historical_window"],
-    },
-    "statsig": {
-        "categorical_idx": [],
-        "numerical_idx": ["n_control", "n_test"],
-    },
-}
+_MODELS = {"neuralprophet", "prophet", "arima", "sarima", "holtwinters", "stlf", "theta", "cusum", "statsig"}
 
-# pyre-fixme[5]: Global expression must be annotated.
-default_model_networks = {
-    "holtwinters": {
-        "n_hidden_shared": [20],
-        "n_hidden_cat_combo": [[2], [3], [5], [3]],
-        "n_hidden_num": [],
-    },
-    "arima": {
-        "n_hidden_shared": [40],
-        "n_hidden_cat_combo": [[5], [5], [5]],
-        "n_hidden_num": [],
-    },
-    "sarima": {
-        "n_hidden_shared": [40],
-        "n_hidden_cat_combo": [[5], [5], [5], [5], [5]],
-        "n_hidden_num": [],
-    },
-    "theta": {"n_hidden_shared": [40], "n_hidden_cat_combo": [[5]], "n_hidden_num": []},
-    "stlf": {
-        "n_hidden_shared": [20],
-        "n_hidden_cat_combo": [[5], [5]],
-        "n_hidden_num": [],
-    },
-    "neuralprophet": {
-        "n_hidden_shared": [40],
-        "n_hidden_cat_combo": [[5], [5], [2], [3], [5]],
-        "n_hidden_num": [],
-    },
-    "prophet": {
-        "n_hidden_shared": [40],
-        "n_hidden_cat_combo": [[5], [5], [2], [3], [5], [5], [5]],
-        "n_hidden_num": [],
-    },
-    "cusum": {
-        "n_hidden_shared": [20],
-        "n_hidden_cat_combo": [[3]],
-        "n_hidden_num": [5, 5, 5],
-    },
-    "statsig": {
-        "n_hidden_shared": [20],
-        "n_hidden_cat_combo": [],
-        "n_hidden_num": [5, 5],
-    },
-}
+@dataclass
+class DefaultModelParams:
+    holtwinters_categorical_idx: List[str] = field(default_factory=list)
+    holtwinters_numerical_idx: List[str] = field(default_factory=list)
+    arima_categorical_idx: List[str] = field(default_factory=list)
+    arima_numerical_idx: List[str] = field(default_factory=list)
+    sarima_categorical_idx: List[str] = field(default_factory=list)
+    sarima_numerical_idx: List[str] = field(default_factory=list)
+    theta_categorical_idx: List[str] = field(default_factory=list)
+    theta_numerical_idx: List[str] = field(default_factory=list)
+    stlf_categorical_idx: List[str] = field(default_factory=list)
+    stlf_numerical_idx: List[str] = field(default_factory=list)
+    neuralprophet_categorical_idx: List[str] = field(default_factory=list)
+    neuralprophet_numerical_idx: List[str] = field(default_factory=list)
+    prophet_categorical_idx: List[str] = field(default_factory=list)
+    prophet_numerical_idx: List[str] = field(default_factory=list)
+    cusum_categorical_idx: List[str] = field(default_factory=list)
+    cusum_numerical_idx: List[str] = field(default_factory=list)
+    statsig_categorical_idx: List[str] = field(default_factory=list)
+    statsig_numerical_idx: List[str] = field(default_factory=list)
+
+    def __init__(self) -> None:
+        self.holtwinters_categorical_idx = ["trend", "damped", "seasonal", "seasonal_periods"]
+        self.holtwinters_numerical_idx = []
+        self.arima_categorical_idx = ["p", "d", "q"]
+        self.arima_numerical_idx = []
+        self.sarima_categorical_idx = ["seasonal_order", "trend", "p", "d", "q"]
+        self.sarima_numerical_idx = []
+        self.theta_categorical_idx = ["m"]
+        self.theta_numerical_idx = []
+        self.stlf_categorical_idx = ["method", "m"]
+        self.stlf_numerical_idx = []
+        self.neuralprophet_categorical_idx = ["yearly_seasonality", "weekly_seasonality", "daily_seasonality", "seasonality_mode", "changepoints_range"]
+        self.neuralprophet_numerical_idx = []
+        self.prophet_categorical_idx = ["yearly_seasonality", "weekly_seasonality", "daily_seasonality", "seasonality_mode", "seasonality_prior_scale", "changepoint_prior_scale", "changepoint_range"]
+        self.prophet_numerical_idx = []
+        self.cusum_categorical_idx = ["score_func"]
+        self.cusum_numerical_idx = ["delta_std_ratio", "scan_window", "historical_window"]
+        self.statsig_categorical_idx = []
+        self.statsig_numerical_idx = ["n_control", "n_test"]
+
+
+@dataclass
+class DefaultModelNetworks:
+    holtwinters_n_hidden_shared: List[int] = field(default_factory=list)
+    holtwinters_n_hidden_cat_combo: List[List[int]] = field(default_factory=list)
+    holtwinters_n_hidden_num: List[int] = field(default_factory=list)
+    arima_n_hidden_shared: List[int] = field(default_factory=list)
+    arima_n_hidden_cat_combo: List[List[int]] = field(default_factory=list)
+    arima_n_hidden_num: List[int] = field(default_factory=list)
+    sarima_n_hidden_shared: List[int] = field(default_factory=list)
+    sarima_n_hidden_cat_combo: List[List[int]] = field(default_factory=list)
+    sarima_n_hidden_num: List[int] = field(default_factory=list)
+    theta_n_hidden_shared: List[int] = field(default_factory=list)
+    theta_n_hidden_cat_combo: List[List[int]] = field(default_factory=list)
+    theta_n_hidden_num: List[int] = field(default_factory=list)
+    stlf_n_hidden_shared: List[int] = field(default_factory=list)
+    stlf_n_hidden_cat_combo: List[List[int]] = field(default_factory=list)
+    stlf_n_hidden_num: List[int] = field(default_factory=list)
+    neuralprophet_n_hidden_shared: List[int] = field(default_factory=list)
+    neuralprophet_n_hidden_cat_combo: List[List[int]] = field(default_factory=list)
+    neuralprophet_n_hidden_num: List[int] = field(default_factory=list)
+    prophet_n_hidden_shared: List[int] = field(default_factory=list)
+    prophet_n_hidden_cat_combo: List[List[int]] = field(default_factory=list)
+    prophet_n_hidden_num: List[int] = field(default_factory=list)
+    cusum_n_hidden_shared: List[int] = field(default_factory=list)
+    cusum_n_hidden_cat_combo: List[List[int]] = field(default_factory=list)
+    cusum_n_hidden_num: List[int] = field(default_factory=list)
+    statsig_n_hidden_shared: List[int] = field(default_factory=list)
+    statsig_n_hidden_cat_combo: List[List[int]] = field(default_factory=list)
+    statsig_n_hidden_num: List[int] = field(default_factory=list)
+
+    def __init__(self) -> None:
+        self.holtwinters_n_hidden_shared = [20]
+        self.holtwinters_n_hidden_cat_combo = [[2], [3], [5], [3]]
+        self.holtwinters_n_hidden_num = []
+        self.arima_n_hidden_shared = [40]
+        self.arima_n_hidden_cat_combo = [[5], [5], [5]]
+        self.arima_n_hidden_num = []
+        self.sarima_n_hidden_shared = [40]
+        self.sarima_n_hidden_cat_combo = [[5], [5], [5], [5], [5]]
+        self.sarima_n_hidden_num = []
+        self.theta_n_hidden_shared = [40]
+        self.theta_n_hidden_cat_combo = [[5]]
+        self.theta_n_hidden_num = []
+        self.stlf_n_hidden_shared = [20]
+        self.stlf_n_hidden_cat_combo = [[5], [5]]
+        self.stlf_n_hidden_num = []
+        self.neuralprophet_n_hidden_shared = [40]
+        self.neuralprophet_n_hidden_cat_combo = [[5], [5], [2], [3], [5]]
+        self.neuralprophet_n_hidden_num = []
+        self.prophet_n_hidden_shared = [40]
+        self.prophet_n_hidden_cat_combo = [[5], [5], [2], [3], [5], [5], [5]]
+        self.prophet_n_hidden_num = []
+        self.cusum_n_hidden_shared = [20]
+        self.cusum_n_hidden_cat_combo = [[3]]
+        self.cusum_n_hidden_num = [5, 5, 5]
+        self.statsig_n_hidden_shared = [20]
+        self.statsig_n_hidden_cat_combo = []
+        self.statsig_n_hidden_num = [5, 5]
 
 
 def _log_error(msg: str) -> ValueError:
@@ -133,7 +147,7 @@ class MetaLearnHPT:
         categorical_idx: Optional; A list of strings of the names of the categorical hyper-parameters. Default is None.
         numerical_idx: Optional; A list of strings of the names of the numerical hyper-parameters. Default is None.
         default_model: Optional; A string of the name of the forecast model whose default settings will be used.
-                       Can be 'arima', 'sarima', 'theta', 'prophet', 'holtwinters', 'stlf' or None. Default is None.
+                       Can be 'arima', 'sarima', 'theta', 'neuralprophet', 'prophet', 'holtwinters', 'stlf' or None. Default is None.
         scale: Optional; A boolean to specify whether or not to normalize time series features to zero mean and unit variance. Default is True.
         load_model: Optional; A boolean to specify whether or not to load a trained model. Default is False.
 
@@ -187,6 +201,8 @@ class MetaLearnHPT:
             # pyre-fixme[4]: Attribute must be annotated.
             self.__default_model = default_model
 
+            default_model_params = DefaultModelParams()
+
             if default_model is not None:
 
                 if (categorical_idx is not None) or (numerical_idx is not None):
@@ -197,14 +213,13 @@ class MetaLearnHPT:
                          """
                     raise _log_error(msg)
 
-                if default_model in default_model_params:
-                    categorical_idx = default_model_params[default_model][
-                        "categorical_idx"
-                    ]
-                    numerical_idx = default_model_params[default_model]["numerical_idx"]
-
+                if default_model in _MODELS:
+                    categorical_idx_var = f"{default_model}_categorical_idx"
+                    numerical_idx_var = f"{default_model}_numerical_idx"
+                    categorical_idx = getattr(default_model_params, categorical_idx_var)
+                    numerical_idx = getattr(default_model_params, numerical_idx_var)
                 else:
-                    msg = f"default_model={default_model} is not available! Please choose one from 'prophet', 'arima', 'sarima', 'holtwinters', 'stlf', 'theta', 'cusum', 'statsig'"
+                    msg = f"default_model={default_model} is not available! Please choose one from 'neuralprophet', 'prophet', 'arima', 'sarima', 'holtwinters', 'stlf', 'theta', 'cusum', 'statsig'"
                     raise _log_error(msg)
 
             if (not numerical_idx) and (not categorical_idx):
@@ -350,20 +365,19 @@ class MetaLearnHPT:
         )
 
         default_model = self.__default_model
-
+        default_model_networks = DefaultModelNetworks()
         if default_model is not None:
             if not network_structure:
                 msg = f"A default model structure ({default_model}) is initiated and cannot accept the customized network structure!"
                 raise _log_error(msg)
 
-            if default_model in default_model_networks:
-                n_hidden_shared = default_model_networks[default_model][
-                    "n_hidden_shared"
-                ]
-                n_hidden_cat_combo = default_model_networks[default_model][
-                    "n_hidden_cat_combo"
-                ]
-                n_hidden_num = default_model_networks[default_model]["n_hidden_num"]
+            if default_model in _MODELS:
+                n_hidden_shared_var = f"{default_model}_n_hidden_shared"
+                n_hidden_cat_combo_var = f"{default_model}_n_hidden_cat_combo"
+                n_hidden_num_var = f"{default_model}_n_hidden_num"
+                n_hidden_shared = getattr(default_model_networks, n_hidden_shared_var)
+                n_hidden_cat_combo = getattr(default_model_networks, n_hidden_cat_combo_var)
+                n_hidden_num = getattr(default_model_networks, n_hidden_num_var)
             else:
                 msg = f"Default neural network for model {default_model} is not implemented!"
                 raise _log_error(msg)
