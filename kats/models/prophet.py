@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 import pandas as pd
 
 try:
-    from fbprophet import Prophet
+    from prophet import Prophet
 
     _no_prophet = False
 except ImportError:
@@ -131,7 +131,7 @@ class ProphetParams(Params):
         extra_regressors: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         if _no_prophet:
-            raise RuntimeError("requires fbprophet to be installed")
+            raise RuntimeError("requires prophet to be installed")
         super().__init__()
         self.growth = growth
         self.changepoints = changepoints
@@ -244,7 +244,7 @@ class ProphetModel(Model[ProphetParams]):
     def __init__(self, data: TimeSeriesData, params: ProphetParams) -> None:
         super().__init__(data, params)
         if _no_prophet:
-            raise RuntimeError("requires fbprophet to be installed")
+            raise RuntimeError("requires prophet to be installed")
         self.data: TimeSeriesData = data
         self._data_params_validation()
 

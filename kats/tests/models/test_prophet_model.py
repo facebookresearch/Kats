@@ -106,14 +106,14 @@ class ProphetModelTest(TestCase):
 
         # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         def mock_prophet_import(module: Any, *args: Any, **kwargs: Any) -> None:
-            if module == "fbprophet":
+            if module == "prophet":
                 raise ImportError
             else:
                 return original_import_fn(module, *args, **kwargs)
 
         cls.mock_imports = patch("builtins.__import__", side_effect=mock_prophet_import)
 
-    def test_fbprophet_not_installed(self) -> None:
+    def test_prophet_not_installed(self) -> None:
         # Unload prophet module so its imports can be mocked as necessary
         del sys.modules["kats.models.prophet"]
 
