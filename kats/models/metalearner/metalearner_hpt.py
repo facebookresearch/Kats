@@ -25,7 +25,18 @@ from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
 from sklearn.model_selection import train_test_split
 
-_MODELS = {"neuralprophet", "prophet", "arima", "sarima", "holtwinters", "stlf", "theta", "cusum", "statsig"}
+_MODELS = {
+    "neuralprophet",
+    "prophet",
+    "arima",
+    "sarima",
+    "holtwinters",
+    "stlf",
+    "theta",
+    "cusum",
+    "statsig",
+}
+
 
 @dataclass
 class DefaultModelParams:
@@ -49,7 +60,12 @@ class DefaultModelParams:
     statsig_numerical_idx: List[str] = field(default_factory=list)
 
     def __init__(self) -> None:
-        self.holtwinters_categorical_idx = ["trend", "damped", "seasonal", "seasonal_periods"]
+        self.holtwinters_categorical_idx = [
+            "trend",
+            "damped",
+            "seasonal",
+            "seasonal_periods",
+        ]
         self.holtwinters_numerical_idx = []
         self.arima_categorical_idx = ["p", "d", "q"]
         self.arima_numerical_idx = []
@@ -59,12 +75,30 @@ class DefaultModelParams:
         self.theta_numerical_idx = []
         self.stlf_categorical_idx = ["method", "m"]
         self.stlf_numerical_idx = []
-        self.neuralprophet_categorical_idx = ["yearly_seasonality", "weekly_seasonality", "daily_seasonality", "seasonality_mode", "changepoints_range"]
+        self.neuralprophet_categorical_idx = [
+            "yearly_seasonality",
+            "weekly_seasonality",
+            "daily_seasonality",
+            "seasonality_mode",
+            "changepoints_range",
+        ]
         self.neuralprophet_numerical_idx = []
-        self.prophet_categorical_idx = ["yearly_seasonality", "weekly_seasonality", "daily_seasonality", "seasonality_mode", "seasonality_prior_scale", "changepoint_prior_scale", "changepoint_range"]
+        self.prophet_categorical_idx = [
+            "yearly_seasonality",
+            "weekly_seasonality",
+            "daily_seasonality",
+            "seasonality_mode",
+            "seasonality_prior_scale",
+            "changepoint_prior_scale",
+            "changepoint_range",
+        ]
         self.prophet_numerical_idx = []
         self.cusum_categorical_idx = ["score_func"]
-        self.cusum_numerical_idx = ["delta_std_ratio", "scan_window", "historical_window"]
+        self.cusum_numerical_idx = [
+            "delta_std_ratio",
+            "scan_window",
+            "historical_window",
+        ]
         self.statsig_categorical_idx = []
         self.statsig_numerical_idx = ["n_control", "n_test"]
 
@@ -376,7 +410,9 @@ class MetaLearnHPT:
                 n_hidden_cat_combo_var = f"{default_model}_n_hidden_cat_combo"
                 n_hidden_num_var = f"{default_model}_n_hidden_num"
                 n_hidden_shared = getattr(default_model_networks, n_hidden_shared_var)
-                n_hidden_cat_combo = getattr(default_model_networks, n_hidden_cat_combo_var)
+                n_hidden_cat_combo = getattr(
+                    default_model_networks, n_hidden_cat_combo_var
+                )
                 n_hidden_num = getattr(default_model_networks, n_hidden_num_var)
             else:
                 msg = f"Default neural network for model {default_model} is not implemented!"

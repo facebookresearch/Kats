@@ -31,7 +31,7 @@ class Step(Protocol):
         self,
         x: Union[pd.DataFrame, np.ndarray],
         y: Optional[Union[pd.Series, np.ndarray]],
-        **kwargs: Any
+        **kwargs: Any,
     ) -> List[TimeSeriesData]:
         ...
 
@@ -268,7 +268,7 @@ class Pipeline:
         self,
         data: Union[TimeSeriesData, List[TimeSeriesData]],
         params: Optional[Dict[str, Any]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Union[TimeSeriesData, List[TimeSeriesData]]:
         """
         This function is the external function for user to fit the pipeline

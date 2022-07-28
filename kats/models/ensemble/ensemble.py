@@ -10,7 +10,7 @@ and STL-based ensembling method. This is the parent class for all ensemble model
 """
 
 import logging
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count, Pool
 from typing import Dict, List, Optional, Type
 
 import pandas as pd

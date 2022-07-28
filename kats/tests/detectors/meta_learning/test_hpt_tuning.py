@@ -11,10 +11,10 @@ from unittest.mock import Mock
 import pandas as pd
 from kats.detectors.meta_learning.exceptions import (
     KatsDetectorHPTIllegalHyperParameter,
-    KatsDetectorUnsupportedAlgoName,
-    KatsDetectorsUnimplemented,
-    KatsDetectorHPTTrainError,
     KatsDetectorHPTModelUsedBeforeTraining,
+    KatsDetectorHPTTrainError,
+    KatsDetectorsUnimplemented,
+    KatsDetectorUnsupportedAlgoName,
 )
 from kats.detectors.meta_learning.hpt_tuning import MetaDetectHptSelect
 from kats.detectors.meta_learning.synth_metadata_reader import SynthMetadataReader
@@ -49,7 +49,7 @@ class TestMetaDetectHptSelect(TestCase):
         with self.assertRaises(KatsDetectorUnsupportedAlgoName):
             MetaDetectHptSelect(
                 **self._get_valid_metadata(self._get_valid_alg_name()),
-                algorithm_name=algorithm_name
+                algorithm_name=algorithm_name,
             )
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...

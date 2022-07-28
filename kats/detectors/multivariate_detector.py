@@ -77,7 +77,7 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         """Fit MultivariateAnomalyDetector.
 
@@ -109,7 +109,7 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """Get anomaly scores.
 
@@ -184,7 +184,7 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """Fit a model and return the anomaly scores.
 

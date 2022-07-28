@@ -6,14 +6,14 @@
 import logging
 import os
 from functools import partial
-from unittest import TestCase, mock
+from unittest import mock, TestCase
 
 import numpy as np
 import pandas as pd
 import torch
 from kats.consts import TimeSeriesData
 from kats.models.globalmodel.backtester import GMBackTester, GMBackTesterExpandingWindow
-from kats.models.globalmodel.data_processor import GMDataLoader, GMBatch
+from kats.models.globalmodel.data_processor import GMBatch, GMDataLoader
 from kats.models.globalmodel.ensemble import GMEnsemble, load_gmensemble_from_file
 from kats.models.globalmodel.model import GMModel, load_gmmodel_from_file
 from kats.models.globalmodel.serialize import (
@@ -21,17 +21,17 @@ from kats.models.globalmodel.serialize import (
     load_global_model_from_json,
 )
 from kats.models.globalmodel.utils import (
-    LSTM2Cell,
-    S2Cell,
-    DilatedRNNStack,
-    PinballLoss,
-    GMParam,
     AdjustedPinballLoss,
-    GMFeature,
-    gmparam_from_string,
-    pad_ts,
+    DilatedRNNStack,
     fill_missing_value_na,
     get_filters,
+    GMFeature,
+    GMParam,
+    gmparam_from_string,
+    LSTM2Cell,
+    pad_ts,
+    PinballLoss,
+    S2Cell,
     split,
 )
 from parameterized.parameterized import parameterized

@@ -40,27 +40,25 @@ this use case.
 """
 
 import logging
+from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from kats.consts import (
-    TimeSeriesChangePoint,
-    TimeSeriesData,
-)
+from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
 from scipy.stats import chi2  # @manual
-from dataclasses import dataclass, asdict
 
 pd.options.plotting.matplotlib.register_converters = True
 
 _log: logging.Logger = logging.getLogger("cusum_detection")
 
+
 @dataclass
 class CUSUMDefaultArgs:
     threshold: float = 0.01
-    max_iter: int= 10
+    max_iter: int = 10
     delta_std_ratio: float = 1.0
     min_abs_change: int = 0
     start_point: Optional[int] = None
@@ -71,6 +69,7 @@ class CUSUMDefaultArgs:
     magnitude_comparable_day: float = 0.5
     return_all_changepoints: bool = False
     remove_seasonality: bool = False
+
 
 @dataclass
 class CUSUMChangePointVal:
@@ -88,6 +87,7 @@ class CUSUMChangePointVal:
     llr: Optional[float] = None
     p_value: Optional[float] = None
     regression_detected: Optional[bool] = None
+
 
 class CUSUMChangePoint(TimeSeriesChangePoint):
     """CUSUM change point.
@@ -300,18 +300,26 @@ class CUSUMDetector(Detector):
         mu1 = np.mean(ts[(changepoint + 1) :])
 
         return CUSUMChangePointVal(
-            changepoint = changepoint,
-            mu0 = mu0,
-            mu1 = mu1,
-            changetime = self.data.time[changepoint],
-            stable_changepoint = stable_changepoint,
-            delta = mu1 - mu0,
-            llr_int = llr_int,
-            p_value_int = pval_int,
-            delta_int = delta_int
+            changepoint=changepoint,
+            mu0=mu0,
+            mu1=mu1,
+            changetime=self.data.time[changepoint],
+            stable_changepoint=stable_changepoint,
+            delta=mu1 - mu0,
+            llr_int=llr_int,
+            p_value_int=pval_int,
+            delta_int=delta_int,
         )
 
-    def _get_llr(self, ts: np.ndarray, mu0: float, mu1: float, changepoint: int, sigma0: Optional[float] = None, sigma1: Optional[float] = None) -> float:
+    def _get_llr(
+        self,
+        ts: np.ndarray,
+        mu0: float,
+        mu1: float,
+        changepoint: int,
+        sigma0: Optional[float] = None,
+        sigma1: Optional[float] = None,
+    ) -> float:
         """
         Calculate the log likelihood ratio
         """
@@ -439,12 +447,20 @@ class CUSUMDetector(Detector):
         delta_std_ratio = kwargs.get("delta_std_ratio", defaultArgs.delta_std_ratio)
         min_abs_change = kwargs.get("min_abs_change", defaultArgs.min_abs_change)
         start_point = kwargs.get("start_point", defaultArgs.start_point)
-        change_directions = kwargs.get("change_directions", defaultArgs.change_directions)
+        change_directions = kwargs.get(
+            "change_directions", defaultArgs.change_directions
+        )
         interest_window = kwargs.get("interest_window", defaultArgs.interest_window)
-        magnitude_quantile = kwargs.get("magnitude_quantile", defaultArgs.magnitude_quantile)
+        magnitude_quantile = kwargs.get(
+            "magnitude_quantile", defaultArgs.magnitude_quantile
+        )
         magnitude_ratio = kwargs.get("magnitude_ratio", defaultArgs.magnitude_ratio)
-        magnitude_comparable_day = kwargs.get("magnitude_comparable_day", defaultArgs.magnitude_comparable_day)
-        return_all_changepoints = kwargs.get("return_all_changepoints", defaultArgs.return_all_changepoints)
+        magnitude_comparable_day = kwargs.get(
+            "magnitude_comparable_day", defaultArgs.magnitude_comparable_day
+        )
+        return_all_changepoints = kwargs.get(
+            "return_all_changepoints", defaultArgs.return_all_changepoints
+        )
 
         self.interest_window = interest_window
         self.magnitude_quantile = magnitude_quantile
@@ -471,7 +487,14 @@ class CUSUMDetector(Detector):
                 start_point=start_point,
                 change_direction=change_direction,
             )
-            change_meta.llr = llr = self._get_llr(ts, change_meta.mu0, change_meta.mu1, change_meta.changepoint, change_meta.sigma0, change_meta.sigma1)
+            change_meta.llr = llr = self._get_llr(
+                ts,
+                change_meta.mu0,
+                change_meta.mu1,
+                change_meta.changepoint,
+                change_meta.sigma0,
+                change_meta.sigma1,
+            )
             change_meta.p_value = 1 - chi2.cdf(llr, 2)
 
             # compare magnitude on interest_window and historical_window
@@ -631,7 +654,9 @@ class MultiCUSUMDetector(CUSUMDetector):
 
         # TODO: Add support for interest windows
 
-        return_all_changepoints = kwargs.get("return_all_changepoints", defaultArgs.return_all_changepoints)
+        return_all_changepoints = kwargs.get(
+            "return_all_changepoints", defaultArgs.return_all_changepoints
+        )
 
         # Use array to store the data
         ts = self.data.value.to_numpy()
@@ -648,12 +673,17 @@ class MultiCUSUMDetector(CUSUMDetector):
                 max_iter=max_iter,
                 start_point=start_point,
             )
-            change_meta.llr = llr = self._get_llr(ts, change_meta.mu0, change_meta.mu1, change_meta.changepoint, change_meta.sigma0, change_meta.sigma1)
+            change_meta.llr = llr = self._get_llr(
+                ts,
+                change_meta.mu0,
+                change_meta.mu1,
+                change_meta.changepoint,
+                change_meta.sigma0,
+                change_meta.sigma1,
+            )
             change_meta.p_value = 1 - chi2.cdf(llr, ts.shape[1] + 1)
 
-            if_significant = llr > chi2.ppf(
-                1 - threshold, ts.shape[1] + 1
-            )
+            if_significant = llr > chi2.ppf(1 - threshold, ts.shape[1] + 1)
 
             change_meta.regression_detected = if_significant
             changes_meta[change_direction] = asdict(change_meta)
@@ -662,7 +692,15 @@ class MultiCUSUMDetector(CUSUMDetector):
 
         return self._convert_cusum_changepoints(changes_meta, return_all_changepoints)
 
-    def _get_llr(self, ts: np.ndarray,  mu0: float, mu1: float, changepoint: int, sigma0: Optional[float], sigma1: Optional[float]) -> float:
+    def _get_llr(
+        self,
+        ts: np.ndarray,
+        mu0: float,
+        mu1: float,
+        changepoint: int,
+        sigma0: Optional[float],
+        sigma1: Optional[float],
+    ) -> float:
 
         mu_tilde = np.mean(ts, axis=0)
         sigma_pooled = np.cov(ts, rowvar=False)
@@ -672,14 +710,14 @@ class MultiCUSUMDetector(CUSUMDetector):
                 mu_tilde,
                 sigma_pooled,
                 mu0,
-                sigma0, # pyre-fixme
+                sigma0,  # pyre-fixme
             )
             - self._log_llr_multi(
                 ts[(changepoint + 1) :],
                 mu_tilde,
                 sigma_pooled,
                 mu1,
-                sigma1, # pyre-fixme
+                sigma1,  # pyre-fixme
             )
         )
         return llr
@@ -783,18 +821,19 @@ class MultiCUSUMDetector(CUSUMDetector):
         sigma0 = sigma1 = np.cov(ts, rowvar=False)
 
         return CUSUMChangePointVal(
-            changepoint = changepoint,
-            mu0 = mu0,
-            mu1 = mu1,
-            changetime = self.data.time[changepoint],
-            stable_changepoint = stable_changepoint,
-            delta = mu1 - mu0,
-            llr_int = llr_int,
-            p_value_int = pval_int,
-            delta_int = delta_int,
-            sigma0 = sigma0,
-            sigma1 = sigma1,
+            changepoint=changepoint,
+            mu0=mu0,
+            mu1=mu1,
+            changetime=self.data.time[changepoint],
+            stable_changepoint=stable_changepoint,
+            delta=mu1 - mu0,
+            llr_int=llr_int,
+            p_value_int=pval_int,
+            delta_int=delta_int,
+            sigma0=sigma0,
+            sigma1=sigma1,
         )
+
 
 class VectorizedCUSUMDetector(CUSUMDetector):
     """
@@ -839,8 +878,12 @@ class VectorizedCUSUMDetector(CUSUMDetector):
         # Extract all arg values or assign defaults from default vals constant
         threshold = kwargs.get("threshold", defaultArgs.threshold)
         max_iter = kwargs.get("max_iter", defaultArgs.max_iter)
-        change_directions = kwargs.get("change_directions", defaultArgs.change_directions)
-        return_all_changepoints = kwargs.get("return_all_changepoints", defaultArgs.return_all_changepoints)
+        change_directions = kwargs.get(
+            "change_directions", defaultArgs.change_directions
+        )
+        return_all_changepoints = kwargs.get(
+            "return_all_changepoints", defaultArgs.return_all_changepoints
+        )
         # Use array to store the data
         ts_all = self.data.value.to_numpy()
         ts_all = ts_all.astype("float64")
@@ -878,7 +921,14 @@ class VectorizedCUSUMDetector(CUSUMDetector):
                     else change_meta_[k]
                     for k in change_meta_
                 }
-                change_meta["llr"] = self._get_llr(ts, change_meta["mu0"], change_meta["mu1"], change_meta["changepoint"], change_meta["sigma0"], change_meta["sigma1"])
+                change_meta["llr"] = self._get_llr(
+                    ts,
+                    change_meta["mu0"],
+                    change_meta["mu1"],
+                    change_meta["changepoint"],
+                    change_meta["sigma0"],
+                    change_meta["sigma1"],
+                )
                 change_meta["p_value"] = 1 - chi2.cdf(change_meta["llr"], 2)
                 change_meta["regression_detected"] = change_meta["p_value"] < threshold
                 changes_meta[change_direction] = change_meta
@@ -956,13 +1006,13 @@ class VectorizedCUSUMDetector(CUSUMDetector):
         )
 
         return CUSUMChangePointVal(
-            changepoint = changepoint,
-            mu0 = mu0,
-            mu1 = mu1,
-            changetime = changetime,
-            stable_changepoint = stable_changepoint,
-            delta = mu1 - mu0,
-            llr_int = llr_int,
-            p_value_int = pval_int,
-            delta_int = delta_int
+            changepoint=changepoint,
+            mu0=mu0,
+            mu1=mu1,
+            changetime=changetime,
+            stable_changepoint=stable_changepoint,
+            delta=mu1 - mu0,
+            llr_int=llr_int,
+            p_value_int=pval_int,
+            delta_int=delta_int,
         )

@@ -11,7 +11,7 @@ The predictability of a time series is determined by whether the forecasting err
 
 import ast
 import logging
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 
 import joblib
 import numpy as np
@@ -160,7 +160,9 @@ class MetaLearnPredictability:
 
         self.rescale = True
         features = (self.features.values - self.features_mean) / self.features_std
-        self.features = pd.DataFrame(features, columns=self.features.columns, copy=False)
+        self.features = pd.DataFrame(
+            features, columns=self.features.columns, copy=False
+        )
 
     def train(
         self,

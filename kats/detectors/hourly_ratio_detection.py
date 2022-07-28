@@ -5,7 +5,7 @@
 
 
 import logging
-from typing import Any, Optional, Sequence, Tuple, Union, List
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np

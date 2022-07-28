@@ -109,7 +109,9 @@ SCORE_FUNC_DICT: Dict[str, Any] = {
     ProphetScoreFunction.z_score.value: z_score,
 }
 
-DEFAULT_SCORE_FUNCTION: ProphetScoreFunction = ProphetScoreFunction.deviation_from_predicted_val
+DEFAULT_SCORE_FUNCTION: ProphetScoreFunction = (
+    ProphetScoreFunction.deviation_from_predicted_val
+)
 STR_TO_SCORE_FUNC: Dict[str, ProphetScoreFunction] = {  # Used for param tuning
     "deviation_from_predicted_val": ProphetScoreFunction.deviation_from_predicted_val,
     "z_score": ProphetScoreFunction.z_score,

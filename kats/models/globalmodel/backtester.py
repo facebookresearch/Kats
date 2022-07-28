@@ -8,7 +8,7 @@ import logging
 import time
 from multiprocessing import cpu_count
 from multiprocessing.dummy import Pool
-from typing import List, Optional, Union, Any, Tuple, Dict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -16,11 +16,7 @@ import torch
 from kats.consts import TimeSeriesData
 from kats.models.globalmodel.ensemble import GMEnsemble
 from kats.models.globalmodel.model import GMModel
-from kats.models.globalmodel.utils import (
-    fill_missing_value_na,
-    split,
-    GMParam,
-)
+from kats.models.globalmodel.utils import fill_missing_value_na, GMParam, split
 from kats.utils.backtesters import BackTesterExpandingWindow
 
 """
@@ -169,8 +165,9 @@ class GMBackTester:
 
     # pyre-fixme[3]: Return annotation cannot contain `Any`.
     def _preprocess(
+        self,
         # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
-        self, data: Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]]
+        data: Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]],
     ) -> Dict[Any, Dict[Any, TimeSeriesData]]:
         """Preprocessing for input time series, including two steps:
             1. truncate the data before the earliest_timestamp (if earliest_timestamp is None, then skip this step).

@@ -5,7 +5,7 @@
 
 import re
 import unittest
-from typing import cast, Any, Dict
+from typing import Any, cast, Dict
 from unittest import TestCase
 
 import pandas as pd

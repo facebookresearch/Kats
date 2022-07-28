@@ -3,8 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import warnings
 import logging
+import warnings
 from typing import cast, Dict, Generator, Optional, Sequence, Union
 
 try:
@@ -84,6 +84,7 @@ class ThresholdMetric(Protocol):
     ) -> float:
         ...  # pragma: no cover
 
+
 class MultiThresholdMetric(Protocol):
     def __call__(
         self,
@@ -93,9 +94,16 @@ class MultiThresholdMetric(Protocol):
     ) -> np.ndarray:
         ...  # pragma: no cover
 
+
 KatsMetric = Union[
-    Metric, ArrayMetric, WeightedMetric, MultiOutputMetric, ThresholdMetric, MultiThresholdMetric
+    Metric,
+    ArrayMetric,
+    WeightedMetric,
+    MultiOutputMetric,
+    ThresholdMetric,
+    MultiThresholdMetric,
 ]
+
 
 def _arrays(*args: Optional[ArrayLike]) -> Generator[np.ndarray, None, None]:
     """Ensure all arguments are arrays of matching size.
@@ -657,6 +665,7 @@ def tracking_signal(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     err = mean_absolute_error(y_true, y_pred)
     return np.nan if err == 0 else np.sum(y_true - y_pred) / err
 
+
 def mult_exceed(
     y_true: ArrayLike, y_pred: ArrayLike, threshold: ArrayLike
 ) -> np.ndarray:
@@ -694,11 +703,11 @@ def mult_exceed(
     if y_pred.shape[0] != n:
         raise ValueError(
             f"Arrays have different number of samples ({y_pred.shape}, expected {n, m*horizon})"
-            )
-    elif y_pred.shape[1] != (m*horizon):
+        )
+    elif y_pred.shape[1] != (m * horizon):
         raise ValueError(
             f"Arrays have different number of samples ({y_pred.shape}, expected {n, m*horizon})"
-            )
+        )
 
     y_true = np.tile(y_true, m)
     mask = np.repeat((threshold > 0.5) * 2 - 1, horizon)
@@ -706,9 +715,8 @@ def mult_exceed(
     diff = (y_true - y_pred) * mask > 0
     return np.nanmean(diff.reshape(n, m, -1), axis=2).mean(axis=0)
 
-def pinball_loss(
-    y_true: ArrayLike, y_pred: ArrayLike, threshold: float
-) -> float:
+
+def pinball_loss(y_true: ArrayLike, y_pred: ArrayLike, threshold: float) -> float:
     """Pinball Loss function module.
 
     For threshold t (0<t<1), true value y_true and forecast value y_pred, the pinball loss function is defined as:
@@ -725,21 +733,20 @@ def pinball_loss(
         threshold:  A float representing the threshold to be calculated.
     """
     y_true, y_pred = _arrays(y_true, y_pred)
-    if threshold<0:
+    if threshold < 0:
         msg = "threshold should not be less than zero."
         logging.error(msg)
         raise ValueError(msg)
-    if threshold>1:
+    if threshold > 1:
         msg = "threshold should not be greater than one."
         logging.error(msg)
         raise ValueError(msg)
 
     diff = y_true - y_pred
-    return np.nanmean(np.nanmax((diff*threshold, diff*(threshold-1)), axis=0))
+    return np.nanmean(np.nanmax((diff * threshold, diff * (threshold - 1)), axis=0))
 
-def exceed(
-    y_true: ArrayLike, y_pred: ArrayLike, threshold: float
-) -> float:
+
+def exceed(y_true: ArrayLike, y_pred: ArrayLike, threshold: float) -> float:
     """Compute exceed rate for quantile estimates.
 
     For threshold t (0<t<=0.5), the exceed rate of t is defined as:
@@ -761,6 +768,7 @@ def exceed(
     mask = (threshold > 0.5) * 2 - 1
     diff = (y_true - y_pred) * mask > 0
     return np.nanmean(diff)
+
 
 # Name aliases (sorted alphabetically by alias)
 

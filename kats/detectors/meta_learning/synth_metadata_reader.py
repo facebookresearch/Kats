@@ -17,7 +17,12 @@ import pandas as pd
 
 class SynthMetadataReader:
     NUM_SECS_IN_DAY: int = 3600 * 24
-    PARAMS_TO_SCALE_DOWN: Set[str] = {"n_control", "n_test", "historical_window", "scan_window"}
+    PARAMS_TO_SCALE_DOWN: Set[str] = {
+        "n_control",
+        "n_test",
+        "historical_window",
+        "scan_window",
+    }
     _rawdata: Optional[pd.DataFrame] = None
     _metadata: Optional[Dict[str, Any]] = None
 

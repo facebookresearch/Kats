@@ -7,9 +7,11 @@ import json
 import logging
 from datetime import datetime
 from typing import Any, Optional, Tuple
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy.stats as stats
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (
@@ -19,7 +21,6 @@ from kats.detectors.detector_consts import (
     PercentageChange,
 )
 from kats.utils.decomposition import TimeSeriesDecomposition
-import scipy.stats as stats
 
 
 """Statistical Significance Detector Module
@@ -384,8 +385,8 @@ class StatSigDetectorModel(DetectorModel):
             total_data = historical_data
 
         total_data_df = total_data.to_dataframe()
-        total_data_df.columns = ['time', 'value']
-        total_data_df = total_data_df.set_index('time')
+        total_data_df.columns = ["time", "value"]
+        total_data_df = total_data_df.set_index("time")
 
         res = []
         i = 0
@@ -393,15 +394,21 @@ class StatSigDetectorModel(DetectorModel):
             test_end_dt = data.time[i]
 
             assert self.n_test is not None
-            test_start_dt = test_end_dt - (self.n_test - 1) * pd.Timedelta(self.time_unit)
+            test_start_dt = test_end_dt - (self.n_test - 1) * pd.Timedelta(
+                self.time_unit
+            )
 
             control_end_dt = test_start_dt
             assert self.n_control is not None
-            control_start_dt = control_end_dt - self.n_control * pd.Timedelta(self.time_unit)
+            control_start_dt = control_end_dt - self.n_control * pd.Timedelta(
+                self.time_unit
+            )
 
             if control_end_dt in total_data_df.index:
                 # exclude index control_end_dt
-                group1 = total_data_df[control_start_dt:control_end_dt].value.to_list()[:-1]
+                group1 = total_data_df[control_start_dt:control_end_dt].value.to_list()[
+                    :-1
+                ]
             else:
                 group1 = total_data_df[control_start_dt:control_end_dt].value.to_list()
             group2 = total_data_df[test_start_dt:test_end_dt].value.to_list()
@@ -689,7 +696,8 @@ class StatSigDetectorModel(DetectorModel):
         assert self.n_test is not None
 
         return end_time >= (
-            start_time + (self.n_control + self.n_test - 1) * pd.Timedelta(self.time_unit)
+            start_time
+            + (self.n_control + self.n_test - 1) * pd.Timedelta(self.time_unit)
         )
 
     def _handle_not_enough_history(
@@ -709,7 +717,9 @@ class StatSigDetectorModel(DetectorModel):
         if historical_data:
             history_first = historical_data.time.iloc[0]
             history_last = historical_data.time.iloc[-1]
-            min_history_last = history_first + num_hist_points * pd.Timedelta(self.time_unit)
+            min_history_last = history_first + num_hist_points * pd.Timedelta(
+                self.time_unit
+            )
 
             if history_last >= min_history_last:
                 return data, historical_data
@@ -814,7 +824,9 @@ class StatSigDetectorModel(DetectorModel):
 
         assert self.n_test is not None
         assert self.n_control is not None
-        control_start_dt = test_end_dt - (self.n_test + self.n_control) * pd.Timedelta(self.time_unit)
+        control_start_dt = test_end_dt - (self.n_test + self.n_control) * pd.Timedelta(
+            self.time_unit
+        )
 
         control_end_dt = test_start_dt
 

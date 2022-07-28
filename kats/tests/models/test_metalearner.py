@@ -17,22 +17,18 @@ from kats.models.arima import ARIMAModel
 from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
 from kats.models.metalearner.get_metadata import GetMetaData
 from kats.models.metalearner.metalearner_hpt import MetaLearnHPT
-from kats.models.metalearner.metalearner_modelselect import (
-    MetaLearnModelSelect,
-)
-from kats.models.metalearner.metalearner_predictability import (
-    MetaLearnPredictability,
-)
+from kats.models.metalearner.metalearner_modelselect import MetaLearnModelSelect
+from kats.models.metalearner.metalearner_predictability import MetaLearnPredictability
 from kats.models.neuralprophet import NeuralProphetModel, NeuralProphetParams
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.models.sarima import SARIMAModel, SARIMAParams
 from kats.models.stlf import STLFModel, STLFParams
 from kats.models.theta import ThetaModel, ThetaParams
 from kats.tests.models.test_models_dummy_data import (
-    METALEARNING_TEST_T1,
-    METALEARNING_TEST_T2,
     METALEARNING_TEST_FEATURES,
     METALEARNING_TEST_MULTI,
+    METALEARNING_TEST_T1,
+    METALEARNING_TEST_T2,
 )
 
 # TS which is too short
@@ -100,7 +96,9 @@ def generate_meta_data(n):
     features = np.random.randn(n * 40).reshape(n, -1)
     generators = {
         m: Models.UNIFORM(
-            SearchSpace([InstantiationBase.parameter_from_json(item) for item in spaces[m]])
+            SearchSpace(
+                [InstantiationBase.parameter_from_json(item) for item in spaces[m]]
+            )
         )
         for m in spaces
     }
@@ -146,7 +144,15 @@ METALEARNING_METADATA = generate_meta_data(35)
 # pyre-fixme[5]: Global expression must be annotated.
 METALEARNING_METADATA_BY_MODEL = {
     t: generate_meta_data_by_model(t, 150)
-    for t in ["arima", "holtwinters", "sarima", "theta", "stlf", "neuralprophet", "prophet"]
+    for t in [
+        "arima",
+        "holtwinters",
+        "sarima",
+        "theta",
+        "stlf",
+        "neuralprophet",
+        "prophet",
+    ]
 }
 
 candidate_models = {
@@ -356,7 +362,15 @@ class MetaLearnHPTTest(TestCase):
             list(feature2),
             feature3.copy(),
         )
-        for model in ["neuralprophet", "prophet", "arima", "sarima", "theta", "stlf", "holtwinters"]:
+        for model in [
+            "neuralprophet",
+            "prophet",
+            "arima",
+            "sarima",
+            "theta",
+            "stlf",
+            "holtwinters",
+        ]:
             x, y = METALEARNING_METADATA_BY_MODEL[model]
             # Check default models initialization and training
             mlhpt = MetaLearnHPT(x, y, default_model=model)

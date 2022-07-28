@@ -19,5 +19,4 @@ except ImportError:
     logging.warning(
         "kats.models.metalearner.metalearner_hpt requires torch be installed"
     )
-from . import metalearner_modelselect  # noqa
-from . import metalearner_predictability  # noqa
+from . import metalearner_modelselect, metalearner_predictability  # noqa  # noqa

@@ -10,10 +10,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.detectors.cusum_model import (
-    CUSUMDetectorModel,
-    CusumScoreFunction,
-)
+from kats.detectors.cusum_model import CUSUMDetectorModel, CusumScoreFunction
 from parameterized.parameterized import parameterized
 
 
@@ -244,7 +241,9 @@ class TestAdhocCUSUMDetectorModel(TestCase):
             data=self.tsd[-4:], historical_data=self.tsd[-8:-4]
         ).scores
 
-        model = CUSUMDetectorModel(scan_window=self.scan_window, historical_window=2*3600)
+        model = CUSUMDetectorModel(
+            scan_window=self.scan_window, historical_window=2 * 3600
+        )
         self.score_tsd_fixed_historical_window = model.fit_predict(
             data=self.tsd[-8:]
         ).scores
@@ -502,17 +501,26 @@ class TestDecomposingSeasonalityCUSUMDetectorModel(TestCase):
             func_sup(func_1(attrgetter(attr1)(self)), func_2(attrgetter(attr2)(self)))
         )
 
+
 class TestMissingDataRemoveSeasonalityCUSUMDetectorModel(TestCase):
     def setUp(self) -> None:
         np.random.seed(0)
         x = np.random.normal(0.5, 3, 998)
-        time_val0 = list(pd.date_range(start="2018-02-03 14:59:59", freq="1800s", periods=1000))
-        time_val = time_val0[:300] + time_val0[301:605]+ time_val0[606:]
-        self.tsd = TimeSeriesData(pd.DataFrame({"time": time_val, "value": pd.Series(x)}))
+        time_val0 = list(
+            pd.date_range(start="2018-02-03 14:59:59", freq="1800s", periods=1000)
+        )
+        time_val = time_val0[:300] + time_val0[301:605] + time_val0[606:]
+        self.tsd = TimeSeriesData(
+            pd.DataFrame({"time": time_val, "value": pd.Series(x)})
+        )
 
-        time_val01 = list(pd.date_range(start="2018-02-03 14:00:04", freq="1800s", periods=1000))
-        time_val1 = time_val01[:300] + time_val01[301:605]+ time_val01[606:]
-        self.tsd1 = TimeSeriesData(pd.DataFrame({"time": time_val1, "value": pd.Series(x)}))
+        time_val01 = list(
+            pd.date_range(start="2018-02-03 14:00:04", freq="1800s", periods=1000)
+        )
+        time_val1 = time_val01[:300] + time_val01[301:605] + time_val01[606:]
+        self.tsd1 = TimeSeriesData(
+            pd.DataFrame({"time": time_val1, "value": pd.Series(x)})
+        )
 
     def test_interpolation(self) -> None:
         # base = 59 * 60 + 59 or = -1
@@ -534,6 +542,7 @@ class TestMissingDataRemoveSeasonalityCUSUMDetectorModel(TestCase):
         score_tsd1 = model1.fit_predict(data=self.tsd1).scores
         self.assertEqual(len(score_tsd1), len(self.tsd1))
         self.assertTrue((score_tsd1.time.values == self.tsd1.time.values).all())
+
 
 class TestRaiseCUSUMDetectorModel(TestCase):
     def setUp(self) -> None:
@@ -655,29 +664,33 @@ class TestCUSUMDetectorModelWindowsErrors(TestCase):
     def test_errors(self) -> None:
         # case 1: scan_window < 2 * frequency_sec
         model = CUSUMDetectorModel(
-            scan_window=1*24*60*60, historical_window=2*24*60*60
+            scan_window=1 * 24 * 60 * 60, historical_window=2 * 24 * 60 * 60
         )
         with self.assertRaises(ValueError):
             _ = model.fit_predict(data=self.data_ts)
 
         # case 2: historical_window < 2 * frequency_sec
         model = CUSUMDetectorModel(
-            scan_window=2*24*60*60, historical_window=1*24*60*60
+            scan_window=2 * 24 * 60 * 60, historical_window=1 * 24 * 60 * 60
         )
         with self.assertRaises(ValueError):
             _ = model.fit_predict(data=self.data_ts)
 
         # case 3: step_window < frequency_sec
         model = CUSUMDetectorModel(
-            scan_window=5*24*60*60, historical_window=5*24*60*60, step_window=24*60*60//2
+            scan_window=5 * 24 * 60 * 60,
+            historical_window=5 * 24 * 60 * 60,
+            step_window=24 * 60 * 60 // 2,
         )
         with self.assertRaises(ValueError):
             _ = model.fit_predict(data=self.data_ts)
 
         # case 4: step_window >= scan_window
         model = CUSUMDetectorModel(
-                scan_window=5*24*60*60, historical_window=5*24*60*60, step_window=20*24*60*60
-            )
+            scan_window=5 * 24 * 60 * 60,
+            historical_window=5 * 24 * 60 * 60,
+            step_window=20 * 24 * 60 * 60,
+        )
         with self.assertRaises(ValueError):
             _ = model.fit_predict(data=self.data_ts)
 
@@ -691,8 +704,8 @@ class TestCUSUMDetectorModelChangeDirection(TestCase):
 
     def test_direction_list(self) -> None:
         model = CUSUMDetectorModel(
-            scan_window=10*24*60*60,
-            historical_window=10*24*60*60,
+            scan_window=10 * 24 * 60 * 60,
+            historical_window=10 * 24 * 60 * 60,
             threshold=0.01,
             delta_std_ratio=1.0,
             serialized_model=None,
@@ -705,8 +718,8 @@ class TestCUSUMDetectorModelChangeDirection(TestCase):
     def test_direction_str(self) -> None:
         # case 1: scan_window < 2 * frequency_sec
         model = CUSUMDetectorModel(
-            scan_window=10*24*60*60,
-            historical_window=10*24*60*60,
+            scan_window=10 * 24 * 60 * 60,
+            historical_window=10 * 24 * 60 * 60,
             threshold=0.01,
             delta_std_ratio=1.0,
             serialized_model=None,

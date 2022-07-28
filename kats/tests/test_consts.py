@@ -50,7 +50,9 @@ EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME, dtype=float)
 EMPTY_VALUE_SERIES = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
 EMPTY_VALUE_SERIES_NO_NAME = pd.Series([], dtype=float)
 EMPTY_TIME_DATETIME_INDEX = pd.DatetimeIndex(pd.Series([], dtype=object))
-EMPTY_DF_WITH_COLS: pd.DataFrame = pd.concat([EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1)
+EMPTY_DF_WITH_COLS: pd.DataFrame = pd.concat(
+    [EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1
+)
 NUM_YEARS_OFFSET = 12
 
 
@@ -434,9 +436,13 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
 
         # Incorrect initialization with value dtypes
         with self.assertRaises(ValueError):
-            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES.map(str))
+            TimeSeriesData(
+                time=self.AIR_TIME_SERIES, value=self.AIR_VALUE_SERIES.map(str)
+            )
         with self.assertRaises(ValueError):
-            TimeSeriesData(time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF.applymap(str))
+            TimeSeriesData(
+                time=self.AIR_TIME_SERIES, value=self.MULTIVAR_VALUE_DF.applymap(str)
+            )
 
     # Testing incorrect initializations
     def test_incorrect_init_lengths(self) -> None:
@@ -646,8 +652,10 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         # create time series with missing data
         np.random.seed(0)
         x = np.random.normal(0.5, 3, 998)
-        time_val0 = list(pd.date_range(start="2018-02-03 14:59:59", freq="1800s", periods=1000))
-        time_val = time_val0[:300] + time_val0[301:605]+ time_val0[606:]
+        time_val0 = list(
+            pd.date_range(start="2018-02-03 14:59:59", freq="1800s", periods=1000)
+        )
+        time_val = time_val0[:300] + time_val0[301:605] + time_val0[606:]
         ts0 = TimeSeriesData(pd.DataFrame({"time": time_val, "value": pd.Series(x)}))
 
         # calculate frequency first
@@ -667,8 +675,10 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         )
 
         # second example, base = 4
-        time_val0 = list(pd.date_range(start="2018-02-03 14:00:04", freq="1800s", periods=1000))
-        time_val = time_val0[:300] + time_val0[301:605]+ time_val0[606:]
+        time_val0 = list(
+            pd.date_range(start="2018-02-03 14:00:04", freq="1800s", periods=1000)
+        )
+        time_val = time_val0[:300] + time_val0[301:605] + time_val0[606:]
         ts0 = TimeSeriesData(pd.DataFrame({"time": time_val, "value": pd.Series(x)}))
 
         frequency = str(int(ts0.infer_freq_robust().total_seconds())) + "s"

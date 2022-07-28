@@ -10,7 +10,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_data, load_air_passengers
+from kats.data.utils import load_air_passengers, load_data
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
 

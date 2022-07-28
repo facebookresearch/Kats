@@ -5,7 +5,7 @@
 
 import collections
 import logging
-from typing import List, Optional, Union, Callable, Any, Tuple, Dict, Generator
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import joblib
 import numpy as np
@@ -14,16 +14,13 @@ import torch
 import torch.nn as nn
 from kats.consts import TimeSeriesData
 from kats.metrics import metrics
-from kats.models.globalmodel.data_processor import (
-    GMBatch,
-    GMDataLoader,
-)
+from kats.models.globalmodel.data_processor import GMBatch, GMDataLoader
 from kats.models.globalmodel.utils import (
-    GMParam,
-    DilatedRNNStack,
-    PinballLoss,
     AdjustedPinballLoss,
+    DilatedRNNStack,
+    GMParam,
     gmparam_from_string,
+    PinballLoss,
 )
 from torch import Tensor
 from torch.nn.modules.loss import _Loss

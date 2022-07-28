@@ -35,8 +35,8 @@ from ax.core.outcome_constraint import OutcomeConstraint
 from ax.modelbridge.discrete import DiscreteModelBridge
 from ax.modelbridge.registry import Models
 from ax.runners.synthetic import SyntheticRunner
-from kats.consts import SearchMethodEnum
 from ax.service.utils.instantiation import InstantiationBase
+from kats.consts import SearchMethodEnum
 
 # Maximum number of worker processes used to evaluate trial arms in parallel
 MAX_NUM_PROCESSES = 50
@@ -250,7 +250,9 @@ class TimeSeriesParameterTuning(ABC):
         )
         self.validate_parameters_format(parameters)
         # pyre-fixme[4]: Attribute must be annotated.
-        self.parameters = [InstantiationBase.parameter_from_json(parameter) for parameter in parameters]
+        self.parameters = [
+            InstantiationBase.parameter_from_json(parameter) for parameter in parameters
+        ]
         self.outcome_constraints = (
             [
                 InstantiationBase.outcome_constraint_from_str(str_constraint)
@@ -338,8 +340,10 @@ class TimeSeriesParameterTuning(ABC):
         return self._exp.search_space
 
     def generator_run_for_search_method(
+        self,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
-        self, evaluation_function: Callable, generator_run: DiscreteModelBridge
+        evaluation_function: Callable,
+        generator_run: DiscreteModelBridge,
     ) -> None:
         """Creates a new batch trial then runs the lastest.
 
@@ -753,8 +757,10 @@ class RandomSearch(TimeSeriesParameterTuning):
         self.logger.info("A RandomSearch object is successfully created.")
 
     def generate_evaluate_new_parameter_values(
+        self,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
-        self, evaluation_function: Callable, arm_count: int = 1
+        evaluation_function: Callable,
+        arm_count: int = 1,
     ) -> None:
         """This method can be called as many times as desired with arm_count in
         desired number. The total number of generated candidates will be equal
@@ -870,8 +876,10 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         self.logger.info(f"Bootstrapping of size = {bootstrap_size} is done.")
 
     def generate_evaluate_new_parameter_values(
+        self,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
-        self, evaluation_function: Callable, arm_count: int = 1
+        evaluation_function: Callable,
+        arm_count: int = 1,
     ) -> None:
         """This method can be called as many times as desired with arm_count in
         desired number. The total number of generated candidates will be equal
@@ -941,8 +949,11 @@ class SearchForMultipleSpaces:
         }
 
     def generate_evaluate_new_parameter_values(
+        self,
+        selected_model: str,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
-        self, selected_model: str, evaluation_function: Callable, arm_count: int = 1
+        evaluation_function: Callable,
+        arm_count: int = 1,
     ) -> None:
         """Calls generate_evaluate_new_parameter_values() for the search method in
         the search methods collection, search_agent_dict, called by selection_model

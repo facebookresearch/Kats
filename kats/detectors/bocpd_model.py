@@ -104,7 +104,12 @@ class BocpdDetectorModel(DetectorModel):
         if historical_data is not None:
             historical_data.extend(data, validate=False)
             data = TimeSeriesData(
-                pd.DataFrame({"time": list(historical_data.time), "value": list(historical_data.value)})
+                pd.DataFrame(
+                    {
+                        "time": list(historical_data.time),
+                        "value": list(historical_data.value),
+                    }
+                )
             )
 
         bocpd_model = BOCPDetector(data=data)

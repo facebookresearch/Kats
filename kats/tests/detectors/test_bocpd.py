@@ -394,7 +394,7 @@ class BOCPDTest(TestCase):
     def test_time_col_name(self) -> None:
 
         df = self.normal_ts.to_dataframe()
-        df.rename(columns={'time': 'ds'}, inplace=True)
+        df.rename(columns={"time": "ds"}, inplace=True)
         ts = TimeSeriesData(df, time_col_name="ds")
         try:
             detector = BOCPDetector(data=ts)

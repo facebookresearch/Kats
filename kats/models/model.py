@@ -75,7 +75,7 @@ class Model(Generic[ParamsType]):
         self,
         ax: Optional[plt.Axes] = None,
         figsize: Optional[Tuple[int, int]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> plt.Axes:
         """Plot method for forecasting models
 

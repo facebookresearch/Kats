@@ -19,6 +19,7 @@ purposes. We currently support the following data sets:
 """
 
 from typing import List, Tuple
+
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
