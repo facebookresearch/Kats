@@ -686,3 +686,96 @@ class MetricsTest(TestCase):
     ) -> None:
         result = metrics.exceed(y_true, y_pred, threshold)
         self.validate(expected, round(result, 2))
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator...
+    @parameterized.expand(
+        [
+            ("normal", 0.33, [1.1, 2.0, 3.31], [1.2, 2.4, 3.3], [1.5, 2.2, 3.4]),
+            ("empty", np.nan, [], [], []),
+        ]
+    )
+    def test_coverage(
+        self,
+        _name: str,
+        expected: float,
+        y_true: List[float],
+        y_lower: List[float],
+        y_upper: List[float],
+    ) -> None:
+        result = metrics.coverage(y_true, y_lower, y_upper)
+        self.validate(expected, round(result, 2))
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator...
+    @parameterized.expand(
+        [
+            (
+                "normal",
+                [0, 0, 1],
+                [1.1, 2.0, 3.31],
+                [1.2, 2.4, 3.3],
+                [1.5, 2.2, 3.4],
+                None,
+            ),
+            ("empty", [], [], [], [], None),
+        ]
+    )
+    def test_mult_coverage(
+        self,
+        _name: str,
+        expected: np.ndarray,
+        y_true: List[float],
+        y_lower: List[float],
+        y_upper: List[float],
+        rolling_window: Union[None, int],
+    ) -> None:
+        result = metrics.mult_coverage(y_true, y_lower, y_upper, rolling_window)
+        self.validate(expected, result)
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator...
+    @parameterized.expand(
+        [
+            ("normal", 1.73, [1.1, 2.0, 3.31], [1.2, 2.4, 3.3], [1.5, 2.2, 3.4], 0.2),
+            ("empty", np.nan, [], [], [], 0.2),
+        ]
+    )
+    def interval_score(
+        self,
+        _name: str,
+        expected: float,
+        y_true: List[float],
+        y_lower: List[float],
+        y_upper: List[float],
+        alpha: float,
+    ) -> None:
+        result = metrics.interval_score(y_true, y_lower, y_upper)
+        self.validate(expected, round(result, 2))
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator...
+    @parameterized.expand(
+        [
+            (
+                "normal",
+                [1.3, 3.8, 0.1],
+                [1.1, 2.0, 3.31],
+                [1.2, 2.4, 3.3],
+                [1.5, 2.2, 3.4],
+                0.2,
+                None,
+            ),
+            ("empty", [], [], [], [], 0.2, None),
+        ]
+    )
+    def test_mult_interval_score(
+        self,
+        _name: str,
+        expected: np.ndarray,
+        y_true: List[float],
+        y_lower: List[float],
+        y_upper: List[float],
+        alpha: float,
+        rolling_window: Union[None, int],
+    ) -> None:
+        result = metrics.mult_interval_score(
+            y_true, y_lower, y_upper, alpha, rolling_window
+        )
+        self.validate(expected, result)

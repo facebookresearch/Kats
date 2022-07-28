@@ -770,6 +770,114 @@ def exceed(y_true: ArrayLike, y_pred: ArrayLike, threshold: float) -> float:
     return np.nanmean(diff)
 
 
+def coverage(y_true: ArrayLike, y_lower: ArrayLike, y_upper: ArrayLike) -> float:
+    """
+    Compute the mean coverage rate of the confidence intervals based on the actual values
+    Args:
+        y_true: the actual values.
+        y_lower: the lower bound of the prediction interval.
+        y_upper: the upper bound of the prediction interval.
+
+    Returns:
+        A float value of the mean coverage rate
+
+    """
+    y_true, y_lower, y_upper = _arrays(y_true, y_lower, y_upper)
+    diff = (y_lower - y_true <= 0) & (y_true - y_upper <= 0)
+    return np.nanmean(diff, axis=0)
+
+
+def mult_coverage(
+    y_true: ArrayLike,
+    y_lower: ArrayLike,
+    y_upper: ArrayLike,
+    rolling_window: Union[None, int] = None,
+) -> np.ndarray:
+    """
+    Compute the coverage rates (or roling mean of the coverage rates) of the confidence intervals based on the actual values
+    Args:
+        y_true: the actual values.
+        y_lower: the lower bound of the prediction interval.
+        y_upper: the upper bound of the prediction interval.
+        rolling_window: length of the rolling window
+
+    Returns:
+        A `numpy.ndarray` object representing coverage rates
+    """
+    y_true, y_lower, y_upper = _arrays(y_true, y_lower, y_upper)
+    diff = (y_lower - y_true <= 0) & (y_true - y_upper <= 0)
+    if rolling_window is not None:
+        return np.convolve(diff, np.ones(rolling_window), mode="same") / rolling_window
+
+    return diff.astype(int)
+
+
+def interval_score(
+    y_true: ArrayLike, y_lower: ArrayLike, y_upper: ArrayLike, alpha: float = 0.2
+) -> float:
+    """
+    Compute the mean interval score of the confidence intervals based on the actual values
+    Args:
+        y_true: the actual values.
+        y_lower: the lower bound of the prediction interval.
+        y_upper: the upper bound of the prediction interval.
+        alpha: significance level (1-CI)
+
+    Returns:
+        A float value of mean interval score
+
+    """
+    y_true, y_lower, y_upper = _arrays(y_true, y_lower, y_upper)
+    lower_diff = y_true - y_lower < 0
+    upper_diff = y_true - y_upper > 0
+    range_ = y_upper - y_lower
+    int_score = (
+        range_
+        + lower_diff * ((y_lower - y_true) * 2 / alpha)
+        + upper_diff * ((y_true - y_upper) * 2 / alpha)
+    )
+
+    return np.nanmean(int_score, axis=0)
+
+
+def mult_interval_score(
+    y_true: ArrayLike,
+    y_lower: ArrayLike,
+    y_upper: ArrayLike,
+    alpha: float = 0.2,
+    rolling_window: Union[None, int] = None,
+) -> np.ndarray:
+    """
+    Compute the interval scores  (or roling mean of the interval scores) of the confidence intervals based on the actual values
+    Args:
+        y_true: the actual values.
+        y_lower: the lower bound of the prediction interval.
+        y_upper: the upper bound of the prediction interval.
+        alpha: significance level (1-CI)
+        rolling_window: length of the rolling window
+
+    Returns:
+        A `numpy.ndarray` object representing interval scores
+
+    """
+    y_true, y_lower, y_upper = _arrays(y_true, y_lower, y_upper)
+    lower_diff = y_true - y_lower < 0
+    upper_diff = y_true - y_upper > 0
+    range_ = y_upper - y_lower
+    int_score = (
+        range_
+        + lower_diff * ((y_lower - y_true) * 2 / alpha)
+        + upper_diff * ((y_true - y_upper) * 2 / alpha)
+    )
+    if rolling_window is not None:
+        return (
+            np.convolve(int_score, np.ones(rolling_window), mode="same")
+            / rolling_window
+        )
+
+    return int_score
+
+
 # Name aliases (sorted alphabetically by alias)
 
 ae: ArrayMetric = absolute_error
