@@ -208,13 +208,13 @@ class testMetaLearner(TestCase):
 
         # test meta data output
         self.assertEqual(
-            set(res.keys()),
+            set(vars(res).keys()),
             {"hpt_res", "features", "best_model", "search_method", "error_method"},
         )
 
         # test meta data output - HPT part
         self.assertEqual(
-            set(res["hpt_res"].keys()),
+            set(res.hpt_res.keys()),
             set(candidate_models.keys()),
         )
 

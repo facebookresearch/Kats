@@ -11,9 +11,10 @@ This module contains the class for computing the meta-data of time series. The m
 
 import ast
 import logging
+from dataclasses import dataclass
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import kats.utils.time_series_parameter_tuning as tpt
 import numpy as np
@@ -49,6 +50,15 @@ candidate_params = {
 
 # Constant to indicate error types supported
 ALLOWED_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
+
+
+@dataclass
+class GetMetaDataVal:
+    hpt_res: Dict[str, Any]
+    features: Union[Dict[str, float], List[Dict[str, float]]]
+    best_model: str
+    search_method: str
+    error_method: str
 
 
 class GetMetaData:
@@ -287,7 +297,7 @@ class GetMetaData:
     def get_meta_data(
         self,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> GetMetaDataVal:
         """Get meta data, as well as search method and type of error metric
 
         Meta data includes time series features, best hyper-params for each candidate models, and best model.
@@ -322,13 +332,13 @@ class GetMetaData:
         else:
             local_method = "Others"
 
-        return {
-            "hpt_res": HPT_res,
-            "features": features_dict,
-            "best_model": label,
-            "search_method": local_method,
-            "error_method": self.error_method,
-        }
+        return GetMetaDataVal(
+            hpt_res=HPT_res,
+            features=features_dict,
+            best_model=label,
+            search_method=local_method,
+            error_method=self.error_method,
+        )
 
     # pyre-fixme[3]: Return type must be annotated.
     def __str__(self):
