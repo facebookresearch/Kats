@@ -45,7 +45,7 @@ TEST_DATA = {
     "monthly": {
         "ts": AIR_TS,
         "freq": "MS",
-        "p1": LSTMParams(hidden_size=20, time_window=7, num_epochs=20),
+        "p1": LSTMParams(hidden_size=20, time_window=7, num_epochs=10),
         "p2": LSTMParams(hidden_size=10, time_window=3, num_epochs=4),
         "invalid_p": LSTMParams(hidden_size=-10, time_window=3, num_epochs=4),
         "invalid_ts": MULTI_DF,
@@ -72,7 +72,7 @@ TEST_DATA = {
     "daily": {
         "ts": PT_TS,
         "freq": "D",
-        "p1": LSTMParams(hidden_size=20, time_window=7, num_epochs=20),
+        "p1": LSTMParams(hidden_size=20, time_window=7, num_epochs=10),
         "p2": LSTMParams(hidden_size=10, time_window=3, num_epochs=4),
         "invalid_p": LSTMParams(hidden_size=-10, time_window=3, num_epochs=4),
         "m1": {
