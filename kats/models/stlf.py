@@ -22,17 +22,17 @@ from __future__ import (
 import logging
 import math
 from copy import copy
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models import linear_model, prophet, quadratic_model, theta
-from kats.models.linear_model import LinearModel
+from kats.models.linear_model import LinearModel, LinearModelParams
 from kats.models.model import Model
-from kats.models.prophet import ProphetModel
-from kats.models.quadratic_model import QuadraticModel
-from kats.models.theta import ThetaModel
+from kats.models.prophet import ProphetModel, ProphetParams
+from kats.models.quadratic_model import QuadraticModel, QuadraticModelParams
+from kats.models.theta import ThetaModel, ThetaParams
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.parameter_tuning_utils import get_default_stlf_parameter_search_space
 
@@ -49,25 +49,39 @@ class STLFParams(Params):
         method: str, the forecasting model to fit on the de-seasonalized component
             it currently supports prophet, linear, quadratic, and theta method.
         m: int, the length of one seasonal cycle
+        method_params: Optional[Params], the parameters for the method
     """
 
-    def __init__(self, method: str, m: int) -> None:
+    def __init__(
+        self, method: str, m: int, method_params: Optional[Params] = None
+    ) -> None:
         super().__init__()
-        if method not in MODELS:
-            msg = "Only support prophet, linear, quadratic and theta method, but get {name}.".format(
-                name=method
-            )
-            logging.error(msg)
-            raise ValueError(msg)
         self.method = method
         self.m = m
+        self.method_params = method_params
+        self.validate_params()
         logging.debug("Initialized STFLParams instance.")
 
     def validate_params(self) -> None:
         """Validate the parameters for STLF model"""
 
-        logging.info("Method validate_params() is not implemented.")
-        pass
+        if self.method not in MODELS:
+            msg = "Only support prophet, linear, quadratic and theta method, but get {name}.".format(
+                name=self.method
+            )
+            logging.error(msg)
+            raise ValueError(msg)
+
+        if self.method_params is None:
+            if self.method == "prophet":
+                self.method_params = prophet.ProphetParams()
+            elif self.method == "theta":
+                self.method_params = theta.ThetaParams(m=1)
+            elif self.method == "linear":
+                self.method_params = linear_model.LinearModelParams()
+            else:
+                assert self.method == "quadratic"
+                self.method_params = quadratic_model.QuadraticModelParams()
 
 
 class STLFModel(Model[STLFParams]):
@@ -149,25 +163,24 @@ class STLFModel(Model[STLFParams]):
         data = self.desea_data
         assert data is not None
         if self.params.method == "prophet":
-            params = prophet.ProphetParams()
             model = prophet.ProphetModel(
                 data=data,
-                params=params,
+                params=cast(ProphetParams, self.params.method_params),
             )
-            model.fit()
         elif self.params.method == "theta":
-            params = theta.ThetaParams(m=1)
-            model = theta.ThetaModel(data=data, params=params)
-            model.fit()
+            model = theta.ThetaModel(
+                data=data, params=cast(ThetaParams, self.params.method_params)
+            )
         elif self.params.method == "linear":
-            params = linear_model.LinearModelParams()
-            model = linear_model.LinearModel(data=data, params=params)
-            model.fit()
+            model = linear_model.LinearModel(
+                data=data, params=cast(LinearModelParams, self.params.method_params)
+            )
         else:
             assert self.params.method == "quadratic"
-            params = quadratic_model.QuadraticModelParams()
-            model = quadratic_model.QuadraticModel(data=data, params=params)
-            model.fit()
+            model = quadratic_model.QuadraticModel(
+                data=data, params=cast(QuadraticModelParams, self.params.method_params)
+            )
+        model.fit()
         self.model = model
         return self
 
