@@ -469,7 +469,11 @@ class TestProphetDetector(TestCase):
             z_score_response.confidence_band.lower.value[5],
         )
         self.assertAlmostEqual(
-            z_score_response.scores.value[5], actual_z_score, places=15
+            z_score_response.scores.value[5],
+            # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
+            #  SupportsAbs[SupportsRound[object]]]` but got `float`.
+            actual_z_score,
+            places=15,
         )
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
@@ -499,6 +503,8 @@ class TestProphetDetector(TestCase):
             # pyre-fixme[16]: Optional type has no attribute `lower`.
             response.confidence_band.lower.value[5],
         )
+        # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
+        #  SupportsAbs[SupportsRound[object]]]` but got `float`.
         self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
@@ -528,6 +534,8 @@ class TestProphetDetector(TestCase):
             # pyre-fixme[16]: Optional type has no attribute `lower`.
             response.confidence_band.lower.value[5],
         )
+        # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
+        #  SupportsAbs[SupportsRound[object]]]` but got `float`.
         self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
 
     @unittest.skip(

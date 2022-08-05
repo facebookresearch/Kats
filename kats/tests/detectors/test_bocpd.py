@@ -381,6 +381,8 @@ class BOCPDTest(TestCase):
         # check if confidence is greater than threshold
         self.assertGreaterEqual(
             self.trend_cps[0].confidence,
+            # pyre-fixme[6]: For 2nd param expected `SupportsDunderLE[Variable[_T]]`
+            #  but got `float`.
             0.5,
             f"confidence should have been at least threshold 0.5, but got {self.trend_cps[0].confidence}",
         )

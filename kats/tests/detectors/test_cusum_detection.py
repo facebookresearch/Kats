@@ -283,7 +283,10 @@ class CUSUMDetectorTest(TestCase):
 
     def test_seasonality_with_increasing_trend_cp_index(self) -> None:
         self.assertGreaterEqual(
-            self.season_metadata.cp_index, self.periodicity * (self.total_cycles - 1)
+            self.season_metadata.cp_index,
+            # pyre-fixme[6]: For 2nd param expected `SupportsDunderLE[Variable[_T]]`
+            #  but got `int`.
+            self.periodicity * (self.total_cycles - 1),
         )
 
     def test_logging_multivariate_error(self) -> None:

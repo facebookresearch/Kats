@@ -454,8 +454,10 @@ class GMModel:
                 # update RNN
                 trainer.zero_grad()
                 avg_train_loss = sum(train_loss) / len_quantile
+                # pyre-fixme[16]: `float` has no attribute `backward`.
                 avg_train_loss.backward()
                 trainer.step()
+                # pyre-fixme[16]: `float` has no attribute `detach`.
                 train_loss_track += avg_train_loss.detach().numpy()
 
                 # record training_info
