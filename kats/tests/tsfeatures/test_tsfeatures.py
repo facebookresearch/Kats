@@ -13,7 +13,6 @@ from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.tsfeatures.tsfeatures import _FEATURE_GROUP_MAPPING, TsFeatures
 
-
 SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
     {
         "time": pd.date_range("2021-01-01", "2021-01-25"),
@@ -418,6 +417,18 @@ class TSfeaturesTest(TestCase):
         )
         with self.assertRaises(ValueError):
             TsFeatures(selected_features=["mango"])
+
+    def test_acfpacf_warning(self) -> None:
+        value = np.arange(30)
+        time_ = pd.date_range(end="2022-08-01", freq="1D", periods=30)
+        tsd = TimeSeriesData(pd.DataFrame({"value": value, "time": time_}))
+        features = _univariate_features(
+            TsFeatures(selected_features=["acfpacf_features"]).transform(tsd)
+        )
+        acfpacf_features = [
+            features[f] for f in _FEATURE_GROUP_MAPPING["acfpacf_features"]
+        ]
+        self.assertEqual(acfpacf_features, [np.nan] * len(acfpacf_features))
 
     def test_IntegerArrays(self) -> None:
         if statsmodels.version < "0.12":
