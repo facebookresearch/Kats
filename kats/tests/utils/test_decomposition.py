@@ -11,8 +11,10 @@ import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers, load_data
+from kats.detectors.residual_translation import KDEResidualTranslator
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
+from scipy.stats import ks_2samp
 
 
 class DecompositionTest(TestCase):
@@ -316,55 +318,59 @@ class DecompositionTest(TestCase):
         m2.decomposer()
 
 
-# class KDEResidualTranslatorTest(TestCase):
-#     def setUp(self) -> None:
-#         self._y = ts_data
-#         yhat = pd.DataFrame(
-#             {"value": self._y.value.rolling(7).mean().shift(1), "time": self._y.time}
-#         )
-#         self._yhat = TimeSeriesData(yhat)
-#         self._residual = self._y - self._yhat
+class KDEResidualTranslatorTest(TestCase):
+    def setUp(self) -> None:
+        data = load_air_passengers(return_ts=False)
+        data.columns = ["time", "value"]
+        self._y = TimeSeriesData(data)
+        yhat = pd.DataFrame(
+            {"value": self._y.value.rolling(7).mean().shift(1), "time": self._y.time}
+        )
+        self._yhat = TimeSeriesData(yhat)
+        self._residual = self._y - self._yhat
 
-#     def test_setup(self) -> None:
-#         self.assertEquals(self._yhat.value.isnull().sum(), 7)
+    def test_setup(self) -> None:
+        self.assertEquals(self._yhat.value.isnull().sum(), 7)
 
-#     def test_illegal_truncated_fracs(self) -> None:
-#         with self.assertRaises(ValueError):
-#             KDEResidualTranslator(-0.1, 0.9)
-#         with self.assertRaises(ValueError):
-#             KDEResidualTranslator(1.1, 2.0)
-#         with self.assertRaises(ValueError):
-#             KDEResidualTranslator(0.1, -0.9)
-#         with self.assertRaises(ValueError):
-#             KDEResidualTranslator(0.1, 1.9)
-#         with self.assertRaises(ValueError):
-#             KDEResidualTranslator(0.9, 0.8)
+    def test_illegal_truncated_fracs(self) -> None:
+        with self.assertRaises(ValueError):
+            KDEResidualTranslator(-0.1, 0.9)
+        with self.assertRaises(ValueError):
+            KDEResidualTranslator(1.1, 2.0)
+        with self.assertRaises(ValueError):
+            KDEResidualTranslator(0.1, -0.9)
+        with self.assertRaises(ValueError):
+            KDEResidualTranslator(0.1, 1.9)
+        with self.assertRaises(ValueError):
+            KDEResidualTranslator(0.9, 0.8)
 
-#     def test_y_yhat(self) -> None:
-#         trn = KDEResidualTranslator()
-#         trn = trn.fit(y=self._y, yhat=self._yhat)
-#         self._test_residual_trn(trn)
+    def test_y_yhat(self) -> None:
+        trn = KDEResidualTranslator()
+        trn = trn.fit(y=self._y, yhat=self._yhat)
+        self._test_residual_trn(trn)
 
-#     def _test_residual(self) -> None:
-#         trn = KDEResidualTranslator()
-#         for name in self._series_names:
-#             dataset = self._get_dataset_for_name(name)[["y", "yhat"]]
-#             dataset["residual"] = dataset.yhat - dataset.y
-#             dataset.drop(["y", "yhat"], axis=1, inplace=True)
-#             trn = trn.fit(dataset)
-#             self._test_residual_trn(trn)
+    # def _test_residual(self) -> None:
+    #     trn = KDEResidualTranslator()
+    #     for name in self._series_names:
+    #         dataset = self._get_dataset_for_name(name)[["y", "yhat"]]
+    #         dataset["residual"] = dataset.yhat - dataset.y
+    #         dataset.drop(["y", "yhat"], axis=1, inplace=True)
+    #         trn = trn.fit(dataset)
+    #         self._test_residual_trn(trn)
 
-#     def _test_residual_trn(self, trn: KDEResidualTranslator) -> None:
-#         np.testing.assert_allclose(
-#             np.exp(trn.predict_log_proba(residual=self._residual).value),
-#             trn.predict_proba(residual=self._residual).value,
-#         )
-#         proba = trn.predict_proba(residual=self._residual)
-#         self.assertTrue(np.all((proba.value >= 0) & (proba.value <= 1)))
-#         ks = ks_2samp(
-#             trn.kde_.sample(len(self._residual)).flatten(), self._residual.value
-#         )
-#         self.assertTrue(ks.statistic < 0.1 or ks.pvalue >= 0.2)
+    def _test_residual_trn(self, trn: KDEResidualTranslator) -> None:
+        np.testing.assert_allclose(
+            np.exp(trn.predict_log_proba(residual=self._residual).value),
+            trn.predict_proba(residual=self._residual).value,
+        )
+        proba = trn.predict_proba(residual=self._residual)
+        self.assertTrue(np.all(proba.value >= 0) and np.all(proba.value <= 1))
+        ks = ks_2samp(
+            # pyre-fixme [16]: Optional type has no attribute `sample`
+            trn.kde_.sample(len(self._residual)).flatten(),
+            self._residual.value,
+        )
+        self.assertTrue(ks.statistic < 0.1 or ks.pvalue >= 0.2)
 
 
 class SimulatorTest(TestCase):
