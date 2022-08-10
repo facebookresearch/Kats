@@ -511,17 +511,27 @@ class TsFeatures:
             # multiple time series: return a list of map {feature: value}
             ts_features = []
             for col in x.value.columns:
-                ts_values = x.value[col].values  # extract 1-d numpy array
-                ts_features.append(self._transform_1d(ts_values, x.value[col]))
+                ts_values = x[col].value.values  # extract 1-d numpy array
+                ts_features.append(self._transform_1d(ts_values, x[col]))
 
         # performing final filter
-        to_remove = []
-        for feature in ts_features:
-            if not self.final_filter[feature]:
-                to_remove.append(feature)
+        if len(x.value.shape) == 1:
+            to_remove = []
+            for feature in ts_features:
+                if not self.final_filter[feature]:
+                    to_remove.append(feature)
 
-        for r in to_remove:
-            del ts_features[r]
+            for r in to_remove:
+                del ts_features[r]
+        else:
+            for ts_feature_dict in ts_features:
+                to_remove = []
+                for feature in ts_feature_dict:
+                    if not self.final_filter[feature]:
+                        to_remove.append(feature)
+
+                for r in to_remove:
+                    del ts_feature_dict[r]
 
         return ts_features
 

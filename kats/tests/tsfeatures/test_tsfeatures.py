@@ -3,6 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+from operator import attrgetter
 from typing import Any, cast, Dict, List, Union
 from unittest import TestCase
 
@@ -12,6 +13,7 @@ from kats.compat import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.tsfeatures.tsfeatures import _FEATURE_GROUP_MAPPING, TsFeatures
+from parameterized.parameterized import parameterized
 
 SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
     {
@@ -53,13 +55,33 @@ def _univariate_features(
     return cast(Dict[str, float], feats)
 
 
+def _multivariate_features(
+    feats: Union[Dict[str, float], List[Dict[str, float]]]
+) -> List[Dict[str, float]]:
+    return cast(List[Dict[str, float]], feats)
+
+
 class TSfeaturesTest(TestCase):
     def setUp(self) -> None:
         DATA = load_air_passengers(return_ts=False)
         self.TSData = TimeSeriesData(DATA)
+        self.TSData_multivariate = TimeSeriesData(
+            pd.DataFrame({"time": DATA.time, "value1": DATA.y, "value2": DATA.y})
+        )
 
         self.TSData_short = TimeSeriesData(DATA.iloc[:8, :])
         self.TSData_mini = TimeSeriesData(DATA.iloc[:2, :])
+
+        self.ts_bocpd = TimeSeriesData(df=SAMPLE_INPUT_TS_BOCPD_SCALED)
+        self.ts_bocpd_multi = TimeSeriesData(
+            pd.DataFrame(
+                {
+                    "time": SAMPLE_INPUT_TS_BOCPD_SCALED.time,
+                    "value1": SAMPLE_INPUT_TS_BOCPD_SCALED.value,
+                    "value2": SAMPLE_INPUT_TS_BOCPD_SCALED.value,
+                }
+            )
+        )
 
     def assertDictAlmostEqual(
         self, expected: Dict[str, Any], features: Dict[str, Any], places: int = 4
@@ -91,9 +113,18 @@ class TSfeaturesTest(TestCase):
                 self.assertFalse(feat in features, f"duplicate feature name {feat}")
                 features.add(feat)
 
-    def test_tsfeatures_basic(self) -> None:
-        ts = TimeSeriesData(df=SAMPLE_INPUT_TS_BOCPD_SCALED)
-        features = _univariate_features(TsFeatures(hw_params=False).transform(ts))
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    @parameterized.expand(
+        [("univariate", "ts_bocpd"), ("multivariate", "ts_bocpd_multi")]
+    )
+    def test_tsfeatures_basic(self, test_name: str, ts_name: str) -> None:
+        ts = attrgetter(ts_name)(self)
+        features = TsFeatures(hw_params=False).transform(ts)
+        if ts.is_univariate():
+            feature_list = [_univariate_features(features)]
+        else:
+            feature_list = _multivariate_features(features)
+
         expected = {
             # statistics_features
             "length": 25.0,
@@ -153,7 +184,8 @@ class TSfeaturesTest(TestCase):
             expected["seasonality_strength"] = 0.410921
             expected["spikiness"] = 0.000661
             expected["holt_alpha"] = 1e-8
-        self.assertDictAlmostEqual(expected, features)
+        for feature_vector in feature_list:
+            self.assertDictAlmostEqual(expected, feature_vector)
 
     def test_tsfeatures(self) -> None:
         feature_vector = _univariate_features(TsFeatures().transform(self.TSData))
@@ -234,16 +266,26 @@ class TSfeaturesTest(TestCase):
             rounded_truth["hw_gamma"] = 0.0
         self.assertEqual(feature_vector_round, rounded_truth)
 
-    def test_feature_selections(self) -> None:
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    @parameterized.expand(
+        [("univariate", "TSData"), ("multivariate", "TSData_multivariate")]
+    )
+    def test_feature_selections(self, test_name: str, ts_name: str) -> None:
         # test disabling functions
-        feature_vector = _univariate_features(
-            TsFeatures(
-                unitroot_kpss=False,
-                histogram_mode=False,
-                diff2y_pacf5=False,
-                firstmin_ac=False,
-            ).transform(self.TSData),
-        )
+
+        ts = attrgetter(ts_name)(self)
+        features = TsFeatures(
+            unitroot_kpss=False,
+            histogram_mode=False,
+            diff2y_pacf5=False,
+            firstmin_ac=False,
+        ).transform(ts)
+
+        if ts.is_univariate():
+            feature_list = [_univariate_features(features)]
+        else:
+            feature_list = _multivariate_features(features)
+
         rounded_truth = {
             "length": 144,
             "mean": 280.298611,
@@ -282,18 +324,20 @@ class TSfeaturesTest(TestCase):
             "hw_beta": 0.052631,
             "hw_gamma": 0.157901,
         }
-        if statsmodels.version >= "0.12":
-            rounded_truth["trend_strength"] = 0.93833
-            rounded_truth["seasonality_strength"] = 0.329934
-            rounded_truth["spikiness"] = 111.697325
-            feature_vector["holt_alpha"] = np.round(feature_vector["holt_alpha"], 1)
-            feature_vector["holt_beta"] = np.round(feature_vector["holt_beta"], 1)
-            rounded_truth["holt_alpha"] = 1.0
-            rounded_truth["holt_beta"] = 0.0
-            rounded_truth["hw_alpha"] = 1.0
-            rounded_truth["hw_beta"] = 0.0
-            rounded_truth["hw_gamma"] = 0.0
-        self.assertDictAlmostEqual(rounded_truth, feature_vector, places=6)
+
+        for feature_vector in feature_list:
+            if statsmodels.version >= "0.12":
+                rounded_truth["trend_strength"] = 0.93833
+                rounded_truth["seasonality_strength"] = 0.329934
+                rounded_truth["spikiness"] = 111.697325
+                feature_vector["holt_alpha"] = np.round(feature_vector["holt_alpha"], 1)
+                feature_vector["holt_beta"] = np.round(feature_vector["holt_beta"], 1)
+                rounded_truth["holt_alpha"] = 1.0
+                rounded_truth["holt_beta"] = 0.0
+                rounded_truth["hw_alpha"] = 1.0
+                rounded_truth["hw_beta"] = 0.0
+                rounded_truth["hw_gamma"] = 0.0
+            self.assertDictAlmostEqual(rounded_truth, feature_vector, places=6)
 
         # test selecting features
         features = [
@@ -305,9 +349,13 @@ class TSfeaturesTest(TestCase):
             "hw_gamma",
             "level_shift_idx",
         ]
-        feature_vector = _univariate_features(
-            TsFeatures(selected_features=features).transform(self.TSData),
-        )
+
+        features = TsFeatures(selected_features=features).transform(ts)
+
+        if ts.is_univariate():
+            feature_list = [_univariate_features(features)]
+        else:
+            feature_list = _multivariate_features(features)
 
         # test feature vector value
         rounded_truth = {
@@ -319,13 +367,15 @@ class TSfeaturesTest(TestCase):
             "holt_alpha": 1.0,
             "hw_gamma": 0.157901,
         }
-        if statsmodels.version >= "0.12":
-            rounded_truth["spikiness"] = 111.697325
-            feature_vector["holt_alpha"] = np.round(feature_vector["holt_alpha"], 1)
-            rounded_truth["holt_alpha"] = 1.0
-            rounded_truth["hw_gamma"] = 0.0
 
-        self.assertDictAlmostEqual(rounded_truth, feature_vector, places=6)
+        for feature_vector in feature_list:
+            if statsmodels.version >= "0.12":
+                rounded_truth["spikiness"] = 111.697325
+                feature_vector["holt_alpha"] = np.round(feature_vector["holt_alpha"], 1)
+                rounded_truth["holt_alpha"] = 1.0
+                rounded_truth["hw_gamma"] = 0.0
+
+            self.assertDictAlmostEqual(rounded_truth, feature_vector, places=6)
 
         # test selecting extension features
         extension_features = [
@@ -358,9 +408,13 @@ class TSfeaturesTest(TestCase):
             "trend_mag",
             "residual_std",
         ]
-        feature_vector = _univariate_features(
-            TsFeatures(selected_features=extension_features).transform(self.TSData),
-        )
+
+        features = TsFeatures(selected_features=extension_features).transform(ts)
+
+        if ts.is_univariate():
+            feature_list = [_univariate_features(features)]
+        else:
+            feature_list = _multivariate_features(features)
 
         # test feature vector value
         rounded_truth = {
@@ -393,11 +447,12 @@ class TSfeaturesTest(TestCase):
             "seasonality_mag": 35.0,
             "residual_std": 21.258429,
         }
-        if statsmodels.version >= "0.12":
-            rounded_truth["trend_mag"] = 2.318814
-            rounded_truth["seasonality_mag"] = 36.0
-            rounded_truth["residual_std"] = 29.630087
-        self.assertDictAlmostEqual(rounded_truth, feature_vector, places=6)
+        for feature_vector in feature_list:
+            if statsmodels.version >= "0.12":
+                rounded_truth["trend_mag"] = 2.318814
+                rounded_truth["seasonality_mag"] = 36.0
+                rounded_truth["residual_std"] = 29.630087
+            self.assertDictAlmostEqual(rounded_truth, feature_vector, places=6)
 
     def test_others(self) -> None:
         # test there is nan in feature vector because the length of TS is too short
