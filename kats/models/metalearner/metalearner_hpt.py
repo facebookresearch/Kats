@@ -37,6 +37,9 @@ _MODELS = {
     "statsig",
 }
 
+logging.basicConfig()
+LOGGER: logging.Logger = logging.getLogger(__name__)
+
 
 @dataclass
 class DefaultModelParams:
@@ -164,7 +167,7 @@ class DefaultModelNetworks:
 
 
 def _log_error(msg: str) -> ValueError:
-    logging.error(msg)
+    LOGGER.error(msg)
     return ValueError(msg)
 
 
@@ -418,7 +421,7 @@ class MetaLearnHPT:
                 msg = f"Default neural network for model {default_model} is not implemented!"
                 raise _log_error(msg)
             msg = f"Default neural network for model {default_model} is built."
-            logging.info(msg)
+            LOGGER.info(msg)
         elif n_hidden_shared is None:
             msg = "n_hidden_shared is missing!"
             raise _log_error(msg)
@@ -628,7 +631,7 @@ class MetaLearnHPT:
 
             # check early stopping condition
             if epoch > 20 and epochs_no_improve >= n_epochs_stop:
-                logging.info(f"Early stopping! Stop at epoch {epoch + 1}.")
+                LOGGER.info(f"Early stopping! Stop at epoch {epoch + 1}.")
                 break
 
     def pred(self, source_ts: TimeSeriesData, ts_scale: bool = True) -> pd.DataFrame:
@@ -653,7 +656,7 @@ class MetaLearnHPT:
             # scale time series to make ts features more stable
             ts.value /= ts.value.max()
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
-            logging.info(msg)
+            LOGGER.info(msg)
 
         self.model.eval()
         new_feature = TsFeatures().transform(ts)
@@ -661,7 +664,7 @@ class MetaLearnHPT:
         new_feature_vector = np.asarray(list(new_feature.values()))
 
         if np.any(np.isnan(new_feature_vector)):
-            logging.warning(
+            LOGGER.warning(
                 "Time series features contain NaNs!"
                 f"Time series features are {new_feature}. "
                 "Fill in NaNs with 0."
@@ -747,7 +750,7 @@ class MetaLearnHPT:
             raise _log_error("Haven't trained a model.")
         else:
             joblib.dump(self.__dict__, file_path)
-            logging.info("Successfully saved the trained model!")
+            LOGGER.info("Successfully saved the trained model!")
 
     def load_model(self, file_path: str) -> None:
         """Load a pre-trained model from a binary.
