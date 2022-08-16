@@ -27,6 +27,8 @@ PROPHET_YHAT_LOWER_COLUMN = "yhat_lower"
 PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
 
 MIN_STDEV = 1e-9
+PREDICTION_UNCERTAINTY_SAMPLES = 50
+OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES = 20
 
 
 def timeseries_to_prophet_df(ts_data: TimeSeriesData) -> pd.DataFrame:
@@ -144,7 +146,7 @@ class ProphetDetectorModel(DetectorModel):
         scoring_confidence_interval: float = 0.8,
         remove_outliers: bool = False,
         outlier_threshold: float = 0.99,
-        uncertainty_samples: float = 50,
+        uncertainty_samples: float = PREDICTION_UNCERTAINTY_SAMPLES,
     ) -> None:
         if serialized_model:
             self.model = model_from_json(serialized_model)
@@ -162,7 +164,14 @@ class ProphetDetectorModel(DetectorModel):
         self.scoring_confidence_interval = scoring_confidence_interval
         self.remove_outliers = remove_outliers
         self.outlier_threshold = outlier_threshold
-        self.uncertainty_samples = uncertainty_samples
+
+        # To improve runtime performance, we skip the confidence band
+        # computation for non-Z score scoring strategy since it will not be
+        # used anywhere
+        if self.score_func == ProphetScoreFunction.z_score:
+            self.uncertainty_samples: float = uncertainty_samples
+        else:
+            self.uncertainty_samples: float = 0
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -253,7 +262,7 @@ class ProphetDetectorModel(DetectorModel):
                 the data begins.
 
         Returns:
-            AnomalyResponse object. The length of this obj.ect is same as data. The score property
+            AnomalyResponse object. The length of this object is same as data. The score property
             gives the score for anomaly.
         """
         model = self.model
@@ -264,7 +273,26 @@ class ProphetDetectorModel(DetectorModel):
 
         time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time}, copy=False)
         predict_df = model.predict(time_df)
-        zeros = pd.Series(np.zeros(len(data)), copy=False)
+        zeros_ts = TimeSeriesData(
+            time=data.time, value=pd.Series(np.zeros(len(data)), copy=False)
+        )
+        predicted_ts = TimeSeriesData(
+            time=data.time, value=predict_df[PROPHET_YHAT_COLUMN]
+        )
+
+        # If not using z-score, set confidence band equal to prediction
+        if self.uncertainty_samples == 0:
+            confidence_band = ConfidenceBand(upper=predicted_ts, lower=predicted_ts)
+        else:
+            confidence_band = ConfidenceBand(
+                upper=TimeSeriesData(
+                    time=data.time, value=predict_df[PROPHET_YHAT_UPPER_COLUMN]
+                ),
+                lower=TimeSeriesData(
+                    time=data.time, value=predict_df[PROPHET_YHAT_LOWER_COLUMN]
+                ),
+            )
+
         response = AnomalyResponse(
             scores=TimeSeriesData(
                 time=data.time,
@@ -275,19 +303,10 @@ class ProphetDetectorModel(DetectorModel):
                     uncertainty_samples=self.uncertainty_samples,
                 ),
             ),
-            confidence_band=ConfidenceBand(
-                upper=TimeSeriesData(
-                    time=data.time, value=predict_df[PROPHET_YHAT_UPPER_COLUMN]
-                ),
-                lower=TimeSeriesData(
-                    time=data.time, value=predict_df[PROPHET_YHAT_LOWER_COLUMN]
-                ),
-            ),
-            predicted_ts=TimeSeriesData(
-                time=data.time, value=predict_df[PROPHET_YHAT_COLUMN]
-            ),
-            anomaly_magnitude_ts=TimeSeriesData(time=data.time, value=zeros),
-            stat_sig_ts=TimeSeriesData(time=data.time, value=zeros),
+            confidence_band=confidence_band,
+            predicted_ts=predicted_ts,
+            anomaly_magnitude_ts=zeros_ts,
+            stat_sig_ts=zeros_ts,
         )
         return response
 
@@ -295,7 +314,7 @@ class ProphetDetectorModel(DetectorModel):
     def _remove_outliers(
         ts_df: pd.DataFrame,
         outlier_ci_threshold: float = 0.99,
-        uncertainty_samples: float = 50,
+        uncertainty_samples: float = OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES,
     ) -> pd.DataFrame:
         """
         Remove outliers from the time series by fitting a Prophet model to the time series
