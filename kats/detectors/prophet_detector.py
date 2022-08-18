@@ -281,7 +281,10 @@ class ProphetDetectorModel(DetectorModel):
         )
 
         # If not using z-score, set confidence band equal to prediction
-        if self.score_func != ProphetScoreFunction.z_score:
+        if not (
+            PROPHET_YHAT_UPPER_COLUMN in predict_df.columns
+            and PROPHET_YHAT_LOWER_COLUMN in predict_df.columns
+        ):
             confidence_band = ConfidenceBand(upper=predicted_ts, lower=predicted_ts)
         else:
             confidence_band = ConfidenceBand(
