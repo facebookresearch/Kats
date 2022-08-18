@@ -272,6 +272,8 @@ class ProphetDetectorModel(DetectorModel):
             raise ValueError(msg)
 
         time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time}, copy=False)
+        # TODO(uthakore): Undo hack fix for ongoing production issue
+        model.uncertainty_samples = PREDICTION_UNCERTAINTY_SAMPLES
         predict_df = model.predict(time_df)
         zeros_ts = TimeSeriesData(
             time=data.time, value=pd.Series(np.zeros(len(data)), copy=False)

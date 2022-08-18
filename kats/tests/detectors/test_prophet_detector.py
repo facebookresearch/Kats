@@ -445,18 +445,6 @@ class TestProphetDetector(TestCase):
             ),
         )
 
-        # if using default score function, confidence bands should be zero
-        self.assertEqual(
-            # pyre-ignore[16]: Optional type has no attribute `upper`.
-            deviation_response.confidence_band.upper,
-            deviation_response.predicted_ts,
-        )
-        self.assertEqual(
-            # pyre-ignore[16]: Optional type has no attribute `lower`.
-            deviation_response.confidence_band.lower,
-            deviation_response.predicted_ts,
-        )
-
     def test_score_func_parameter_as_z_score(self) -> None:
         """Test that score_func parameter can be set to z_score
 
