@@ -49,9 +49,11 @@ def compute_search_cardinality(params_space: List[Dict[str, Any]]) -> float:
     if is_infinite:
         return math.inf
     else:
-        return math.prod(
-            [len(param["values"]) for param in params_space if "values" in param]
-        )
+        res = 1
+        for param in params_space:
+            if "values" in param:
+                res *= len(param["values"])
+        return res
 
 
 class Final(type):
