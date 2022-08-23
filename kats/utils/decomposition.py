@@ -34,7 +34,7 @@ class TimeSeriesDecomposition:
         method: `STL decompostion` or `seasonal_decompose`
     """
 
-    freq: Optional[str] = None
+    freq: Optional[Union[str, pd.Timedelta]] = None
     results: Optional[Dict[str, TimeSeriesData]] = None
     decomposition: str
     method: Callable[[pd.DataFrame], Dict[str, pd.DataFrame]]
@@ -108,11 +108,12 @@ class TimeSeriesDecomposition:
             copy=False,
         )
 
-        if pd.infer_freq(original.index) is None:
+        if self.data.infer_freq_robust() is None:
             original = original.asfreq("D")
             logging.info("Setting frequency to Daily since it cannot be inferred")
-
-        self.freq = pd.infer_freq(original.index)
+            self.freq = pd.infer_freq(original.index)
+        else:
+            self.freq = self.data.infer_freq_robust()
 
         original.interpolate(
             method="polynomial", limit_direction="both", order=3, inplace=True
@@ -130,7 +131,14 @@ class TimeSeriesDecomposition:
         period = self.period
         freq = self.freq
         if period is None:
-            if freq is not None and "T" in freq:
+            if freq is not None and isinstance(freq, str) and "T" in freq:
+                logging.warning(
+                    """Seasonal Decompose cannot handle sub day level granularity.
+                    Please consider setting period yourself based on the input data.
+                    Defaulting to a period of 2."""
+                )
+                period = 2
+            elif freq is not None and isinstance(freq, pd.Timedelta) and freq.days == 0:
                 logging.warning(
                     """Seasonal Decompose cannot handle sub day level granularity.
                     Please consider setting period yourself based on the input data.

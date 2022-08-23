@@ -15,6 +15,7 @@ from kats.detectors.residual_translation import KDEResidualTranslator
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
 from scipy.stats import ks_2samp
+from statsmodels.tsa.seasonal import seasonal_decompose, STL
 
 
 class DecompositionTest(TestCase):
@@ -316,6 +317,194 @@ class DecompositionTest(TestCase):
         m.decomposer()
         m2 = TimeSeriesDecomposition(df_ts, "additive", method="seasonal_decompose")
         m2.decomposer()
+
+    def test_10_minutes_level_dense_data(self) -> None:
+        sim = Simulator(
+            n=2 * 144, freq="10T", start=pd.to_datetime("2021-01-01")
+        )  # 2 days of data
+        sim.add_trend(magnitude=1)
+        sim.add_seasonality(magnitude=50, period=timedelta(days=1))
+        sim.add_noise(magnitude=10)
+        # dates are dense, there is no gaps between dates
+        dense_dates_ts = sim.stl_sim()
+        dense_dates_df = dense_dates_ts.to_dataframe()
+
+        m = TimeSeriesDecomposition(
+            dense_dates_ts,
+            "additive",
+            method="STL",
+        )
+        decomp = m.decomposer()
+        m2 = TimeSeriesDecomposition(
+            dense_dates_ts,
+            "additive",
+            method="STL",
+            period=144,
+            robust=True,
+        )
+        decomp2 = m2.decomposer()
+        m3 = TimeSeriesDecomposition(
+            dense_dates_ts,
+            "additive",
+            method="seasonal_decompose",
+        )
+        decomp3 = m3.decomposer()
+
+        # check that interpolate doesn't add new data points
+        self.assertEqual(
+            len(decomp["trend"].to_dataframe()), len(dense_dates_ts.to_dataframe())
+        )
+        self.assertEqual(
+            len(decomp2["trend"].to_dataframe()), len(dense_dates_ts.to_dataframe())
+        )
+        self.assertEqual(
+            len(decomp3["trend"].to_dataframe()), len(dense_dates_ts.to_dataframe())
+        )
+
+        # check if decomposition does what it intends to do
+        stl = STL(dense_dates_df.reset_index().value, period=2)
+        true_results = stl.fit()
+        self.assertTrue(
+            (
+                true_results.seasonal.values
+                == decomp["seasonal"].to_dataframe()["season"].values
+            ).all()
+        )
+        self.assertTrue(
+            (
+                true_results.trend.values
+                == decomp["trend"].to_dataframe()["trend"].values
+            ).all()
+        )
+        stl = STL(dense_dates_df.reset_index().value, period=144, robust=True)
+        true_results = stl.fit()
+        self.assertTrue(
+            (
+                true_results.seasonal.values
+                == decomp2["seasonal"].to_dataframe()["season"].values
+            ).all()
+        )
+        self.assertTrue(
+            (
+                true_results.trend.values
+                == decomp2["trend"].to_dataframe()["trend"].values
+            ).all()
+        )
+        true_results = seasonal_decompose(
+            dense_dates_df.reset_index().value, period=2, model="additive"
+        )
+        self.assertTrue(
+            (
+                true_results.seasonal.values
+                == decomp3["seasonal"].to_dataframe()["seasonal"].values
+            ).all()
+        )
+        self.assertTrue(
+            (
+                true_results.trend.values
+                == decomp3["trend"].to_dataframe()["trend"].values
+            )[
+                1:-1
+            ].all()  # at the beginning and end NaNs
+        )
+
+    def test_10_minutes_level_sparse_data(self) -> None:
+        # create data
+        sim = Simulator(
+            n=2 * 144, freq="10T", start=pd.to_datetime("2021-01-01")
+        )  # 2 days of data
+        sim.add_trend(magnitude=1)
+        sim.add_seasonality(magnitude=50, period=timedelta(days=1))
+        sim.add_noise(magnitude=10)
+        dense_dates_ts = sim.stl_sim()
+        # dates are sparse, there are some gaps between dates
+        sparse_dates_df = dense_dates_ts.to_dataframe().copy()
+        sparse_dates_df["time"] = sparse_dates_df["time"].map(
+            lambda x: x + pd.Timedelta(365, "D")
+            if (x >= pd.Timestamp(2021, 1, 2)) & (x < pd.Timestamp(2021, 1, 3))
+            else x
+        )
+        sparse_dates_ts = TimeSeriesData(sparse_dates_df)
+
+        # do decomposition
+        m = TimeSeriesDecomposition(
+            sparse_dates_ts,
+            "additive",
+            method="STL",
+        )
+        decomp = m.decomposer()
+        m2 = TimeSeriesDecomposition(
+            sparse_dates_ts,
+            "additive",
+            method="STL",
+            period=144,
+            robust=True,
+        )
+        decomp2 = m2.decomposer()
+        m3 = TimeSeriesDecomposition(
+            sparse_dates_ts,
+            "additive",
+            method="seasonal_decompose",
+        )
+        decomp3 = m3.decomposer()
+
+        # check that interpolate doesn't add new data points
+        self.assertEqual(
+            len(decomp["trend"].to_dataframe()), len(dense_dates_ts.to_dataframe())
+        )
+        self.assertEqual(
+            len(decomp2["trend"].to_dataframe()), len(dense_dates_ts.to_dataframe())
+        )
+        self.assertEqual(
+            len(decomp3["trend"].to_dataframe()), len(dense_dates_ts.to_dataframe())
+        )
+
+        # check if decomposition does what it intends to do
+        stl = STL(sparse_dates_df.reset_index().value, period=2)
+        true_results = stl.fit()
+        self.assertTrue(
+            (
+                true_results.seasonal.values
+                == decomp["seasonal"].to_dataframe()["season"].values
+            ).all()
+        )
+        self.assertTrue(
+            (
+                true_results.trend.values
+                == decomp["trend"].to_dataframe()["trend"].values
+            ).all()
+        )
+        stl = STL(sparse_dates_df.reset_index().value, period=144, robust=True)
+        true_results = stl.fit()
+        self.assertTrue(
+            (
+                true_results.seasonal.values
+                == decomp2["seasonal"].to_dataframe()["season"].values
+            ).all()
+        )
+        self.assertTrue(
+            (
+                true_results.trend.values
+                == decomp2["trend"].to_dataframe()["trend"].values
+            ).all()
+        )
+        true_results = seasonal_decompose(
+            sparse_dates_df.reset_index().value, period=2, model="additive"
+        )
+        self.assertTrue(
+            (
+                true_results.seasonal.values
+                == decomp3["seasonal"].to_dataframe()["seasonal"].values
+            ).all()
+        )
+        self.assertTrue(
+            (
+                true_results.trend.values
+                == decomp3["trend"].to_dataframe()["trend"].values
+            )[
+                1:-1
+            ].all()  # at the beginning and end NaNs
+        )
 
 
 class KDEResidualTranslatorTest(TestCase):
