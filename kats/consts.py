@@ -476,11 +476,7 @@ class TimeSeriesData:
                 time_col_name=self.time_col_name,
             )
         return TimeSeriesData(
-            # pyre-ignore[6]: Expected `Optional[typing.Hashable]` for 1st param but
-            #  got `Union[typing.Iterable[typing.Any], slice]`.
             time=self.time[sliced],
-            # pyre-ignore[6]: Expected `Optional[typing.Hashable]` for 1st param but
-            #  got `Union[typing.Iterable[typing.Any], slice]`.
             value=self.value[sliced],
             time_col_name=self.time_col_name,
         )
