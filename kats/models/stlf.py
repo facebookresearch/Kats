@@ -21,8 +21,10 @@ from __future__ import (
 
 import logging
 import math
+import operator
+import operator as _operator
 from copy import copy
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -50,15 +52,21 @@ class STLFParams(Params):
             it currently supports prophet, linear, quadratic, and theta method.
         m: int, the length of one seasonal cycle
         method_params: Optional[Params], the parameters for the method
+        decomposition: str, `additive` or `multiplicative` decomposition. Default is `multiplicative` because of legacy
     """
 
     def __init__(
-        self, method: str, m: int, method_params: Optional[Params] = None
+        self,
+        method: str,
+        m: int,
+        method_params: Optional[Params] = None,
+        decomposition: str = "multiplicative",
     ) -> None:
         super().__init__()
         self.method = method
         self.m = m
         self.method_params = method_params
+        self.decomposition = decomposition
         self.validate_params()
         logging.debug("Initialized STFLParams instance.")
 
@@ -83,6 +91,11 @@ class STLFParams(Params):
                 assert self.method == "quadratic"
                 self.method_params = quadratic_model.QuadraticModelParams()
 
+            if self.decomposition not in ["additive", "multiplicative"]:
+                msg = "decomposition can be only `additive` or `multiplicative` strings"
+                logging.error(msg)
+                raise ValueError(msg)
+
 
 class STLFModel(Model[STLFParams]):
     """Model class for STLF
@@ -100,11 +113,25 @@ class STLFModel(Model[STLFParams]):
     model: Optional[Union[LinearModel, ProphetModel, QuadraticModel, ThetaModel]] = None
     freq: Optional[str] = None
     alpha: Optional[float] = None
-    y_fcst: Optional[np.ndarray] = None
-    fcst_lower: Optional[np.ndarray] = None
-    fcst_upper: Optional[np.ndarray] = None
+    y_fcst: Optional[Union[np.ndarray, pd.Series, pd.DataFrame]] = None
+    fcst_lower: Optional[Union[np.ndarray, pd.Series, pd.DataFrame]] = None
+    fcst_upper: Optional[Union[np.ndarray, pd.Series, pd.DataFrame]] = None
     dates: Optional[pd.DatetimeIndex] = None
     fcst_df: Optional[pd.DataFrame] = None
+    deseasonal_operator: Callable(Union[_operator.truediv, _operator.sub])[
+        [
+            Union[pd.Series, pd.DataFrame],
+            Union[pd.Series, pd.DataFrame],
+        ],
+        Union[pd.Series, pd.DataFrame],
+    ]
+    reseasonal_operator: Callable(Union[_operator.mul, _operator.add])[
+        [
+            Union[pd.Series, pd.DataFrame],
+            Union[pd.Series, pd.DataFrame],
+        ],
+        Union[np.ndarray, pd.Series, pd.DataFrame],
+    ]
 
     def __init__(self, data: TimeSeriesData, params: STLFParams) -> None:
         super().__init__(data, params)
@@ -122,6 +149,14 @@ class STLFModel(Model[STLFParams]):
             logging.error(msg)
             raise ValueError(msg)
 
+        if self.params.decomposition == "multiplicative":
+            self.deseasonal_operator = operator.truediv
+            self.reseasonal_operator = operator.mul
+        else:
+            assert self.params.decomposition == "additive"
+            self.deseasonal_operator = operator.sub
+            self.reseasonal_operator = operator.add
+
     def deseasonalize(self) -> STLFModel:
         """De-seasonalize the time series data
 
@@ -136,13 +171,16 @@ class STLFModel(Model[STLFParams]):
         # create decomposer for time series decomposition
         # pyre-fixme[6]: For 1st param expected `TimeSeriesData` but got
         #  `Optional[TimeSeriesData]`.
-        decomposer = TimeSeriesDecomposition(self.data, "multiplicative")
+        decomposer = TimeSeriesDecomposition(self.data, self.params.decomposition)
         self.decomp = decomp = decomposer.decomposer()
 
         self.sea_data = copy(decomp["seasonal"])
         self.desea_data = desea_data = copy(self.data)
         # pyre-fixme[16]: `Optional` has no attribute `value`.
-        desea_data.value = desea_data.value / decomp["seasonal"].value
+        desea_data.value = self.deseasonal_operator(
+            desea_data.value, decomp["seasonal"].value
+        )
+
         return self
 
     # pyre-fixme[15]: `fit` overrides method defined in `Model` inconsistently.
@@ -222,13 +260,15 @@ class STLFModel(Model[STLFParams]):
 
         seasonality = decomp["seasonal"].value[-m:]
 
-        self.y_fcst = fcst.fcst * np.tile(seasonality, rep)[: fcst.shape[0]]
+        self.y_fcst = self.reseasonal_operator(
+            fcst.fcst, np.tile(seasonality, rep)[: fcst.shape[0]]
+        )
         if ("fcst_lower" in fcst.columns) and ("fcst_upper" in fcst.columns):
-            self.fcst_lower = (
-                fcst.fcst_lower * np.tile(seasonality, rep)[: fcst.shape[0]]
+            self.fcst_lower = self.reseasonal_operator(
+                fcst.fcst_lower, np.tile(seasonality, rep)[: fcst.shape[0]]
             )
-            self.fcst_upper = (
-                fcst.fcst_upper * np.tile(seasonality, rep)[: fcst.shape[0]]
+            self.fcst_upper = self.reseasonal_operator(
+                fcst.fcst_upper, np.tile(seasonality, rep)[: fcst.shape[0]]
             )
         logging.info("Generated forecast data from STLF model.")
         logging.debug("Forecast data: {fcst}".format(fcst=self.y_fcst))

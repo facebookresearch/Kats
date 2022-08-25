@@ -119,6 +119,30 @@ class testSTLFModel(TestCase):
         self.assertTrue((truth - pred[:, 1]).max() < 2)  # check actual vs true
         self.assertTrue(all(pred[:, 2] > pred[:, 0]))  # check upper > lower bounds
 
+    # pyre-fixme[56]
+    @parameterized.expand(
+        [("daily", m, "additive") for m in METHODS]
+        + [("daily", m, "multiplicative") for m in METHODS]
+    )
+    def test_fit_forecast_decomposition_parameter(
+        self, dataset: str, method: str, decomposition_method: str, steps: int = 5
+    ) -> None:
+
+        ts = self.TEST_DATA[dataset]["ts"]
+        train, truth = ts[:-steps], ts[-steps:]
+        params = STLFParams(
+            m=12,
+            method=method,
+            decomposition=decomposition_method,
+        )
+        m = STLFModel(train, params)
+        m.fit()
+        pred = m.predict(steps=steps).iloc[:, 1:].to_numpy()
+        truth = truth.to_dataframe().y.to_numpy()
+
+        self.assertTrue((truth - pred[:, 1]).max() < 2)  # check actual vs true
+        self.assertTrue(all(pred[:, 2] > pred[:, 0]))  # check upper > lower bounds
+
 
 if __name__ == "__main__":
     unittest.main()
