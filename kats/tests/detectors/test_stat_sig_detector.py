@@ -21,7 +21,7 @@ from kats.utils.simulator import Simulator
 from parameterized.parameterized import parameterized
 
 _SERIALIZED = b'{"n_control": 20, "n_test": 7, "time_unit": "s"}'
-_SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "1s", "rem_season": false, "seasonal_period": "weekly", "use_corrected_scores": true, "max_split_ts_length": 500}'
+_SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "1s", "rem_season": false, "seasonal_period": "weekly", "use_corrected_scores": true, "max_split_ts_length": 500, "min_perc_change": 0.0}'
 
 
 class TestStatSigDetector(TestCase):
@@ -184,6 +184,27 @@ class TestStatSigDetector(TestCase):
                 )
             else:
                 SeasonalityHandler(data=ts3, seasonal_period=period)
+
+    def test_min_perc_change(self) -> None:
+        sim3 = Simulator(n=120, start="2018-01-01")
+
+        # small difference in mean, but stddev is small
+        # change is significant, but small percentage shift
+        ts3 = sim3.level_shift_sim(
+            cp_arr=[60],
+            level_arr=[1.35, 1.30],
+            noise=0.005,
+            seasonal_period=7,
+            seasonal_magnitude=0,
+        )
+        n_control = 14 * 86400
+        n_test = 14 * 86400
+        ss_detect5 = StatSigDetectorModel(
+            n_control=n_control, n_test=n_test, time_unit="sec", min_perc_change=5.0
+        )
+
+        anom3 = ss_detect5.fit_predict(data=ts3)
+        self.assertEqual(np.max(np.abs(anom3.scores.value.values)) == 0, True)
 
 
 class TestStatSigDetectorPMM(TestCase):

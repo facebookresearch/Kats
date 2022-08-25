@@ -56,7 +56,7 @@ class StatSigDetectorModel(DetectorModel):
         max_split_ts_length: int, default value is 500. If the given TS (except historical part) is longer than max_split_ts_length,
                     we will transform a long univariate TS into a multi-variate TS and then use multistatsig detector, which is faster,
         anomaly_scores_only: bool = False. Only calculate anomaly scores without using advanced classes, which is much faster.
-
+        min_perc_change: float, minimum percentage change, for a non zero score. Score will be clipped to zero if the absolute value of the percentage chenge is less than this value
     >>> # Example usage:
     >>> # history and ts_pt are TimeSeriesData objects and history is larger
     >>> # than (n_control + n_test) so that we have sufficient history to
@@ -90,6 +90,7 @@ class StatSigDetectorModel(DetectorModel):
         use_corrected_scores: bool = True,
         max_split_ts_length: int = 500,
         anomaly_scores_only: bool = False,
+        min_perc_change: float = 0.0,
     ) -> None:
 
         if serialized_model:
@@ -112,6 +113,10 @@ class StatSigDetectorModel(DetectorModel):
                 "max_split_ts_length", max_split_ts_length
             )
 
+            self.min_perc_change: float = model_dict.get(
+                "min_perc_change", min_perc_change
+            )
+
         else:
             self.n_test: Optional[int] = n_test
             self.n_control: Optional[int] = n_control
@@ -123,6 +128,7 @@ class StatSigDetectorModel(DetectorModel):
             self.use_corrected_scores: bool = use_corrected_scores
             # threshold for splitting long TS
             self.max_split_ts_length: int = max_split_ts_length
+            self.min_perc_change: float = min_perc_change
 
         if (self.n_control is None) or (self.n_test is None):
             raise ValueError(
@@ -173,6 +179,7 @@ class StatSigDetectorModel(DetectorModel):
             "seasonal_period": self.seasonal_period,
             "use_corrected_scores": self.use_corrected_scores,
             "max_split_ts_length": self.max_split_ts_length,
+            "min_perc_change": self.min_perc_change,
         }
 
         return json.dumps(model_dict).encode("utf-8")
@@ -796,6 +803,7 @@ class StatSigDetectorModel(DetectorModel):
             current=self.test_interval,
             previous=self.control_interval,
             use_corrected_scores=self.use_corrected_scores,
+            min_perc_change=self.min_perc_change,
         )
         assert self.response is not None
         self.response.inplace_update(
@@ -927,7 +935,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         seasonal_period: str, default value is 'weekly'. Other possible values: 'daily', 'biweekly', 'monthly', 'yearly'
         skip_rescaling: bool. If we'd like skip rescaling p-values for multivariate timeseires when calling Percentagechange class
         use_corrected_scores: bool, default value is False, using original t-scores or correct t-scores.
-
+        min_perc_change: float, minimum percentage change, for a non zero score. Score will be clipped to zero if the absolute value of the percentage chenge is less than this value
     >>> # Example usage:
     >>> # history and ts_pt are TimeSeriesData objects and history is larger
     >>> # than (n_control + n_test) so that we have sufficient history to
@@ -973,16 +981,18 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         method: str = "fdr_bh",
         skip_rescaling: bool = False,
         use_corrected_scores: bool = False,
+        min_perc_change: float = 0.0,
     ) -> None:
 
         StatSigDetectorModel.__init__(
             self,
-            n_control,
-            n_test,
-            serialized_model,
-            time_unit,
-            rem_season,
-            seasonal_period,
+            n_control=n_control,
+            n_test=n_test,
+            serialized_model=serialized_model,
+            time_unit=time_unit,
+            rem_season=rem_season,
+            seasonal_period=seasonal_period,
+            min_perc_change=min_perc_change,
         )
         self.method = method
         self.skip_rescaling = skip_rescaling
@@ -1191,6 +1201,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             method=self.method,
             skip_rescaling=self.skip_rescaling,
             use_corrected_scores=self.use_corrected_scores,
+            min_perc_change=self.min_perc_change,
         )
         assert self.response is not None
         self.response.inplace_update(

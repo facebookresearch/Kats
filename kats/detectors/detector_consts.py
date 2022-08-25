@@ -185,6 +185,7 @@ class PercentageChange:
                     we will transform this long univariate TS into a multi-variate TS and then use multistatsig detector instead.
                     In this case, we should skip rescaling p-values.
         use_corrected_scores: bool, default value is False, using original t-scores or correct t-scores.
+        min_perc_change: float, minimum percentage change, for a non zero score. Score will be clipped to zero if the absolute value of the percentage chenge is less than this value
     """
 
     upper: Optional[Union[float, np.ndarray]]
@@ -200,6 +201,7 @@ class PercentageChange:
         method: str = "fdr_bh",
         skip_rescaling: bool = False,
         use_corrected_scores: bool = False,
+        min_perc_change: float = 0.0,
     ) -> None:
         self.current = current
         self.previous = previous
@@ -217,6 +219,7 @@ class PercentageChange:
 
         # 2 t scores strategies
         self.use_corrected_scores = use_corrected_scores
+        self.min_perc_change = min_perc_change
 
     @property
     def ratio_estimate(self) -> Union[float, np.ndarray]:
@@ -272,7 +275,18 @@ class PercentageChange:
     def score(self) -> float:
         if self._t_score is None:
             self._ttest()
-        return cast(float, self._t_score)
+
+        t_score = self._t_score
+
+        if self.num_series == 1:
+            if np.abs(self.perc_change) < self.min_perc_change:
+                t_score = 0.0
+        else:
+            t_score = np.where(
+                np.abs(self.perc_change) < self.min_perc_change, 0, t_score
+            )
+
+        return cast(float, t_score)
 
     @property
     def p_value(self) -> float:
