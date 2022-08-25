@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Any, Sequence
+from typing import Any, Optional, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,6 +45,7 @@ class RobustStatDetector(Detector):
             )
             logging.error(msg)
             raise ValueError(msg)
+        self.zscore: Optional[np.ndarray] = None
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
@@ -70,6 +71,7 @@ class RobustStatDetector(Detector):
         )
 
         y_zscores = zscore(df_)
+        self.zscore = y_zscores
         p_values = norm.sf(np.abs(y_zscores))
         ind = np.where(p_values < p_value_cutoff)[0]
 
