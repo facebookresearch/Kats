@@ -1286,11 +1286,18 @@ class SeasonalityHandler:
         self.trend_jump_factor: float = kwargs.get("tj_factor", 0.15)
 
         self.frequency: pd.Timedelta = self.data.infer_freq_robust()
-        self.frequency_sec_str: str = str(int(self.frequency.total_seconds())) + "s"
+        self.frequency_sec: int = int(self.frequency.total_seconds())
+        self.frequency_sec_str: str = str(self.frequency_sec) + "s"
 
         # calculate resample base in second level
         time0 = pd.to_datetime(self.data.time[0])
-        resample_base_sec = time0.minute * 60 + time0.second
+        # calculate remainder as resampling base
+        resample_base_sec = (
+            time0.day * 24 * 60 * 60
+            + time0.hour * 60 * 60
+            + time0.minute * 60
+            + time0.second
+        ) % self.frequency_sec
 
         self.decomposer_input: TimeSeriesData = self.data.interpolate(
             freq=self.frequency_sec_str,

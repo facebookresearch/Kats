@@ -521,16 +521,20 @@ class CUSUMDetectorModel(DetectorModel):
         self._check_window_sizes(frequency.total_seconds())
 
         if remove_seasonality:
-            frequency_sec = str(int(frequency.total_seconds())) + "s"
+            frequency_sec: int = int(frequency.total_seconds())
+            frequency_sec_str = str(frequency_sec) + "s"
 
             # calculate resample base in second level
+            # calculate remainder as resampling base
             resample_base_sec = (
-                pd.to_datetime(historical_data.time[0]).minute * 60
+                pd.to_datetime(historical_data.time[0]).day * 24 * 60 * 60
+                + pd.to_datetime(historical_data.time[0]).hour * 60 * 60
+                + pd.to_datetime(historical_data.time[0]).minute * 60
                 + pd.to_datetime(historical_data.time[0]).second
-            )
+            ) % frequency_sec
 
             decomposer_input = historical_data.interpolate(
-                freq=frequency_sec,
+                freq=frequency_sec_str,
                 base=resample_base_sec,
             )
 
