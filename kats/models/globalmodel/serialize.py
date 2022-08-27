@@ -6,12 +6,11 @@
 import json
 import logging
 from multiprocessing import cpu_count
-from typing import Union, Dict, Any
+from typing import Any, Dict, Union
 
 from kats.models.globalmodel.ensemble import GMEnsemble
 from kats.models.globalmodel.model import GMModel
-from kats.models.globalmodel.utils import GMParam
-from kats.models.globalmodel.utils import gmparam_from_string
+from kats.models.globalmodel.utils import GMParam, gmparam_from_string
 from torch import Tensor
 
 

@@ -4,15 +4,14 @@
 # LICENSE file in the root directory of this source tree.
 
 
-
 import unittest
+from typing import cast, Dict, Union
 from unittest import TestCase
-from typing import Dict, Union, cast
 
 import pandas as pd
-from kats.data.utils import load_data
 from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
+from kats.data.utils import load_data
 from kats.models.linear_model import LinearModel, LinearModelParams
 from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_LINEAR_95,
@@ -26,7 +25,14 @@ from kats.tests.models.test_models_dummy_data import (
 )
 from parameterized.parameterized import parameterized
 
-TEST_DATA : Dict[str, Union[Dict[str, Union[TimeSeriesData, int, pd.DataFrame, str]], Dict[str, Union[TimeSeriesData, pd.DataFrame, str]], Dict[str, TimeSeriesData]]] = {
+TEST_DATA: Dict[
+    str,
+    Union[
+        Dict[str, Union[TimeSeriesData, int, pd.DataFrame, str]],
+        Dict[str, Union[TimeSeriesData, pd.DataFrame, str]],
+        Dict[str, TimeSeriesData],
+    ],
+] = {
     "daily": {
         "ts": TimeSeriesData(load_data("peyton_manning.csv", reset_columns=True)),
         "ts_nan": TimeSeriesData(df=PEYTON_INPUT_NAN),
@@ -78,7 +84,6 @@ class LinearModelTest(TestCase):
             ],
         ]
     )
-
     def test_fcst(
         self,
         name: str,
@@ -120,7 +125,6 @@ class LinearModelTest(TestCase):
             ],
         ]
     )
-
     def test_invalid_params(
         self, ts: TimeSeriesData, invalid_param: float, freq: str, truth: pd.DataFrame
     ) -> None:
@@ -133,10 +137,8 @@ class LinearModelTest(TestCase):
         # Test result
         assert_frame_equal(truth, res)
 
-
     def test_multivar(self) -> None:
         self.assertRaises(ValueError, LinearModel, TEST_DATA["multi"]["ts"], None)
-
 
     def test_exec_plot(self) -> None:
         # Set up params
@@ -148,14 +150,16 @@ class LinearModelTest(TestCase):
         # Test plotting
         m.plot()
 
-
     def test_name(self) -> None:
-        m = LinearModel(cast(TimeSeriesData, TEST_DATA["daily"]["ts"]), LinearModelParams())
+        m = LinearModel(
+            cast(TimeSeriesData, TEST_DATA["daily"]["ts"]), LinearModelParams()
+        )
         self.assertEqual(m.__str__(), "Linear Model")
 
-
     def test_search_space(self) -> None:
-        m = LinearModel(cast(TimeSeriesData, TEST_DATA["daily"]["ts"]), LinearModelParams())
+        m = LinearModel(
+            cast(TimeSeriesData, TEST_DATA["daily"]["ts"]), LinearModelParams()
+        )
         self.assertEqual(
             m.get_parameter_search_space(),
             [

@@ -11,19 +11,19 @@ import numpy as np
 import pandas as pd
 from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_data, load_air_passengers
+from kats.data.utils import load_air_passengers, load_data
 from kats.models.sarima import SARIMAModel, SARIMAParams
 from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_15_SARIMA_PARAM_1_MODEL_1,
-    AIR_FCST_15_SARIMA_PARAM_2_MODEL_1,
-    AIR_FCST_30_SARIMA_PARAM_1_MODEL_1,
-    AIR_FCST_30_SARIMA_PARAM_2_MODEL_1,
-    AIR_FCST_15_SARIMA_PARAM_2_MODEL_2,
-    AIR_FCST_30_SARIMA_PARAM_2_MODEL_2,
-    AIR_FCST_15_SARIMA_PARAM_1_MODEL_2,
-    AIR_FCST_30_SARIMA_PARAM_1_MODEL_2,
     AIR_FCST_15_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
+    AIR_FCST_15_SARIMA_PARAM_1_MODEL_2,
+    AIR_FCST_15_SARIMA_PARAM_2_MODEL_1,
+    AIR_FCST_15_SARIMA_PARAM_2_MODEL_2,
+    AIR_FCST_30_SARIMA_PARAM_1_MODEL_1,
     AIR_FCST_30_SARIMA_PARAM_1_MODEL_1_INCL_HIST,
+    AIR_FCST_30_SARIMA_PARAM_1_MODEL_2,
+    AIR_FCST_30_SARIMA_PARAM_2_MODEL_1,
+    AIR_FCST_30_SARIMA_PARAM_2_MODEL_2,
     EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1,
 )
 from parameterized.parameterized import parameterized

@@ -157,8 +157,14 @@ class testBayesianVARModel(TestCase):
         ]
     )
     def test_bad_params(
+        self,
         # pyre-fixme[2]: Parameter must be annotated.
-        self, name, p: int, phi0: float, phi1: float, phi2: float, phi3: float
+        name,
+        p: int,
+        phi0: float,
+        phi1: float,
+        phi2: float,
+        phi3: float,
     ) -> None:
         params = BayesianVARParams()
         params.p = p

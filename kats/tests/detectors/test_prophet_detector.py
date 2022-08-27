@@ -16,8 +16,8 @@ from kats.data.utils import load_air_passengers
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.detectors.prophet_detector import (
     ProphetDetectorModel,
-    ProphetTrendDetectorModel,
     ProphetScoreFunction,
+    ProphetTrendDetectorModel,
 )
 from kats.utils.simulator import Simulator
 from parameterized.parameterized import parameterized
@@ -239,8 +239,8 @@ class TestProphetDetector(TestCase):
     def calc_stds(
         self, predicted_val: float, upper_bound: float, lower_bound: float
     ) -> Tuple[float, float]:
-        actual_upper_std = (50 ** 0.5) * (upper_bound - predicted_val) / 0.8
-        actual_lower_std = (50 ** 0.5) * (predicted_val - lower_bound) / 0.8
+        actual_upper_std = (50**0.5) * (upper_bound - predicted_val) / 0.8
+        actual_lower_std = (50**0.5) * (predicted_val - lower_bound) / 0.8
 
         upper_std = max(actual_upper_std, 1e-9)
         lower_std = max(actual_lower_std, 1e-9)
@@ -429,7 +429,7 @@ class TestProphetDetector(TestCase):
         ProphetDetectorModel uses the 'deviation_from_predicted_val' scoring
         function, by checking an anomaly score.
         """
-        ts = self.create_ts()
+        ts = self.create_ts(length=100)
 
         # add anomaly at index 95
         ts.value[95] += 100
@@ -439,7 +439,7 @@ class TestProphetDetector(TestCase):
         self.assertEqual(
             deviation_response.scores.value[5],
             abs(
-                # pyre-fixme[16]: Optional type has no attribute `value`.
+                # pyre-ignore[16]: Optional type has no attribute `value`.
                 (ts.value[95] - deviation_response.predicted_ts.value[5])
                 / deviation_response.predicted_ts.value[5]
             ),
@@ -469,7 +469,11 @@ class TestProphetDetector(TestCase):
             z_score_response.confidence_band.lower.value[5],
         )
         self.assertAlmostEqual(
-            z_score_response.scores.value[5], actual_z_score, places=15
+            z_score_response.scores.value[5],
+            # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
+            #  SupportsAbs[SupportsRound[object]]]` but got `float`.
+            actual_z_score,
+            places=15,
         )
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
@@ -492,13 +496,15 @@ class TestProphetDetector(TestCase):
         response = model.fit_predict(ts[90:], ts[:90])
         actual_z_score = self.calc_z_score(
             ts.value[95],
-            # pyre-fixme[16]: Optional type has no attribute `value`.
+            # pyre-ignore[16]: Optional type has no attribute `value`.
             response.predicted_ts.value[5],
-            # pyre-fixme[16]: Optional type has no attribute `upper`.
+            # pyre-ignore[16]: Optional type has no attribute `upper`.
             response.confidence_band.upper.value[5],
-            # pyre-fixme[16]: Optional type has no attribute `lower`.
+            # pyre-ignore[16]: Optional type has no attribute `lower`.
             response.confidence_band.lower.value[5],
         )
+        # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
+        #  SupportsAbs[SupportsRound[object]]]` but got `float`.
         self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
@@ -521,13 +527,15 @@ class TestProphetDetector(TestCase):
         response = model.fit_predict(ts[90:], ts[:90])
         actual_z_score = self.calc_z_score(
             ts.value[95],
-            # pyre-fixme[16]: Optional type has no attribute `value`.
+            # pyre-ignore[16]: Optional type has no attribute `value`.
             response.predicted_ts.value[5],
-            # pyre-fixme[16]: Optional type has no attribute `upper`.
+            # pyre-ignore[16]: Optional type has no attribute `upper`.
             response.confidence_band.upper.value[5],
-            # pyre-fixme[16]: Optional type has no attribute `lower`.
+            # pyre-ignore[16]: Optional type has no attribute `lower`.
             response.confidence_band.lower.value[5],
         )
+        # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
+        #  SupportsAbs[SupportsRound[object]]]` but got `float`.
         self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
 
     @unittest.skip(
@@ -631,7 +639,7 @@ class TestProphetTrendDetectorModel(TestCase):
         self.assertEqual(response_single_ts.scores.value.shape, single_ts.value.shape)
 
         self.assertEqual(
-            # pyre-fixme[16]: Optional type has no attribute `value`.
+            # pyre-ignore[16]: Optional type has no attribute `value`.
             response_single_ts.predicted_ts.value.shape,
             single_ts.value.shape,
         )

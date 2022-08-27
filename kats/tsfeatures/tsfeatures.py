@@ -27,6 +27,7 @@ import pandas as pd
 import statsmodels.api as sm
 from deprecated import deprecated
 from scipy import stats
+from scipy.linalg import toeplitz
 from scipy.signal import periodogram  # @manual
 from statsmodels.stats.diagnostic import het_arch
 from statsmodels.tsa.seasonal import STL
@@ -510,17 +511,27 @@ class TsFeatures:
             # multiple time series: return a list of map {feature: value}
             ts_features = []
             for col in x.value.columns:
-                ts_values = x.value[col].values  # extract 1-d numpy array
-                ts_features.append(self._transform_1d(ts_values, x.value[col]))
+                ts_values = x[col].value.values  # extract 1-d numpy array
+                ts_features.append(self._transform_1d(ts_values, x[col]))
 
         # performing final filter
-        to_remove = []
-        for feature in ts_features:
-            if not self.final_filter[feature]:
-                to_remove.append(feature)
+        if len(x.value.shape) == 1:
+            to_remove = []
+            for feature in ts_features:
+                if not self.final_filter[feature]:
+                    to_remove.append(feature)
 
-        for r in to_remove:
-            del ts_features[r]
+            for r in to_remove:
+                del ts_features[r]
+        else:
+            for ts_feature_dict in ts_features:
+                to_remove = []
+                for feature in ts_feature_dict:
+                    if not self.final_filter[feature]:
+                        to_remove.append(feature)
+
+                for r in to_remove:
+                    del ts_feature_dict[r]
 
         return ts_features
 
@@ -1073,10 +1084,19 @@ class TsFeatures:
         diff2y_acf_list = acf(diff2x, fft=True, nlags=nlag)[1:]
 
         y_pacf_list = pacf(x, nlags=period)[1:]
+
+        if (
+            TsFeatures._yule_walker_determinant(diff1x) == 0
+            or TsFeatures._yule_walker_determinant(diff2x) == 0
+        ):
+            logging.warning(
+                "Could not generate acfpacf features because input matrix is singular."
+            )
+            return acfpacf_features
+
         diff1y_pacf_list = pacf(diff1x, nlags=nlag)[1:]
         diff2y_pacf_list = pacf(diff2x, nlags=nlag)[1:]
 
-        # getting ACF features
         (
             acfpacf_features["y_acf1"],
             acfpacf_features["y_acf5"],
@@ -1108,6 +1128,22 @@ class TsFeatures:
         )
 
         return acfpacf_features
+
+    # Calculate the determinant of the Toeplitz Equation from the Yule-Walker equations
+    # Methods adapted from https://github.com/statsmodels/statsmodels/blob/main/statsmodels/regression/linear_model.py#L1379
+    @staticmethod
+    def _yule_walker_determinant(x_list: List[float]) -> float:
+        x = np.array(x_list, dtype=np.float64)
+
+        if x.ndim > 1 and x.shape[1] != 1:
+            raise ValueError("expecting a vector to estimate AR parameters")
+
+        x -= x.mean()
+        r = np.zeros(2, np.float64)
+        r[0] = (x**2).mean()
+        r[1] = (x[0:-1] * x[1:]).mean()
+        R = toeplitz(r[:-1])
+        return np.linalg.det(R)
 
     # standard deviation of the first derivative
     @staticmethod

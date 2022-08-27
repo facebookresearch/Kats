@@ -3,12 +3,14 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from . import backtesters  # noqa
-from . import cupik  # noqa
-from . import decomposition  # noqa
-from . import emp_confidence_int  # noqa
-from . import parameter_tuning_utils  # noqa
-from . import simulator  # noqa
+from . import (  # noqa  # noqa  # noqa  # noqa  # noqa  # noqa
+    backtesters,
+    cupik,
+    decomposition,
+    emp_confidence_int,
+    parameter_tuning_utils,
+    simulator,
+)
 from . import testing  # noqa # usort: skip
 
 try:

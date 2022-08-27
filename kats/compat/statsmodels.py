@@ -38,7 +38,6 @@ class HoltWintersResults(holtwinters.HoltWintersResults):
                 results.level,
                 results.trend,
                 results.season,
-
                 results.params_formatted,
                 results.resid,
                 results.k,
@@ -69,7 +68,7 @@ class ExponentialSmoothing(holtwinters.ExponentialSmoothing):
         initial_trend: Optional[float] = None,
         missing: str = "none",
         seasonal_periods: Optional[int] = None,
-        use_boxcox: bool = False
+        use_boxcox: bool = False,
     ) -> None:
         if version < "0.12":
             self._use_boxcox = use_boxcox

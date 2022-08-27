@@ -14,11 +14,11 @@ import numpy as np
 import pandas as pd
 from kats.compat import pandas
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_data, load_air_passengers
+from kats.data.utils import load_air_passengers, load_data
 from kats.models.neuralprophet import NeuralProphetModel, NeuralProphetParams
 from kats.tests.models.test_models_dummy_data import (
-    NONSEASONAL_INPUT,
     NONSEASONAL_FUTURE_DF,
+    NONSEASONAL_INPUT,
 )
 from parameterized.parameterized import parameterized
 
@@ -87,14 +87,19 @@ class NeuralProphetModelTest(TestCase):
             else:
                 return original_import_fn(module, *args, **kwargs)
 
-        cls.mock_imports = patch("builtins.__import__", side_effect=mock_neuralprophet_import)
+        cls.mock_imports = patch(
+            "builtins.__import__", side_effect=mock_neuralprophet_import
+        )
 
     def test_neuralprophet_not_installed(self) -> None:
         # Unload prophet module so its imports can be mocked as necessary
         del sys.modules["kats.models.neuralprophet"]
 
         with self.mock_imports:
-            from kats.models.neuralprophet import NeuralProphetModel, NeuralProphetParams
+            from kats.models.neuralprophet import (
+                NeuralProphetModel,
+                NeuralProphetParams,
+            )
 
             self.assertRaises(RuntimeError, NeuralProphetParams)
             self.assertRaises(
@@ -110,7 +115,12 @@ class NeuralProphetModelTest(TestCase):
 
         # Confirm that the module has been properly reloaded -- should not
         # raise an exception anymore
-        NeuralProphetModel(TEST_DATA["daily"]["ts"], NeuralProphetParams(epochs=5,))
+        NeuralProphetModel(
+            TEST_DATA["daily"]["ts"],
+            NeuralProphetParams(
+                epochs=5,
+            ),
+        )
 
     def test_default_parameters(self) -> None:
         """

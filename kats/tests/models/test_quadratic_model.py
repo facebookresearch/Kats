@@ -7,11 +7,8 @@ import unittest
 from unittest import TestCase
 
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_data, load_air_passengers
-from kats.models.quadratic_model import (
-    QuadraticModel,
-    QuadraticModelParams,
-)
+from kats.data.utils import load_air_passengers, load_data
+from kats.models.quadratic_model import QuadraticModel, QuadraticModelParams
 
 
 class QuadraticModelTest(TestCase):

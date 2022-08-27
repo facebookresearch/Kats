@@ -9,7 +9,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_data, load_air_passengers
+from kats.data.utils import load_air_passengers, load_data
 from kats.detectors.outlier import (
     MultivariateAnomalyDetector,
     MultivariateAnomalyDetectorType,
@@ -33,10 +33,12 @@ class OutlierDetectionTest(TestCase):
         daily_data.columns = ["time", "y"]
         self.ts_data_daily = TimeSeriesData(daily_data)
 
-        daily_data_missing = daily_data.drop([2, 11, 18, 19, 20, 21, 22, 40, 77, 101]).copy()
+        daily_data_missing = daily_data.drop(
+            [2, 11, 18, 19, 20, 21, 22, 40, 77, 101]
+        ).copy()
         # Detecting missing data is coupled to pd.infer_freq() implementation. Make sure the
         # rows dropped above prevent us from inferring a frequency (so it returns None)
-        self.assertIsNone(pd.infer_freq(daily_data_missing['time']))
+        self.assertIsNone(pd.infer_freq(daily_data_missing["time"]))
         self.ts_data_daily_missing = TimeSeriesData(daily_data_missing)
 
     def test_additive_overrides_missing_daily_data(self) -> None:

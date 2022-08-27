@@ -27,10 +27,7 @@ import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models.nowcasting.feature_extraction import LAG, ROC
-from kats.models.nowcasting.model_io import (
-    serialize_for_zippy,
-    deserialize_from_zippy,
-)
+from kats.models.nowcasting.model_io import deserialize_from_zippy, serialize_for_zippy
 from sklearn.ensemble import GradientBoostingRegressor
 
 

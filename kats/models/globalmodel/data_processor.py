@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import List, Union, Dict, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -74,8 +74,9 @@ class GMDataLoader:
             self.magnitude = magnitude
 
     def _valid_dataset(
+        self,
         # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
-        self, dataset: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]]
+        dataset: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]],
     ) -> Tuple[np.ndarray, np.ndarray]:
         if len(dataset) < 1:
             msg = "Input dataset should be non-empty."

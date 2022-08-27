@@ -22,7 +22,7 @@ import io
 import os
 import pkgutil
 import sys
-from typing import Union, overload
+from typing import overload, Union
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -33,7 +33,7 @@ import pandas as pd
 from kats.consts import TimeSeriesData
 
 
-def load_data(file_name: str, reset_columns:bool=False) -> pd.DataFrame:
+def load_data(file_name: str, reset_columns: bool = False) -> pd.DataFrame:
     """load data for tests and tutorial notebooks"""
     ROOT = "kats"
     if "kats" in os.getcwd().lower():

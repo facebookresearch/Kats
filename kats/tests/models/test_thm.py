@@ -10,10 +10,7 @@ import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.models import prophet
-from kats.models.reconciliation.base_models import (
-    BaseTHModel,
-    GetAggregateTS,
-)
+from kats.models.reconciliation.base_models import BaseTHModel, GetAggregateTS
 from kats.models.reconciliation.thm import TemporalHierarchicalModel
 
 

@@ -7,9 +7,11 @@ import json
 import logging
 from datetime import datetime
 from typing import Any, Optional, Tuple
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy.stats as stats
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (
@@ -19,7 +21,6 @@ from kats.detectors.detector_consts import (
     PercentageChange,
 )
 from kats.utils.decomposition import TimeSeriesDecomposition
-import scipy.stats as stats
 
 
 """Statistical Significance Detector Module
@@ -55,7 +56,7 @@ class StatSigDetectorModel(DetectorModel):
         max_split_ts_length: int, default value is 500. If the given TS (except historical part) is longer than max_split_ts_length,
                     we will transform a long univariate TS into a multi-variate TS and then use multistatsig detector, which is faster,
         anomaly_scores_only: bool = False. Only calculate anomaly scores without using advanced classes, which is much faster.
-
+        min_perc_change: float, minimum percentage change, for a non zero score. Score will be clipped to zero if the absolute value of the percentage chenge is less than this value
     >>> # Example usage:
     >>> # history and ts_pt are TimeSeriesData objects and history is larger
     >>> # than (n_control + n_test) so that we have sufficient history to
@@ -89,6 +90,7 @@ class StatSigDetectorModel(DetectorModel):
         use_corrected_scores: bool = True,
         max_split_ts_length: int = 500,
         anomaly_scores_only: bool = False,
+        min_perc_change: float = 0.0,
     ) -> None:
 
         if serialized_model:
@@ -111,6 +113,10 @@ class StatSigDetectorModel(DetectorModel):
                 "max_split_ts_length", max_split_ts_length
             )
 
+            self.min_perc_change: float = model_dict.get(
+                "min_perc_change", min_perc_change
+            )
+
         else:
             self.n_test: Optional[int] = n_test
             self.n_control: Optional[int] = n_control
@@ -122,6 +128,7 @@ class StatSigDetectorModel(DetectorModel):
             self.use_corrected_scores: bool = use_corrected_scores
             # threshold for splitting long TS
             self.max_split_ts_length: int = max_split_ts_length
+            self.min_perc_change: float = min_perc_change
 
         if (self.n_control is None) or (self.n_test is None):
             raise ValueError(
@@ -172,6 +179,7 @@ class StatSigDetectorModel(DetectorModel):
             "seasonal_period": self.seasonal_period,
             "use_corrected_scores": self.use_corrected_scores,
             "max_split_ts_length": self.max_split_ts_length,
+            "min_perc_change": self.min_perc_change,
         }
 
         return json.dumps(model_dict).encode("utf-8")
@@ -384,8 +392,8 @@ class StatSigDetectorModel(DetectorModel):
             total_data = historical_data
 
         total_data_df = total_data.to_dataframe()
-        total_data_df.columns = ['time', 'value']
-        total_data_df = total_data_df.set_index('time')
+        total_data_df.columns = ["time", "value"]
+        total_data_df = total_data_df.set_index("time")
 
         res = []
         i = 0
@@ -393,15 +401,21 @@ class StatSigDetectorModel(DetectorModel):
             test_end_dt = data.time[i]
 
             assert self.n_test is not None
-            test_start_dt = test_end_dt - (self.n_test - 1) * pd.Timedelta(self.time_unit)
+            test_start_dt = test_end_dt - (self.n_test - 1) * pd.Timedelta(
+                self.time_unit
+            )
 
             control_end_dt = test_start_dt
             assert self.n_control is not None
-            control_start_dt = control_end_dt - self.n_control * pd.Timedelta(self.time_unit)
+            control_start_dt = control_end_dt - self.n_control * pd.Timedelta(
+                self.time_unit
+            )
 
             if control_end_dt in total_data_df.index:
                 # exclude index control_end_dt
-                group1 = total_data_df[control_start_dt:control_end_dt].value.to_list()[:-1]
+                group1 = total_data_df[control_start_dt:control_end_dt].value.to_list()[
+                    :-1
+                ]
             else:
                 group1 = total_data_df[control_start_dt:control_end_dt].value.to_list()
             group2 = total_data_df[test_start_dt:test_end_dt].value.to_list()
@@ -689,7 +703,8 @@ class StatSigDetectorModel(DetectorModel):
         assert self.n_test is not None
 
         return end_time >= (
-            start_time + (self.n_control + self.n_test - 1) * pd.Timedelta(self.time_unit)
+            start_time
+            + (self.n_control + self.n_test - 1) * pd.Timedelta(self.time_unit)
         )
 
     def _handle_not_enough_history(
@@ -709,7 +724,9 @@ class StatSigDetectorModel(DetectorModel):
         if historical_data:
             history_first = historical_data.time.iloc[0]
             history_last = historical_data.time.iloc[-1]
-            min_history_last = history_first + num_hist_points * pd.Timedelta(self.time_unit)
+            min_history_last = history_first + num_hist_points * pd.Timedelta(
+                self.time_unit
+            )
 
             if history_last >= min_history_last:
                 return data, historical_data
@@ -786,6 +803,7 @@ class StatSigDetectorModel(DetectorModel):
             current=self.test_interval,
             previous=self.control_interval,
             use_corrected_scores=self.use_corrected_scores,
+            min_perc_change=self.min_perc_change,
         )
         assert self.response is not None
         self.response.inplace_update(
@@ -814,7 +832,9 @@ class StatSigDetectorModel(DetectorModel):
 
         assert self.n_test is not None
         assert self.n_control is not None
-        control_start_dt = test_end_dt - (self.n_test + self.n_control) * pd.Timedelta(self.time_unit)
+        control_start_dt = test_end_dt - (self.n_test + self.n_control) * pd.Timedelta(
+            self.time_unit
+        )
 
         control_end_dt = test_start_dt
 
@@ -915,7 +935,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         seasonal_period: str, default value is 'weekly'. Other possible values: 'daily', 'biweekly', 'monthly', 'yearly'
         skip_rescaling: bool. If we'd like skip rescaling p-values for multivariate timeseires when calling Percentagechange class
         use_corrected_scores: bool, default value is False, using original t-scores or correct t-scores.
-
+        min_perc_change: float, minimum percentage change, for a non zero score. Score will be clipped to zero if the absolute value of the percentage chenge is less than this value
     >>> # Example usage:
     >>> # history and ts_pt are TimeSeriesData objects and history is larger
     >>> # than (n_control + n_test) so that we have sufficient history to
@@ -961,16 +981,18 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         method: str = "fdr_bh",
         skip_rescaling: bool = False,
         use_corrected_scores: bool = False,
+        min_perc_change: float = 0.0,
     ) -> None:
 
         StatSigDetectorModel.__init__(
             self,
-            n_control,
-            n_test,
-            serialized_model,
-            time_unit,
-            rem_season,
-            seasonal_period,
+            n_control=n_control,
+            n_test=n_test,
+            serialized_model=serialized_model,
+            time_unit=time_unit,
+            rem_season=rem_season,
+            seasonal_period=seasonal_period,
+            min_perc_change=min_perc_change,
         )
         self.method = method
         self.skip_rescaling = skip_rescaling
@@ -1179,6 +1201,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
             method=self.method,
             skip_rescaling=self.skip_rescaling,
             use_corrected_scores=self.use_corrected_scores,
+            min_perc_change=self.min_perc_change,
         )
         assert self.response is not None
         self.response.inplace_update(
@@ -1263,11 +1286,18 @@ class SeasonalityHandler:
         self.trend_jump_factor: float = kwargs.get("tj_factor", 0.15)
 
         self.frequency: pd.Timedelta = self.data.infer_freq_robust()
-        self.frequency_sec_str: str = str(int(self.frequency.total_seconds())) + "s"
+        self.frequency_sec: int = int(self.frequency.total_seconds())
+        self.frequency_sec_str: str = str(self.frequency_sec) + "s"
 
         # calculate resample base in second level
         time0 = pd.to_datetime(self.data.time[0])
-        resample_base_sec = time0.minute * 60 + time0.second
+        # calculate remainder as resampling base
+        resample_base_sec = (
+            time0.day * 24 * 60 * 60
+            + time0.hour * 60 * 60
+            + time0.minute * 60
+            + time0.second
+        ) % self.frequency_sec
 
         self.decomposer_input: TimeSeriesData = self.data.interpolate(
             freq=self.frequency_sec_str,

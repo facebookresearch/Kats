@@ -1,4 +1,3 @@
-@nolint
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 #
 # This source code is licensed under the MIT license found in the
@@ -193,7 +192,7 @@ html_css_files = [
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 html_show_sphinx = False
 
-# If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
+# If true, copy right notice is shown in the HTML footer. Default is True.
 html_show_copyright = False
 
 # If true, an OpenSearch description file will be output, and all pages will

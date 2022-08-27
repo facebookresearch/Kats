@@ -12,25 +12,25 @@ import pandas as pd
 import torch
 from kats.compat.pandas import assert_frame_equal
 from kats.consts import TimeSeriesData
-from kats.data.utils import load_data, load_air_passengers
+from kats.data.utils import load_air_passengers, load_data
 from kats.models.lstm import LSTMModel, LSTMParams
 from kats.tests.models.test_models_dummy_data import (
+    AIR_FCST_15_LSTM_PARAM_1_MODEL_1_MONTHLY,
+    AIR_FCST_15_LSTM_PARAM_1_MODEL_2_MONTHLY,
+    AIR_FCST_15_LSTM_PARAM_2_MODEL_1_MONTHLY,
+    AIR_FCST_15_LSTM_PARAM_2_MODEL_2_MONTHLY,
+    AIR_FCST_30_LSTM_PARAM_1_MODEL_1_MONTHLY,
+    AIR_FCST_30_LSTM_PARAM_1_MODEL_2_MONTHLY,
+    AIR_FCST_30_LSTM_PARAM_2_MODEL_1_MONTHLY,
+    AIR_FCST_30_LSTM_PARAM_2_MODEL_2_MONTHLY,
     PT_FCST_15_LSTM_PARAM_1_MODEL_1_DAILY,
-    PT_FCST_15_LSTM_PARAM_2_MODEL_1_DAILY,
     PT_FCST_15_LSTM_PARAM_1_MODEL_2_DAILY,
+    PT_FCST_15_LSTM_PARAM_2_MODEL_1_DAILY,
     PT_FCST_15_LSTM_PARAM_2_MODEL_2_DAILY,
     PT_FCST_30_LSTM_PARAM_1_MODEL_1_DAILY,
-    PT_FCST_30_LSTM_PARAM_2_MODEL_1_DAILY,
     PT_FCST_30_LSTM_PARAM_1_MODEL_2_DAILY,
+    PT_FCST_30_LSTM_PARAM_2_MODEL_1_DAILY,
     PT_FCST_30_LSTM_PARAM_2_MODEL_2_DAILY,
-    AIR_FCST_15_LSTM_PARAM_1_MODEL_1_MONTHLY,
-    AIR_FCST_15_LSTM_PARAM_2_MODEL_1_MONTHLY,
-    AIR_FCST_30_LSTM_PARAM_1_MODEL_1_MONTHLY,
-    AIR_FCST_30_LSTM_PARAM_2_MODEL_1_MONTHLY,
-    AIR_FCST_15_LSTM_PARAM_2_MODEL_2_MONTHLY,
-    AIR_FCST_30_LSTM_PARAM_2_MODEL_2_MONTHLY,
-    AIR_FCST_15_LSTM_PARAM_1_MODEL_2_MONTHLY,
-    AIR_FCST_30_LSTM_PARAM_1_MODEL_2_MONTHLY,
 )
 from parameterized import parameterized
 
@@ -45,7 +45,7 @@ TEST_DATA = {
     "monthly": {
         "ts": AIR_TS,
         "freq": "MS",
-        "p1": LSTMParams(hidden_size=20, time_window=7, num_epochs=20),
+        "p1": LSTMParams(hidden_size=20, time_window=7, num_epochs=10),
         "p2": LSTMParams(hidden_size=10, time_window=3, num_epochs=4),
         "invalid_p": LSTMParams(hidden_size=-10, time_window=3, num_epochs=4),
         "invalid_ts": MULTI_DF,
@@ -72,7 +72,7 @@ TEST_DATA = {
     "daily": {
         "ts": PT_TS,
         "freq": "D",
-        "p1": LSTMParams(hidden_size=20, time_window=7, num_epochs=20),
+        "p1": LSTMParams(hidden_size=20, time_window=7, num_epochs=10),
         "p2": LSTMParams(hidden_size=10, time_window=3, num_epochs=4),
         "invalid_p": LSTMParams(hidden_size=-10, time_window=3, num_epochs=4),
         "m1": {

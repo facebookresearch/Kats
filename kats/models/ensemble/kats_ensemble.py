@@ -308,7 +308,6 @@ class KatsEnsemble(Model):
         num_process = min(len(MODELS), (cpu_count() - 1) // 2)
         if num_process < 1:
             num_process = 1
-        # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
         pool = multiprocessing.Manager().Pool(
             processes=(num_process), maxtasksperchild=1000
         )
@@ -603,7 +602,6 @@ class KatsEnsemble(Model):
         num_process = min(len(MODELS), (cpu_count() - 1) // 2)
         if num_process < 1:
             num_process = 1
-        # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
         pool = multiprocessing.Manager().Pool(
             processes=(num_process), maxtasksperchild=1000
         )
@@ -816,7 +814,6 @@ class KatsEnsemble(Model):
         num_process = min(len(MODELS.keys()), (cpu_count() - 1) // 2)
         if num_process < 1:
             num_process = 1
-        # pyre-fixme[16]: `SyncManager` has no attribute `Pool`.
         pool = multiprocessing.Manager().Pool(
             processes=(num_process), maxtasksperchild=1000
         )

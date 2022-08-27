@@ -64,7 +64,7 @@ class OutlierDetectorModel(DetectorModel):
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         """Fit OutlierDetector.
 
@@ -93,7 +93,7 @@ class OutlierDetectorModel(DetectorModel):
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """Get anomaly scores.
 
@@ -149,7 +149,7 @@ class OutlierDetectorModel(DetectorModel):
         self,
         data: TimeSeriesData,
         historical_data: Optional[TimeSeriesData] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> AnomalyResponse:
         """Fit a model and return the anomaly scores.
 

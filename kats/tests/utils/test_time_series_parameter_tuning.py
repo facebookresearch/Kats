@@ -3,11 +3,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
 import unittest
+from typing import Tuple
 from unittest import TestCase
 
-from numpy.random import RandomState
+import kats.utils.time_series_parameter_tuning as tpt
 import pandas as pd
 
 from ax.core.parameter import ChoiceParameter, FixedParameter, ParameterType
@@ -16,7 +16,9 @@ from ax.models.random.uniform import UniformGenerator
 from kats.consts import SearchMethodEnum
 from kats.models.arima import ARIMAModel
 from kats.models.prophet import ProphetModel
-import kats.utils.time_series_parameter_tuning as tpt
+from kats.utils.time_series_parameter_tuning import compute_search_cardinality
+
+from numpy.random import RandomState
 
 
 class GridSearchTest(TestCase):
@@ -44,7 +46,7 @@ class GridSearchTest(TestCase):
         self.assertEqual(len(parameter_values_with_scores.index), 50)
 
     def test_time_series_parameter_tuning_prophet(self) -> None:
-        random_state: RandomState =RandomState(seed=0)
+        random_state: RandomState = RandomState(seed=0)
 
         # pyre-fixme[2]: Parameter must be annotated.
         def prophet_evaluation_function(params) -> Tuple[float, float]:
@@ -242,6 +244,60 @@ class GridSearchTest(TestCase):
 
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
         self.assertEqual(len(parameter_values_with_scores.index), 20)
+
+    def test_compute_search_cardinality(self) -> None:
+        my_space_1 = [
+            {
+                "name": "n_control",
+                "type": "choice",
+                "values": [39, 79, 159, 239],
+                "value_type": "int",
+                "is_ordered": True,
+            },
+            {
+                "name": "n_test",
+                "type": "choice",
+                "values": [39, 79, 159, 239],
+                "value_type": "int",
+                "is_ordered": True,
+            },
+            {
+                "name": "anomaly_scores_only",
+                "type": "fixed",
+                "value_type": "bool",
+                "is_ordered": False,
+                "value": True,
+            },
+        ]
+
+        my_space_2 = [
+            {
+                "name": "n_control",
+                "type": "choice",
+                "values": [39, 79, 159, 239],
+                "value_type": "int",
+                "is_ordered": True,
+            },
+            {
+                "name": "n_test",
+                "type": "choice",
+                "values": [39, 79, 159, 239],
+                "value_type": "int",
+                "is_ordered": True,
+            },
+            {
+                "name": "anomaly_scores_only",
+                "type": "choice",
+                "value_type": "bool",
+                "is_ordered": False,
+                "values": [True],
+            },
+        ]
+
+        self.assertEqual(
+            compute_search_cardinality(my_space_1),
+            compute_search_cardinality(my_space_2),
+        )
 
     # def test_time_series_parameter_tuning_prophet_bayes_opt(self) -> None:
     #     random_state = np.random.RandomState(seed=0)

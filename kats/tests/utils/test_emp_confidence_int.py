@@ -5,7 +5,7 @@
 
 import inspect
 import unittest
-from typing import Any, Dict, List, cast
+from typing import Any, cast, Dict, List
 from unittest import mock, TestCase
 
 import kats.utils.emp_confidence_int  # noqa
@@ -16,7 +16,7 @@ from kats.compat.pandas import assert_frame_equal
 from kats.consts import Params, TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.models.model import Model
-from kats.utils.emp_confidence_int import EmpConfidenceInt, BackTesterRollingWindow
+from kats.utils.emp_confidence_int import BackTesterRollingWindow, EmpConfidenceInt
 
 
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]
@@ -245,7 +245,9 @@ class MyFakeModel(Model[FakeParams]):
         self.unfit = False
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
-    def predict(self, steps: int, include_history: bool=False, *_args: Any, **_kwargs: Any) -> pd.DataFrame:
+    def predict(
+        self, steps: int, include_history: bool = False, *_args: Any, **_kwargs: Any
+    ) -> pd.DataFrame:
         if self.unfit:
             raise ValueError("Model hasn't been fit")
         return _FROZEN_DATA

@@ -7,10 +7,7 @@
 from unittest import TestCase
 
 from kats.metrics import metadata
-from kats.metrics.metadata import (
-    inspect,
-    MetricMetadata,
-)
+from kats.metrics.metadata import inspect, MetricMetadata
 from parameterized.parameterized import parameterized
 
 

@@ -10,10 +10,7 @@ import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
-from kats.detectors.bocpd_model import (
-    BocpdDetectorModel,
-    BocpdTrendDetectorModel,
-)
+from kats.detectors.bocpd_model import BocpdDetectorModel, BocpdTrendDetectorModel
 from kats.utils.simulator import Simulator
 from parameterized import parameterized
 

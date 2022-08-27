@@ -26,13 +26,9 @@ import kats.models.model as m
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
-from kats.models.nowcasting.feature_extraction import LAG, ROC, MA, MOM
-from kats.models.nowcasting.model_io import (
-    serialize_for_zippy,
-    deserialize_from_zippy,
-)
-from sklearn import linear_model
-from sklearn import preprocessing
+from kats.models.nowcasting.feature_extraction import LAG, MA, MOM, ROC
+from kats.models.nowcasting.model_io import deserialize_from_zippy, serialize_for_zippy
+from sklearn import linear_model, preprocessing
 from sklearn.linear_model import LinearRegression
 
 
@@ -43,7 +39,7 @@ def poly(df, n):
     Takes the column x from the dataframe df and takes
     the value from x to the power n
     """
-    poly = pd.Series(df.x ** n, name="poly_" + str(n))
+    poly = pd.Series(df.x**n, name="poly_" + str(n))
     df = df.join(poly)
     return df
 

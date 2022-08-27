@@ -30,7 +30,9 @@ TorchLoss = torch.nn.modules.loss._Loss
 
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
-from kats.utils.parameter_tuning_utils import get_default_neuralprophet_parameter_search_space
+from kats.utils.parameter_tuning_utils import (
+    get_default_neuralprophet_parameter_search_space,
+)
 
 
 def _error_msg(msg: str) -> None:
@@ -124,9 +126,7 @@ class NeuralProphetParams(Params):
               Each regressor is a dictionary with required key "names"and optional keys "regularization" and "normalize".
     """
 
-    changepoints: Optional[
-        Union[List[str], List[np.datetime64], np.ndarray]
-    ]
+    changepoints: Optional[Union[List[str], List[np.datetime64], np.ndarray]]
     n_changepoints: int
     changepoints_range: float
     trend_reg: float
@@ -464,9 +464,12 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
             f"steps:{steps}, raw:{raw}, future:{future}, kwargs:{kwargs}."
         )
 
-
         # when extra_regressors are needed
-        if len(self.params.extra_future_regressors) + len(self.params.extra_lagged_regressors) > 0:
+        if (
+            len(self.params.extra_future_regressors)
+            + len(self.params.extra_lagged_regressors)
+            > 0
+        ):
             if future is None:
                 msg = "`future` should not be None when extra regressors are needed."
                 _error_msg(msg)
@@ -487,7 +490,7 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
             _error_msg(msg)
         future.sort_values("ds", inplace=True)
 
-        future["y"] = 0.
+        future["y"] = 0.0
         fcst = model.predict(future)
         if raw:
             return fcst
@@ -496,9 +499,7 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 
         self.fcst_df = fcst_df = pd.DataFrame(
-            {
-                k: fcst[k] for k in fcst.columns if k == 'ds' or k.startswith('yhat')
-            },
+            {k: fcst[k] for k in fcst.columns if k == "ds" or k.startswith("yhat")},
             copy=False,
         )
 
@@ -507,9 +508,7 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
 
     # pyre-fixme[14]: `kats.models.neuralprophet.NeuralProphetModel.plot` overrides method defined in `Model` inconsistently.
     def plot(
-        self,
-        fcst: pd.DataFrame,
-        figsize: Optional[Tuple[int, int]] = None
+        self, fcst: pd.DataFrame, figsize: Optional[Tuple[int, int]] = None
     ) -> plt.Axes:
         fcst["y"] = None
         # pyre-fixme[16]: `Optional` has no attribute `plot`.
