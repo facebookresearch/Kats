@@ -539,6 +539,9 @@ class VectorizedCUSUMDetectorTest(TestCase):
         self.dec_change_points = CUSUMDetector(
             TimeSeriesData(df[["decrease", "time"]])
         ).detector()
+        self.dec_change_points_int_window = CUSUMDetector(
+            TimeSeriesData(df[["decrease", "time"]])
+        ).detector(change_directions=["decrease"], interest_window=(35, 55))
 
         timeseries = TimeSeriesData(df)
         change_points_vectorized_ = VectorizedCUSUMDetector(timeseries).detector_()
@@ -554,6 +557,10 @@ class VectorizedCUSUMDetectorTest(TestCase):
         # change points for the second column in the matrix
         self.dec_change_points_vectorized = change_points_vectorized[1]
 
+        self.dec_change_points_vectorized_int_window = VectorizedCUSUMDetector(
+            timeseries
+        ).detector_(change_directions=["decrease"], interest_window=(35, 55))[1]
+
     def test_vectorized_results(self) -> None:
         # check if vectorized CUSUM produces the same results with the original CUSUM
         self.assertEqual(
@@ -561,6 +568,22 @@ class VectorizedCUSUMDetectorTest(TestCase):
             self.inc_change_points_vectorized[0].start_time,
         )
         self.assertEqual(
+            len(self.inc_change_points),
+            len(self.inc_change_points_vectorized),
+        )
+        self.assertEqual(
             self.dec_change_points[0].start_time,
             self.dec_change_points_vectorized[0].start_time,
+        )
+        self.assertEqual(
+            len(self.dec_change_points),
+            len(self.dec_change_points_vectorized),
+        )
+        self.assertEqual(
+            self.dec_change_points_int_window[0].start_time,
+            self.dec_change_points_vectorized_int_window[0].start_time,
+        )
+        self.assertEqual(
+            len(self.dec_change_points_int_window),
+            len(self.dec_change_points_vectorized_int_window),
         )
