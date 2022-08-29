@@ -9,7 +9,13 @@ from unittest import TestCase
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
-from kats.models import linear_model, prophet, quadratic_model, theta
+from kats.models import (
+    linear_model,
+    prophet,
+    quadratic_model,
+    simple_heuristic_model,
+    theta,
+)
 from kats.models.stlf import STLFModel, STLFParams
 from parameterized.parameterized import parameterized
 
@@ -20,7 +26,7 @@ def load_data_std_cols(path: str) -> pd.DataFrame:
     return df
 
 
-METHODS = ["theta", "prophet", "linear", "quadratic"]
+METHODS = ["theta", "prophet", "linear", "quadratic", "simple"]
 
 
 class testSTLFModel(TestCase):
@@ -50,7 +56,7 @@ class testSTLFModel(TestCase):
         # check whether the values are close and shapes are correct
         truth = truth.to_dataframe().y.to_numpy()
         self.assertTrue((truth - pred[:, 1]).max() < 2)  # check actual vs true
-        self.assertTrue(all(pred[:, 2] > pred[:, 0]))  # check upper > lower bounds
+        self.assertTrue(all(pred[:, 2] >= pred[:, 0]))  # check upper > lower bounds
 
     # pyre-fixme[56]
     @parameterized.expand([("multi", m) for m in METHODS])
@@ -106,6 +112,8 @@ class testSTLFModel(TestCase):
             method_params = theta.ThetaParams(m=2)
         elif method == "linear":
             method_params = linear_model.LinearModelParams(alpha=0.01)
+        elif method == "simple":
+            method_params = simple_heuristic_model.SimpleHeuristicModelParams()
         else:
             method_params = quadratic_model.QuadraticModelParams(alpha=0.01)
         params = STLFParams(m=12, method=method, method_params=method_params)
@@ -117,7 +125,7 @@ class testSTLFModel(TestCase):
         # check whether the values are close and shapes are correct
         truth = truth.to_dataframe().y.to_numpy()
         self.assertTrue((truth - pred[:, 1]).max() < 2)  # check actual vs true
-        self.assertTrue(all(pred[:, 2] > pred[:, 0]))  # check upper > lower bounds
+        self.assertTrue(all(pred[:, 2] >= pred[:, 0]))  # check upper > lower bounds
 
     # pyre-fixme[56]
     @parameterized.expand(
@@ -141,7 +149,26 @@ class testSTLFModel(TestCase):
         truth = truth.to_dataframe().y.to_numpy()
 
         self.assertTrue((truth - pred[:, 1]).max() < 2)  # check actual vs true
-        self.assertTrue(all(pred[:, 2] > pred[:, 0]))  # check upper > lower bounds
+        self.assertTrue(all(pred[:, 2] >= pred[:, 0]))  # check upper > lower bounds
+
+    def test_fit_forecast_simple_model(self) -> None:
+
+        steps = 7
+
+        ts = self.TEST_DATA["daily"]["ts"]
+        train, truth = ts[:-steps], ts[-steps:]
+        params = STLFParams(
+            m=12,
+            method="simple",
+            decomposition="additive",
+        )
+        m = STLFModel(train, params)
+        m.fit()
+        pred = m.predict(steps=steps).iloc[:, 1:].to_numpy()
+        truth = truth.to_dataframe().y.to_numpy()
+
+        self.assertTrue((truth - pred[:, 1]).max() < 2)  # check actual vs true
+        self.assertTrue(all(pred[:, 2] >= pred[:, 0]))  # check upper > lower bounds
 
 
 if __name__ == "__main__":

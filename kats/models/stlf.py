@@ -29,16 +29,26 @@ from typing import Any, Callable, cast, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
-from kats.models import linear_model, prophet, quadratic_model, theta
+from kats.models import (
+    linear_model,
+    prophet,
+    quadratic_model,
+    simple_heuristic_model,
+    theta,
+)
 from kats.models.linear_model import LinearModel, LinearModelParams
 from kats.models.model import Model
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.models.quadratic_model import QuadraticModel, QuadraticModelParams
+from kats.models.simple_heuristic_model import (
+    SimpleHeuristicModel,
+    SimpleHeuristicModelParams,
+)
 from kats.models.theta import ThetaModel, ThetaParams
 from kats.utils.decomposition import TimeSeriesDecomposition
 from kats.utils.parameter_tuning_utils import get_default_stlf_parameter_search_space
 
-MODELS = ["prophet", "linear", "quadratic", "theta"]
+MODELS = ["prophet", "linear", "quadratic", "theta", "simple"]
 
 
 class STLFParams(Params):
@@ -74,9 +84,7 @@ class STLFParams(Params):
         """Validate the parameters for STLF model"""
 
         if self.method not in MODELS:
-            msg = "Only support prophet, linear, quadratic and theta method, but get {name}.".format(
-                name=self.method
-            )
+            msg = f"Only support {', '.join(MODELS)} method, but get {self.method}."
             logging.error(msg)
             raise ValueError(msg)
 
@@ -87,6 +95,8 @@ class STLFParams(Params):
                 self.method_params = theta.ThetaParams(m=1)
             elif self.method == "linear":
                 self.method_params = linear_model.LinearModelParams()
+            elif self.method == "simple":
+                self.method_params = simple_heuristic_model.SimpleHeuristicModelParams()
             else:
                 assert self.method == "quadratic"
                 self.method_params = quadratic_model.QuadraticModelParams()
@@ -109,8 +119,13 @@ class STLFModel(Model[STLFParams]):
 
     decomp: Optional[Dict[str, TimeSeriesData]] = None
     sea_data: Optional[TimeSeriesData] = None
+    trend_data: Optional[TimeSeriesData] = None
     desea_data: Optional[TimeSeriesData] = None
-    model: Optional[Union[LinearModel, ProphetModel, QuadraticModel, ThetaModel]] = None
+    model: Optional[
+        Union[
+            LinearModel, ProphetModel, QuadraticModel, SimpleHeuristicModel, ThetaModel
+        ]
+    ] = None
     freq: Optional[str] = None
     alpha: Optional[float] = None
     y_fcst: Optional[Union[np.ndarray, pd.Series, pd.DataFrame]] = None
@@ -175,6 +190,7 @@ class STLFModel(Model[STLFParams]):
         self.decomp = decomp = decomposer.decomposer()
 
         self.sea_data = copy(decomp["seasonal"])
+        self.trend_data = copy(decomp["trend"])
         self.desea_data = desea_data = copy(self.data)
         # pyre-fixme[16]: `Optional` has no attribute `value`.
         desea_data.value = self.deseasonal_operator(
@@ -198,7 +214,10 @@ class STLFModel(Model[STLFParams]):
             "Call fit() with parameters. " "kwargs:{kwargs}".format(kwargs=kwargs)
         )
         self.deseasonalize()
-        data = self.desea_data
+        if self.params.method == "simple":
+            data = self.trend_data
+        else:
+            data = self.desea_data
         assert data is not None
         if self.params.method == "prophet":
             model = prophet.ProphetModel(
@@ -212,6 +231,11 @@ class STLFModel(Model[STLFParams]):
         elif self.params.method == "linear":
             model = linear_model.LinearModel(
                 data=data, params=cast(LinearModelParams, self.params.method_params)
+            )
+        elif self.params.method == "simple":
+            model = simple_heuristic_model.SimpleHeuristicModel(
+                data=data,
+                params=cast(SimpleHeuristicModelParams, self.params.method_params),
             )
         else:
             assert self.params.method == "quadratic"
@@ -249,6 +273,8 @@ class STLFModel(Model[STLFParams]):
         self.include_history = include_history
         # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
+        if self.freq is None:
+            logging.info("Could not infer freq, will default to 'D' (daily)")
         self.alpha = kwargs.get("alpha", 0.05)
 
         # trend forecast
