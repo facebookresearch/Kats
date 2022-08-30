@@ -8,7 +8,7 @@
 import statistics
 import unittest
 import unittest.mock as mock
-from typing import Any, Dict, List, Tuple
+from typing import Any, cast, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -28,10 +28,13 @@ from kats.utils.backtesters import (
     _return_fold_offsets as return_fold_offsets,
     BackTesterExpandingWindow,
     BackTesterFixedWindow,
+    BacktesterResult,
     BackTesterRollingWindow,
     BackTesterSimple,
     CrossValidation,
+    KatsSimpleBacktester,
 )
+from kats.utils.datapartition import SimpleDataPartition
 
 # Constants
 ALL_ERRORS = ["mape", "smape", "mae", "mase", "mse", "rmse"]  # Errors to test
@@ -773,7 +776,6 @@ class CrossValidationTest(unittest.TestCase):
         rolling_cv_results = (temp_cv, true_errors)
 
         # Test CV initialization
-        # self.assertEqual(self.model_class.call_count, 7)
         self.model_class.assert_has_calls(
             [
                 mock.call(
@@ -796,7 +798,6 @@ class CrossValidationTest(unittest.TestCase):
         )
 
         # Testing CV predict
-        # self.assertEqual(self.model_class().predict.call_count, 6)
         self.model_class().assert_has_calls(
             [
                 mock.call.fit(),
@@ -852,3 +853,38 @@ class CrossValidationTest(unittest.TestCase):
                 ]
             )
         return train_folds, test_folds
+
+
+class KatsSimpleBacktesterTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Setting up data
+        cls.ts = TimeSeriesData(
+            time=pd.date_range("2022-05-06", periods=20), value=pd.Series(np.arange(20))
+        )
+
+    def side_effect(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
+        n = kwargs["steps"]
+        return pd.DataFrame({"y": np.arange(n), "fcst": np.arange(n)})
+
+    def test_backtester(self) -> None:
+        # mock forecasting model
+        model_class = mock.MagicMock()
+        model_class().predict.side_effect = self.side_effect
+        model_params = mock.MagicMock()
+        # initiate data partition
+        dp = SimpleDataPartition(train_frac=0.9)
+        # run backtester
+        bt = KatsSimpleBacktester(
+            datapartition=dp,
+            # pyre-fixme Incompatible parameter type [6]: In call `KatsSimpleBacktester.__init__`, for 2nd parameter `scorer` expected `Union[List[Union[Metric, MultiOutputMetric, WeightedMetric, str]], Metric, MultiOutputMetric, WeightedMetric, Scorer, str]` but got `List[str]`.
+            scorer=ALL_ERRORS,
+            model_params=model_params,
+            model_class=model_class,
+        )
+        bt.run_backtester(self.ts)
+        bt_res = cast(BacktesterResult, bt.get_errors())
+        # get errors directly via model
+        errors = compute_errors(np.arange(18), np.arange(2), np.arange(18, 20))
+        self.assertEqual(bt_res.fold_errors, [errors])
+        self.assertEqual(bt_res.summary_errors, errors)
