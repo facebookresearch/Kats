@@ -876,6 +876,7 @@ class TimeSeriesData:
         base: int = 0,
         method: str = "linear",
         remove_duplicate_time: bool = False,
+        **kwargs: Any,
     ) -> TimeSeriesData:
         """
         Interpolate missing date if `time` doesn't have constant frequency.
@@ -884,6 +885,7 @@ class TimeSeriesData:
           - linear
           - backward fill
           - forward fill
+          - all other methods that pd.interpolate supports
 
         See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html
         for more detail on these options.
@@ -899,6 +901,7 @@ class TimeSeriesData:
           remove_duplicate_index: A boolean to auto-remove any duplicate time
             values, as interpolation in this case due to the need to index
             on time (default False).
+          kwargs: additional arguments to pass to pd.interpolate
 
         Returns:
             A new :class:`TimeSeriesData` object with interpolated data.
@@ -935,10 +938,8 @@ class TimeSeriesData:
 
         elif method == "bfill":
             df = df.resample(rule=freq, base=base).bfill()
-
         else:
-            # method is not supported
-            raise ValueError(f"the given method is not supported: {method}")
+            df = df.resample(rule=freq, base=base).interpolate(method=method, **kwargs)
 
         df = df.reset_index().rename(columns={"index": self.time_col_name})
         return TimeSeriesData(df, time_col_name=self.time_col_name)

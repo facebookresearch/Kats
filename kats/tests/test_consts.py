@@ -550,6 +550,75 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             ),
         )
 
+        # check pd.interpolate method that is not explicitly defined in TimeSeriesData code
+        self.assertEqual(
+            self.ts_univariate_missing.interpolate(freq="D", method="nearest"),
+            TimeSeriesData(
+                pd.DataFrame(
+                    {
+                        "time": [
+                            "2010-01-01",
+                            "2010-01-02",
+                            "2010-01-03",
+                            "2010-01-04",
+                            "2010-01-05",
+                        ],
+                        "value": [1, 2, 3, 3, 4],
+                    }
+                )
+            ),
+        )
+
+        # check pd.interpolate method that is not explicitly defined in TimeSeriesData code
+        # and has additional parameters
+        self.assertEqual(
+            self.ts_univariate_missing.interpolate(
+                freq="D", method="polynomial", order=3
+            ),
+            TimeSeriesData(
+                pd.DataFrame(
+                    {
+                        "time": [
+                            "2010-01-01",
+                            "2010-01-02",
+                            "2010-01-03",
+                            "2010-01-04",
+                            "2010-01-05",
+                        ],
+                        "value": [1, 2, 3, 3.75, 4],
+                    }
+                )
+            ),
+        )
+
+        # check pd.interpolate method that is not explicitly defined in TimeSeriesData code
+        # and has additional parameters
+        self.assertEqual(
+            self.ts_univariate_missing.interpolate(
+                freq="D", method="polynomial", order=1
+            ),
+            TimeSeriesData(
+                pd.DataFrame(
+                    {
+                        "time": [
+                            "2010-01-01",
+                            "2010-01-02",
+                            "2010-01-03",
+                            "2010-01-04",
+                            "2010-01-05",
+                        ],
+                        "value": [1, 2, 3, 3.5, 4],
+                    }
+                )
+            ),
+        )
+
+        # check method that is not in pd.interpolate and have not explicitly defined in TimeSeriesData code
+        with self.assertRaises(ValueError):
+            self.ts_univariate_missing.interpolate(
+                freq="D", method="bad_input_should_fail"
+            )
+
         # multivariate
         self.assertEqual(
             self.ts_multi_missing.interpolate(freq="D", method="linear"),
@@ -646,6 +715,51 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
                 )
             ),
         )
+
+        # test methods that are not explicitly defined in TimeSeriesData
+        self.assertEqual(
+            self.ts_multi_missing.interpolate(method="time"),
+            TimeSeriesData(
+                pd.DataFrame(
+                    {
+                        "time": [
+                            "2010-01-01",
+                            "2010-01-02",
+                            "2010-01-03",
+                            "2010-01-04",
+                            "2010-01-05",
+                        ],
+                        "value1": [1, 2, 3, 3.5, 4],
+                        "value2": [4, 3, 2, 1.5, 1],
+                    }
+                )
+            ),
+        )
+
+        # test methods that are not explicitly defined in TimeSeriesData
+        # with additional arguments
+        self.assertEqual(
+            self.ts_multi_missing.interpolate(method="polynomial", order=3),
+            TimeSeriesData(
+                pd.DataFrame(
+                    {
+                        "time": [
+                            "2010-01-01",
+                            "2010-01-02",
+                            "2010-01-03",
+                            "2010-01-04",
+                            "2010-01-05",
+                        ],
+                        "value1": [1, 2, 3, 3.75, 4],
+                        "value2": [4, 3, 2, 1.25, 1],
+                    }
+                )
+            ),
+        )
+
+        # check method that is not in pd.interpolate and have not explicitly defined in TimeSeriesData code
+        with self.assertRaises(ValueError):
+            self.ts_multi_missing.interpolate(freq="D", method="bad_input_should_fail")
 
     # Testing Data interpolate with base
     def test_interpolate_base(self) -> None:
