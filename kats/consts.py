@@ -341,7 +341,7 @@ class TimeSeriesData:
             if isinstance(self.value, pd.core.series.Series):
                 value_dtypes = self.value.dtypes
             else:  # DataFrame
-                value_dtypes = list(self.value.dtypes)
+                value_dtypes = dict(self.value.dtypes)
             msg = f"Time series data is type {value_dtypes} but must be numeric"
             raise _log_error(msg)
 
