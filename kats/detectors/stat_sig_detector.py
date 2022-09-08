@@ -259,9 +259,8 @@ class StatSigDetectorModel(DetectorModel):
         if self.use_corrected_scores:
             if (
                 len(data) > self.max_split_ts_length
-                # pyre-ignore[16]: `Optional` has no attribute `time`.
-                and pd.infer_freq(historical_data.time)  # not None
-                and pd.infer_freq(historical_data.time) == pd.infer_freq(data.time)
+                # pyre-ignore[16]: `Optional` has no attribute `infer_freq_robust`.
+                and historical_data.infer_freq_robust() == data.infer_freq_robust()
             ):
                 self.bigdata_trans_flag = True
             else:
