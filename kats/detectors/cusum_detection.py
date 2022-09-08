@@ -933,6 +933,8 @@ class VectorizedCUSUMDetector(CUSUMDetector):
         # Use array to store the data
         ts_all = self.data.value.to_numpy()
         ts_all = ts_all.astype("float64")
+        if ts_all.ndim == 1:
+            ts_all = ts_all[:, np.newaxis]
         changes_meta_list = []
 
         if change_directions is None:
@@ -960,6 +962,9 @@ class VectorizedCUSUMDetector(CUSUMDetector):
             changes_meta = {}
             for change_direction in change_directions:
                 change_meta_ = change_meta_all[change_direction]
+                # if no change points are detected, skip
+                if not list(change_meta_["changepoint"]):
+                    continue
                 change_meta = {
                     k: change_meta_[k][col_idx]
                     if isinstance(change_meta_[k], np.ndarray)
@@ -1052,6 +1057,18 @@ class VectorizedCUSUMDetector(CUSUMDetector):
             ts_int = ts
         n_ts = ts_int.shape[1]
         n_pts = ts_int.shape[0]
+        if n_pts == 0:
+            return VectorizedCUSUMChangePointVal(
+                changepoint=[],
+                mu0=[],
+                mu1=[],
+                changetime=[],
+                stable_changepoint=[],
+                delta=[],
+                llr_int=[],
+                p_value_int=[],
+                delta_int=[],
+            )
         # use the middle point as initial change point to estimate mu0 and mu1
         tmp = ts_int - np.tile(np.mean(ts_int, axis=0), (n_pts, 1))
         cusum_ts = np.cumsum(tmp, axis=0)
