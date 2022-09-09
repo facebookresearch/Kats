@@ -7,6 +7,7 @@ pandas
 python-dateutil>=2.8.0
 pystan==2.19.1.1
 fbprophet==0.7.1
+neuralprophet==0.3.2
 scikit-learn>=0.24.2
 scipy<1.8.0
 seaborn>=0.11.1
