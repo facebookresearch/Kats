@@ -33,12 +33,17 @@ from typing import (
     Dict,
     List,
     Optional,
-    Protocol,
     Tuple,
     Type,
     TYPE_CHECKING,
     Union,
 )
+
+try:
+    from typing import Protocol
+except ImportError:  # pragma: no cover
+    from typing_extensions import Protocol  # pragma: no cover
+
 
 import numpy as np
 import pandas as pd
