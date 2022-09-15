@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import unittest
+from datetime import timedelta
 from unittest import TestCase
 
 import pandas as pd
@@ -17,6 +18,7 @@ from kats.models import (
     theta,
 )
 from kats.models.stlf import STLFModel, STLFParams
+from kats.utils.simulator import Simulator
 from parameterized.parameterized import parameterized
 
 
@@ -31,6 +33,16 @@ METHODS = ["theta", "prophet", "linear", "quadratic", "simple"]
 
 class testSTLFModel(TestCase):
     def setUp(self) -> None:
+
+        sim = Simulator(
+            n=3 * 144, freq="10T", start=pd.to_datetime("2021-01-01")
+        )  # 3 days of data
+        sim.add_trend(magnitude=1)
+        sim.add_seasonality(magnitude=50, period=timedelta(days=1))
+        sim.add_noise(magnitude=0)
+        dense_dates_10min_df = sim.stl_sim().to_dataframe()
+        dense_dates_10min_df.rename(columns={"value": "y"}, inplace=True)
+
         # Load data for each test
         self.TEST_DATA = {
             "daily": {
@@ -40,6 +52,9 @@ class testSTLFModel(TestCase):
                 "ts": TimeSeriesData(
                     load_data("multivariate_anomaly_simulated_data.csv")
                 ),
+            },
+            "dens_ds_10min": {
+                "ts": TimeSeriesData(dense_dates_10min_df),
             },
         }
 
@@ -115,7 +130,7 @@ class testSTLFModel(TestCase):
         elif method == "simple":
             method_params = simple_heuristic_model.SimpleHeuristicModelParams()
         else:
-            method_params = quadratic_model.QuadraticModelParams(alpha=0.01)
+            method_params = quadratic_model.QuadraticModelParams(alpha=0.05)
         params = STLFParams(m=12, method=method, method_params=method_params)
         train, truth = ts[:-steps], ts[-steps:]
         m = STLFModel(train, params)
@@ -169,6 +184,26 @@ class testSTLFModel(TestCase):
 
         self.assertTrue((truth - pred[:, 1]).max() < 2)  # check actual vs true
         self.assertTrue(all(pred[:, 2] >= pred[:, 0]))  # check upper > lower bounds
+
+    # pyre-fixme[56]
+    @parameterized.expand([("dens_ds_10min", m) for m in METHODS])
+    def test_fit_forecast_minute(
+        self, dataset: str, method: str, steps: int = 144
+    ) -> None:
+
+        ts = self.TEST_DATA[dataset]["ts"]
+        params = STLFParams(m=144, method=method, decomposition="additive")
+        train, truth = ts[:-steps], ts[-steps:]
+        m = STLFModel(train, params)
+        m.fit()
+        pred = m.predict(steps=steps)
+
+        # check whether the values are close and shapes are correct
+        truth = truth.value.values
+        self.assertTrue((truth - pred["fcst"]).max() < 4)  # check actual vs true
+        self.assertTrue(
+            all(pred["fcst_upper"] >= pred["fcst_lower"])
+        )  # check upper > lower bounds
 
 
 if __name__ == "__main__":

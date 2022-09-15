@@ -60,9 +60,27 @@ class STLFParams(Params):
     Attributes:
         method: str, the forecasting model to fit on the de-seasonalized component
             it currently supports prophet, linear, quadratic, and theta method.
-        m: int, the length of one seasonal cycle
+        m: int, the length of one seasonal cycle, same as period in statsmodel STL
         method_params: Optional[Params], the parameters for the method
         decomposition: str, `additive` or `multiplicative` decomposition. Default is `multiplicative` because of legacy
+        seasonal: int, Length of the seasonal smoother. Must be an odd integer, and should normally be >= 7 (default).
+        trend: Optional[int], Length of the trend smoother. Must be an odd integer.
+              If not provided uses the smallest odd integer greater than 1.5 * period / (1 - 1.5 / seasonal),
+              following the suggestion in the original implementation.
+        low_pass: Optional[int], Length of the low-pass filter. Must be an odd integer >=3. If not provided, uses the smallest odd integer > period.
+        seasonal_deg: int, Degree of seasonal LOESS. 0 (constant) or 1 (constant and trend).
+        trend_deg: int, Degree of trend LOESS. 0 (constant) or 1 (constant and trend).
+        low_pass_deg: int, Degree of low pass LOESS. 0 (constant) or 1 (constant and trend).
+        robust: bool, Flag indicating whether to use a weighted version that is robust to some forms of outliers.
+        seasonal_jump: int, Positive integer determining the linear interpolation step.
+                       If larger than 1, the LOESS is used every seasonal_jump points and linear interpolation is between fitted points.
+                       Higher values reduce estimation time.
+        trend_jump: int, Positive integer determining the linear interpolation step.
+                    If larger than 1, the LOESS is used every trend_jump points and values between the two are linearly interpolated.
+                    Higher values reduce estimation time.
+        low_pass_jump: int, Positive integer determining the linear interpolation step.
+                       If larger than 1, the LOESS is used every low_pass_jump points and values between the two are linearly interpolated.
+                       Higher values reduce estimation time.
     """
 
     def __init__(
@@ -71,12 +89,32 @@ class STLFParams(Params):
         m: int,
         method_params: Optional[Params] = None,
         decomposition: str = "multiplicative",
+        seasonal: int = 7,
+        trend: Optional[int] = None,
+        low_pass: Optional[int] = None,
+        seasonal_deg: int = 1,
+        trend_deg: int = 1,
+        low_pass_deg: int = 1,
+        robust: bool = False,
+        seasonal_jump: int = 1,
+        trend_jump: int = 1,
+        low_pass_jump: int = 1,
     ) -> None:
         super().__init__()
         self.method = method
         self.m = m
         self.method_params = method_params
         self.decomposition = decomposition
+        self.seasonal = seasonal
+        self.trend = trend
+        self.low_pass = low_pass
+        self.seasonal_deg = seasonal_deg
+        self.trend_deg = trend_deg
+        self.low_pass_deg = low_pass_deg
+        self.robust = robust
+        self.seasonal_jump = seasonal_jump
+        self.trend_jump = trend_jump
+        self.low_pass_jump = low_pass_jump
         self.validate_params()
         logging.debug("Initialized STFLParams instance.")
 
@@ -184,9 +222,23 @@ class STLFModel(Model[STLFParams]):
         """
 
         # create decomposer for time series decomposition
-        # pyre-fixme[6]: For 1st param expected `TimeSeriesData` but got
-        #  `Optional[TimeSeriesData]`.
-        decomposer = TimeSeriesDecomposition(self.data, self.params.decomposition)
+        decomposer = TimeSeriesDecomposition(
+            data=cast(TimeSeriesData, self.data),
+            decomposition=self.params.decomposition,
+            method="STL",
+            period=self.params.m,
+            seasonal=self.params.seasonal,
+            trend=self.params.trend,
+            low_pass=self.params.low_pass,
+            seasonal_deg=self.params.seasonal_deg,
+            trend_deg=self.params.trend_deg,
+            low_pass_deg=self.params.low_pass_deg,
+            robust=self.params.robust,
+            seasonal_jump=self.params.seasonal_jump,
+            trend_jump=self.params.trend_jump,
+            low_pass_jump=self.params.low_pass_jump,
+        )
+
         self.decomp = decomp = decomposer.decomposer()
 
         self.sea_data = copy(decomp["seasonal"])
