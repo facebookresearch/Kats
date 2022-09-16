@@ -246,8 +246,6 @@ class TimeSeriesDecomposition:
         fig, axs = plt.subplots(
             nrows=4, ncols=1, figsize=figsize, sharex=sharex, **kwargs
         )
-        titles = [trend_title, seasonality_title, residual_title]
-        parts = ["trend", "seasonal", "rem"]
 
         axs[0].plot(
             self.data.time.values,
@@ -256,7 +254,9 @@ class TimeSeriesDecomposition:
         )
         axs[0].set_title(original_title)
 
-        for part, ax, title in zip(parts, axs, titles):
+        titles = [trend_title, seasonality_title, residual_title]
+        parts = ["trend", "seasonal", "rem"]
+        for part, ax, title in zip(parts, axs[1:], titles):
             ts: TimeSeriesData = results[part]
             ax.plot(ts.time.values, ts.value.values, linewidth=linewidth)
             ax.set_title(title)
