@@ -3,9 +3,14 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import importlib
 from operator import attrgetter
 from typing import Any, cast, Dict, List, Union
 from unittest import TestCase
+
+from unittest.mock import patch
+
+import kats.tsfeatures.tsfeatures
 
 import numpy as np
 import pandas as pd
@@ -709,3 +714,11 @@ class TSfeaturesTest(TestCase):
             "time_freq_Sunday": 0.1875,
         }
         self.assertDictAlmostEqual(expected, features)
+
+    def test_without_jit(self) -> None:
+        with patch.dict("sys.modules", {"numba": None}):
+            importlib.reload(kats.tsfeatures.tsfeatures)
+            self.test_tsfeatures()
+            self.test_nowcasting_error()
+
+        importlib.reload(kats.tsfeatures.tsfeatures)
