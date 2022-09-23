@@ -3,7 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-"""Ensemble Prediction Interval
+"""Ensemble Prediction Interval (EPI)
 
 This is an Ensemble method to estimate the prediction interval for any forecasting models
 The high level idea is to estimate the empirical error matrix (S) from a specific
@@ -39,10 +39,10 @@ def mean_confidence_interval(
 
 class ensemble_predict_interval:
     """
-        Class for Ensemble Predict Interval.
+        Class for Ensemble Prediction Interval.
 
         The steps are listed as follows:
-        1. Split the ts into k (k = n_block + 1) parts, p_1 to p_k. Each part has size as block_size.
+        1. Split the given ts into k (k = n_block + 1) parts, p_1 to p_k. Each part has size as block_size.
         2. For given model and params, train the model with data p_i, and predict next block_size step,
             and calculate the bias vector by comparing it to p_(i+1).
         3. We get an error matrix S with shape n_block * block_size from step 2, and then calculate mean (m)
@@ -71,6 +71,8 @@ class ensemble_predict_interval:
         )
     >>> res = epi.get_projection(step=60)
     >>> res.head()
+    >>> res_other_conf_level = epi.get_fcst_band_with_level(confidence_level=0.5)
+    >>> res_other_conf_level.head()
     >>> # visualization
     >>> epi.pi_comparison_plot(test_ts)
     """
@@ -84,9 +86,12 @@ class ensemble_predict_interval:
         n_block: Optional[int] = None,
         ensemble_size: int = 10,
     ) -> None:
+        # detection model
         self.model: Type[Model[Params]] = model
+        # detection model params
         self.params: Params = model_params
 
+        # check if the given block_size and n_block are reasonable
         if block_size is None and n_block is None:
             raise ValueError(
                 "Please provide an initial value for either block_size or n_block."
@@ -133,24 +138,31 @@ class ensemble_predict_interval:
             self.block_size: int = block_size
             self.n_block: int = n_block
 
+        # time series data
         self.ts: TimeSeriesData = ts[-self.block_size * (self.n_block + 1) :]
 
         # infer freqency, data granularity
         self.freq: str = str(int(self.ts.infer_freq_robust().total_seconds())) + "s"
 
+        # check ensemble size
         if ensemble_size < 4:
             raise ValueError(
                 f"The given ensemble_size is {ensemble_size}. Please provide a larger n_block."
             )
         self.ensemble_size: int = ensemble_size
 
+        # initial error matrix
         self.error_matrix: np.ndarray = np.empty([self.n_block, self.block_size])
         self.error_matrix_flag: bool = False
 
+        # initial fcst results
         self.ensemble_fcst: np.ndarray = np.empty([1, 1])
         self.projection_flag: bool = False
 
     def _get_error_matrix(self) -> None:
+        """
+        Get an error vector for each block and combine them as a matrix
+        """
         if self.error_matrix_flag:
             return
 
@@ -186,7 +198,9 @@ class ensemble_predict_interval:
         self.error_matrix_flag = True
 
     def _projection(self, step: int = 30, rolling_based: bool = False) -> None:
-
+        """
+        Get forecasting for future steps.
+        """
         if not self.error_matrix_flag:
             self._get_error_matrix()
 
@@ -252,6 +266,9 @@ class ensemble_predict_interval:
         rolling_based: bool = False,
         confidence_level: float = 0.8,
     ) -> pd.DataFrame:
+        """
+        Get forecasting for future steps.
+        """
         self._projection(step=step, rolling_based=rolling_based)
         mi, low, up = np.zeros(step), np.zeros(step), np.zeros(step)
 
@@ -265,6 +282,30 @@ class ensemble_predict_interval:
         )
 
         self.projection_flag = True
+        return res
+
+    def get_fcst_band_with_level(
+        self,
+        confidence_level: float,
+    ) -> pd.DataFrame:
+        """
+        Get forecasting band for future steps with other confidence level.
+        """
+        if not self.projection_flag:
+            raise ValueError("Please run get_projection() first.")
+
+        step = self.ensemble_fcst.shape[1]
+        mi, low, up = np.zeros(step), np.zeros(step), np.zeros(step)
+
+        for i in range(step):
+            mi[i], low[i], up[i] = mean_confidence_interval(
+                self.ensemble_fcst[:, i], confidence_level
+            )
+
+        res = pd.DataFrame(
+            {"fcst": list(mi), "fcst_lower": list(low), "fcst_upper": list(up)}
+        )
+
         return res
 
     def pi_comparison_plot(
@@ -311,7 +352,7 @@ class ensemble_predict_interval:
             up,
             color="g",
             alpha=0.4,
-            label="Predict interval band from EPI",
+            label="Prediction interval band from EPI",
         )
 
         if hist_data_len > 0:

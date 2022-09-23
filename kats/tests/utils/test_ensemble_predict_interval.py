@@ -17,6 +17,8 @@ from kats.utils.ensemble_predict_interval import ensemble_predict_interval
 
 class testEnsemblePredictInterval(TestCase):
     def setUp(self) -> None:
+        # create time series data
+        np.random.seed(0)
         val = (
             np.arange(180) / 6
             + np.sin(np.pi * np.arange(180) / 6) * 20
@@ -30,7 +32,7 @@ class testEnsemblePredictInterval(TestCase):
         self.hist_ts = ts[:120]
 
     def test_EPI_Prophet(self) -> None:
-        # test Prophet model
+        # test EPI on Prophet model
         epi = ensemble_predict_interval(
             # pyre-fixme[6]: Incompatible parameter type
             model=ProphetModel,
@@ -49,10 +51,13 @@ class testEnsemblePredictInterval(TestCase):
         self.assertEqual(epi.error_matrix_flag, True)
         self.assertEqual(epi.projection_flag, True)
 
+        res_other_conf_level = epi.get_fcst_band_with_level(confidence_level=0.5)
+        self.assertEqual(res_other_conf_level.shape, (10, 3))
+
         epi.pi_comparison_plot(self.test_ts)
 
     def test_EPI_Sarima(self) -> None:
-        # test SARIMA model
+        # test EPI on SARIMA model
         params = SARIMAParams(p=2, d=1, q=1, trend="ct", seasonal_order=(1, 0, 1, 12))
         epi = ensemble_predict_interval(
             # pyre-fixme[6]: Incompatible parameter type
@@ -67,7 +72,7 @@ class testEnsemblePredictInterval(TestCase):
         epi.pi_comparison_plot(self.test_ts)
 
     def test_EPI_HW(self) -> None:
-        # test Holt-Winters model
+        # test EPI on Holt-Winters model
         epi = ensemble_predict_interval(
             # pyre-fixme[6]: Incompatible parameter type
             model=HoltWintersModel,
@@ -78,8 +83,12 @@ class testEnsemblePredictInterval(TestCase):
         )
         res = epi.get_projection(step=40, rolling_based=True)
         self.assertEqual(res.shape, (40, 3))
+
+        res_other_conf_level = epi.get_fcst_band_with_level(confidence_level=0.5)
+        self.assertEqual(res_other_conf_level.shape, (40, 3))
+
         epi.pi_comparison_plot(self.test_ts)
-        # no test_ts
+        # test if there is no test_ts provided
         epi.pi_comparison_plot()
 
         # fcst step is greater than test set length
@@ -93,6 +102,10 @@ class testEnsemblePredictInterval(TestCase):
         )
         res2 = epi2.get_projection(step=80)
         self.assertEqual(res2.shape, (80, 3))
+
+        res_other_conf_level2 = epi2.get_fcst_band_with_level(confidence_level=0.5)
+        self.assertEqual(res_other_conf_level2.shape, (80, 3))
+
         epi2.pi_comparison_plot(self.test_ts)
         epi2.pi_comparison_plot(self.test_ts, test_data_only=True)
 
@@ -161,10 +174,12 @@ class testEnsemblePredictInterval(TestCase):
             n_block=5,
         )
         with self.assertRaises(ValueError):
+            # havn't been trained
             epi.pi_comparison_plot(self.test_ts)
 
         _ = epi.get_projection(step=20)
         with self.assertRaises(ValueError):
+            # not test_ts provided
             epi.pi_comparison_plot(test_data_only=True)
 
 
