@@ -53,7 +53,7 @@ class ThetaParams(Params):
 class ThetaModel(Model[ThetaParams]):
     """Model class for Theta
 
-    This class provides fit, predict, and plot methods for STLF model
+    This class provides fit, predict, and plot methods for Theta model
 
     Attributes:
         data: the input time series data as :class:`kats.consts.TimeSeriesData`
