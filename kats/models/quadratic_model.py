@@ -122,8 +122,8 @@ class QuadraticModel(Model[QuadraticModelParams]):
             "Call predict() with parameters. "
             "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
         )
-
-        self.freq = kwargs.get("freq", "D")
+        # pyre-fixme[16]: `Optional` has no attribute `time`.
+        self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
         self.include_history = include_history
 
         if include_history:
@@ -143,7 +143,6 @@ class QuadraticModel(Model[QuadraticModelParams]):
         self.y_fcst_upper = pd.Series(y_fcst_upper, copy=False)
 
         # create future dates
-        # pyre-fixme[16]: `Optional` has no attribute `time`.
         last_date = self.data.time.max()
         dates = pd.date_range(start=last_date, periods=steps + 1, freq=self.freq)
         self.dates = dates[dates != last_date]
