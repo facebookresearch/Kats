@@ -44,6 +44,12 @@ from kats.utils.decomposition import TimeSeriesDecomposition
 NORMAL_TOLERENCE = 1  # number of window
 CHANGEPOINT_RETENTION: int = 7 * 24 * 60 * 60  # in seconds
 MAX_CHANGEPOINT = 10
+SEASON_PERIOD_FREQ_MAP: Dict[str, int] = {
+    "daily": 1,
+    "weekly": 7,
+    "monthly": 30,
+    "yearly": 365,
+}
 
 _log: logging.Logger = logging.getLogger("cusum_model")
 
@@ -138,6 +144,7 @@ class CUSUMDetectorModel(DetectorModel):
         magnitude_ratio: See in CUSUMDetector.
         score_func: The score function to calculate the anomaly score.
         remove_seasonality: If apply STL to remove seasonality.
+        season_period_freq: str, "daily"/"weekly"/"monthly"/"yearly"
     """
 
     def __init__(
@@ -155,6 +162,7 @@ class CUSUMDetectorModel(DetectorModel):
         ] = CUSUMDefaultArgs.change_directions,
         score_func: Union[str, CusumScoreFunction] = DEFAULT_SCORE_FUNCTION,
         remove_seasonality: bool = CUSUMDefaultArgs.remove_seasonality,
+        season_period_freq: str = "daily",
     ) -> None:
         if serialized_model:
             previous_model = json.loads(serialized_model)
@@ -184,6 +192,10 @@ class CUSUMDetectorModel(DetectorModel):
             else:
                 self.remove_seasonality: bool = remove_seasonality
 
+            self.season_period_freq: str = previous_model.get(
+                "season_period_freq", "daily"
+            )
+
         elif scan_window is not None and historical_window is not None:
             self.cps = []
             self.alert_fired = False
@@ -206,6 +218,7 @@ class CUSUMDetectorModel(DetectorModel):
                 self.change_directions = change_directions
 
             self.remove_seasonality = remove_seasonality
+            self.season_period_freq = season_period_freq
 
             # We allow score_function to be a str for compatibility with param tuning
             if isinstance(score_func, str):
@@ -491,6 +504,7 @@ class CUSUMDetectorModel(DetectorModel):
         change_directions = self.change_directions
         score_func = self.score_func
         remove_seasonality = self.remove_seasonality
+        season_period_freq = self.season_period_freq
 
         scan_window = pd.Timedelta(scan_window, unit="s")
         historical_window = pd.Timedelta(historical_window, unit="s")
@@ -539,7 +553,13 @@ class CUSUMDetectorModel(DetectorModel):
             )
 
             # fixing the period to 24 hours as indicated in T81530775
-            period = int(24 * 60 * 60 / frequency.total_seconds())
+            season_period_freq_multiplier = SEASON_PERIOD_FREQ_MAP[season_period_freq]
+            period = int(
+                24 * 60 * 60 * season_period_freq_multiplier / frequency.total_seconds()
+            )
+
+            if period < 2:
+                period = 7
 
             decomposer = TimeSeriesDecomposition(
                 decomposer_input,

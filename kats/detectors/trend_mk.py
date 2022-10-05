@@ -32,6 +32,13 @@ detector has any distribution requirement for the data, but there should not be
 any serial correlation.
 """
 
+SEASON_FREQ_MAP: Dict[str, int] = {
+    "daily": 1,
+    "weekly": 7,
+    "monthly": 30,
+    "yearly": 365,
+}
+
 
 class MKChangePoint(TimeSeriesChangePoint):
     """Changepoint for MKDetector
@@ -175,8 +182,7 @@ class MKDetector(Detector):
         if freq is None:
             return ts  # no seasonality
         else:
-            map = {"weekly": 7, "monthly": 30, "yearly": 365}
-            ts = ts.rolling(window=map[freq]).mean()
+            ts = ts.rolling(window=SEASON_FREQ_MAP[freq]).mean()
         return ts
 
     def _smoothing(self, ts: pd.DataFrame) -> pd.DataFrame:
@@ -374,7 +380,7 @@ class MKDetector(Detector):
             direction: string, the direction of the trend to be detected, choose
                 from {"down", "up", "both"}
             freq: str, the type of seasonality shown in the time series,
-                choose from {'weekly','monthly','yearly'}
+                choose from {'daily', 'weekly','monthly','yearly'}
         """
 
         self.window_size = window_size
