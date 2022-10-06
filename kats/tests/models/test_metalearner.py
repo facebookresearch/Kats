@@ -98,7 +98,8 @@ def generate_meta_data(n):
         m: Models.UNIFORM(
             SearchSpace(
                 [InstantiationBase.parameter_from_json(item) for item in spaces[m]]
-            )
+            ),
+            deduplicate=False,
         )
         for m in spaces
     }
@@ -130,7 +131,8 @@ def generate_meta_data_by_model(model, n, d=40):
         model = base_models[model]
     space = model.get_parameter_search_space()
     generator = Models.UNIFORM(
-        SearchSpace([InstantiationBase.parameter_from_json(item) for item in space])
+        SearchSpace([InstantiationBase.parameter_from_json(item) for item in space]),
+        deduplicate=False,
     )
     x = np.random.randn(n * d).reshape(n, -1)
     x = pd.DataFrame(x)
