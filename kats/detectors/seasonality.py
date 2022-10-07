@@ -211,7 +211,10 @@ class FFTDetector(Detector):
                 is.
 
         Returns:
-            FFT Plot with peaks, selected peaks, and outlier boundary line.
+             A dict contains
+                - seasonality_presence: bool, if seasonality detected
+                - seasonalities: List[int], potential seasonlities cycle length(s) 
+                yes？？？？？
         """
 
         fft = self.get_fft(sample_spacing)
