@@ -3,110 +3,186 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import random
-from typing import Dict
+from typing import Dict, List
 from unittest import TestCase
-from unittest.mock import Mock
+
+import numpy as np
 
 import pandas as pd
-from kats.detectors.meta_learning.exceptions import (
-    KatsDetectorHPTIllegalHyperParameter,
-    KatsDetectorHPTModelUsedBeforeTraining,
-    KatsDetectorHPTTrainError,
-    KatsDetectorsUnimplemented,
-    KatsDetectorUnsupportedAlgoName,
+from kats.detectors.cusum_model import CUSUMDetectorModel
+from kats.detectors.meta_learning.hpt_tuning import (
+    metadata_detect_reader,
+    MetaDetectHptSelect,
 )
-from kats.detectors.meta_learning.hpt_tuning import MetaDetectHptSelect
-from kats.detectors.meta_learning.synth_metadata_reader import SynthMetadataReader
-from parameterized.parameterized import parameterized
+from kats.detectors.threshold_detector import StaticThresholdModel
+
+BASE_MODELS = ["cusum", "static"]
+MODELS_PARAMS: Dict[str, List[str]] = {
+    "cusum": [
+        "scan_window",
+        "historical_window",
+        "threshold_low",
+        "threshold_high",
+    ],
+    "static": (
+        [
+            "threshold_low",
+            "threshold_high",
+        ]
+    ),
+}
+
+
+def gen_synthmetadata(n: int) -> pd.DataFrame:
+    data = []
+    features = np.random.randn(n * 40).reshape(n, -1)
+    for i in range(n):
+        hpt_res = {}
+        for key in BASE_MODELS:
+            if key == "cusum":
+                params = {}
+                params["scan_window"] = np.random.rand()  # num
+                params["historical_window"] = 10  # constant example
+                params["threshold_low"] = np.random.choice([1, 2, 3])  # cat
+                params["threshold_high"] = np.random.choice([4, 5, 6])  # cat
+            else:
+                params = {}
+                params["threshold_low"] = np.random.rand()  # num
+                params["threshold_high"] = np.random.choice([4, 5, 6])  # cat
+
+            hpt_res[key] = (params, np.random.rand())
+
+        feature_dict = {str(k): features[i, k] for k in range(features.shape[1])}
+        best_model = BASE_MODELS[np.random.randint(0, len(BASE_MODELS))]
+        data.append([hpt_res, feature_dict, best_model])
+    return pd.DataFrame(data, columns=["hpt_res", "features", "best_model"])
 
 
 class TestMetaDetectHptSelect(TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls._synth_data_read = SynthMetadataReader()
+    def setUp(self) -> None:
+        self.synth_meatdata = gen_synthmetadata(500)
+        self.meta_data_cusum = metadata_detect_reader(
+            rawdata=self.synth_meatdata,
+            algorithm_name="cusum",
+            params_to_scale_down=set(),
+        )
+        self.meta_data_static = metadata_detect_reader(
+            rawdata=self.synth_meatdata,
+            algorithm_name="static",
+            params_to_scale_down=set(),
+        )
 
-    @staticmethod
-    def _get_valid_alg_name() -> str:
-        supported_algos = list(MetaDetectHptSelect.DETECTION_ALGO.keys())
-        return supported_algos[random.randint(0, len(supported_algos) - 1)]
+    def test_metalearn_flow_cusum(self) -> None:
+        datax = self.meta_data_cusum["data_x"]
+        datay = self.meta_data_cusum["data_y"]
 
-    @classmethod
-    def _get_valid_metadata(cls, algorithm_name: str) -> Dict[str, pd.DataFrame]:
-        return cls._synth_data_read.get_metadata(algorithm_name)
+        mdhs = MetaDetectHptSelect(
+            data_x=datax, data_y=datay, detector_model=CUSUMDetectorModel
+        )
 
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
-    @parameterized.expand(MetaDetectHptSelect.DETECTION_ALGO.keys())
-    def test_legal_run(self, algorithm_name: str) -> None:
-        MetaDetectHptSelect(
-            **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
-        ).train()
+        const_params_dict = mdhs.const_params_dict
+        self.assertEqual(len(const_params_dict), 1)
+        self.assertEqual(list(const_params_dict.keys())[0], "historical_window")
+        self.assertEqual(list(const_params_dict.values())[0], 10)
 
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
-    #  `parameterized.parameterized.parameterized.expand(["blabla", "mumu"])`.
-    @parameterized.expand(["blabla", "mumu"])
-    def test_not_supportted_algo(self, algorithm_name: str) -> None:
-        with self.assertRaises(KatsDetectorUnsupportedAlgoName):
-            MetaDetectHptSelect(
-                **self._get_valid_metadata(self._get_valid_alg_name()),
-                algorithm_name=algorithm_name,
+        self.assertEqual(mdhs._data_y.shape, (500, 3))
+
+        mdhs.train(
+            num_idx=["scan_window"],
+            cat_idx=["threshold_low", "threshold_high"],
+            n_hidden_shared=[20],
+            n_hidden_cat_combo=[[5], [5]],
+            n_hidden_num=[5],
+            scale=False,
+            loss_scale=1.0,
+            lr=0.001,
+            n_epochs=10,
+            batch_size=100,
+            method="SGD",
+            val_size=0.1,
+            momentum=0.9,
+        )
+
+        mdhs.plot()
+
+        res = mdhs.get_hpt_from_features(np.random.normal(0, 1, [10, 40]))
+        self.assertEqual(res.shape, (10, 4))
+
+    def test_metalearn_flow_static(self) -> None:
+        datax = self.meta_data_static["data_x"]
+        datay = self.meta_data_static["data_y"]
+
+        mdhs = MetaDetectHptSelect(
+            data_x=datax, data_y=datay, detector_model=StaticThresholdModel
+        )
+        const_params_dict = mdhs.const_params_dict
+        self.assertEqual(len(const_params_dict), 0)
+
+        self.assertEqual(mdhs._data_y.shape, (500, 2))
+
+        mdhs.train(
+            num_idx=["threshold_low"],
+            cat_idx=["threshold_high"],
+            n_hidden_shared=[20],
+            n_hidden_cat_combo=[[5]],
+            n_hidden_num=[5],
+            scale=False,
+            loss_scale=1.0,
+            lr=0.001,
+            n_epochs=10,
+            batch_size=100,
+            method="SGD",
+            val_size=0.1,
+            momentum=0.9,
+        )
+
+        mdhs.plot()
+
+        res = mdhs.get_hpt_from_features(np.random.normal(0, 1, [10, 40]))
+        self.assertEqual(res.shape, (10, 2))
+
+    def test_module_errors(self) -> None:
+        datax = self.meta_data_cusum["data_x"]
+        datay = self.meta_data_cusum["data_y"]
+
+        mdhs = MetaDetectHptSelect(
+            data_x=datax, data_y=datay, detector_model=CUSUMDetectorModel
+        )
+
+        # provide constant params "historical_window"
+        with self.assertRaises(ValueError):
+            mdhs.train(
+                num_idx=["scan_window", "historical_window"],
+                cat_idx=["threshold_low", "threshold_high"],
+                n_hidden_shared=[20],
+                n_hidden_cat_combo=[[5], [5]],
+                n_hidden_num=[5],
+                scale=False,
+                loss_scale=1.0,
+                lr=0.001,
+                n_epochs=10,
+                batch_size=100,
+                method="SGD",
+                val_size=0.1,
+                momentum=0.9,
             )
 
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
-    @parameterized.expand(MetaDetectHptSelect.DETECTION_ALGO.keys())
-    def test_illegal_hyper_parameter(self, algo_name: str) -> None:
-        metadata = self._get_valid_metadata(algo_name)
-        data_y = metadata["data_y"]
-        corrupted_col = data_y.columns[random.randint(0, len(data_y.columns) - 1)]
-        corrupted_data_y = data_y.rename(columns={corrupted_col: "blabla"})
+        # haven't been trained
+        with self.assertRaises(AssertionError):
+            _ = mdhs.get_hpt_from_features(np.random.normal(0, 1, [10, 40]))
 
-        with self.assertRaises(KatsDetectorHPTIllegalHyperParameter):
-            MetaDetectHptSelect(metadata["data_x"], corrupted_data_y, algo_name)
-
-    def test_training_error(self) -> None:
-        algorithm_name = self._get_valid_alg_name()
-        model = MetaDetectHptSelect(
-            **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
+        mdhs.train(
+            num_idx=["scan_window"],
+            cat_idx=["threshold_low", "threshold_high"],
+            n_hidden_shared=[20],
+            n_hidden_cat_combo=[[5], [5]],
+            n_hidden_num=[5],
         )
-        model._train_model = Mock(side_effect=Exception("unknown sub exception..."))
-        with self.assertRaises(KatsDetectorHPTTrainError):
-            model.train()
 
-    def test_legal_plot(self) -> None:
-        algorithm_name = self._get_valid_alg_name()
-        model = MetaDetectHptSelect(
-            **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
-        ).train()
-        model.plot()
+        # unmatched dimension
+        with self.assertRaises(RuntimeError):
+            _ = mdhs.get_hpt_from_features(np.random.normal(0, 1, [10, 30]))
 
-    def test_plot_before_train(self) -> None:
-        algorithm_name = self._get_valid_alg_name()
-        model = MetaDetectHptSelect(
-            **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
-        )
-        with self.assertRaises(KatsDetectorHPTModelUsedBeforeTraining):
-            model.plot()
-
-    def test_get_hpt(self) -> None:
-        algorithm_name = self._get_valid_alg_name()
-        model = MetaDetectHptSelect(
-            **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
-        ).train()
-        with self.assertRaises(KatsDetectorsUnimplemented):
-            model.get_hpt(pd.DataFrame())
-
-    def test_save_model(self) -> None:
-        algorithm_name = self._get_valid_alg_name()
-        model = MetaDetectHptSelect(
-            **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
-        ).train()
-        with self.assertRaises(KatsDetectorsUnimplemented):
-            model.save_model()
-
-    def test_load_model(self) -> None:
-        algorithm_name = self._get_valid_alg_name()
-        model = MetaDetectHptSelect(
-            **self._get_valid_metadata(algorithm_name), algorithm_name=algorithm_name
-        ).train()
-        with self.assertRaises(KatsDetectorsUnimplemented):
-            model.load_model()
+        # unmatched format
+        with self.assertRaises(IndexError):
+            _ = mdhs.get_hpt_from_features(np.random.normal(0, 1, 40))
