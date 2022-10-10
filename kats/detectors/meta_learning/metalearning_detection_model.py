@@ -6,7 +6,7 @@
 import ast
 import logging
 import math
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 import pandas as pd
 
@@ -58,6 +58,34 @@ def change_str_to_dict(x: Union[str, Dict[str, Any]]) -> Optional[Dict[str, Any]
         raise ValueError(f"type is {type(x)}")
 
 
+def metadata_detect_preprocessor(
+    rawdata: pd.DataFrame,
+    params_to_scale_down: Set[str] = PARAMS_TO_SCALE_DOWN,
+) -> List[Dict[str, Any]]:
+
+    rawdata["features"] = rawdata["features"].map(change_str_to_dict)
+    rawdata["features"] = rawdata["features"].map(change_dtype)
+    rawdata["hpt_res"] = rawdata["hpt_res"].map(change_str_to_dict)
+
+    table = [
+        {
+            "hpt_res": rawdata["hpt_res"].iloc[i],
+            "features": rawdata["features"].iloc[i],
+            "best_model": rawdata["best_model"].iloc[i],
+        }
+        for i in range(len(rawdata))
+    ]
+
+    for ts_data in table:
+        for hpt_vals in ts_data["hpt_res"].values():
+            params = hpt_vals[0]
+            for param in params.keys():
+                if param in params_to_scale_down:
+                    params[param] = params[param] / NUM_SECS_IN_DAY
+
+    return table
+
+
 class MetaDetectModelSelect(object):
     """
     Meta-learner framework on detection model selection.
@@ -83,60 +111,37 @@ class MetaDetectModelSelect(object):
         >>> mdms.pred_by_feature(eval_df) # Predict the most suitable detection model by features.
     """
 
-    def __init__(self, metdadata_df: pd.DataFrame) -> None:
-        if not isinstance(metdadata_df, pd.DataFrame):
+    def __init__(
+        self,
+        metadata_df: pd.DataFrame,
+        params_to_scale_down: Set[str] = PARAMS_TO_SCALE_DOWN,
+    ) -> None:
+        if not isinstance(metadata_df, pd.DataFrame):
             msg = "Dataset is not in form of a dataframe!"
             logging.error(msg)
             raise ValueError(msg)
 
-        if len(metdadata_df) <= MIN_EXAMPLES:
+        if len(metadata_df) <= MIN_EXAMPLES:
             msg = "Dataset is too small to train a meta learner!"
             logging.error(msg)
             raise ValueError(msg)
 
-        if "hpt_res" not in metdadata_df:
-            msg = "Missing best hyper-params, not able to train a meta learner!"
-            logging.error(msg)
-            raise ValueError(msg)
+        expected_cols = ["hpt_res", "features", "best_model"]
+        for col in expected_cols:
+            if col not in metadata_df:
+                msg = f"Missing column {col}, not able to train a meta learner!"
+                logging.error(msg)
+                raise ValueError(msg)
 
-        if "features" not in metdadata_df:
-            msg = "Missing features, not able to train a meta learner!"
-            logging.error(msg)
-            raise ValueError(msg)
-
-        if "best_model" not in metdadata_df:
-            msg = "Missing best models, not able to train a meta learner!"
-            logging.error(msg)
-            raise ValueError(msg)
-
-        self.metdadata_df: pd.DataFrame = metdadata_df
+        self.metadata_df: pd.DataFrame = metadata_df
         self.results: Dict[str, Any] = {}
         self.mlms: Optional[MetaLearnModelSelect] = None
+        self.params_to_scale_down: Set[str] = params_to_scale_down
 
     def _preprocess(self) -> List[Dict[str, Any]]:
         # prepare the training data
         # Create training data table
-        table = [
-            {
-                "hpt_res": change_str_to_dict(self.metdadata_df["hpt_res"].iloc[i]),
-                "features": change_str_to_dict(self.metdadata_df["features"].iloc[i]),
-                "best_model": self.metdadata_df["best_model"].iloc[i],
-            }
-            for i in range(len(self.metdadata_df))
-        ]
-
-        # Change dtype of TSFeatures for compatibility
-        for t in table:
-            t["features"] = change_dtype(t["features"])
-
-        # Scaling down certain params by num_secs_in_day to make models easier to converge
-        for ts_data in table:
-            for hpt_vals in ts_data["hpt_res"].values():
-                params = hpt_vals[0]
-                for param in params.keys():
-                    if param in PARAMS_TO_SCALE_DOWN:
-                        params[param] = params[param] / NUM_SECS_IN_DAY
-        return table
+        return metadata_detect_preprocessor(self.metadata_df, self.params_to_scale_down)
 
     def train(
         self,
@@ -182,7 +187,10 @@ class MetaDetectModelSelect(object):
         feature_list = [change_dtype(x) for x in feature_list]
         feature_df = pd.DataFrame(feature_list)
 
-        assert self.mlms is not None
+        if self.mlms is None:
+            msg = "Please train a classifier first."
+            logging.error(msg)
+            raise ValueError(msg)
         algo_list = self.mlms.pred_by_feature(feature_df.values)
         return algo_list[0]
 
@@ -192,15 +200,18 @@ class MetaDetectModelSelect(object):
         """
         # extract features from the dataframe
         feature_list = [
-            change_str_to_dict(self.metdadata_df["features"].iloc[i])
-            for i in range(len(self.metdadata_df.features))
+            change_str_to_dict(self.metadata_df["features"].iloc[i])
+            for i in range(len(self.metadata_df.features))
         ]
 
         # pyre-fixme[6]
         feature_list = [change_dtype(x) for x in feature_list]
         feature_df = pd.DataFrame(feature_list)
 
-        assert self.mlms is not None
+        if self.mlms is None:
+            msg = "Please train a classifier first."
+            logging.error(msg)
+            raise ValueError(msg)
         algo_list = self.mlms.pred_by_feature(feature_df.values)
 
         label_df = pd.DataFrame({"best_model": algo_list})

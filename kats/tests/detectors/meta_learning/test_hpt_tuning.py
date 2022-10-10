@@ -13,6 +13,7 @@ from kats.detectors.cusum_model import CUSUMDetectorModel
 from kats.detectors.meta_learning.hpt_tuning import (
     metadata_detect_reader,
     MetaDetectHptSelect,
+    NNParams,
 )
 from kats.detectors.threshold_detector import StaticThresholdModel
 
@@ -71,6 +72,16 @@ class TestMetaDetectHptSelect(TestCase):
             algorithm_name="static",
             params_to_scale_down=set(),
         )
+        self.nnparams = NNParams(
+            scale=False,
+            loss_scale=1.0,
+            lr=0.001,
+            n_epochs=10,
+            batch_size=100,
+            method="SGD",
+            val_size=0.1,
+            momentum=0.9,
+        )
 
     def test_metalearn_flow_cusum(self) -> None:
         datax = self.meta_data_cusum["data_x"]
@@ -93,14 +104,7 @@ class TestMetaDetectHptSelect(TestCase):
             n_hidden_shared=[20],
             n_hidden_cat_combo=[[5], [5]],
             n_hidden_num=[5],
-            scale=False,
-            loss_scale=1.0,
-            lr=0.001,
-            n_epochs=10,
-            batch_size=100,
-            method="SGD",
-            val_size=0.1,
-            momentum=0.9,
+            nnparams=self.nnparams,
         )
 
         mdhs.plot()
@@ -126,14 +130,7 @@ class TestMetaDetectHptSelect(TestCase):
             n_hidden_shared=[20],
             n_hidden_cat_combo=[[5]],
             n_hidden_num=[5],
-            scale=False,
-            loss_scale=1.0,
-            lr=0.001,
-            n_epochs=10,
-            batch_size=100,
-            method="SGD",
-            val_size=0.1,
-            momentum=0.9,
+            nnparams=self.nnparams,
         )
 
         mdhs.plot()
@@ -157,14 +154,7 @@ class TestMetaDetectHptSelect(TestCase):
                 n_hidden_shared=[20],
                 n_hidden_cat_combo=[[5], [5]],
                 n_hidden_num=[5],
-                scale=False,
-                loss_scale=1.0,
-                lr=0.001,
-                n_epochs=10,
-                batch_size=100,
-                method="SGD",
-                val_size=0.1,
-                momentum=0.9,
+                nnparams=self.nnparams,
             )
 
         # haven't been trained
@@ -177,6 +167,7 @@ class TestMetaDetectHptSelect(TestCase):
             n_hidden_shared=[20],
             n_hidden_cat_combo=[[5], [5]],
             n_hidden_num=[5],
+            nnparams=self.nnparams,
         )
 
         # unmatched dimension

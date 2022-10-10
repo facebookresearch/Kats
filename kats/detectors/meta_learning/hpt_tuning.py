@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import math
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Set, Type, Union
 
 import matplotlib.pyplot as plt
@@ -28,9 +29,7 @@ from kats.detectors.meta_learning.exceptions import (
     KatsDetectorsUnimplemented,
 )
 from kats.detectors.meta_learning.metalearning_detection_model import (
-    change_dtype,
-    change_str_to_dict,
-    NUM_SECS_IN_DAY,
+    metadata_detect_preprocessor,
     PARAMS_TO_SCALE_DOWN,
 )
 from kats.models.metalearner.metalearner_hpt import MetaLearnHPT
@@ -64,40 +63,80 @@ def metadata_detect_reader(
     algorithm_name: str,
     params_to_scale_down: Set[str] = PARAMS_TO_SCALE_DOWN,
 ) -> Dict[str, pd.DataFrame]:
-
-    rawdata_features = rawdata["features"].map(change_str_to_dict)
-    rawdata_features = rawdata_features.map(change_dtype)
-    rawdata_hpt_res = rawdata["hpt_res"].map(change_str_to_dict)
-
-    metadata = {}
-    metadata["data_x"] = pd.DataFrame(rawdata_features.tolist())
-
-    algorithm_names = (
-        rawdata_hpt_res.map(lambda kv: list(kv.keys())).explode().unique().tolist()
+    """
+    A helper function:
+    preprocess meta data table to get the input for class MetaDetectHptSelect
+    """
+    # table's format: [{"hpt_res":..., "features":..., "best_model":...}, ...]
+    table = metadata_detect_preprocessor(
+        rawdata=rawdata, params_to_scale_down=params_to_scale_down
     )
 
-    metadata["data_y_dict"] = {}
-    for a in algorithm_names:
-        metadata["data_y_dict"][a] = (
-            rawdata_hpt_res.map(lambda kv: kv[a][0])
-            .map(
-                lambda kv: {
-                    k: v if k not in params_to_scale_down else v / NUM_SECS_IN_DAY
-                    for k, v in kv.items()
-                }
-            )
-            .apply(pd.Series)  # expend dict to columns
-            .convert_dtypes(convert_integer=False)
-            .reset_index(drop=True)
-        )
+    metadata = {}
+    metadata["data_x"] = pd.DataFrame([item["features"] for item in table])
+    metadata["data_y"] = pd.DataFrame(
+        [pd.Series(item["hpt_res"][algorithm_name][0]) for item in table]
+    )
 
-    return {
-        "data_x": metadata["data_x"].copy(),
-        "data_y": metadata["data_y_dict"][algorithm_name].copy(),
-    }
+    return metadata
+
+
+@dataclass
+class NNParams:
+    """
+    A dataclass that saves hyper-parameters for training neural networks
+
+    scale: A boolean to specify whether or not to normalize time series features to zero mean and unit variance. Default is False.
+    loss_scale: A float to specify the hyper-parameter to scale regression loss and classification loss,
+        which controls the trade-off between the accuracy of regression task and classification task.
+        A larger loss_scale value gives a more accurate prediction for classification part, and a lower value gives
+        a more accurate prediction for regression part. Default is 1.0.
+    lr: A float for learning rate. Default is 0.001.
+    n_epochs: An integer for the number of epochs. Default is 1000.
+    batch_size: An integer for the batch size. Default is 128.
+    method: A string for the name of optimizer. Can be 'SGD' or 'Adam'. Default is 'SGD'.
+    val_size: A float for the proportion of validation set of. It should be within (0, 1). Default is 0.1.
+    momentum: A fload for the momentum for SGD. Default value is 0.9.
+    n_epochs_stop:An integer or a float for early stopping condition. If the number of epochs is larger than n_epochs_stop
+        and there is no improvement on validation set, we stop training. One can turn off the early stopping feature by
+        setting n_epochs_stop = np.inf. Default is 20.
+
+    """
+
+    scale: bool = False
+    loss_scale: float = 1.0
+    lr: float = 0.001
+    n_epochs: int = 1000
+    batch_size: int = 128
+    method: str = "SGD"
+    val_size: float = 0.1
+    momentum: float = 0.9
+    n_epochs_stop: Union[int, float] = 20
 
 
 class MetaDetectHptSelect:
+    """A class for meta-learning framework on hyper-parameters tuning for detection algorithm.
+
+    Attributes:
+        data_x: A `pandas.DataFrame` object of time series features. data_x should not be None unless load_model is True. Default is None.
+        data_y: A `pandas.DataFrame` object of the corresponding best hyper-parameters. data_y should not be None unless load_model is True. Default is None.
+        detector_model: Type[DetectorModel]. A detector model in Kats.
+
+    Sample Usage:
+        >>> mdhs = MetaDetectHptSelect(data_x=datax, data_y=datay, detector_model=CUSUMDetectorModel)
+        >>> mdhs.train(
+                num_idx=["scan_window"],
+                cat_idx=["threshold_low", "threshold_high"],
+                n_hidden_shared=[20],
+                n_hidden_cat_combo=[[5], [5]],
+                n_hidden_num=[5],
+                nnparams=self.nnparams,
+            )  # train NNs
+        >>> mdhs.plot()  # plot loss path
+        >>> # generate prediction for future TSs
+        >>> res = mdhs.get_hpt_from_features(np.random.normal(0, 1, [10, 40]))
+    """
+
     def __init__(
         self,
         data_x: pd.DataFrame,
@@ -180,16 +219,21 @@ class MetaDetectHptSelect:
         n_hidden_shared: List[int],
         n_hidden_cat_combo: List[List[int]],
         n_hidden_num: List[int],
-        scale: bool = False,
-        loss_scale: float = 1.0,
-        lr: float = 0.001,
-        n_epochs: int = 1000,
-        batch_size: int = 128,
-        method: str = "SGD",
-        val_size: float = 0.1,
-        momentum: float = 0.9,
-        n_epochs_stop: Union[int, float] = 20,
+        nnparams: Optional[NNParams] = None,
     ) -> None:
+        """Build a multi-task neural network and train it.
+
+        This function builds a multi-task neural network according to given neural network structure
+        (i.e., n_hidden_shared, n_hidden_cat_combo, n_hidden_num).
+
+        Args:
+            num_idx: A list of names of numerical parameters in the given data_y.
+            cat_idx: A list of names of categorical parameters in the given data_y.
+            n_hidden_shared: A list of numbers of hidden neurons in each shared hidden layer.
+            n_hidden_cat_combo: A list of lists of task-specific hidden layers' sizes of each categorical response variables.
+            n_hidden_num: A list of task-specific hidden layers' sizes of numerical response variables.
+            nnparams: hyper-parameters used in training neural networks.
+        """
         const_num_provided = set(num_idx) & set(self.const_params_dict.keys())
         const_cat_provided = set(cat_idx) & set(self.const_params_dict.keys())
 
@@ -213,12 +257,15 @@ class MetaDetectHptSelect:
             _log.info("Resetting HPT network to match cat dimensions")
             n_hidden_cat_combo = [[5]] * len(cat_idx)
 
+        if nnparams is None:
+            nnparams = NNParams()
+
         hpt_model = MetaLearnHPT(
             data_x=self._data_x,
             data_y=self._data_y,
             categorical_idx=cat_idx,
             numerical_idx=num_idx,
-            scale=scale,
+            scale=nnparams.scale,
         )
 
         hpt_model.build_network(
@@ -229,14 +276,14 @@ class MetaDetectHptSelect:
 
         try:
             hpt_model.train(
-                loss_scale=loss_scale,
-                lr=lr,
-                n_epochs=n_epochs,
-                batch_size=batch_size,
-                method=method,
-                val_size=val_size,
-                momentum=momentum,
-                n_epochs_stop=n_epochs_stop,
+                loss_scale=nnparams.loss_scale,
+                lr=nnparams.lr,
+                n_epochs=nnparams.n_epochs,
+                batch_size=nnparams.batch_size,
+                method=nnparams.method,
+                val_size=nnparams.val_size,
+                momentum=nnparams.momentum,
+                n_epochs_stop=nnparams.n_epochs_stop,
             )
         except Exception as e:
             raise KatsDetectorHPTTrainError(e)
