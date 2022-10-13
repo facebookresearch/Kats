@@ -5,7 +5,13 @@
 
 try:
     # from . import data_processor  # noqa
-    from . import backtester, ensemble, model, utils  # noqa  # noqa  # noqa  # noqa
+    from . import (  # noqa  # noqa  # noqa  # noqa
+        backtester,
+        ensemble,
+        model,
+        stdmodel,
+        utils,
+    )
 except ImportError:
     import logging
 

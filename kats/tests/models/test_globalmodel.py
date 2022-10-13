@@ -6,6 +6,7 @@
 import logging
 import os
 from functools import partial
+from typing import Dict, List, Union
 from unittest import mock, TestCase
 
 import numpy as np
@@ -20,6 +21,7 @@ from kats.models.globalmodel.serialize import (
     global_model_to_json,
     load_global_model_from_json,
 )
+from kats.models.globalmodel.stdmodel import STDGlobalModel
 from kats.models.globalmodel.utils import (
     AdjustedPinballLoss,
     DilatedRNNStack,
@@ -36,9 +38,10 @@ from kats.models.globalmodel.utils import (
 )
 from parameterized.parameterized import parameterized
 
-# pyre-fixme[3]: Return type must be annotated.
-# pyre-fixme[2]: Parameter must be annotated.
-def get_ts(n, start_time, seed: int = 560, freq: str = "D", has_nans: bool = True):
+
+def get_ts(
+    n: int, start_time: str, seed: int = 560, freq: str = "D", has_nans: bool = True
+) -> TimeSeriesData:
     """
     Helper function for generating TimeSeriesData.
     """
@@ -52,7 +55,6 @@ def get_ts(n, start_time, seed: int = 560, freq: str = "D", has_nans: bool = Tru
     return TimeSeriesData(time=t, value=val)
 
 
-# pyre-fixme[3]: Return type must be annotated.
 def _gm_mock_predict_func(
     TSs: TimeSeriesData,
     steps: int,
@@ -60,7 +62,7 @@ def _gm_mock_predict_func(
     len_quantile: int,
     raw: bool = True,
     test_batch_size: int = 500,
-):
+) -> Dict[int, List[np.ndarray]]:
     """
     Helper function for building predict method for mock GMModel.
     """
@@ -69,9 +71,19 @@ def _gm_mock_predict_func(
     return {i: [np.random.randn(n)] * m for i in range(len(TSs))}
 
 
-# pyre-fixme[3]: Return type must be annotated.
-# pyre-fixme[2]: Parameter must be annotated.
-def get_gmmodel_mock(gmparam):
+def _gm_mock_predict_func_2(
+    TSs: Dict[int, TimeSeriesData], steps: int
+) -> Dict[int, pd.DataFrame]:
+    tpd = pd.DataFrame(
+        {
+            "time": pd.date_range("2021-05-06", periods=steps),
+            "fcst_quantile_0.5": np.arange(steps),
+        }
+    )
+    return {k: tpd for k in TSs}
+
+
+def get_gmmodel_mock(gmparam: GMParam) -> mock.MagicMock:
     """
     Helper function for building mock object for GMModel
     """
@@ -81,6 +93,12 @@ def get_gmmodel_mock(gmparam):
         fcst_window=gmparam.fcst_window,
         len_quantile=len(gmparam.quantile),
     )
+    return gm_mock
+
+
+def get_gmmodel_mock_2(gmparam: GMParam) -> mock.MagicMock:
+    gm_mock = mock.MagicMock()
+    gm_mock.predict.side_effect = _gm_mock_predict_func_2
     return gm_mock
 
 
@@ -1019,6 +1037,39 @@ class GMEnsembleTest(TestCase):
             test_train_TSs=TSs,
             test_valid_TSs=None,
         )
+
+
+class STDGlobalModelTest(TestCase):
+    # pyre-fixme
+    @parameterized.expand(
+        [
+            [{"decomposition_model": "stl"}],
+            [{"decomposition_model": "seasonal_decompose"}],
+            [
+                {
+                    "decomposition_model": "prophet",
+                    "fit_trend": True,
+                    "decomposition": "multiplicative",
+                }
+            ],
+        ]
+    )
+    def test_stdgm(self, stdparams: Dict[str, Union[str, bool]]) -> None:
+        # mock a single global model
+        gmparam = GMParam(
+            freq="d",
+            model_type="s2s",
+            input_window=5,
+            fcst_window=3,
+            seasonality=2,
+            h_size=5,
+            state_size=10,
+        )
+        gm = get_gmmodel_mock_2(gmparam)
+        # pyre-fixme Incompatible parameter type [6]: In call `STDGlobalModel.__init__`, for 1st positional only parameter expected `Optional[GMParam]` but got `Union[bool, str]`.
+        stdgm = STDGlobalModel(**stdparams)
+        stdgm.load_global_model(gm)
+        _ = stdgm.predict(TSs, steps=5)
 
 
 class GMBackTesterExpandingWindowTest(TestCase):
