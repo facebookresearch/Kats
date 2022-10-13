@@ -12,11 +12,12 @@ import numpy as np
 import pandas as pd
 
 from kats.consts import TimeSeriesData
-from kats.detectors.interval_detector import ABDetectorModel, ABInterval, ABIntervalType
+from kats.detectors.interval_detector import ABDetectorModel, TestStatistic
 from parameterized.parameterized import parameterized
+from scipy.stats import norm
 
 
-_SERIALIZED = b'{"alpha": 0.1, "duration": 1, "test_direction": "b_greater", "distribution": "binomial"}'
+_SERIALIZED = b'{"alpha": 0.1, "duration": 1, "test_direction": "b_greater", "distribution": "binomial", "test_statistic": "absolute_difference"}'
 
 _Z_SCORE: float = 1.6448536269514722
 _P_VALUE: float = 0.05
@@ -162,26 +163,10 @@ class TestABDetectorModel(TestCase):
         assert starts.tolist() == expected_starts
         assert ends.tolist() == expected_ends
 
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
-    @parameterized.expand(
-        [
-            [ABIntervalType.FAIL_TO_REJECT, "FailToRejectInterval"],
-            [ABIntervalType.REJECT, "RejectInterval"],
-        ]
-    )
-    def test_ABInterval(self, arg: ABIntervalType, expected: str) -> None:
-        df = self.df.copy()
-        time1 = df.time.iloc[0]
-        time2 = df.time.iloc[-1]
-        interval = ABInterval(interval_type=arg, start=time1, end=time2)
-        assert str(interval) == expected + f"({time1}, {time2})"
-
     def test_get_critical_value_custom_duration(self) -> None:
         assert np.isclose(self.interval_detector._get_critical_value(0, 0.0), _Z_SCORE)
 
-    def test_get_test_statistic(self) -> None:
-        from scipy.stats import norm
-
+    def test_absolute_difference_test_statistic(self) -> None:
         df = self.df.copy()
         self.interval_detector.critical_value = (
             self.interval_detector._get_critical_value(0, 0.0)
@@ -196,6 +181,35 @@ class TestABDetectorModel(TestCase):
         z_score = diff / std_error
         upper = diff + _Z_SCORE * std_error
         lower = diff - _Z_SCORE * std_error
+        assert all(np.isclose(test_statistic.test_statistic.values, z_score))
+        assert all(np.isclose(test_statistic.stat_sig.values, norm.sf(z_score)))
+        assert all(np.isclose(test_statistic.upper, upper))
+        assert all(np.isclose(test_statistic.lower, lower))
+
+    def test_relative_difference_test_statistic(self) -> None:
+        df = self.df.copy()
+        self.interval_detector.critical_value = (
+            self.interval_detector._get_critical_value(0, 0.0)
+        )
+        self.interval_detector.test_statistic = TestStatistic.RELATIVE_DIFFERENCE
+        test_statistic = self.interval_detector.get_test_statistic(df)
+        # "manually" compute z-scores
+        diff = (
+            np.log(self.value_b) - np.log(self.value_a) - np.log(1 + self.effect_size)
+        )
+        std_error = np.sqrt(
+            self.value_a
+            * (1 - self.value_a)
+            / self.sample_count_a
+            / (self.value_a**2)
+            + self.value_b
+            * (1 - self.value_b)
+            / self.sample_count_b
+            / (self.value_b**2)
+        )
+        z_score = diff / std_error
+        upper = np.exp(diff + _Z_SCORE * std_error)
+        lower = np.exp(diff - _Z_SCORE * std_error)
         assert all(np.isclose(test_statistic.test_statistic.values, z_score))
         assert all(np.isclose(test_statistic.stat_sig.values, norm.sf(z_score)))
         assert all(np.isclose(test_statistic.upper, upper))
@@ -231,12 +245,20 @@ class TestABDetectorModel(TestCase):
                 or _predicted_ds.value.iloc[10] < _lower.value.iloc[10]
             )
 
-    def test_blatent_anomalies(self) -> None:
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            [TestStatistic.ABSOLUTE_DIFFERENCE],
+            [TestStatistic.RELATIVE_DIFFERENCE],
+        ]
+    )
+    def test_blatent_anomalies(self, test_statistic: TestStatistic) -> None:
         """E2E test of apparent anomalies."""
         df = self.df.copy()
         df.value_b.iloc[10:15] = 1.0
         df.value_b.iloc[40:45] = 1.0
         detector = ABDetectorModel(serialized_model=_SERIALIZED)
+        detector.test_statistic = test_statistic
         anomaly_response = detector.fit_predict(TimeSeriesData(df))
         assert anomaly_response.predicted_ts is not None
         assert anomaly_response.stat_sig_ts is not None

@@ -8,7 +8,7 @@ ABDetectorModel conducts an AB test across two concurrent time series. This woul
 when an experiment is ran between two versions that are logged over time, and there is an
 interest when one metric is signficantly different from another.
 
-This implementation supports 3 key features:
+This implementation supports the following key features:
 
     1. Rejection Intervals: Sequential rejections are consolidated into contiguous intervals.
 
@@ -17,6 +17,8 @@ This implementation supports 3 key features:
         that only accepts Rejection Intervals of a certain length.
 
     3. Multiple Distributions: Normal and Binomial likelihoods are available.
+
+    4. Tests of absolute differences (b - a) or relative differences (b / a).
 
 Typical usage example:
 
@@ -109,6 +111,12 @@ class ABTestResult:
     lower: pd.Series
 
 
+@unique
+class TestStatistic(Enum):
+    ABSOLUTE_DIFFERENCE = "absolute_difference"
+    RELATIVE_DIFFERENCE = "relative_difference"
+
+
 class ABInterval(IntervalAnomaly):
     """Extension of IntervalAnomaly that stores ABDetectorModel metadata.
 
@@ -156,7 +164,14 @@ class ABInterval(IntervalAnomaly):
         return list(range(self.start_idx, self.end_idx + 1))
 
     def __repr__(self) -> str:
-        return f"{self.interval_type.value + 'Interval'}({self.start}, {self.end})"
+        _indent = "\n   "
+        _repr = f"{self.interval_type.value}Interval("
+        _repr += _indent + f"start={self.start},"
+        _repr += _indent + f"end={self.end},"
+        if self.start_idx is not None and self.end_idx is not None:
+            _repr += _indent + f"length={len(self.indices)},"
+        _repr += "\n)"
+        return _repr
 
 
 class ABDetectorModel(DetectorModel):
@@ -167,10 +182,11 @@ class ABDetectorModel(DetectorModel):
     parameter that consolidates sequential predictions into contiguous intervals.
 
     Notes:
-        If a duration parameter is not specified, it will be calculated from
+        - If a duration parameter is not specified, it will be calculated from
         the length of the time series and the overall requested Type I error (alpha).
-        If a duration parameter is specified, just use the supplied duration and alpha
+        - If a duration parameter is specified, just use the supplied duration and alpha
         that is assigned.
+        - Only one tailed-tests are currently supported.
 
     Properties:
         alpha: Overall Type-I error of statistical test. Between 0 and 1 (inclusive).
@@ -179,9 +195,16 @@ class ABDetectorModel(DetectorModel):
         duration: length of consecutive predictions considered to be significant.
         test_direction: Test of either b_greater (value_b - value_a > effect_sizes) or
             a_greater (value_a - value_b > effect_sizes).
+            Or equivalently, value_b / value_a > (1 + effect_sizes) or
+            value_a / value_b > (1 + effect_sizes).
         distribution: The distribution of the data in columns value_a and value_b.
             - For proportions in [0, 1], use Distribution.BINOMIAL
             - For real-valued, use Distribution.NORMAL
+        test_statistic: The type of test statistic to compute for each time index.
+            - For value_b - value_a, use TestStatistic.ABSOLUTE_DIFFERENCE
+            - For value_b / value_a, use TestStatistic.RELATIVE_DIFFERENCE
+            Internally, TestStatistic.RELATIVE_DIFFERENCE is tested in log-space and the
+            delta method is applied to compute the standard error.
         anomaly_intervals: A list of rejection intervals that meet or exceed the minimal `duration`.
         caution_intervals: Similar to `anomaly_intervals`, but don't meet the minimal `duration`.
 
@@ -198,6 +221,7 @@ class ABDetectorModel(DetectorModel):
     _duration: Optional[int] = None
     _test_direction: Optional[TestDirection] = None
     _distribution: Optional[Distribution] = None
+    _test_statistic: Optional[TestStatistic] = None
     data: Optional[TimeSeriesData] = None
     critical_value: Optional[float] = None
     test_result: Optional[ABTestResult] = None
@@ -211,6 +235,7 @@ class ABDetectorModel(DetectorModel):
         serialized_model: Optional[bytes] = None,
         test_direction: Optional[TestDirection] = TestDirection.B_GREATER,
         distribution: Optional[Distribution] = Distribution.BINOMIAL,
+        test_statistic: Optional[TestStatistic] = TestStatistic.ABSOLUTE_DIFFERENCE,
     ) -> None:
         if serialized_model:
             model_dict = json.loads(serialized_model)
@@ -219,11 +244,13 @@ class ABDetectorModel(DetectorModel):
             # deserialize value
             self.test_direction = TestDirection(model_dict["test_direction"])
             self.distribution = Distribution(model_dict["distribution"])
+            self.test_statistic = TestStatistic(model_dict["test_statistic"])
         else:
             self.alpha = alpha
             self.duration = duration
             self.test_direction = test_direction
             self.distribution = distribution
+            self.test_statistic = test_statistic
 
     def __repr__(self) -> str:
         _indent = "\n   "
@@ -231,7 +258,7 @@ class ABDetectorModel(DetectorModel):
         _repr += _indent + f"alpha={self.alpha},"
         _repr += _indent + f"duration={self.duration},"
         _repr += _indent + f"test_direction={self.test_direction},"
-        _repr += _indent + f"test_direction={self.distribution},"
+        _repr += _indent + f"test_statistic={self.test_statistic},"
         _repr += "\n)"
         return _repr
 
@@ -304,6 +331,24 @@ class ABDetectorModel(DetectorModel):
         self._distribution = distribution
 
     @property
+    def test_statistic(self) -> TestStatistic:
+        if self._test_statistic is None:
+            raise ValueError("test_statistic is not initialized.")
+        return self._test_statistic
+
+    @test_statistic.setter
+    def test_statistic(self, test_statistic: Optional[TestStatistic]) -> None:
+        if test_statistic is None:
+            raise ValueError(
+                f"test_statistic must be specified. Found {test_statistic}."
+            )
+        elif not isinstance(test_statistic, TestStatistic):
+            raise TypeError(
+                f"test_statistic must be of type TestStatistic. Found {type(test_statistic)}."
+            )
+        self._test_statistic = test_statistic
+
+    @property
     def duration(self) -> Optional[int]:
         return self._duration
 
@@ -353,6 +398,7 @@ class ABDetectorModel(DetectorModel):
             # serialize value
             "test_direction": self.test_direction.value,
             "distribution": self.distribution.value,
+            "test_statistic": self.test_statistic.value,
         }
         return json.dumps(model_dict).encode("utf-8")
 
@@ -369,10 +415,12 @@ class ABDetectorModel(DetectorModel):
         """Fit and predict on a Interval based AB test on time series data.
 
         Notes:
-            All entries of data and historical_data must be specified (no na values).
-            All entries of column `effect_size` must be positive (> 0).
-            In the case of Distribution.BINOMIAL, we require that both the
+            - All entries of data and historical_data must be specified (no na values).
+            - All entries of column `effect_size` must be positive (> 0).
+            - In the case of Distribution.BINOMIAL, we require that both the
                 `value_a` and `value_b` columns are proportions (i.e. [0, 1]).
+            - In the case of TestStatistic.RELATIVE_DIFFERENCE, (1 + `effect_size`) will be
+                used as the ratio to test value_b / value_a or value_a / value_b.
 
         Args:
             data: Time series containing columns:
@@ -402,8 +450,10 @@ class ABDetectorModel(DetectorModel):
                 - scores: Raw test statistic.
                 - predicted_ts: Boolean array of predictions that are formed from contiguous intervals.
                 - stat_sig: Statistical significance of `scores`.
-                - upper: Upper limit in the (1 - alpha) confidence interval for the difference.
-                - lower: Lower limit in the (1 - alpha) confidence interval for the difference.
+                - upper: Upper limit in the (1 - alpha) confidence interval.
+                - lower: Lower limit in the (1 - alpha) confidence interval.
+            In the case of TestStatistic.RELATIVE_DIFFERENCE, lower and upper are reported on
+                the relative risk scale (exponentiated from log-space).
         """
         self._validate_columns_name(pd.DataFrame(data.value))
         self._validate_data(pd.DataFrame(data.value))
@@ -686,31 +736,28 @@ class ABDetectorModel(DetectorModel):
                 * (1 - df[ABTestColumnsName.VALUE_B.value])
                 / df[ABTestColumnsName.SAMPLE_COUNT_B.value]
             )
-            # Set these internally computed attributes for plotting.
-            if self.data is not None:
-                self.data.value.variance_a = _variance_a
-                self.data.value.variance_b = _variance_b
-            return self._get_test_statistic(
-                value_a=df[ABTestColumnsName.VALUE_A.value],
-                value_b=df[ABTestColumnsName.VALUE_B.value],
-                effect_size=df[ABTestColumnsName.EFFECT_SIZE.value],
-                variance_a=_variance_a,
-                variance_b=_variance_b,
-                sample_count_a=df[ABTestColumnsName.SAMPLE_COUNT_A.value],
-                sample_count_b=df[ABTestColumnsName.SAMPLE_COUNT_B.value],
-            )
         elif self.distribution == Distribution.NORMAL:
-            return self._get_test_statistic(
-                value_a=df[ABTestColumnsName.VALUE_A.value],
-                value_b=df[ABTestColumnsName.VALUE_B.value],
-                effect_size=df[ABTestColumnsName.EFFECT_SIZE.value],
-                variance_a=df[ABTestColumnsName.VARIANCE_A.value],
-                variance_b=df[ABTestColumnsName.VARIANCE_B.value],
-                sample_count_a=df[ABTestColumnsName.SAMPLE_COUNT_A.value],
-                sample_count_b=df[ABTestColumnsName.SAMPLE_COUNT_B.value],
+            _variance_a = (
+                df[ABTestColumnsName.VARIANCE_A.value]
+                / df[ABTestColumnsName.SAMPLE_COUNT_A.value]
+            )
+            _variance_b = (
+                df[ABTestColumnsName.VARIANCE_B.value]
+                / df[ABTestColumnsName.SAMPLE_COUNT_B.value]
             )
         else:
             raise ValueError("distribution was incorrectly specified.")
+        # Set these internally computed attributes for plotting.
+        if self.data is not None:
+            self.data.value.variance_a = _variance_a
+            self.data.value.variance_b = _variance_b
+        return self._get_test_statistic(
+            value_a=df[ABTestColumnsName.VALUE_A.value],
+            value_b=df[ABTestColumnsName.VALUE_B.value],
+            effect_size=df[ABTestColumnsName.EFFECT_SIZE.value],
+            variance_a=_variance_a,
+            variance_b=_variance_b,
+        )
 
     def _get_test_statistic(
         self,
@@ -719,15 +766,49 @@ class ABDetectorModel(DetectorModel):
         effect_size: pd.Series,
         variance_a: pd.Series,
         variance_b: pd.Series,
-        sample_count_a: pd.Series,
-        sample_count_b: pd.Series,
     ) -> ABTestResult:
         if self.test_direction == TestDirection.B_GREATER:
             _sign: int = 1
         elif self.test_direction == TestDirection.A_GREATER:
             _sign: int = -1
+        else:
+            raise ValueError(
+                f"test_direction was incorrectly specified. Found {self.test_direction}"
+            )
 
-        difference_mean = _sign * (value_b - value_a) - effect_size
+        if self.test_statistic == TestStatistic.ABSOLUTE_DIFFERENCE:
+            return self._absolute_difference_test_statistic(
+                value_a=value_a,
+                value_b=value_b,
+                effect_size=effect_size,
+                variance_a=variance_a,
+                variance_b=variance_b,
+                sign=_sign,
+            )
+        elif self.test_statistic == TestStatistic.RELATIVE_DIFFERENCE:
+            return self._relative_difference_test_statistic(
+                value_a=value_a,
+                value_b=value_b,
+                effect_size=effect_size,
+                variance_a=variance_a,
+                variance_b=variance_b,
+                sign=_sign,
+            )
+        else:
+            raise ValueError(
+                f"test_statistic was incorrectly specified. Found {self.test_statistic}"
+            )
+
+    def _absolute_difference_test_statistic(
+        self,
+        value_a: pd.Series,
+        value_b: pd.Series,
+        effect_size: pd.Series,
+        variance_a: pd.Series,
+        variance_b: pd.Series,
+        sign: int,
+    ) -> ABTestResult:
+        difference_mean = sign * (value_b - value_a) - effect_size
         difference_std_error = np.sqrt(variance_a + variance_b)
         test_statistic = pd.Series(difference_mean / difference_std_error, copy=False)
         stat_sig = pd.Series(norm.sf(test_statistic), copy=False)
@@ -737,6 +818,41 @@ class ABDetectorModel(DetectorModel):
         critical_value: float = self.critical_value
         upper = difference_mean + critical_value * difference_std_error
         lower = difference_mean - critical_value * difference_std_error
+        return ABTestResult(
+            test_statistic=test_statistic, stat_sig=stat_sig, upper=upper, lower=lower
+        )
+
+    def _relative_difference_test_statistic(
+        self,
+        value_a: pd.Series,
+        value_b: pd.Series,
+        effect_size: pd.Series,
+        variance_a: pd.Series,
+        variance_b: pd.Series,
+        sign: int,
+    ) -> ABTestResult:
+        _EPS = 1e-9
+        _EPS_2 = _EPS**2
+        # Convert value_a / value_b, consider difference of logs.
+        difference_mean = np.log(np.maximum(value_b, _EPS))
+        difference_mean -= np.log(np.maximum(value_a, _EPS))
+        difference_mean *= sign
+        difference_mean -= np.log(1 + effect_size)
+        # Apply a delta method for the variance of the log by scaling
+        # by a g'(𝜽) ** 2 term. In the case of g = log, g'(𝜽) = 1 / 𝜽.
+        # See https://www.stata.com/support/faqs/statistics/delta-method/ for more details.
+        difference_std_error = np.sqrt(
+            variance_a / np.maximum(value_a**2, _EPS_2)
+            + variance_b / np.maximum(value_b**2, _EPS_2)
+        )
+        test_statistic = pd.Series(difference_mean / difference_std_error, copy=False)
+        stat_sig = pd.Series(norm.sf(test_statistic), copy=False)
+
+        # TODO: Add a condition for a two tailed test
+        assert self.critical_value is not None
+        critical_value: float = self.critical_value
+        upper = np.exp(difference_mean + critical_value * difference_std_error)
+        lower = np.exp(difference_mean - critical_value * difference_std_error)
         return ABTestResult(
             test_statistic=test_statistic, stat_sig=stat_sig, upper=upper, lower=lower
         )
@@ -894,13 +1010,22 @@ class ABDetectorModel(DetectorModel):
         # Plot the original time series with the respective variance.
         ax1.plot(x_axis, data.value.value_b, label="value_b", ls="-", color="blue")
         ax1.plot(x_axis, data.value.value_a, label="value_a", ls="-", color="teal")
-        ax1.plot(
-            x_axis,
-            data.value.value_a + data.value.effect_size,
-            label="threshold",
-            ls="--",
-            color="red",
-        )
+        if self.test_statistic == TestStatistic.ABSOLUTE_DIFFERENCE:
+            ax1.plot(
+                x_axis,
+                data.value.value_a + data.value.effect_size,
+                label="threshold",
+                ls="--",
+                color="red",
+            )
+        elif self.test_statistic == TestStatistic.RELATIVE_DIFFERENCE:
+            ax1.plot(
+                x_axis,
+                data.value.value_a * (1 + data.value.effect_size),
+                label="threshold",
+                ls="--",
+                color="red",
+            )
         a_se = np.sqrt(data.value.variance_a)
         ax1.fill_between(
             x=x_axis,
