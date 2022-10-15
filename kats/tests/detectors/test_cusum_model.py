@@ -9,7 +9,7 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData
+from kats.consts import IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
 from kats.detectors.cusum_model import CUSUMDetectorModel, CusumScoreFunction
 from parameterized.parameterized import parameterized
 
@@ -575,9 +575,7 @@ class TestRaiseCUSUMDetectorModel(TestCase):
             _ = CUSUMDetectorModel()
 
     def test_raise_time_series_freq(self) -> None:
-        with self.assertRaisesRegex(
-            ValueError, "Not able to infer freqency of the time series"
-        ):
+        with self.assertRaisesRegex(ValueError, IRREGULAR_GRANULARITY_ERROR):
             model = CUSUMDetectorModel(
                 scan_window=self.scan_window, historical_window=self.historical_window
             )
@@ -729,3 +727,33 @@ class TestCUSUMDetectorModelChangeDirection(TestCase):
         self.assertEqual(model.change_directions, ["increase"])
         anom = model.fit_predict(data=self.data_ts)
         self.assertEqual(len(anom.scores), len(self.data_ts))
+
+
+class TestCUSUMDetectorModelIrregularGranularityError(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(100)
+        ts_time = list(
+            pd.date_range(start="2018-01-06 00:00:00", freq="60s", periods=(100))
+        )
+        ts_time = ts_time[:60] + ts_time[61:80] + ts_time[81:]
+        ts_time[82] = pd.to_datetime("2018-01-06 01:24:02")
+        ts_time[85] = pd.to_datetime("2018-01-06 01:27:22")
+        ts_val = np.random.normal(0, 5, 98)
+        self.data_ts = TimeSeriesData(time=pd.Series(ts_time), value=pd.Series(ts_val))
+
+    def test_irregular_granularity_error(self) -> None:
+        model = CUSUMDetectorModel(
+            scan_window=10 * 60,
+            historical_window=10 * 60,
+            threshold=0.01,
+            delta_std_ratio=1.0,
+            serialized_model=None,
+            change_directions=["increase"],
+            remove_seasonality=True,
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            IRREGULAR_GRANULARITY_ERROR,
+        ):
+            _ = model.fit_predict(data=self.data_ts)

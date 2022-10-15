@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from kats.consts import TimeSeriesData
+from kats.consts import IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (
     AnomalyResponse,
@@ -1303,6 +1303,10 @@ class SeasonalityHandler:
             base=resample_base_sec,
         )
 
+        data_time_idx = self.decomposer_input.time.isin(self.data.time)
+        if len(self.decomposer_input.time[data_time_idx]) != len(self.data):
+            raise ValueError(IRREGULAR_GRANULARITY_ERROR)
+
         self.period = int(
             self.seasonal_period * 60 * 60 / self.frequency.total_seconds()
         )
@@ -1373,6 +1377,7 @@ class SeasonalityHandler:
             decomp = self.decomp
             assert decomp is not None
             data_time_idx = decomp["rem"].time.isin(self.data_nonseason.time)
+
             self.data_nonseason.value = pd.Series(
                 decomp["rem"][data_time_idx].value
                 + decomp["trend"][data_time_idx].value,

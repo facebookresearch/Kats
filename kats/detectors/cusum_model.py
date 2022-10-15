@@ -34,7 +34,7 @@ from typing import Any, cast, Dict, List, NamedTuple, Optional, Union
 
 import numpy as np
 import pandas as pd
-from kats.consts import DEFAULT_VALUE_NAME, TimeSeriesData
+from kats.consts import DEFAULT_VALUE_NAME, IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
 from kats.detectors.cusum_detection import CUSUMDefaultArgs, CUSUMDetector
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
@@ -529,7 +529,7 @@ class CUSUMDetectorModel(DetectorModel):
                 frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
-                raise ValueError("Not able to infer freqency of the time series")
+                raise ValueError(IRREGULAR_GRANULARITY_ERROR)
 
         # check if historical_window, scan_window, and step_window are suitable for given TSs
         self._check_window_sizes(frequency.total_seconds())
@@ -551,6 +551,10 @@ class CUSUMDetectorModel(DetectorModel):
                 freq=frequency_sec_str,
                 base=resample_base_sec,
             )
+
+            data_time_idx = decomposer_input.time.isin(historical_data.time)
+            if len(decomposer_input.time[data_time_idx]) != len(historical_data):
+                raise ValueError(IRREGULAR_GRANULARITY_ERROR)
 
             # fixing the period to 24 hours as indicated in T81530775
             season_period_freq_multiplier = SEASON_PERIOD_FREQ_MAP[season_period_freq]
@@ -578,6 +582,7 @@ class CUSUMDetectorModel(DetectorModel):
 
             decomp = decomposer.decomposer()
             historical_data_time_idx = decomp["rem"].time.isin(historical_data.time)
+
             historical_data.value = pd.Series(
                 decomp["rem"][historical_data_time_idx].value
                 + decomp["trend"][historical_data_time_idx].value,

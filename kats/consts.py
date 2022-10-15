@@ -50,6 +50,11 @@ INTERPOLATION_METHODS = {
     "ffill",
 }  # List of possible interpolation methods
 
+IRREGULAR_GRANULARITY_ERROR = (
+    "This algorithm or this parameter setup does not support input data with irregular data granularity. "
+    "Please update your query to ensure that your data have fixed granularity."
+)
+
 
 def _log_error(msg: str) -> ValueError:
     logging.error(msg)

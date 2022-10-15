@@ -11,7 +11,7 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData
+from kats.consts import IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
 from kats.detectors.stat_sig_detector import (
     MultiStatSigDetectorModel,
     SeasonalityHandler,
@@ -1167,3 +1167,29 @@ class TestInterpolateBase(TestCase):
         )
         anom1 = ss_detect1.fit_predict(data=self.tsd1)
         self.assertEqual(len(anom1.scores), len(self.tsd1))
+
+
+class TestStatsigDetectorModelIrregularGranularityError(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(100)
+        ts_time = list(
+            pd.date_range(start="2018-01-06 00:00:00", freq="60s", periods=(100))
+        )
+        ts_time = ts_time[:60] + ts_time[61:80] + ts_time[81:]
+        ts_time[82] = pd.to_datetime("2018-01-06 01:24:02")
+        ts_time[85] = pd.to_datetime("2018-01-06 01:27:22")
+        ts_val = np.random.normal(0, 5, 98)
+        self.data_ts = TimeSeriesData(time=pd.Series(ts_time), value=pd.Series(ts_val))
+
+    def test_irregular_granularity_error(self) -> None:
+        model = StatSigDetectorModel(
+            n_control=20,
+            n_test=20,
+            rem_season=True,
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            IRREGULAR_GRANULARITY_ERROR,
+        ):
+            _ = model.fit_predict(data=self.data_ts)
