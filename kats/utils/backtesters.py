@@ -856,17 +856,17 @@ class BackTesterRollingOrigin(BackTesterParent):
         if start_train_percentage + test_percentage > 100:
             logging.error("Too large combined train and test percentage")
             raise ValueError(  # noqa
-                "Invalid training and testing percentage combination."
+                "Invalid training and testing percentage combination"
             )
         elif start_train_percentage + test_percentage == 100:
             if expanding_steps > 1:
                 logging.error(
                     "Too large combined train and test percentage for "
-                    "%s expanding steps.",
+                    "%s expanding steps",
                     expanding_steps,
                 )
                 raise ValueError(
-                    "Invalid trraining and testing percentage combination "
+                    "Invalid training and testing percentage combination "
                     f"given for {expanding_steps} expanding steps"
                 )
         if expanding_steps < 0:

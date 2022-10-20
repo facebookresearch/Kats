@@ -146,6 +146,48 @@ class SimpleBackTesterTest(unittest.TestCase):
                 round(backtester.errors[error_name], FLOAT_ROUNDING_PARAM),
             )
 
+    def test_forbidden_train_test_splits(self) -> None:
+        """
+        Testing process consists of the following:
+          1. Backtest with mocked model
+          2. Set forbidden train test split values
+          3. Ensure backtester raises an exception
+        """
+
+        # Mock model results
+        model_class = mock.MagicMock()
+        model_class().predict.side_effect = self.prophet_predict_side_effect
+        model_params = mock.MagicMock()
+
+        # Create backtester for this given model class
+        bt = BackTesterSimple(
+            error_methods=ALL_ERRORS,
+            data=self.TSData,
+            params=model_params,
+            train_percentage=PERCENTAGE,
+            test_percentage=(100 - PERCENTAGE),
+            model_class=model_class,
+        )
+
+        # Create forbidden train test split values
+        forbidden_train_test_splits = [
+            (-10, 50, "Incorrect training size"),
+            (50, -10, "Incorrect testing size"),
+            (60, 60, "Incorrect training and testing sizes"),
+        ]
+
+        for train_p, test_p, expected_msg in forbidden_train_test_splits:
+            # Set backtester with forbidden train test split values
+            bt.train_percentage = train_p
+            bt.test_percentage = test_p
+
+            # Ensure backtester will raise an expection
+            with self.assertRaises(ValueError) as e:
+                bt._create_train_test_splits()
+
+            generated_msg = str(e.exception)
+            self.assertEqual(expected_msg, generated_msg)
+
 
 class ExpandingWindowBackTesterTest(unittest.TestCase):
     @classmethod
@@ -295,6 +337,98 @@ class ExpandingWindowBackTesterTest(unittest.TestCase):
 
         # Test that folds are equivalent
         self.assertEqual(one_step_folds_expanding, folds_simple)
+
+    def test_forbidden_initialization_parameters(self) -> None:
+        """
+        Testing process consists of the following:
+          1. Create a Backtest instance with forbidden initial parameters
+          2. Ensure backtester raises an exception
+        """
+
+        forbidden_init_params = [
+            (-10, 50, EXPANDING_WINDOW_STEPS, "Invalid start training percentage"),
+            (110, 50, EXPANDING_WINDOW_STEPS, "Invalid end training percentage"),
+            (50, -10, EXPANDING_WINDOW_STEPS, "Invalid test percentage"),
+            (50, 110, EXPANDING_WINDOW_STEPS, "Invalid test percentage"),
+            (
+                60,
+                60,
+                EXPANDING_WINDOW_STEPS,
+                "Invalid training and testing percentage combination",
+            ),
+            (
+                50,
+                50,
+                EXPANDING_WINDOW_STEPS,
+                "Invalid training and testing percentage combination"
+                f" given for {EXPANDING_WINDOW_STEPS} expanding steps",
+            ),
+            (50, 50, -1, "Invalid expanding steps"),
+        ]
+
+        for (
+            start_train_p,
+            test_p,
+            expanding_steps,
+            expected_msg,
+        ) in forbidden_init_params:
+
+            # Create backtester with forbidden initialization parameters
+            with self.assertRaises(ValueError) as e:
+                BackTesterExpandingWindow(
+                    error_methods=ALL_ERRORS,
+                    data=self.TSData,
+                    params=self.model_params,
+                    start_train_percentage=start_train_p,
+                    end_train_percentage=PERCENTAGE,
+                    test_percentage=test_p,
+                    expanding_steps=expanding_steps,
+                    model_class=self.model_class,
+                    multi=False,
+                )
+
+            generated_msg = str(e.exception)
+            self.assertEqual(expected_msg, generated_msg)
+
+    def test_forbidden_train_test_splits(self) -> None:
+        """
+        Testing process consists of the following:
+          1. Create a Backtest instance with allowed train test split values
+          2. Set forbidden train test split values
+          3. Ensure backtester raises an exception
+        """
+
+        # Create backtester for this given model class
+        bt = BackTesterExpandingWindow(
+            error_methods=ALL_ERRORS,
+            data=self.TSData,
+            params=self.model_params,
+            start_train_percentage=EXPANDING_WINDOW_START,
+            end_train_percentage=PERCENTAGE,
+            test_percentage=(100 - PERCENTAGE),
+            expanding_steps=EXPANDING_WINDOW_STEPS,
+            model_class=self.model_class,
+            multi=False,
+        )
+
+        # Create forbidden train test split values
+        forbidden_train_test_splits = [
+            (-10, 50, "Incorrect starting training size"),
+            (60, 60, "Incorrect training and testing sizes"),
+            (50, 50, "Incorrect training and testing sizes for multiple steps"),
+        ]
+
+        for train_p, test_p, expected_msg in forbidden_train_test_splits:
+            # Set backtester with forbidden train test split values
+            bt.start_train_percentage = train_p
+            bt.test_percentage = test_p
+
+            # Ensure backtester will raise an expection
+            with self.assertRaises(ValueError) as e:
+                bt._create_train_test_splits()
+
+            generated_msg = str(e.exception)
+            self.assertEqual(expected_msg, generated_msg)
 
     @classmethod
     def create_folds(
@@ -573,6 +707,90 @@ class FixedWindowBackTesterTest(unittest.TestCase):
                 round(backtester.errors[error_name], FLOAT_ROUNDING_PARAM),
             )
 
+    def test_forbidden_initialization_parameters(self) -> None:
+        """
+        Testing process consists of the following:
+          1. Create a Backtest instance with forbidden initial parameters
+          2. Ensure backtester raises an exception
+        """
+
+        # Create backtester for this given model class
+        # Mock model results
+        model_class = mock.MagicMock()
+        model_class().predict.side_effect = self.prophet_predict_side_effect
+        model_params = mock.MagicMock()
+
+        forbidden_init_params = [
+            (-10, 50, FIXED_WINDOW_PERCENTAGE, "Invalid training percentage"),
+            (110, 50, FIXED_WINDOW_PERCENTAGE, "Invalid training percentage"),
+            (50, -10, FIXED_WINDOW_PERCENTAGE, "Invalid test percentage"),
+            (50, 110, FIXED_WINDOW_PERCENTAGE, "Invalid test percentage"),
+            (50, 50, -10, "Invalid window percentage"),
+            (50, 50, 110, "Invalid window percentage"),
+        ]
+
+        for (train_p, test_p, window_p, expected_msg) in forbidden_init_params:
+
+            # Create backtester with forbidden initialization parameters
+            with self.assertRaises(ValueError) as e:
+                BackTesterFixedWindow(
+                    error_methods=ALL_ERRORS,
+                    data=self.TSData,
+                    params=model_params,
+                    train_percentage=train_p,
+                    test_percentage=test_p,
+                    window_percentage=window_p,
+                    model_class=model_class,
+                )
+
+            generated_msg = str(e.exception)
+            self.assertEqual(expected_msg, generated_msg)
+
+    def test_forbidden_train_test_splits(self) -> None:
+        """
+        Testing process consists of the following:
+          1. Backtest with mocked model
+          2. Set forbidden train test split values
+          3. Ensure backtester raises an exception
+        """
+
+        # Create backtester for this given model class
+        # Mock model results
+        model_class = mock.MagicMock()
+        model_class().predict.side_effect = self.prophet_predict_side_effect
+        model_params = mock.MagicMock()
+
+        # Creating and running backtester for this given model class
+        bt = BackTesterFixedWindow(
+            error_methods=ALL_ERRORS,
+            data=self.TSData,
+            params=model_params,
+            train_percentage=FIXED_WINDOW_TRAIN_PERCENTAGE,
+            test_percentage=(100 - PERCENTAGE),
+            window_percentage=FIXED_WINDOW_PERCENTAGE,
+            model_class=model_class,
+        )
+
+        # Create forbidden train test split values
+        forbidden_train_test_splits = [
+            (-10, 50, 25, "Incorrect training size"),
+            (50, -10, 25, "Incorrect testing size"),
+            (50, 50, 25, "Incorrect training, testing, & window sizes"),
+        ]
+
+        for train_p, test_p, window_p, expected_msg in forbidden_train_test_splits:
+            # Set backtester with forbidden train test split values
+            bt.train_percentage = train_p
+            bt.test_percentage = test_p
+            bt.window_percentage - window_p
+
+            # Ensure backtester will raise an expection
+            with self.assertRaises(ValueError) as e:
+                bt._create_train_test_splits()
+
+            generated_msg = str(e.exception)
+            self.assertEqual(expected_msg, generated_msg)
+
 
 class CrossValidationTest(unittest.TestCase):
     @classmethod
@@ -816,6 +1034,39 @@ class CrossValidationTest(unittest.TestCase):
                 round(value, FLOAT_ROUNDING_PARAM),
                 round(cv.errors[error_name], FLOAT_ROUNDING_PARAM),
             )
+
+    def test_forbidden_initialization_parameters(self) -> None:
+        """
+        Testing process consists of the following:
+          1. Create a cross validation instance with forbidden initial parameters
+          2. Ensure cross validation raises an exception
+        """
+
+        forbidden_init_params = [
+            (-10, 50, CV_NUM_FOLDS, "Invalid training percentage"),
+            (110, 50, CV_NUM_FOLDS, "Invalid training percentage"),
+            (50, -10, CV_NUM_FOLDS, "Invalid test percentage"),
+            (50, 110, CV_NUM_FOLDS, "Invalid test percentage"),
+            (50, 50, -10, "Invalid number of folds"),
+        ]
+
+        for (train_p, test_p, num_folds, expected_msg) in forbidden_init_params:
+
+            # Create cross validation object with forbidden initialization parameters
+            with self.assertRaises(ValueError) as e:
+                CrossValidation(
+                    error_methods=ALL_ERRORS,
+                    data=self.TSData,
+                    params=self.model_params,
+                    train_percentage=train_p,
+                    test_percentage=test_p,
+                    num_folds=num_folds,
+                    model_class=self.model_class,
+                    multi=False,
+                )
+
+            generated_msg = str(e.exception)
+            self.assertEqual(expected_msg, generated_msg)
 
     def create_folds(
         self,
