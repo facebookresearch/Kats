@@ -66,6 +66,7 @@ class testEnsemblePredictInterval(TestCase):
             ts=self.hist_ts,
             n_block=5,
             ensemble_size=4,
+            multiprocessing=True,
         )
         res = epi.get_projection(step=20)
         self.assertEqual(res.shape, (20, 3))
@@ -80,6 +81,7 @@ class testEnsemblePredictInterval(TestCase):
             ts=self.hist_ts,
             n_block=5,
             ensemble_size=10,
+            multiprocessing=True,
         )
         res = epi.get_projection(step=40, rolling_based=True)
         self.assertEqual(res.shape, (40, 3))

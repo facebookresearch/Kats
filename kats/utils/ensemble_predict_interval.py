@@ -13,6 +13,9 @@ Do this procedure for m times (ensemble), based on which, generate fcst/fcst_upp
 """
 
 import logging
+
+from multiprocessing import cpu_count
+from multiprocessing.pool import Pool
 from typing import Optional, Tuple, Type
 
 import matplotlib.pyplot as plt
@@ -85,6 +88,7 @@ class ensemble_predict_interval:
         block_size: Optional[int] = None,
         n_block: Optional[int] = None,
         ensemble_size: int = 10,
+        multiprocessing: bool = False,
     ) -> None:
         # detection model
         self.model: Type[Model[Params]] = model
@@ -159,6 +163,38 @@ class ensemble_predict_interval:
         self.ensemble_fcst: np.ndarray = np.empty([1, 1])
         self.projection_flag: bool = False
 
+        self.multiprocessing: bool = multiprocessing
+
+    def _get_error_matrix_single(self, idx: int) -> Tuple[int, np.ndarray]:
+        """
+        Calculate error vector for each block
+        """
+        train_ts = TimeSeriesData(
+            pd.DataFrame(
+                {
+                    "time": self.ts[
+                        idx * self.block_size : (idx + 1) * self.block_size
+                    ].time.to_list(),
+                    "value": self.ts[
+                        idx * self.block_size : (idx + 1) * self.block_size
+                    ].value.to_list(),
+                }
+            )
+        )
+        m = self.model(train_ts, self.params)
+        m.fit()
+        pred = m.predict(steps=self.block_size, freq=self.freq)
+        assert pred is not None
+        fcst = pred["fcst"]
+
+        sigma = np.asarray(
+            self.ts[
+                (idx + 1) * self.block_size : (idx + 2) * self.block_size
+            ].value.to_list()
+        ) - np.asarray(fcst)
+
+        return idx, sigma
+
     def _get_error_matrix(self) -> None:
         """
         Get an error vector for each block and combine them as a matrix
@@ -166,36 +202,79 @@ class ensemble_predict_interval:
         if self.error_matrix_flag:
             return
 
-        for i in range(self.n_block):
-            train_ts = TimeSeriesData(
+        if self.multiprocessing:
+            num_process = min(self.n_block, (cpu_count() - 1) // 2)
+            with Pool(processes=num_process) as pool:
+                records = pool.map(
+                    self._get_error_matrix_single, list(range(self.n_block))
+                )
+                pool.close()
+
+            # combine results
+            for idx, single_sigma in records:
+                self.error_matrix[idx, :] = single_sigma
+        else:
+            for i in range(self.n_block):
+                _, single_sigma = self._get_error_matrix_single(i)
+                self.error_matrix[i, :] = single_sigma
+
+        self.error_matrix_flag = True
+
+    def _projection_single(
+        self, idx: int, step: int = 30, rolling_based: bool = False
+    ) -> Tuple[int, np.ndarray]:
+        """
+        Get forecasting for future steps for one chain.
+        """
+        future_block = step // self.block_size + int(step % self.block_size > 0)
+
+        onechain_fcst = np.zeros(future_block * self.block_size)
+        if not rolling_based:
+            training_data = TimeSeriesData(
                 pd.DataFrame(
                     {
-                        "time": self.ts[
-                            i * self.block_size : (i + 1) * self.block_size
-                        ].time.to_list(),
-                        "value": self.ts[
-                            i * self.block_size : (i + 1) * self.block_size
-                        ].value.to_list(),
+                        "time": self.ts[-self.block_size :].time.to_list(),
+                        "value": self.ts[-self.block_size :].value.to_list(),
                     }
                 )
             )
-            m = self.model(train_ts, self.params)
+        else:
+            training_data = TimeSeriesData(
+                pd.DataFrame(
+                    {
+                        "time": self.ts[:].time.to_list(),
+                        "value": self.ts[:].value.to_list(),
+                    }
+                )
+            )
+        for i in range(future_block):
+            m = self.model(training_data, self.params)
             m.fit()
             pred = m.predict(steps=self.block_size, freq=self.freq)
             assert pred is not None
-            fcst = pred["fcst"]
+            fcst = np.asarray(pred["fcst"])
 
-            # calculate error for each block
-            sigma = np.asarray(
-                self.ts[
-                    (i + 1) * self.block_size : (i + 2) * self.block_size
-                ].value.to_list()
-            ) - np.asarray(fcst)
+            fcst[:] += np.random.multivariate_normal(
+                self.error_matrix.mean(0), np.cov(self.error_matrix.T), 1
+            )[0]
 
-            # store error in S
-            self.error_matrix[i, :] = sigma
+            onechain_fcst[i * self.block_size : (i + 1) * self.block_size] = fcst.copy()
 
-        self.error_matrix_flag = True
+            # refresh training_data
+            if not rolling_based:
+                training_data = TimeSeriesData(
+                    pd.DataFrame({"time": pred["time"].tolist(), "value": list(fcst)})
+                )
+            else:
+                training_data.extend(
+                    TimeSeriesData(
+                        pd.DataFrame(
+                            {"time": pred["time"].tolist(), "value": list(fcst)}
+                        )
+                    )
+                )
+
+        return idx, onechain_fcst[:step]
 
     def _projection(self, step: int = 30, rolling_based: bool = False) -> None:
         """
@@ -204,61 +283,23 @@ class ensemble_predict_interval:
         if not self.error_matrix_flag:
             self._get_error_matrix()
 
-        future_block = step // self.block_size + int(step % self.block_size > 0)
+        ensemble_fcst = np.zeros([self.ensemble_size, step])
+        if self.multiprocessing:
+            num_process = min(self.ensemble_size, (cpu_count() - 1) // 2)
+            ipt_list = [[i, step, rolling_based] for i in range(self.ensemble_size)]
+            with Pool(processes=num_process) as pool:
+                records = pool.starmap(self._projection_single, ipt_list)
+                pool.close()
 
-        ensemble_fcst = np.zeros([self.ensemble_size, future_block * self.block_size])
+            # combine results
+            for idx, single_fcst in records:
+                ensemble_fcst[idx, :] = single_fcst
+        else:
+            for i in range(self.ensemble_size):
+                _, fcst = self._projection_single(i, step, rolling_based)
+                ensemble_fcst[i, :] = fcst
 
-        for k in range(self.ensemble_size):
-            if not rolling_based:
-                training_data = TimeSeriesData(
-                    pd.DataFrame(
-                        {
-                            "time": self.ts[-self.block_size :].time.to_list(),
-                            "value": self.ts[-self.block_size :].value.to_list(),
-                        }
-                    )
-                )
-            else:
-                training_data = TimeSeriesData(
-                    pd.DataFrame(
-                        {
-                            "time": self.ts[:].time.to_list(),
-                            "value": self.ts[:].value.to_list(),
-                        }
-                    )
-                )
-            for i in range(future_block):
-                m = self.model(training_data, self.params)
-                m.fit()
-                pred = m.predict(steps=self.block_size, freq=self.freq)
-                assert pred is not None
-                fcst = np.asarray(pred["fcst"])
-
-                fcst[:] += np.random.multivariate_normal(
-                    self.error_matrix.mean(0), np.cov(self.error_matrix.T), 1
-                )[0]
-
-                ensemble_fcst[
-                    k, i * self.block_size : (i + 1) * self.block_size
-                ] = fcst.copy()
-
-                # refresh training_data
-                if not rolling_based:
-                    training_data = TimeSeriesData(
-                        pd.DataFrame(
-                            {"time": pred["time"].tolist(), "value": list(fcst)}
-                        )
-                    )
-                else:
-                    training_data.extend(
-                        TimeSeriesData(
-                            pd.DataFrame(
-                                {"time": pred["time"].tolist(), "value": list(fcst)}
-                            )
-                        )
-                    )
-
-        self.ensemble_fcst = ensemble_fcst[:, :step]
+        self.ensemble_fcst = ensemble_fcst
 
     def get_projection(
         self,
