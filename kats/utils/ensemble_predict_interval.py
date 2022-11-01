@@ -203,7 +203,7 @@ class ensemble_predict_interval:
             return
 
         if self.multiprocessing:
-            num_process = min(self.n_block, (cpu_count() - 1) // 2)
+            num_process = max(min(self.n_block, (cpu_count() - 1) // 2), 1)
             with Pool(processes=num_process) as pool:
                 records = pool.map(
                     self._get_error_matrix_single, list(range(self.n_block))
@@ -285,7 +285,7 @@ class ensemble_predict_interval:
 
         ensemble_fcst = np.zeros([self.ensemble_size, step])
         if self.multiprocessing:
-            num_process = min(self.ensemble_size, (cpu_count() - 1) // 2)
+            num_process = max(min(self.ensemble_size, (cpu_count() - 1) // 2), 1)
             ipt_list = [[i, step, rolling_based] for i in range(self.ensemble_size)]
             with Pool(processes=num_process) as pool:
                 records = pool.starmap(self._projection_single, ipt_list)
