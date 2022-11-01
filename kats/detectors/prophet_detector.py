@@ -19,12 +19,14 @@ from fbprophet.serialize import model_from_json, model_to_json
 from kats.consts import DEFAULT_VALUE_NAME, TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
+from kats.models.prophet import predict
 
 PROPHET_TIME_COLUMN = "ds"
 PROPHET_VALUE_COLUMN = "y"
 PROPHET_YHAT_COLUMN = "yhat"
 PROPHET_YHAT_LOWER_COLUMN = "yhat_lower"
 PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
+
 
 MIN_STDEV = 1e-9
 PREDICTION_UNCERTAINTY_SAMPLES = 50
@@ -147,6 +149,7 @@ class ProphetDetectorModel(DetectorModel):
         remove_outliers: bool = False,
         outlier_threshold: float = 0.99,
         uncertainty_samples: float = PREDICTION_UNCERTAINTY_SAMPLES,
+        vectorize: bool = False,
     ) -> None:
         if serialized_model:
             self.model = model_from_json(serialized_model)
@@ -172,6 +175,7 @@ class ProphetDetectorModel(DetectorModel):
             self.uncertainty_samples: float = uncertainty_samples
         else:
             self.uncertainty_samples: float = 0
+        self.vectorize = vectorize
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -237,7 +241,9 @@ class ProphetDetectorModel(DetectorModel):
         data_df = timeseries_to_prophet_df(total_data)
 
         if self.remove_outliers:
-            data_df = self._remove_outliers(data_df, self.outlier_threshold)
+            data_df = self._remove_outliers(
+                data_df, self.outlier_threshold, vectorize=self.vectorize
+            )
 
         # No incremental training. Create a model and train from scratch
         model = Prophet(
@@ -274,7 +280,7 @@ class ProphetDetectorModel(DetectorModel):
         time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time}, copy=False)
         # TODO(uthakore): Undo hack fix for ongoing production issue
         model.uncertainty_samples = PREDICTION_UNCERTAINTY_SAMPLES
-        predict_df = model.predict(time_df)
+        predict_df = predict(model, time_df, self.vectorize)
         zeros_ts = TimeSeriesData(
             time=data.time, value=pd.Series(np.zeros(len(data)), copy=False)
         )
@@ -320,6 +326,7 @@ class ProphetDetectorModel(DetectorModel):
         ts_df: pd.DataFrame,
         outlier_ci_threshold: float = 0.99,
         uncertainty_samples: float = OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES,
+        vectorize: bool = False,
     ) -> pd.DataFrame:
         """
         Remove outliers from the time series by fitting a Prophet model to the time series
@@ -334,7 +341,7 @@ class ProphetDetectorModel(DetectorModel):
         )
         model_pass1 = model.fit(ts_df)
 
-        forecast = model_pass1.predict(ts_dates_df)
+        forecast = predict(model_pass1, ts_dates_df, vectorize)
 
         is_outlier = (
             ts_df[PROPHET_VALUE_COLUMN] < forecast[PROPHET_YHAT_LOWER_COLUMN]
