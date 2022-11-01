@@ -5,7 +5,7 @@
 
 # This file contains dummy data for the model unit tests
 
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -4971,6 +4971,19 @@ METALEARNING_TEST_MULTI = pd.DataFrame(
         },
     }
 )
+
+METALEARNING_TEST_METADATA_STR: List[Dict[str, str]] = [
+    {
+        "hpt_res": "{'arima': ({}, 0.8)}",
+        "features": "{'f': 1.0}",
+        "best_model": "arima",
+    },
+    {
+        "hpt_res": "{'stlf': ({}, 0.1)}",
+        "features": "{'f': 1.0}",
+        "best_model": "stlf",
+    },
+]
 
 PEYTON_FCST_15_ARIMA_PARAM_1_MODEL_1 = pd.DataFrame(
     {
