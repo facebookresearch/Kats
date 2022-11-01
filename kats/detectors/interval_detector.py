@@ -613,9 +613,19 @@ class ABDetectorModel(DetectorModel):
             self.duration = lowest_m.m
             self.corrected_alpha = lowest_m.p
         else:
-            # TODO: Implement self._get_lowest_alpha to correct alpha based upon
-            # a specified duration and alpha.
-            self.corrected_alpha = self.alpha
+            # With duration and length fixed, determine an adjusted Type-I error
+            # such that the global Type-I error still remains within a
+            # relative threshold of self.alpha.
+            lowest_p = self._get_lowest_p(
+                m=self.duration, n=length, p_goal=self.alpha, r_tol=r_tol
+            )
+            logging.warning(
+                f"Type-I Adjustment with {length} data points:"
+                + f"\nduration set to {self.duration}"
+                + f"\ncorrected_alpha set to {lowest_p.p_corrected}"
+                + f"\nType-I Error adjusted to {lowest_p.p_global} from {self.alpha}"
+            )
+            self.corrected_alpha = lowest_p.p_corrected
         # TODO: Add a condition for a two tailed test. i.e.
         #   if self.two_tailed:
         #       return norm.ppf(1.0 - self.alpha / 2)
@@ -657,6 +667,73 @@ class ABDetectorModel(DetectorModel):
             m += 1
         raise Exception(
             "Automatic duration did not converge. Please explicitly pass duration or revise alpha."
+        )
+
+    @dataclass
+    class LowestP:
+        p_corrected: float
+        p_global: float
+
+    def _get_lowest_p(
+        self,
+        m: int,
+        n: int,
+        p_goal: float,
+        r_tol: float,
+        max_iter: int = 1000,
+    ) -> LowestP:
+        """Finds a p so that the corrected p is with `r_tol` of `p_global` with n trials and m run size.
+
+        Notes:
+            A binary search is performed to find an approximate solution. In cases where this does not
+            converge, raising either `max_iter` or `r_tol` will prevent an exception being raised.
+
+        Args:
+            m: number of consecutive 1's.
+            n: total number of trials.
+            p_goal: desired probability of seeing at least one run of m in n trials.
+            r_tol: Relative tolerance applied to p_goal, >=1e-9.
+                    i.e. p = 0.5, r_tol = 0.2, p * (1 - r_tol) = 0.4 & p * (r_tol + 1) = 0.6
+            max_iter: Total number of iterations before stopping.
+
+        Returns:
+            A corrected p such that the global p is still within a relative tolerance of `p_goal`.
+        """
+        # p_goal = p ** n
+        if n == m:
+            return self.LowestP(p_corrected=p_goal ** (1 / m), p_global=p_goal)
+
+        if r_tol < 1e-9:
+            raise ValueError(
+                f"r_tol=1e-9 is the smallest supported value, found: {r_tol}"
+            )
+
+        i: int = 0
+        # p_goal = U_{i=1}^{n-m} P(run size of m starting at position i)
+        #   ≤ ∑_{i=1}^{n-m} P(run size of m starting at position i)
+        #   ≤ p ** m * n
+        p_low: float = (p_goal / n) ** (1 / m)
+        # p_goal ≥ Binomial(k > 0; n//m, p ** m)
+        #   = 1 - Binomial(k = 0; n//m, p ** m)
+        #   = 1 - (1 - p ** m) ** (n // m)
+        p_high: float = (1 - (1 - p_goal) ** (1 / (n // m))) ** (1 / m)
+        while p_low <= p_high and i <= max_iter:
+            p_corrected = (p_high + p_low) / 2.0
+            p_global = self._probability_of_at_least_one_m_run_in_n_trials(
+                p_corrected, n=n, m=m
+            )
+            # Return if the corrected Type-I error is within our relative tolerance.
+            if p_global <= p_goal * (r_tol + 1) and p_global >= p_goal * (1 - r_tol):
+                return self.LowestP(p_corrected=p_corrected, p_global=p_global)
+            # Otherwise search higher
+            elif p_global < p_goal:
+                p_low = p_corrected
+            # Otherwise search lower
+            elif p_global > p_goal:
+                p_high = p_corrected
+            i += 1
+        raise Exception(
+            f"max_iter={max_iter} exceeded while adjusting a goal of {p_goal} with r_tol={r_tol}. Raise max_iter or r_tol."
         )
 
     @staticmethod

@@ -163,13 +163,24 @@ class TestABDetectorModel(TestCase):
         assert starts.tolist() == expected_starts
         assert ends.tolist() == expected_ends
 
-    def test_get_critical_value_custom_duration(self) -> None:
-        assert np.isclose(self.interval_detector._get_critical_value(0, 0.0), _Z_SCORE)
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            [0.01],
+            [0.05],
+            [0.1],
+        ]
+    )
+    def test_get_critical_value_custom_duration(self, p_goal: float) -> None:
+        lowest_p = self.interval_detector._get_lowest_p(
+            m=3, n=100, p_goal=p_goal, r_tol=1e-3
+        )
+        assert np.isclose(lowest_p.p_global, p_goal, rtol=1e-3)
 
     def test_absolute_difference_test_statistic(self) -> None:
         df = self.df.copy()
         self.interval_detector.critical_value = (
-            self.interval_detector._get_critical_value(0, 0.0)
+            self.interval_detector._get_critical_value(1, 1e-5)
         )
         test_statistic = self.interval_detector.get_test_statistic(df)
         # "manually" compute z-scores
@@ -189,7 +200,7 @@ class TestABDetectorModel(TestCase):
     def test_relative_difference_test_statistic(self) -> None:
         df = self.df.copy()
         self.interval_detector.critical_value = (
-            self.interval_detector._get_critical_value(0, 0.0)
+            self.interval_detector._get_critical_value(1, 1e-5)
         )
         self.interval_detector.test_statistic = TestStatistic.RELATIVE_DIFFERENCE
         test_statistic = self.interval_detector.get_test_statistic(df)
