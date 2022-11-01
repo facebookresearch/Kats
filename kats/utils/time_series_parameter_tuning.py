@@ -29,13 +29,15 @@ import pandas as pd
 from ax import Arm, ComparisonOp, Data, OptimizationConfig, SearchSpace
 from ax.core.experiment import Experiment
 from ax.core.generator_run import GeneratorRun
-from ax.core.metric import Metric
+from ax.core.metric import Metric, MetricFetchE, MetricFetchResult
 from ax.core.objective import Objective
 from ax.core.outcome_constraint import OutcomeConstraint
+from ax.core.trial import BaseTrial
 from ax.modelbridge.discrete import DiscreteModelBridge
 from ax.modelbridge.registry import Models
 from ax.runners.synthetic import SyntheticRunner
 from ax.service.utils.instantiation import InstantiationBase
+from ax.utils.common.result import Err, Ok
 from kats.consts import SearchMethodEnum
 
 # Maximum number of worker processes used to evaluate trial arms in parallel
@@ -189,12 +191,7 @@ class TimeSeriesEvaluationMetric(Metric):
             "sem": evaluation_result[1],
         }
 
-    # pyre-fixme[14]: `fetch_trial_data` overrides method defined in `Metric`
-    #  inconsistently.
-    # pyre-fixme[14]: `fetch_trial_data` overrides method defined in `Metric`
-    #  inconsistently.
-    # pyre-fixme[2]: Parameter must be annotated.
-    def fetch_trial_data(self, trial) -> Data:
+    def fetch_trial_data(self, trial: BaseTrial, **kwargs: Any) -> MetricFetchResult:
         """Calls evaluation of every arm in a trial.
 
         Args:
@@ -204,18 +201,23 @@ class TimeSeriesEvaluationMetric(Metric):
             Data object that has arm names, trial index, evaluation.
         """
 
-        if self.multiprocessing:
-            with Pool(processes=min(len(trial.arms), MAX_NUM_PROCESSES)) as pool:
-                records = pool.map(self.evaluate_arm, trial.arms)
-                pool.close()
-        else:
-            records = list(map(self.evaluate_arm, trial.arms))
-        if isinstance(records[0], list):
-            # Evaluation result output contains multiple metrics
-            records = [metric for record in records for metric in record]
-        for record in records:
-            record.update({"trial_index": trial.index})
-        return Data(df=pd.DataFrame.from_records(records))
+        try:
+            if self.multiprocessing:
+                with Pool(processes=min(len(trial.arms), MAX_NUM_PROCESSES)) as pool:
+                    records = pool.map(self.evaluate_arm, trial.arms)
+                    pool.close()
+            else:
+                records = list(map(self.evaluate_arm, trial.arms))
+            if isinstance(records[0], list):
+                # Evaluation result output contains multiple metrics
+                records = [metric for record in records for metric in record]
+            for record in records:
+                record.update({"trial_index": trial.index})
+            return Ok(value=Data(df=pd.DataFrame.from_records(records)))
+        except Exception as e:
+            return Err(
+                MetricFetchE(message=f"Failed to fetch {self.name}", exception=e)
+            )
 
 
 class TimeSeriesParameterTuning(ABC):
