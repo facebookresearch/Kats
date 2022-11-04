@@ -12,7 +12,7 @@ from kats.consts import TimeSeriesData
 from kats.models.holtwinters import HoltWintersModel, HoltWintersParams
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.models.sarima import SARIMAModel, SARIMAParams
-from kats.utils.ensemble_predict_interval import ensemble_predict_interval
+from kats.utils.ensemble_predict_interval import EnsemblePredictInterval
 
 
 class testEnsemblePredictInterval(TestCase):
@@ -33,7 +33,7 @@ class testEnsemblePredictInterval(TestCase):
 
     def test_EPI_Prophet(self) -> None:
         # test EPI on Prophet model
-        epi = ensemble_predict_interval(
+        epi = EnsemblePredictInterval(
             # pyre-fixme[6]: Incompatible parameter type
             model=ProphetModel,
             model_params=ProphetParams(seasonality_mode="additive"),
@@ -59,7 +59,7 @@ class testEnsemblePredictInterval(TestCase):
     def test_EPI_Sarima(self) -> None:
         # test EPI on SARIMA model
         params = SARIMAParams(p=2, d=1, q=1, trend="ct", seasonal_order=(1, 0, 1, 12))
-        epi = ensemble_predict_interval(
+        epi = EnsemblePredictInterval(
             # pyre-fixme[6]: Incompatible parameter type
             model=SARIMAModel,
             model_params=params,
@@ -74,7 +74,7 @@ class testEnsemblePredictInterval(TestCase):
 
     def test_EPI_HW(self) -> None:
         # test EPI on Holt-Winters model
-        epi = ensemble_predict_interval(
+        epi = EnsemblePredictInterval(
             # pyre-fixme[6]: Incompatible parameter type
             model=HoltWintersModel,
             model_params=HoltWintersParams(),
@@ -94,7 +94,7 @@ class testEnsemblePredictInterval(TestCase):
         epi.pi_comparison_plot()
 
         # fcst step is greater than test set length
-        epi2 = ensemble_predict_interval(
+        epi2 = EnsemblePredictInterval(
             # pyre-fixme[6]: Incompatible parameter type
             model=HoltWintersModel,
             model_params=HoltWintersParams(),
@@ -114,7 +114,7 @@ class testEnsemblePredictInterval(TestCase):
     def test_errors(self) -> None:
         # both block_size and n_block are None
         with self.assertRaises(ValueError):
-            _ = ensemble_predict_interval(
+            _ = EnsemblePredictInterval(
                 # pyre-fixme[6]: Incompatible parameter type
                 model=HoltWintersModel,
                 model_params=HoltWintersParams(),
@@ -124,7 +124,7 @@ class testEnsemblePredictInterval(TestCase):
         # not suitable n_block when block_size is None
         for x in [1, -1, 200]:
             with self.assertRaises(ValueError):
-                _ = ensemble_predict_interval(
+                _ = EnsemblePredictInterval(
                     # pyre-fixme[6]: Incompatible parameter type
                     model=HoltWintersModel,
                     model_params=HoltWintersParams(),
@@ -135,7 +135,7 @@ class testEnsemblePredictInterval(TestCase):
         # not suitable block_size when n_block is None
         for y in [1, -1, 200]:
             with self.assertRaises(ValueError):
-                _ = ensemble_predict_interval(
+                _ = EnsemblePredictInterval(
                     # pyre-fixme[6]: Incompatible parameter type
                     model=HoltWintersModel,
                     model_params=HoltWintersParams(),
@@ -146,7 +146,7 @@ class testEnsemblePredictInterval(TestCase):
         # not suitable block_size and n_block vals
         for x, y in [(100, 100), (1, 100), (100, 1)]:
             with self.assertRaises(ValueError):
-                _ = ensemble_predict_interval(
+                _ = EnsemblePredictInterval(
                     # pyre-fixme[6]: Incompatible parameter type
                     model=HoltWintersModel,
                     model_params=HoltWintersParams(),
@@ -158,7 +158,7 @@ class testEnsemblePredictInterval(TestCase):
         # not suitable ensemble size
         for m in [1, -1, 0]:
             with self.assertRaises(ValueError):
-                _ = ensemble_predict_interval(
+                _ = EnsemblePredictInterval(
                     # pyre-fixme[6]: Incompatible parameter type
                     model=HoltWintersModel,
                     model_params=HoltWintersParams(),
@@ -168,7 +168,7 @@ class testEnsemblePredictInterval(TestCase):
                 )
 
         # error of plot
-        epi = ensemble_predict_interval(
+        epi = EnsemblePredictInterval(
             # pyre-fixme[6]: Incompatible parameter type
             model=HoltWintersModel,
             model_params=HoltWintersParams(),
