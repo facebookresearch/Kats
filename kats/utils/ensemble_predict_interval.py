@@ -13,8 +13,9 @@ Do this procedure for m times (ensemble), based on which, generate fcst/fcst_upp
 """
 
 import logging
-import multiprocessing
-from multiprocessing import cpu_count, set_start_method
+
+from multiprocessing import cpu_count
+from multiprocessing.pool import Pool
 from typing import Optional, Tuple, Type
 
 import matplotlib.pyplot as plt
@@ -24,12 +25,7 @@ import scipy
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
 
-try:
-    set_start_method("forkserver")
-except RuntimeError:
-    pass
-
-_LOGGER: logging.Logger = logging.getLogger(__name__)
+_LOGGER: logging.Logger = logging.getLogger()
 
 
 def mean_confidence_interval(
@@ -44,7 +40,7 @@ def mean_confidence_interval(
     return m, m - h, m + h
 
 
-class EnsemblePredictInterval:
+class ensemble_predict_interval:
     """
         Class for Ensemble Prediction Interval.
 
@@ -69,7 +65,7 @@ class EnsemblePredictInterval:
     >>> val = np.arange(180)/6+np.sin(np.pi*np.arange(180)/6)*20++np.cos(np.arange(180))*20+np.random.randn(180)*10
     >>> ts = TimeSeriesData(pd.DataFrame({'time': pd.date_range('2021-05-06', periods = 180), 'val':val}))
     >>> hist_ts, test_ts = ts[:120], ts[120:]
-    >>> epi = EnsemblePredictInterval(
+    >>> epi = ensemble_predict_interval(
             model=ProphetModel,
             model_params=ProphetParams(seasonality_mode='additive'),
             ts=hist_ts,
@@ -208,12 +204,11 @@ class EnsemblePredictInterval:
 
         if self.multiprocessing:
             num_process = max(min(self.n_block, (cpu_count() - 1) // 2), 1)
-            with multiprocessing.Pool(processes=num_process) as pool:
+            with Pool(processes=num_process) as pool:
                 records = pool.map(
                     self._get_error_matrix_single, list(range(self.n_block))
                 )
-            pool.close()
-            pool.join()
+                pool.close()
 
             # combine results
             for idx, single_sigma in records:
@@ -292,10 +287,9 @@ class EnsemblePredictInterval:
         if self.multiprocessing:
             num_process = max(min(self.ensemble_size, (cpu_count() - 1) // 2), 1)
             ipt_list = [[i, step, rolling_based] for i in range(self.ensemble_size)]
-            with multiprocessing.Pool(processes=num_process) as pool:
+            with Pool(processes=num_process) as pool:
                 records = pool.starmap(self._projection_single, ipt_list)
-            pool.close()
-            pool.join()
+                pool.close()
 
             # combine results
             for idx, single_fcst in records:
