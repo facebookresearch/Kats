@@ -30,7 +30,7 @@ PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
 
 MIN_STDEV = 1e-9
 PREDICTION_UNCERTAINTY_SAMPLES = 50
-OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES = 50
+OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES = 40
 
 
 def timeseries_to_prophet_df(ts_data: TimeSeriesData) -> pd.DataFrame:
@@ -70,7 +70,7 @@ def z_score(
     data: TimeSeriesData,
     predict_df: pd.DataFrame,
     ci_threshold: float = 0.8,
-    uncertainty_samples: float = 50,
+    uncertainty_samples: float = PREDICTION_UNCERTAINTY_SAMPLES,
 ) -> Union[pd.Series, pd.DataFrame]:
     # asymmetric confidence band => points above the prediction use upper bound in calculation, points below the prediction use lower bound
 
@@ -278,8 +278,7 @@ class ProphetDetectorModel(DetectorModel):
             raise ValueError(msg)
 
         time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time}, copy=False)
-        # TODO(uthakore): Undo hack fix for ongoing production issue
-        model.uncertainty_samples = PREDICTION_UNCERTAINTY_SAMPLES
+        model.uncertainty_samples = self.uncertainty_samples
         predict_df = predict(model, time_df, self.vectorize)
         zeros_ts = TimeSeriesData(
             time=data.time, value=pd.Series(np.zeros(len(data)), copy=False)
@@ -289,10 +288,7 @@ class ProphetDetectorModel(DetectorModel):
         )
 
         # If not using z-score, set confidence band equal to prediction
-        if not (
-            PROPHET_YHAT_UPPER_COLUMN in predict_df.columns
-            and PROPHET_YHAT_LOWER_COLUMN in predict_df.columns
-        ):
+        if model.uncertainty_samples == 0:
             confidence_band = ConfidenceBand(upper=predicted_ts, lower=predicted_ts)
         else:
             confidence_band = ConfidenceBand(
@@ -311,7 +307,7 @@ class ProphetDetectorModel(DetectorModel):
                     data=data,
                     predict_df=predict_df,
                     ci_threshold=model.interval_width,
-                    uncertainty_samples=self.uncertainty_samples,
+                    uncertainty_samples=model.uncertainty_samples,
                 ),
             ),
             confidence_band=confidence_band,

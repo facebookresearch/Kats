@@ -305,7 +305,7 @@ class TestProphetDetector(TestCase):
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(SEED_AND_SERIALIZATIONS)
-    def test_finds_no_anomaly_when_no_anomoly(
+    def test_finds_no_anomaly_when_no_anomaly(
         self, seed: int, use_serialized_model: bool
     ) -> None:
         # Prophet should not find any anomalies on a well formed synthetic time series
@@ -326,15 +326,17 @@ class TestProphetDetector(TestCase):
         anomaly_found = res.scores.min < -0.3 or res.scores.max > 0.3
         self.assertTrue(anomaly_found)
 
-    def test_fit_predict(self) -> None:
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    @parameterized.expand([[True], [False]])
+    def test_fit_predict(self, vectorize: bool) -> None:
         ts = self.create_random_ts(0, 100, 10, 2)
         self.add_smooth_anomaly(ts, 0, 90, 10, 10)
 
-        model = ProphetDetectorModel()
+        model = ProphetDetectorModel(vectorize=vectorize)
         model.fit(ts[:90])
         res0 = model.predict(ts[90:])
 
-        model = ProphetDetectorModel()
+        model = ProphetDetectorModel(vectorize=not vectorize)
         res1 = model.fit_predict(data=ts[90:], historical_data=ts[:90])
 
         self.assertEqual(res0.scores.value.to_list(), res1.scores.value.to_list())
@@ -445,6 +447,18 @@ class TestProphetDetector(TestCase):
             ),
         )
 
+        # if using default score function, confidence bands should be prediction ts
+        self.assertEqual(
+            # pyre-ignore[16]: Optional type has no attribute `upper`.
+            deviation_response.confidence_band.upper,
+            deviation_response.predicted_ts,
+        )
+        self.assertEqual(
+            # pyre-ignore[16]: Optional type has no attribute `lower`.
+            deviation_response.confidence_band.lower,
+            deviation_response.predicted_ts,
+        )
+
     def test_score_func_parameter_as_z_score(self) -> None:
         """Test that score_func parameter can be set to z_score
 
@@ -474,6 +488,16 @@ class TestProphetDetector(TestCase):
             #  SupportsAbs[SupportsRound[object]]]` but got `float`.
             actual_z_score,
             places=15,
+        )
+
+        # if using Z-score function, confidence bands should not prediction ts
+        self.assertNotEqual(
+            z_score_response.confidence_band.upper,
+            z_score_response.predicted_ts,
+        )
+        self.assertNotEqual(
+            z_score_response.confidence_band.lower,
+            z_score_response.predicted_ts,
         )
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
