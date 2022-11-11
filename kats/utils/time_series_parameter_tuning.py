@@ -45,7 +45,7 @@ MAX_NUM_PROCESSES = 50
 
 
 def compute_search_cardinality(params_space: List[Dict[str, Any]]) -> float:
-    """compute cardinality of search space params"""
+    """Compute cardinality of search space params"""
     # check if search space is infinite
     is_infinite = any([param["type"] == "range" for param in params_space])
     if is_infinite:
