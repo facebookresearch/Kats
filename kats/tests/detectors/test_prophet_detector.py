@@ -355,6 +355,16 @@ class TestProphetDetector(TestCase):
 
         self.assertGreaterEqual(len(ts_df), len(filtered_ts_df))
 
+    def test_outlier_removal_uncertainty_sampling(self) -> None:
+        ts = self.create_random_ts(0, 365, 10, 2)
+        ts_df = pd.DataFrame({"ds": ts.time, "y": ts.value})
+
+        model = ProphetDetectorModel()
+        filtered_ts_df_moderate = model._remove_outliers(ts_df, uncertainty_samples=30)
+        filtered_ts_df_high = model._remove_outliers(ts_df, uncertainty_samples=50)
+
+        self.assertNotEqual(len(filtered_ts_df_moderate), len(filtered_ts_df_high))
+
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
         [

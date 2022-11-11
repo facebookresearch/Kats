@@ -149,6 +149,7 @@ class ProphetDetectorModel(DetectorModel):
         remove_outliers: bool = False,
         outlier_threshold: float = 0.99,
         uncertainty_samples: float = PREDICTION_UNCERTAINTY_SAMPLES,
+        outlier_removal_uncertainty_samples: int = OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES,
         vectorize: bool = False,
     ) -> None:
         if serialized_model:
@@ -167,6 +168,7 @@ class ProphetDetectorModel(DetectorModel):
         self.scoring_confidence_interval = scoring_confidence_interval
         self.remove_outliers = remove_outliers
         self.outlier_threshold = outlier_threshold
+        self.outlier_removal_uncertainty_samples = outlier_removal_uncertainty_samples
 
         # To improve runtime performance, we skip the confidence band
         # computation for non-Z score scoring strategy since it will not be
@@ -242,7 +244,10 @@ class ProphetDetectorModel(DetectorModel):
 
         if self.remove_outliers:
             data_df = self._remove_outliers(
-                data_df, self.outlier_threshold, vectorize=self.vectorize
+                data_df,
+                self.outlier_threshold,
+                uncertainty_samples=self.outlier_removal_uncertainty_samples,
+                vectorize=self.vectorize,
             )
 
         # No incremental training. Create a model and train from scratch
