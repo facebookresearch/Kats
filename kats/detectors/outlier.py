@@ -420,6 +420,6 @@ class MultivariateAnomalyDetector(Detector):
         axs[0].plot(a.drop(columns=["overall_anomaly_score"]))
         axs[0].set_title("Input time series metrics")
 
-        a["overall_anomaly_score"].plot(legend=False, ax=axs[1])
+        axs[1].plot(a["overall_anomaly_score"])
         axs[1].set_title("Overall Anomaly Score")
         return axs
