@@ -262,7 +262,10 @@ class TestProphetDetector(TestCase):
             return (actual_val - predicted_val) / lower_std
 
     def scenario_results(
-        self, seed: int, include_anomaly: bool, use_serialized_model: bool
+        self,
+        seed: int,
+        include_anomaly: bool,
+        use_serialized_model: bool,
     ) -> AnomalyResponse:
         """Prediction results for common data and model test scenarios"""
         ts = self.create_random_ts(seed, 100, 10, 2)
@@ -335,11 +338,15 @@ class TestProphetDetector(TestCase):
         model = ProphetDetectorModel(vectorize=vectorize)
         model.fit(ts[:90])
         res0 = model.predict(ts[90:])
+        # create test case for gap between training/testing time series
+        res2 = model.predict(ts[95:])
 
         model = ProphetDetectorModel(vectorize=not vectorize)
         res1 = model.fit_predict(data=ts[90:], historical_data=ts[:90])
+        res3 = model.fit_predict(data=ts[95:], historical_data=ts[:90])
 
         self.assertEqual(res0.scores.value.to_list(), res1.scores.value.to_list())
+        self.assertEqual(res2.scores.value.to_list(), res3.scores.value.to_list())
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     #  `parameterized.parameterized.parameterized.expand([["moderate", 0.990000],

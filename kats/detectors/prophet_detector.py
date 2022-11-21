@@ -137,6 +137,7 @@ class ProphetDetectorModel(DetectorModel):
             calculate uncertainty.
         serialized_model: json, representing data from a previously
             serialized model.
+        vectorize: a boolean representing wether using vectorized method of generating prediction intervals.
     """
 
     model: Optional[Prophet] = None

@@ -536,14 +536,15 @@ def _sample_predictive_trend_vectorized(
         A `np.ndarray` object with size (n_samples, len(df)) representing the trend samples.
     """
 
+    if prophet_model.growth == "linear":
+        return sample_linear_predictive_trend_vectorize(
+            prophet_model, df, n_samples, iteration
+        )
+
     deltas = prophet_model.params["delta"][iteration]
     m0 = prophet_model.params["m"][iteration]
     k = prophet_model.params["k"][iteration]
-    if prophet_model.growth == "linear":
-        expected = prophet_model.piecewise_linear(
-            df["t"].values, deltas, k, m0, prophet_model.changepoints_t
-        )
-    elif prophet_model.growth == "logistic":
+    if prophet_model.growth == "logistic":
         expected = prophet_model.piecewise_logistic(
             df["t"].values,
             df["cap_scaled"].values,
@@ -861,3 +862,74 @@ def _logistic_uncertainty(
     # remove the mean because we only need width of the uncertainty centered around 0
     # we will add the width to the main forecast - yhat (which is the mean) - later
     return sample_trends - sample_trends.mean(axis=0)
+
+
+def _piecewise_linear_vectorize(
+    t: np.ndarray, deltas: np.ndarray, k: float, m: float, changepoint_ts: np.ndarray
+) -> np.ndarray:
+    """
+    Vectorize piecewise linear function.
+    """
+    ndeltas_t = (changepoint_ts[:, None] <= t[..., None]) * deltas[:, None]
+    n_kt = ndeltas_t.sum(axis=2) + k
+    n_mt = (ndeltas_t * (-changepoint_ts[:, None])).sum(axis=2) + m
+    return n_kt * t + n_mt
+
+
+def sample_linear_predictive_trend_vectorize(
+    prophet_model: Prophet, df: pd.DataFrame, sample_size: int, iteration: int
+) -> np.ndarray:
+    """
+    Vectorize funtion for generating trend sample when `growth` = 'linear'.
+
+    Args:
+        df: a `pd.DataFrame` object with dates and necessary information for predictions.
+        sample_size: Number of samples to generate.
+
+    Returns:
+        A `np.array` with shape (sample_size, len(df)) containing the vector of trend samples.`
+
+    """
+    k = prophet_model.params["k"][iteration]
+    m = prophet_model.params["m"][iteration]
+    deltas = prophet_model.params["delta"][iteration]
+    changepoints_t = prophet_model.changepoints_t
+
+    t = np.array(df["t"])
+    T = t.max()
+
+    # vectorize possion sample
+    S = len(changepoints_t)
+    possion_sample = np.random.poisson(S * (T - 1), sample_size)
+    max_possion_num = possion_sample.max()
+
+    changepoint_ts = np.row_stack([changepoints_t] * sample_size)
+    lambda_ = np.mean(np.abs(deltas)) + 1e-8
+    deltas = np.row_stack([deltas] * sample_size)
+
+    if max_possion_num > 0:
+
+        # sample change points
+        changepoint_ts_new = 1 + np.random.rand(sample_size, max_possion_num) * (T - 1)
+        changepoint_ts_new.sort(axis=1)
+
+        # create mask for deltas -> to mute some deltas based on number of change points
+        mask = np.random.uniform(
+            0, max_possion_num, max_possion_num * sample_size
+        ).reshape(sample_size, -1)
+        mask = mask < possion_sample[:, None]
+
+        # Sample deltas
+        deltas_new = np.random.laplace(
+            0, lambda_, max_possion_num * sample_size
+        ).reshape(sample_size, -1)
+        # mute some deltas based on mask
+        deltas_new = deltas_new * mask
+
+        # Prepend the times and deltas from the history
+        changepoint_ts = np.column_stack((changepoint_ts, changepoint_ts_new))
+        deltas = np.column_stack((deltas, deltas_new))
+
+    trend = _piecewise_linear_vectorize(t, deltas, k, m, changepoint_ts)
+
+    return trend * prophet_model.y_scale + df["floor"].values
