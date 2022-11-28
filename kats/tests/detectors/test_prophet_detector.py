@@ -236,16 +236,14 @@ class TestProphetDetector(TestCase):
 
         return merged_ts
 
-    def calc_stds(
+    def calc_std(
         self, predicted_val: float, upper_bound: float, lower_bound: float
-    ) -> Tuple[float, float]:
-        actual_upper_std = (50**0.5) * (upper_bound - predicted_val) / 0.8
-        actual_lower_std = (50**0.5) * (predicted_val - lower_bound) / 0.8
+    ) -> float:
+        actual_std = (50**0.5) * ((upper_bound - lower_bound) / 2) / 0.8
 
-        upper_std = max(actual_upper_std, 1e-9)
-        lower_std = max(actual_lower_std, 1e-9)
+        std = max(actual_std, 1e-9)
 
-        return upper_std, lower_std
+        return std
 
     def calc_z_score(
         self,
@@ -254,12 +252,9 @@ class TestProphetDetector(TestCase):
         upper_bound: float,
         lower_bound: float,
     ) -> float:
-        upper_std, lower_std = self.calc_stds(predicted_val, upper_bound, lower_bound)
+        std = self.calc_std(predicted_val, upper_bound, lower_bound)
 
-        if actual_val > predicted_val:
-            return (actual_val - predicted_val) / upper_std
-        else:
-            return (actual_val - predicted_val) / lower_std
+        return (actual_val - predicted_val) / std
 
     def scenario_results(
         self,
@@ -504,7 +499,7 @@ class TestProphetDetector(TestCase):
             # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
             #  SupportsAbs[SupportsRound[object]]]` but got `float`.
             actual_z_score,
-            places=15,
+            places=5,
         )
 
         # if using Z-score function, confidence bands should not prediction ts
@@ -546,7 +541,7 @@ class TestProphetDetector(TestCase):
         )
         # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
         #  SupportsAbs[SupportsRound[object]]]` but got `float`.
-        self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
+        self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=5)
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     #  `parameterized.parameterized.parameterized.expand([["no anomaly", 0], ["with
@@ -577,7 +572,7 @@ class TestProphetDetector(TestCase):
         )
         # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
         #  SupportsAbs[SupportsRound[object]]]` but got `float`.
-        self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=15)
+        self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=5)
 
     @unittest.skip(
         "Prophet doesn't learn heteroskedastic seasonality with params used by ProphetDetectorModel"

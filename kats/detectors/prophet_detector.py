@@ -27,7 +27,11 @@ PROPHET_YHAT_COLUMN = "yhat"
 PROPHET_YHAT_LOWER_COLUMN = "yhat_lower"
 PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
 
-
+# Previously assumed Prophet CI width was computed based on sample stddev,
+# where uncertainty_samples was num of samples. This scale constant ensures that the
+# corrected Z-score is scaled by the same amount as the original score when
+# using default values.
+Z_SCORE_SCALE_CONST: float = (50**0.5) / 2
 MIN_STDEV = 1e-9
 PREDICTION_UNCERTAINTY_SAMPLES = 50
 OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES = 40
@@ -59,7 +63,6 @@ def deviation_from_predicted_val(
     data: TimeSeriesData,
     predict_df: pd.DataFrame,
     ci_threshold: Optional[float] = None,
-    uncertainty_samples: Optional[float] = None,
 ) -> Union[pd.Series, pd.DataFrame]:
     return (data.value - predict_df[PROPHET_YHAT_COLUMN]) / predict_df[
         PROPHET_YHAT_COLUMN
@@ -70,37 +73,22 @@ def z_score(
     data: TimeSeriesData,
     predict_df: pd.DataFrame,
     ci_threshold: float = 0.8,
-    uncertainty_samples: float = PREDICTION_UNCERTAINTY_SAMPLES,
 ) -> Union[pd.Series, pd.DataFrame]:
-    # asymmetric confidence band => points above the prediction use upper bound in calculation, points below the prediction use lower bound
-
-    actual_upper_std = (
-        (uncertainty_samples**0.5)
-        * (predict_df[PROPHET_YHAT_UPPER_COLUMN] - predict_df[PROPHET_YHAT_COLUMN])
-        / ci_threshold
-    )
-    actual_lower_std = (
-        (uncertainty_samples**0.5)
-        * (predict_df[PROPHET_YHAT_COLUMN] - predict_df[PROPHET_YHAT_LOWER_COLUMN])
+    actual_scaled_std = (
+        Z_SCORE_SCALE_CONST
+        * (
+            predict_df[PROPHET_YHAT_UPPER_COLUMN]
+            - predict_df[PROPHET_YHAT_LOWER_COLUMN]
+        )
         / ci_threshold
     )
 
     # if std is 0, set it to a very small value to prevent division by zero in next step
-    upper_std = np.maximum(actual_upper_std, MIN_STDEV)
-    lower_std = np.maximum(actual_lower_std, MIN_STDEV)
+    scaled_std = np.maximum(actual_scaled_std, MIN_STDEV)
 
-    upper_score = (
-        (data.value > predict_df[PROPHET_YHAT_COLUMN])
-        * (data.value - predict_df[PROPHET_YHAT_COLUMN])
-        / upper_std
-    )
-    lower_score = (
-        (data.value < predict_df[PROPHET_YHAT_COLUMN])
-        * (data.value - predict_df[PROPHET_YHAT_COLUMN])
-        / lower_std
-    )
+    score = (data.value - predict_df[PROPHET_YHAT_COLUMN]) / scaled_std
 
-    return upper_score + lower_score
+    return score
 
 
 class ProphetScoreFunction(Enum):
@@ -313,7 +301,6 @@ class ProphetDetectorModel(DetectorModel):
                     data=data,
                     predict_df=predict_df,
                     ci_threshold=model.interval_width,
-                    uncertainty_samples=model.uncertainty_samples,
                 ),
             ),
             confidence_band=confidence_band,
