@@ -12,12 +12,15 @@ import numpy as np
 import pandas as pd
 
 from kats.consts import TimeSeriesData
-from kats.detectors.interval_detector import ABDetectorModel, TestStatistic
+from kats.detectors.interval_detector import (
+    TestStatistic,
+    TwoSampleProportionIntervalDetectorModel,
+)
 from parameterized.parameterized import parameterized
 from scipy.stats import norm
 
 
-_SERIALIZED = b'{"alpha": 0.1, "duration": 1, "test_direction": "b_greater", "distribution": "binomial", "test_statistic": "absolute_difference"}'
+_SERIALIZED = b'{"alpha": 0.1, "duration": 1, "test_statistic": "absolute_difference", "test_direction": "b_greater"}'
 
 _Z_SCORE: float = 1.6448536269514722
 _P_VALUE: float = 0.05
@@ -40,7 +43,7 @@ def _dp_solve(p: float, n: int, m: int) -> np.ndarray:
     return a
 
 
-class TestABDetectorModel(TestCase):
+class TestTwoSampleProportionIntervalDetectorModel(TestCase):
     def setUp(self) -> None:
         date_start = datetime.strptime("2020-03-01", "%Y-%m-%d")
         self.time = [date_start + timedelta(hours=x) for x in range(60)]
@@ -63,7 +66,9 @@ class TestABDetectorModel(TestCase):
                 "effect_size": self.effect_size,
             }
         )
-        self.interval_detector = ABDetectorModel(alpha=0.05, duration=1)
+        self.interval_detector = TwoSampleProportionIntervalDetectorModel(
+            alpha=0.05, duration=1
+        )
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
@@ -73,11 +78,13 @@ class TestABDetectorModel(TestCase):
         ]
     )
     def test_load_from_serialized(self, attribute: str, expected: object) -> None:
-        detector = ABDetectorModel(serialized_model=_SERIALIZED)
+        detector = TwoSampleProportionIntervalDetectorModel(
+            serialized_model=_SERIALIZED
+        )
         self.assertEqual(attrgetter(attribute)(detector), expected)
 
     def test_serialize(self) -> None:
-        detector = ABDetectorModel(alpha=0.1, duration=1)
+        detector = TwoSampleProportionIntervalDetectorModel(alpha=0.1, duration=1)
         self.assertEqual(_SERIALIZED, detector.serialize())
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
@@ -92,60 +99,60 @@ class TestABDetectorModel(TestCase):
         self, alpha: Union[None, float, int], expected: Type[Exception]
     ) -> None:
         with self.assertRaises(expected):
-            ABDetectorModel(alpha=alpha, duration=1)
+            TwoSampleProportionIntervalDetectorModel(alpha=alpha, duration=1)
 
     def test_negative_duration(self) -> None:
         with self.assertRaises(ValueError):
-            ABDetectorModel(alpha=0.05, duration=-1)
+            TwoSampleProportionIntervalDetectorModel(alpha=0.05, duration=-1)
 
     def test_no_test_direction(self) -> None:
         with self.assertRaises(ValueError):
-            ABDetectorModel(alpha=0.05, test_direction=None)
+            TwoSampleProportionIntervalDetectorModel(alpha=0.05, test_direction=None)
 
     def test_column_names(self) -> None:
         df = self.df.copy()
         # valid df
-        self.interval_detector._validate_columns_name(df)
+        self.interval_detector.schema._validate_names(df)
         df.drop(columns=["variance_a"], inplace=True)
         with self.assertRaises(ValueError):
-            self.interval_detector._validate_columns_name(df)
+            self.interval_detector.schema._validate_names(df)
 
     def test_non_negative_columns(self) -> None:
         df = self.df.copy()
         # valid df
-        self.interval_detector._validate_data(df)
+        self.interval_detector.schema._validate_data(df)
         df["variance_a"].iloc[10] = -0.1
         with self.assertRaises(ValueError):
-            self.interval_detector._validate_data(df)
+            self.interval_detector.schema._validate_data(df)
 
     def test_positive_columns(self) -> None:
         df = self.df.copy()
         # valid df
-        self.interval_detector._validate_data(df)
+        self.interval_detector.schema._validate_data(df)
         df["effect_size"].iloc[10] = -0.1
         df["sample_count_a"].iloc[2] = 0.0
         with self.assertRaises(ValueError):
-            self.interval_detector._validate_data(df)
+            self.interval_detector.schema._validate_data(df)
 
     def test_integer_columns(self) -> None:
         df = self.df.copy()
         # valid df
-        self.interval_detector._validate_data(df)
+        self.interval_detector.schema._validate_data(df)
         df["sample_count_a"].iloc[10] = 1.5
         with self.assertRaises(ValueError):
-            self.interval_detector._validate_data(df)
+            self.interval_detector.schema._validate_data(df)
 
     def test_na_in_data(self) -> None:
         df = self.df.copy()
         # valid df
-        self.interval_detector._validate_data(df)
+        self.interval_detector.schema._validate_data(df)
         df["effect_size"].iloc[4] = None
         with self.assertRaises(ValueError):
-            self.interval_detector._validate_data(df)
+            self.interval_detector.schema._validate_data(df)
         df["effect_size"].iloc[6] = 1
         df["value_a"].iloc[10] = None
         with self.assertRaises(ValueError):
-            self.interval_detector._validate_data(df)
+            self.interval_detector.schema._validate_data(df)
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
@@ -190,12 +197,8 @@ class TestABDetectorModel(TestCase):
             + self.value_b * (1 - self.value_b) / self.sample_count_b
         )
         z_score = diff / std_error
-        upper = diff + _Z_SCORE * std_error
-        lower = diff - _Z_SCORE * std_error
         assert all(np.isclose(test_statistic.test_statistic.values, z_score))
         assert all(np.isclose(test_statistic.stat_sig.values, norm.sf(z_score)))
-        assert all(np.isclose(test_statistic.upper, upper))
-        assert all(np.isclose(test_statistic.lower, lower))
 
     def test_relative_difference_test_statistic(self) -> None:
         df = self.df.copy()
@@ -219,12 +222,8 @@ class TestABDetectorModel(TestCase):
             / (self.value_b**2)
         )
         z_score = diff / std_error
-        upper = np.exp(diff + _Z_SCORE * std_error)
-        lower = np.exp(diff - _Z_SCORE * std_error)
         assert all(np.isclose(test_statistic.test_statistic.values, z_score))
         assert all(np.isclose(test_statistic.stat_sig.values, norm.sf(z_score)))
-        assert all(np.isclose(test_statistic.upper, upper))
-        assert all(np.isclose(test_statistic.lower, lower))
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
@@ -237,7 +236,9 @@ class TestABDetectorModel(TestCase):
         """E2E test of an apparent anomaly."""
         df = self.df.copy()
         df.value_b.iloc[10] = 1.0
-        detector = ABDetectorModel(serialized_model=_SERIALIZED)
+        detector = TwoSampleProportionIntervalDetectorModel(
+            serialized_model=_SERIALIZED
+        )
         anomaly_response = detector.fit_predict(
             TimeSeriesData(df), consolidate_into_intervals=consolidate_into_intervals
         )
@@ -246,15 +247,9 @@ class TestABDetectorModel(TestCase):
         assert anomaly_response.confidence_band is not None
         _predicted_ds: TimeSeriesData = anomaly_response.predicted_ts
         _stat_sig_ts: TimeSeriesData = anomaly_response.stat_sig_ts
-        _upper: TimeSeriesData = anomaly_response.confidence_band.upper
-        _lower: TimeSeriesData = anomaly_response.confidence_band.lower
         assert np.isclose(_stat_sig_ts.value.iloc[10], 0.0)
         if consolidate_into_intervals:
             assert _predicted_ds.value.iloc[10]
-            assert (
-                _predicted_ds.value.iloc[10] > _upper.value.iloc[10]
-                or _predicted_ds.value.iloc[10] < _lower.value.iloc[10]
-            )
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
@@ -268,7 +263,9 @@ class TestABDetectorModel(TestCase):
         df = self.df.copy()
         df.value_b.iloc[10:15] = 1.0
         df.value_b.iloc[40:45] = 1.0
-        detector = ABDetectorModel(serialized_model=_SERIALIZED)
+        detector = TwoSampleProportionIntervalDetectorModel(
+            serialized_model=_SERIALIZED
+        )
         detector.test_statistic = test_statistic
         anomaly_response = detector.fit_predict(TimeSeriesData(df))
         assert anomaly_response.predicted_ts is not None
@@ -286,7 +283,9 @@ class TestABDetectorModel(TestCase):
         df.value_b.iloc[10] = 1.0
         df.value_b.iloc[20:22] = 1.0
         df.value_b.iloc[30:33] = 1.0
-        detector = ABDetectorModel(serialized_model=_SERIALIZED)
+        detector = TwoSampleProportionIntervalDetectorModel(
+            serialized_model=_SERIALIZED
+        )
         detector.duration = 2
         anomaly_response = detector.fit_predict(TimeSeriesData(df))
         assert anomaly_response.predicted_ts is not None
@@ -400,7 +399,7 @@ class TestABDetectorModel(TestCase):
         df.value_b.iloc[20:22] = 1.0
         df.value_b.iloc[30:33] = 1.0
         # Set a detector without a duration
-        detector = ABDetectorModel(alpha=0.05)
+        detector = TwoSampleProportionIntervalDetectorModel(alpha=0.05)
         anomaly_response = detector.fit_predict(TimeSeriesData(df))
         assert anomaly_response.predicted_ts is not None
         assert anomaly_response.stat_sig_ts is not None
@@ -413,6 +412,6 @@ class TestABDetectorModel(TestCase):
 
     def test_plot(self) -> None:
         df = self.df.copy()
-        detector = ABDetectorModel(alpha=0.05)
+        detector = TwoSampleProportionIntervalDetectorModel(alpha=0.05)
         detector.fit_predict(TimeSeriesData(df))
         detector.plot()
