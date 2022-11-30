@@ -14,7 +14,9 @@ import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.detectors.interval_detector import (
     TestStatistic,
+    TwoSampleCountIntervalDetectorModel,
     TwoSampleProportionIntervalDetectorModel,
+    TwoSampleRealValuedIntervalDetectorModel,
 )
 from parameterized.parameterized import parameterized
 from scipy.stats import norm
@@ -415,3 +417,103 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
         detector = TwoSampleProportionIntervalDetectorModel(alpha=0.05)
         detector.fit_predict(TimeSeriesData(df))
         detector.plot()
+
+
+class TestTwoSampleRealValuedIntervalDetectorModel(TestCase):
+    def setUp(self) -> None:
+        date_start = datetime.strptime("2020-03-01", "%Y-%m-%d")
+        self.time = [date_start + timedelta(hours=x) for x in range(60)]
+        self.value_a = np.array([5.0] * len(self.time))
+        self.value_b = np.array([6.0] * len(self.time))
+        self.variance_a = np.array([1] * len(self.time))
+        self.variance_b = np.array([1] * len(self.time))
+        self.sample_count_a = np.array([100] * len(self.time))
+        self.sample_count_b = np.array([100] * len(self.time))
+        self.effect_size = np.array([0.02] * len(self.time))
+        self.df = pd.DataFrame(
+            {
+                "time": self.time,
+                "value_a": self.value_a,
+                "value_b": self.value_b,
+                "variance_a": self.variance_a,
+                "variance_b": self.variance_b,
+                "sample_count_a": self.sample_count_a,
+                "sample_count_b": self.sample_count_b,
+                "effect_size": self.effect_size,
+            }
+        )
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            [TestStatistic.ABSOLUTE_DIFFERENCE],
+            [TestStatistic.RELATIVE_DIFFERENCE],
+        ]
+    )
+    def test_blatent_anomalies(self, test_statistic: TestStatistic) -> None:
+        """E2E test of apparent anomalies."""
+        df = self.df.copy()
+        df.value_b.iloc[10:15] = 100.0
+        df.value_b.iloc[40:45] = 100.0
+        detector = TwoSampleRealValuedIntervalDetectorModel(
+            serialized_model=_SERIALIZED
+        )
+        detector.test_statistic = test_statistic
+        anomaly_response = detector.fit_predict(TimeSeriesData(df))
+        assert anomaly_response.predicted_ts is not None
+        assert anomaly_response.stat_sig_ts is not None
+        _predicted_ds: TimeSeriesData = anomaly_response.predicted_ts
+        _stat_sig_ts: TimeSeriesData = anomaly_response.stat_sig_ts
+        assert _predicted_ds.value.iloc[10:15].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[10:15].values, 0.0).all()
+        assert _predicted_ds.value.iloc[40:45].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[40:45].values, 0.0).all()
+
+
+class TestTwoSampleCountIntervalDetectorModel(TestCase):
+    def setUp(self) -> None:
+        date_start = datetime.strptime("2020-03-01", "%Y-%m-%d")
+        self.time = [date_start + timedelta(hours=x) for x in range(60)]
+        self.value_a = np.array([1] * len(self.time))
+        self.value_b = np.array([2] * len(self.time))
+        self.variance_a = np.array([1] * len(self.time))
+        self.variance_b = np.array([1] * len(self.time))
+        self.sample_count_a = np.array([100] * len(self.time))
+        self.sample_count_b = np.array([100] * len(self.time))
+        self.effect_size = np.array([0.02] * len(self.time))
+        self.df = pd.DataFrame(
+            {
+                "time": self.time,
+                "value_a": self.value_a,
+                "value_b": self.value_b,
+                "variance_a": self.variance_a,
+                "variance_b": self.variance_b,
+                "sample_count_a": self.sample_count_a,
+                "sample_count_b": self.sample_count_b,
+                "effect_size": self.effect_size,
+            }
+        )
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            [TestStatistic.ABSOLUTE_DIFFERENCE],
+            [TestStatistic.RELATIVE_DIFFERENCE],
+        ]
+    )
+    def test_blatent_anomalies(self, test_statistic: TestStatistic) -> None:
+        """E2E test of apparent anomalies."""
+        df = self.df.copy()
+        df.value_b.iloc[10:15] = 100
+        df.value_b.iloc[40:45] = 100
+        detector = TwoSampleCountIntervalDetectorModel(serialized_model=_SERIALIZED)
+        detector.test_statistic = test_statistic
+        anomaly_response = detector.fit_predict(TimeSeriesData(df))
+        assert anomaly_response.predicted_ts is not None
+        assert anomaly_response.stat_sig_ts is not None
+        _predicted_ds: TimeSeriesData = anomaly_response.predicted_ts
+        _stat_sig_ts: TimeSeriesData = anomaly_response.stat_sig_ts
+        assert _predicted_ds.value.iloc[10:15].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[10:15].values, 0.0).all()
+        assert _predicted_ds.value.iloc[40:45].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[40:45].values, 0.0).all()

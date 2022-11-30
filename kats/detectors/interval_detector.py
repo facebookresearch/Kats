@@ -1195,6 +1195,12 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
             sample_count_a=sample_count_a,
             sample_count_b=sample_count_b,
         )
+
+        # Cache the variance for plotting.
+        if self.data is not None:
+            self.data.value.variance_a = _variance_a
+            self.data.value.variance_b = _variance_b
+
         difference = sign * (value_b - value_a)
         difference_mean = difference - effect_size
         difference_std_error = np.sqrt(_variance_a + _variance_b)
@@ -1363,9 +1369,44 @@ class TwoSampleProportionIntervalDetectorModel(TwoSampleIntervalDetectorModel):
         sample_count_a: pd.Series,
         sample_count_b: pd.Series,
     ) -> Tuple[pd.Series, pd.Series]:
+        """A Normal approximation to the Binomial distribution.
+
+        X ~ Binomial(n, p), then X ≈ Normal(μ=np, σ=√np(1 - p))
+        provided np ≥ 5 and n(1-p) ≥ 5.
+
+        References:
+            https://en.wikipedia.org/wiki/Binomial_distribution#Normal_approximation
+        """
         _variance_a = value_a * (1 - value_a) / sample_count_a
         _variance_b = value_b * (1 - value_b) / sample_count_b
-        if self.data is not None:
-            self.data.value.variance_a = _variance_a
-            self.data.value.variance_b = _variance_b
+        return _variance_a, _variance_b
+
+
+class TwoSampleCountIntervalDetectorModel(TwoSampleIntervalDetectorModel):
+    """An extension that considers two count values at each time index."""
+
+    def _get_test_statistic_hook(self, df: pd.core.frame.DataFrame) -> None:
+        self.schema._validate_count(
+            df, [TwoSampleColumns.VALUE_A, TwoSampleColumns.VALUE_B]
+        )
+
+    def _get_variance(
+        self,
+        value_a: pd.Series,
+        value_b: pd.Series,
+        effect_size: pd.Series,
+        variance_a: pd.Series,
+        variance_b: pd.Series,
+        sample_count_a: pd.Series,
+        sample_count_b: pd.Series,
+    ) -> Tuple[pd.Series, pd.Series]:
+        """A Normal approximation to the Poisson distribution.
+
+        X ~ Poisson(𝜆), then X ≈ Normal(μ=𝜆, σ=√𝜆) provided 𝜆≫10
+
+        References:
+            https://en.wikipedia.org/wiki/Poisson_distribution#General
+        """
+        _variance_a = value_a / sample_count_a
+        _variance_b = value_b / sample_count_b
         return _variance_a, _variance_b
