@@ -21,6 +21,8 @@ This implementation supports the following key features:
     4. One sample and Two Sample tests. For Two Sample tests we support,
         tests of absolute differences (b - a) or relative differences (b / a).
 
+    5. One sided (lower and upper) and two sided tests.
+
 Typical usage example:
 
 >>> timeseries = TimeSeriesData(...)
@@ -48,7 +50,7 @@ from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from matplotlib import pyplot as plt
 from numpy.linalg import matrix_power
-from scipy.stats import norm
+from scipy.stats import beta, binom, norm
 
 DEFAULT_FIGSIZE = (10, 12)
 
@@ -62,6 +64,14 @@ class ListEnum(Enum):
             - https://github.com/python/cpython/blob/3.11/Lib/enum.py#L775.
         """
         return [cls._member_map_[name] for name in cls._member_names_]
+
+
+@unique
+class OneSampleColumns(ListEnum):
+    VALUE = "value"
+    VARIANCE = "variance"
+    SAMPLE_COUNT = "sample_count"
+    EFFECT_SIZE = "effect_size"
 
 
 @unique
@@ -168,7 +178,6 @@ class TwoSampleSchema(Schema):
         return [
             self.enum_cls.VARIANCE_A,
             self.enum_cls.VARIANCE_B,
-            self.enum_cls.EFFECT_SIZE,
         ]
 
     @property
@@ -193,6 +202,34 @@ class TwoSampleSchema(Schema):
         ]
 
 
+class OneSampleSchema(Schema):
+    enum_cls = OneSampleColumns
+
+    @property
+    def non_negative_columns(self) -> List[Enum]:
+        return [
+            self.enum_cls.VARIANCE,
+        ]
+
+    @property
+    def positive_columns(self) -> List[Enum]:
+        return [
+            self.enum_cls.SAMPLE_COUNT,
+        ]
+
+    @property
+    def integer_columns(self) -> List[Enum]:
+        return [
+            self.enum_cls.SAMPLE_COUNT,
+        ]
+
+    @property
+    def proportion_columns(self) -> List[Enum]:
+        return [
+            self.enum_cls.VALUE,
+        ]
+
+
 @unique
 class ABIntervalType(Enum):
     # Camel case since these are used as ABInterval class names
@@ -201,9 +238,16 @@ class ABIntervalType(Enum):
 
 
 @unique
-class TestDirection(Enum):
-    B_GREATER = "b_greater"
-    A_GREATER = "a_greater"
+class TestStatistic(Enum):
+    ABSOLUTE_DIFFERENCE = "absolute_difference"
+    RELATIVE_DIFFERENCE = "relative_difference"
+
+
+@unique
+class TestType(Enum):
+    ONE_SIDED_LOWER = "one_sided_lower"
+    ONE_SIDED_UPPER = "one_sided_upper"
+    TWO_SIDED = "two_sided"
 
 
 @dataclass
@@ -214,10 +258,31 @@ class ABTestResult:
     lower: pd.Series
 
 
-@unique
-class TestStatistic(Enum):
-    ABSOLUTE_DIFFERENCE = "absolute_difference"
-    RELATIVE_DIFFERENCE = "relative_difference"
+@dataclass
+class CriticalValue:
+    lower: Optional[pd.Series]
+    upper: Optional[pd.Series]
+
+    @property
+    def absolute_critical_value(self) -> pd.Series:
+        if self.lower is not None:
+            return np.absolute(self.lower)
+        elif self.upper is not None:
+            return np.absolute(self.upper)
+        else:
+            raise ValueError(
+                "Expecting either lower or upper to be specified. Found None."
+            )
+
+    @property
+    def non_nullable_lower(self) -> pd.Series:
+        assert self.lower is not None
+        return self.lower
+
+    @property
+    def non_nullable_upper(self) -> pd.Series:
+        assert self.upper is not None
+        return self.upper
 
 
 class ABInterval(IntervalAnomaly):
@@ -289,24 +354,22 @@ class IntervalDetectorModel(DetectorModel, ABC):
         the length of the time series and the overall requested Type I error (alpha).
         - If a duration parameter is specified, just use the supplied duration and alpha
         that is assigned.
-        - Only one tailed-tests are currently supported.
 
     Properties:
         alpha: Overall Type-I error of statistical test. Between 0 and 1 (inclusive).
         corrected_alpha: Corrected Type-I error of the statistical test taking the `duration`
             parameter into consideration. Between 0 and 1 (inclusive).
         duration: length of consecutive predictions considered to be significant.
-        test_statistic: The type of test statistic to compute for each time index.
-            - For value_b - value_a, use TestStatistic.ABSOLUTE_DIFFERENCE
-            - For value_b / value_a, use TestStatistic.RELATIVE_DIFFERENCE
-            Internally, TestStatistic.RELATIVE_DIFFERENCE is tested in log-space and the
-            delta method is applied to compute the standard error.
+        test_type: The type of test. One of the following:
+            - For testing b - a < 0 or b / a < 1, use TestType.ONE_SIDED_LOWER.
+            - For testing b - a > 0 or b / a > 1, use TestType.ONE_SIDED_UPPER.
+            - For testing b - a ≠ 0 or b / a ≠ 1, use TestType.TWO_SIDED.
         anomaly_intervals: A list of rejection intervals that meet or exceed the minimal `duration`.
         caution_intervals: Similar to `anomaly_intervals`, but don't meet the minimal `duration`.
 
     Attributes:
         data: Time series data passed to fit_predict. Must adhere to self.schema.
-        critical_value: Critical value used to convert test_statistic's to decisions.
+        critical_value: Critical value used to convert test_statistic(s) to decisions.
         test_result: Results of the AB test.
         fail_to_reject_intervals: List of intervals describing where the test has accepted the null hypothesis.
         reject_intervals: List of intervals describing where the test has rejected the null hypothesis.
@@ -316,8 +379,9 @@ class IntervalDetectorModel(DetectorModel, ABC):
     _corrected_alpha: Optional[float] = None
     _duration: Optional[int] = None
     _test_statistic: Optional[TestStatistic] = None
+    _test_type: Optional[TestType] = None
     data: Optional[TimeSeriesData] = None
-    critical_value: Optional[pd.Series] = None
+    critical_value: CriticalValue = CriticalValue(lower=None, upper=None)
     test_result: Optional[ABTestResult] = None
     fail_to_reject_intervals: Optional[List[ABInterval]] = None
     reject_intervals: Optional[List[ABInterval]] = None
@@ -327,18 +391,18 @@ class IntervalDetectorModel(DetectorModel, ABC):
         alpha: Optional[float] = 0.05,
         duration: Optional[int] = None,
         serialized_model: Optional[bytes] = None,
-        test_statistic: Optional[TestStatistic] = TestStatistic.ABSOLUTE_DIFFERENCE,
+        test_type: Optional[TestType] = TestType.ONE_SIDED_UPPER,
     ) -> None:
         if serialized_model:
             model_dict = json.loads(serialized_model)
             self.alpha = model_dict["alpha"]
             self.duration = model_dict["duration"]
             # deserialize value
-            self.test_statistic = TestStatistic(model_dict["test_statistic"])
+            self.test_type = TestType(model_dict["test_type"])
         else:
             self.alpha = alpha
             self.duration = duration
-            self.test_statistic = test_statistic
+            self.test_type = test_type
 
     def __repr__(self) -> str:
         _indent = "\n   "
@@ -384,22 +448,20 @@ class IntervalDetectorModel(DetectorModel, ABC):
         self._corrected_alpha = alpha
 
     @property
-    def test_statistic(self) -> TestStatistic:
-        if self._test_statistic is None:
-            raise ValueError("test_statistic is not initialized.")
-        return self._test_statistic
+    def test_type(self) -> TestType:
+        if self._test_type is None:
+            raise ValueError("test_type is not initialized.")
+        return self._test_type
 
-    @test_statistic.setter
-    def test_statistic(self, test_statistic: Optional[TestStatistic]) -> None:
-        if test_statistic is None:
-            raise ValueError(
-                f"test_statistic must be specified. Found {test_statistic}."
-            )
-        elif not isinstance(test_statistic, TestStatistic):
+    @test_type.setter
+    def test_type(self, test_type: Optional[TestType]) -> None:
+        if test_type is None:
+            raise ValueError(f"test_type must be specified. Found {test_type}.")
+        elif not isinstance(test_type, TestType):
             raise TypeError(
-                f"test_statistic must be of type TestStatistic. Found {type(test_statistic)}."
+                f"test_type must be of type TestType. Found {type(test_type)}."
             )
-        self._test_statistic = test_statistic
+        self._test_type = test_type
 
     @property
     def duration(self) -> Optional[int]:
@@ -456,13 +518,14 @@ class IntervalDetectorModel(DetectorModel, ABC):
                 "alpha": self.alpha,
                 "duration": self.duration,
                 # serialize value
-                "test_statistic": self.test_statistic.value,
+                "test_type": self.test_type.value,
             },
             **self._json,
         }
 
     @property
     def _json(self) -> Dict[str, str]:
+        """Hook for extensions to add attributes to serialization."""
         return {}
 
     def serialize(self) -> bytes:
@@ -483,7 +546,6 @@ class IntervalDetectorModel(DetectorModel, ABC):
 
         Notes:
             - All entries of data and historical_data must be specified (no na values).
-            - All entries of column `effect_size` must be positive (> 0).
 
         Args:
             data: Time series containing columns specified in `self.schema`.
@@ -587,7 +649,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
             stat_sig_ts=TimeSeriesData(time=_data.time, value=_stat_sig),
         )
 
-    def _get_critical_value(self, length: int, r_tol: float) -> pd.Series:
+    def _get_critical_value(self, length: int, r_tol: float) -> CriticalValue:
         """Determine a critical value for a statistical test.
 
         Notes:
@@ -628,10 +690,33 @@ class IntervalDetectorModel(DetectorModel, ABC):
                 + f"\nType-I Error adjusted to {lowest_p.p_global} from {self.alpha}"
             )
             self.corrected_alpha = lowest_p.p_corrected
-        # TODO: Add a condition for a two tailed test. i.e.
-        #   if self.two_tailed:
-        #       return norm.ppf(1.0 - self.alpha / 2)
-        return self._convert_alpha_to_critical_value(self.corrected_alpha, length)
+        if self.test_type == TestType.ONE_SIDED_LOWER:
+            return CriticalValue(
+                lower=self._convert_alpha_to_critical_value(
+                    self.corrected_alpha, length
+                ),
+                upper=None,
+            )
+        elif self.test_type == TestType.ONE_SIDED_UPPER:
+            return CriticalValue(
+                lower=None,
+                upper=self._convert_alpha_to_critical_value(
+                    1.0 - self.corrected_alpha, length
+                ),
+            )
+        elif self.test_type == TestType.TWO_SIDED:
+            return CriticalValue(
+                lower=self._convert_alpha_to_critical_value(
+                    self.corrected_alpha / 2, length
+                ),
+                upper=self._convert_alpha_to_critical_value(
+                    1.0 - self.corrected_alpha / 2, length
+                ),
+            )
+        else:
+            raise ValueError(
+                f"Expected test_type to be of TestType. Found {self.test_type}"
+            )
 
     @abstractmethod
     def _convert_alpha_to_critical_value(self, alpha: float, length: int) -> pd.Series:
@@ -851,33 +936,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
         Returns:
             Contiguous intervals made from the sequential predictions.
         """
-        test_result = self.test_result
-        if test_result is None:
-            raise ValueError("test result is None. Call fit_predict() first")
-        critical_value: Optional[pd.Series] = self.critical_value
-        if critical_value is None:
-            raise ValueError("critical_value is None. Call fit_predict() first")
-
-        if test_result.test_statistic.shape != critical_value.shape:
-            raise ValueError(
-                f"test_statistic and critical_value have mismatching shapes. "
-                f"Found {test_result.test_statistic.shape} and {critical_value.shape}."
-            )
-
-        # TODO: Add a condition for a two tailed test
-        if interval_type == interval_type.REJECT:
-            _mask: np.ndarray = (
-                test_result.test_statistic.to_numpy() >= critical_value.to_numpy()
-            )
-        elif interval_type == interval_type.FAIL_TO_REJECT:
-            _mask: np.ndarray = (
-                test_result.test_statistic.to_numpy() < critical_value.to_numpy()
-            )
-        else:
-            raise ValueError(
-                f"Expecting test_name one of 'reject' or 'accept'. Found {interval_type.value}."
-            )
-
+        _mask = self._get_test_decision(interval_type)
         starts, ends = self._get_true_run_indices(_mask)
         intervals: List[ABInterval] = []
 
@@ -898,6 +957,74 @@ class IntervalDetectorModel(DetectorModel, ABC):
             intervals.append(interval)
         return intervals
 
+    def _get_test_decision(self, interval_type: ABIntervalType) -> np.ndarray:
+        """Converts a critical value and test statistic into a boolean decision.
+
+        Args:
+            interval_type: The type of interval for a given decision.
+
+        Returns:
+            A one-dimensional boolean array of test decisions.
+        """
+        if self.test_result is None:
+            raise ValueError("test result is None. Call fit_predict() first")
+        else:
+            test_result: ABTestResult = self.test_result
+
+        def _check_shapes(x: pd.Series) -> None:
+            if test_result.test_statistic.shape != x.shape:
+                raise ValueError(
+                    f"test_statistic and critical_value have mismatching shapes. "
+                    f"Found {test_result.test_statistic.shape} and {x.shape}."
+                )
+
+        # Compute _mask for interval_type.REJECT case.
+        if self.test_type == TestType.ONE_SIDED_LOWER:
+            _lower: pd.Series = self.critical_value.non_nullable_lower
+            _check_shapes(_lower)
+            _mask: np.ndarray = (
+                test_result.test_statistic.to_numpy() <= _lower.to_numpy()
+            )
+        elif self.test_type == TestType.ONE_SIDED_UPPER:
+            _upper: pd.Series = self.critical_value.non_nullable_upper
+            _check_shapes(_upper)
+            _mask: np.ndarray = (
+                test_result.test_statistic.to_numpy() >= _upper.to_numpy()
+            )
+        elif self.test_type == TestType.TWO_SIDED:
+            _lower: pd.Series = self.critical_value.non_nullable_lower
+            _upper: pd.Series = self.critical_value.non_nullable_upper
+            _check_shapes(_lower)
+            _check_shapes(_upper)
+            _mask: np.ndarray = np.logical_or(
+                test_result.test_statistic.to_numpy() <= _lower.to_numpy(),
+                test_result.test_statistic.to_numpy() >= _upper.to_numpy(),
+            )
+        else:
+            raise ValueError(
+                f"Expected test_type to be of TestType. Found {self.test_type}"
+            )
+        # Check the return object.
+        if _mask.ndim != 1:
+            raise ValueError(f"Expecting a 1D array. Found {_mask.ndim} dimensions.")
+        elif _mask.shape[0] == 0:
+            raise ValueError(
+                f"Expecting an array with length > 0. Found {_mask.shape[0]}."
+            )
+        elif _mask.dtype != np.dtype("bool"):
+            raise ValueError(
+                f"x must have x.dtype == np.dtype('bool'). Found {_mask.dtype}."
+            )
+        # Invert _mask for interval_type.FAIL_TO_REJECT, otherwise just _mask.
+        if interval_type == ABIntervalType.REJECT:
+            return _mask
+        if interval_type == ABIntervalType.FAIL_TO_REJECT:
+            return np.invert(_mask)
+        else:
+            raise ValueError(
+                f"Expected interval_type to be of ABIntervalType. Found {ABIntervalType}."
+            )
+
     @staticmethod
     def _get_true_run_indices(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Helper function that finds consecutive runs of `True` values.
@@ -913,14 +1040,6 @@ class IntervalDetectorModel(DetectorModel, ABC):
         Returns:
             Tuple of starting & ending index arrays for all consecutive `True` runs in `x`.
         """
-        if x.ndim != 1:
-            raise ValueError(f"Expecting a 1D array. Found {x.ndim} dimensions.")
-        elif x.shape[0] == 0:
-            raise ValueError(f"Expecting an array with length > 0. Found {x.shape[0]}.")
-        elif x.dtype != np.dtype("bool"):
-            raise ValueError(
-                f"x must have x.dtype == np.dtype('bool'). Found {x.dtype}."
-            )
         n = x.shape[0]
         loc_run_start = np.empty(n, dtype=bool)
         loc_run_start[0] = True
@@ -985,8 +1104,6 @@ class IntervalDetectorModel(DetectorModel, ABC):
         test_result: Optional[ABTestResult] = self.test_result
         assert self.fail_to_reject_intervals is not None
         fail_to_reject_intervals = self.fail_to_reject_intervals
-        assert self.critical_value is not None
-        critical_value: Optional[pd.Series] = self.critical_value
 
         # Setup axes
         _, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize)
@@ -1002,7 +1119,6 @@ class IntervalDetectorModel(DetectorModel, ABC):
 
         # Plot the test statistic and intervals
         ax2.plot(x_axis, test_result.test_statistic, label="test statistic")
-        ax2.plot(x_axis, self.critical_value, label="reject", color="r", ls="--")
 
         # Define two helper functions to extract information from a ABInterval.
         def get_grid(interval: ABInterval) -> pd.Series:
@@ -1031,6 +1147,21 @@ class IntervalDetectorModel(DetectorModel, ABC):
                     pd.Series(values[end_idx]),
                 ]
             )
+
+        if self.test_type == TestType.ONE_SIDED_LOWER:
+            critical_value = self.critical_value.non_nullable_lower
+        elif self.test_type == TestType.ONE_SIDED_UPPER:
+            critical_value = self.critical_value.non_nullable_upper
+        elif self.test_type == TestType.TWO_SIDED:
+            # TODO: Figure out a better way to plot two sided test.
+            return ax1, ax2
+        else:
+            raise ValueError(
+                f"Expected test_type to be of TestType. Found {self.test_type}"
+            )
+
+        # Plot the critical value
+        ax2.plot(x_axis, critical_value, label="reject", color="r", ls="--")
 
         # Plot the fail to reject intervals
         for i, interval in enumerate(fail_to_reject_intervals):
@@ -1066,7 +1197,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
             )
         ax2.set_ylabel("Test Statistic")
         ax2.set_xlabel(f"Elapsed time ({interval_units}) from {data.time.min()}")
-        ax2.title.set_text(f"Test Statistic for duration: {self.duration}")
+        ax2.title.set_text(f"Test Statistic w/ duration: {self.duration}")
         ax2.legend()
         return ax1, ax2
 
@@ -1081,22 +1212,25 @@ class IntervalDetectorModel(DetectorModel, ABC):
 class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
     """Abstract Base Class that considers two samples at each time index.
 
+    This class interprets `effect_size` as either the difference or ratio of
+    the two samples. This is determined by the `test_statistic` property as
+    described below.
+
     Properties:
-        test_direction: Test of either b_greater (value_b - value_a > effect_sizes) or
-            a_greater (value_a - value_b > effect_sizes).
-            Or equivalently, value_b / value_a > (1 + effect_sizes) or
-            value_a / value_b > (1 + effect_sizes).
+        test_statistic: The type of test statistic to compute for each time index.
+            - For value_b - value_a, use TestStatistic.ABSOLUTE_DIFFERENCE
+            - For value_b / value_a, use TestStatistic.RELATIVE_DIFFERENCE
+            Internally, TestStatistic.RELATIVE_DIFFERENCE is tested in log-space and the
+            delta method is applied to compute the standard error.
 
     Notes:
         - This class relies on a normal approximation for the difference or
             ratio of two distributions.
         - In the case of TestStatistic.RELATIVE_DIFFERENCE, (1 + `effect_size`)
-            will be used as the ratio to test value_b / value_a or value_a / value_b.
+            will be used as the ratio to test value_b / value_a.
         - In the case of TestStatistic.RELATIVE_DIFFERENCE, lower and upper are
             reported on the relative risk scale (exponentiated from log-space).
     """
-
-    _test_direction: Optional[TestDirection] = None
 
     def __init__(
         self,
@@ -1104,58 +1238,50 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
         duration: Optional[int] = None,
         serialized_model: Optional[bytes] = None,
         test_statistic: Optional[TestStatistic] = TestStatistic.ABSOLUTE_DIFFERENCE,
-        test_direction: Optional[TestDirection] = TestDirection.B_GREATER,
+        test_type: Optional[TestType] = TestType.ONE_SIDED_UPPER,
     ) -> None:
         super().__init__(
             alpha=alpha,
             duration=duration,
             serialized_model=serialized_model,
-            test_statistic=test_statistic,
+            test_type=test_type,
         )
         if serialized_model:
             model_dict = json.loads(serialized_model)
-            self.test_direction = TestDirection(model_dict["test_direction"])
+            self.test_statistic = TestStatistic(model_dict["test_statistic"])
         else:
-            self.test_direction = test_direction
+            self.test_statistic = test_statistic
 
     @property
-    def test_direction(self) -> TestDirection:
-        if self._test_direction is None:
-            raise ValueError("test_direction is not initialized.")
-        return self._test_direction
+    def test_statistic(self) -> TestStatistic:
+        if self._test_statistic is None:
+            raise ValueError("test_statistic is not initialized.")
+        return self._test_statistic
 
-    @test_direction.setter
-    def test_direction(self, test_direction: Optional[TestDirection]) -> None:
-        if test_direction is None:
+    @test_statistic.setter
+    def test_statistic(self, test_statistic: Optional[TestStatistic]) -> None:
+        if test_statistic is None:
             raise ValueError(
-                f"test_direction must be specified. Found {test_direction}."
+                f"test_statistic must be specified. Found {test_statistic}."
             )
-        elif not isinstance(test_direction, TestDirection):
+        elif not isinstance(test_statistic, TestStatistic):
             raise TypeError(
-                f"test_direction must be of type TestDirection. Found {type(test_direction)}."
+                f"test_statistic must be of type TestStatistic. Found {type(test_statistic)}."
             )
-        self._test_direction = test_direction
+        self._test_statistic = test_statistic
 
     @property
     def _json(self) -> Dict[str, str]:
-        return {"test_direction": self.test_direction.value}
+        return {"test_statistic": self.test_statistic.value}
 
     @property
     def schema(self) -> Schema:
         return TwoSampleSchema()
 
     def _convert_alpha_to_critical_value(self, alpha: float, length: int) -> pd.Series:
-        return pd.Series([norm.ppf(1.0 - alpha)] * length)
+        return pd.Series([norm.ppf(alpha)] * length)
 
     def _get_test_statistic(self, df: pd.core.frame.DataFrame) -> ABTestResult:
-        if self.test_direction == TestDirection.B_GREATER:
-            _sign: int = 1
-        elif self.test_direction == TestDirection.A_GREATER:
-            _sign: int = -1
-        else:
-            raise ValueError(
-                f"test_direction was incorrectly specified. Found {self.test_direction}"
-            )
         if self.test_statistic == TestStatistic.ABSOLUTE_DIFFERENCE:
             _fn = self._absolute_difference_test_statistic
         elif self.test_statistic == TestStatistic.RELATIVE_DIFFERENCE:
@@ -1172,7 +1298,6 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
             variance_b=df.variance_b,
             sample_count_a=df.sample_count_a,
             sample_count_b=df.sample_count_b,
-            sign=_sign,
         )
 
     def _absolute_difference_test_statistic(
@@ -1184,7 +1309,6 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
         variance_b: pd.Series,
         sample_count_a: pd.Series,
         sample_count_b: pd.Series,
-        sign: int,
     ) -> ABTestResult:
         _variance_a, _variance_b = self._get_variance(
             value_a=value_a,
@@ -1201,20 +1325,34 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
             self.data.value.variance_a = _variance_a
             self.data.value.variance_b = _variance_b
 
-        difference = sign * (value_b - value_a)
+        difference = value_b - value_a
         difference_mean = difference - effect_size
         difference_std_error = np.sqrt(_variance_a + _variance_b)
         test_statistic = pd.Series(difference_mean / difference_std_error)
-        stat_sig = pd.Series(norm.sf(test_statistic))
 
-        # TODO: Add a condition for a two tailed test
-        assert self.critical_value is not None
-        critical_value: pd.Series = self.critical_value
+        # Use symmetry of Normal distribution for a single critical value.
+        critical_value: pd.Series = self.critical_value.absolute_critical_value
 
         # -z < (x - mu) / sigma < z
+        # -z * sigma - x < -mu < z * sigma - x
+        #    ONE_SIDED_UPPER        ONE_SIDED_LOWER
         # => x - z * sigma <= mu <= z * sigma + x
         upper = difference + critical_value * difference_std_error
         lower = difference - critical_value * difference_std_error
+        if self.test_type == TestType.ONE_SIDED_LOWER:
+            stat_sig = pd.Series(norm.cdf(test_statistic))
+            lower = pd.Series([-np.inf] * len(difference))
+        elif self.test_type == TestType.ONE_SIDED_UPPER:
+            stat_sig = pd.Series(norm.sf(test_statistic))
+            upper = pd.Series([np.inf] * len(difference))
+        elif self.test_type == TestType.TWO_SIDED:
+            stat_sig = pd.Series(
+                np.minimum(norm.cdf(test_statistic), norm.sf(test_statistic))
+            )
+        else:
+            raise ValueError(
+                f"Expected test_type to be of TestType. Found {self.test_type}"
+            )
         return ABTestResult(
             test_statistic=test_statistic, stat_sig=stat_sig, upper=upper, lower=lower
         )
@@ -1228,7 +1366,6 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
         variance_b: pd.Series,
         sample_count_a: pd.Series,
         sample_count_b: pd.Series,
-        sign: int,
     ) -> ABTestResult:
         _EPS = 1e-9
         _EPS_2 = _EPS**2
@@ -1250,7 +1387,6 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
         # Convert value_a / value_b, consider difference of logs.
         difference = np.log(np.maximum(value_b, _EPS))
         difference -= np.log(np.maximum(value_a, _EPS))
-        difference *= sign
         difference_mean = difference - np.log(1 + effect_size)
         # Apply a delta method for the variance of the log by scaling
         # by a g'(𝜽) ** 2 term. In the case of g = log, g'(𝜽) = 1 / 𝜽.
@@ -1260,20 +1396,34 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
             + _variance_b / np.maximum(value_b**2, _EPS_2)
         )
         test_statistic = pd.Series(difference_mean / difference_std_error)
-        stat_sig = pd.Series(norm.sf(test_statistic))
 
-        # TODO: Add a condition for a two tailed test
-        assert self.critical_value is not None
-        critical_value: pd.Series = self.critical_value
+        # Use symmetry of Normal distribution for a single critical value.
+        critical_value: pd.Series = self.critical_value.absolute_critical_value
 
         # b / a >= 1 + r
         # log(b) - log(a) >= log(1 + r)
         # log(b) - log(a) - log(1 + r) >= 0
         # log(b) - log(a) = r'
         # -z < (r' - log(1 + r)) / sigma < z
+        #    ONE_SIDED_UPPER                 ONE_SIDED_LOWER
         # => exp[r' - z * sigma] <= 1 + r <= exp[r' + z * sigma]
         upper = np.exp(difference + critical_value * difference_std_error)
         lower = np.exp(difference - critical_value * difference_std_error)
+        if self.test_type == TestType.ONE_SIDED_LOWER:
+            stat_sig = pd.Series(norm.cdf(test_statistic))
+            lower = pd.Series([-np.inf] * len(upper))
+        elif self.test_type == TestType.ONE_SIDED_UPPER:
+            stat_sig = pd.Series(norm.sf(test_statistic))
+            upper = pd.Series([np.inf] * len(lower))
+        elif self.test_type == TestType.TWO_SIDED:
+            stat_sig = pd.Series(
+                np.minimum(norm.cdf(test_statistic), norm.sf(test_statistic))
+            )
+
+        else:
+            raise ValueError(
+                f"Expected test_type to be of TestType. Found {self.test_type}"
+            )
         return ABTestResult(
             test_statistic=test_statistic, stat_sig=stat_sig, upper=upper, lower=lower
         )
@@ -1298,6 +1448,7 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
         # Plot the original time series with the respective variance.
         axis.plot(x_axis, data.value.value_b, label="value_b", ls="-", color="blue")
         axis.plot(x_axis, data.value.value_a, label="value_a", ls="-", color="teal")
+
         if self.test_statistic == TestStatistic.ABSOLUTE_DIFFERENCE:
             axis.plot(
                 x_axis,
@@ -1410,3 +1561,125 @@ class TwoSampleCountIntervalDetectorModel(TwoSampleIntervalDetectorModel):
         _variance_a = value_a / sample_count_a
         _variance_b = value_b / sample_count_b
         return _variance_a, _variance_b
+
+
+class OneSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
+    """An extension that considers one sample at each time index."""
+
+    @property
+    def schema(self) -> Schema:
+        return OneSampleSchema()
+
+    def _get_test_statistic(self, df: pd.core.frame.DataFrame) -> ABTestResult:
+        return self._one_sample_test_statistic(
+            value=df.value,
+            effect_size=df.effect_size,
+            variance=df.effect_size,
+            sample_count=df.sample_count,
+        )
+
+    @abstractmethod
+    def _one_sample_test_statistic(
+        self,
+        value: pd.Series,
+        effect_size: pd.Series,
+        variance: pd.Series,
+        sample_count: pd.Series,
+    ) -> ABTestResult:
+        raise NotImplementedError
+
+
+class OneSampleProportionIntervalDetectorModel(OneSampleIntervalDetectorModel):
+    def _convert_alpha_to_critical_value(self, alpha: float, length: int) -> pd.Series:
+        if self.data is None:
+            raise ValueError("data cannot be None. Call `fit_predict` first.")
+        data = self.data
+        effect_size = data.value[OneSampleColumns.EFFECT_SIZE.value]
+        n = data.value[OneSampleColumns.SAMPLE_COUNT.value]
+        return pd.Series(
+            binom.ppf(
+                alpha,
+                n=n,
+                p=effect_size,
+            )
+            / n
+        )
+
+    def _get_test_statistic_hook(self, df: pd.core.frame.DataFrame) -> None:
+        self.schema._validate_proportion(
+            df, self.schema.proportion_columns + [OneSampleColumns.EFFECT_SIZE]
+        )
+
+    def _one_sample_test_statistic(
+        self,
+        value: pd.Series,
+        effect_size: pd.Series,
+        variance: pd.Series,
+        sample_count: pd.Series,
+    ) -> ABTestResult:
+        """Computes a One Sample Test Statistic for a Sample Proportion.
+
+        References:
+            Clopper-Pearson Interval for Binomial Confidence Interval -
+            https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Clopper%E2%80%93Pearson_interval
+        """
+        k = value * sample_count
+        lower = pd.Series(
+            beta.ppf(
+                q=self.corrected_alpha,
+                a=k,
+                b=sample_count - k + 1,
+            )
+        )
+        upper = pd.Series(
+            beta.ppf(
+                q=1 - self.corrected_alpha,
+                a=k + 1,
+                b=sample_count - k,
+            )
+        )
+        if self.test_type == TestType.ONE_SIDED_LOWER:
+            stat_sig = pd.Series(binom.cdf(k=k, n=sample_count, p=effect_size))
+            lower = pd.Series([0.0] * len(upper))
+        elif self.test_type == TestType.ONE_SIDED_UPPER:
+            stat_sig = pd.Series(binom.sf(k=k, n=sample_count, p=effect_size))
+            upper = pd.Series([1.0] * len(lower))
+        elif self.test_type == TestType.TWO_SIDED:
+            stat_sig = pd.Series(
+                np.minimum(
+                    binom.cdf(k=k, n=sample_count, p=effect_size),
+                    binom.sf(k=k, n=sample_count, p=effect_size),
+                )
+            )
+        else:
+            raise ValueError(
+                f"Expected test_type to be of TestType. Found {self.test_type}"
+            )
+        return ABTestResult(
+            test_statistic=value,
+            stat_sig=stat_sig,
+            lower=lower,
+            upper=upper,
+        )
+
+    def _plot(
+        self, x_axis: pd.Series, data: TimeSeriesData, axis: plt.Axes, alpha: float
+    ) -> None:
+        n = data.value[OneSampleColumns.SAMPLE_COUNT.value]
+        axis.plot(x_axis, data.value.value, label="value", ls="-", color="blue")
+        axis.plot(
+            x_axis,
+            data.value.effect_size,
+            label="threshold",
+            ls="--",
+            color="red",
+        )
+        axis.fill_between(
+            x=x_axis,
+            y1=binom.ppf(q=self.alpha, n=n, p=data.value.value) / n,
+            y2=binom.ppf(q=1 - self.alpha, n=n, p=data.value.value) / n,
+            alpha=alpha,
+            color="blue",
+            label="value SE",
+        )
+        axis.title.set_text("Values")

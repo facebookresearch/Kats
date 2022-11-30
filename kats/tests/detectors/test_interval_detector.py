@@ -13,16 +13,20 @@ import pandas as pd
 
 from kats.consts import TimeSeriesData
 from kats.detectors.interval_detector import (
+    IntervalDetectorModel,
+    OneSampleProportionIntervalDetectorModel,
     TestStatistic,
+    TestType,
     TwoSampleCountIntervalDetectorModel,
     TwoSampleProportionIntervalDetectorModel,
     TwoSampleRealValuedIntervalDetectorModel,
+    TwoSampleSchema,
 )
 from parameterized.parameterized import parameterized
 from scipy.stats import norm
 
 
-_SERIALIZED = b'{"alpha": 0.1, "duration": 1, "test_statistic": "absolute_difference", "test_direction": "b_greater"}'
+_SERIALIZED = b'{"alpha": 0.1, "duration": 1, "test_type": "one_sided_upper", "test_statistic": "absolute_difference"}'
 
 _Z_SCORE: float = 1.6448536269514722
 _P_VALUE: float = 0.05
@@ -45,29 +49,166 @@ def _dp_solve(p: float, n: int, m: int) -> np.ndarray:
     return a
 
 
+def _generate_dataframe() -> pd.DataFrame:
+    date_start = datetime.strptime("2020-03-01", "%Y-%m-%d")
+    time = [date_start + timedelta(hours=x) for x in range(60)]
+    value_a = np.array([0.05] * len(time))
+    value_b = np.array([0.08] * len(time))
+    variance_a = np.array([1] * len(time))
+    variance_b = np.array([1] * len(time))
+    sample_count_a = np.array([100] * len(time))
+    sample_count_b = np.array([100] * len(time))
+    effect_size = np.array([0.02] * len(time))
+    df = pd.DataFrame(
+        {
+            "time": time,
+            "value_a": value_a,
+            "value_b": value_b,
+            "variance_a": variance_a,
+            "variance_b": variance_b,
+            "sample_count_a": sample_count_a,
+            "sample_count_b": sample_count_b,
+            "effect_size": effect_size,
+        }
+    )
+    return df.copy()
+
+
+class TestTwoSampleSchema(TestCase):
+    def setUp(self) -> None:
+        self.df = _generate_dataframe()
+        self.schema = TwoSampleSchema()
+
+    def test_column_names(self) -> None:
+        df = self.df.copy()
+        # valid df
+        self.schema._validate_names(df)
+        df.drop(columns=["variance_a"], inplace=True)
+        with self.assertRaises(ValueError):
+            self.schema._validate_names(df)
+
+    def test_non_negative_columns(self) -> None:
+        df = self.df.copy()
+        # valid df
+        self.schema._validate_data(df)
+        df["variance_a"].iloc[10] = -0.1
+        with self.assertRaises(ValueError):
+            self.schema._validate_data(df)
+
+    def test_positive_columns(self) -> None:
+        df = self.df.copy()
+        # valid df
+        self.schema._validate_data(df)
+        df["effect_size"].iloc[10] = -0.1
+        df["sample_count_a"].iloc[2] = 0.0
+        with self.assertRaises(ValueError):
+            self.schema._validate_data(df)
+
+    def test_integer_columns(self) -> None:
+        df = self.df.copy()
+        # valid df
+        self.schema._validate_data(df)
+        df["sample_count_a"].iloc[10] = 1.5
+        with self.assertRaises(ValueError):
+            self.schema._validate_data(df)
+
+    def test_na_in_data(self) -> None:
+        df = self.df.copy()
+        # valid df
+        self.schema._validate_data(df)
+        df["effect_size"].iloc[4] = None
+        with self.assertRaises(ValueError):
+            self.schema._validate_data(df)
+        df["effect_size"].iloc[6] = 1
+        df["value_a"].iloc[10] = None
+        with self.assertRaises(ValueError):
+            self.schema._validate_data(df)
+
+
+class TestIntervalDetectorModel(TestCase):
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            [[True, True, False, True], ([0, 3], [1, 3])],
+            [[False, True, True, False], ([1], [2])],
+            [[False, False, False, False], ([], [])],
+        ]
+    )
+    def test_get_true_run_indices(
+        self, sequence: List[bool], expected: Tuple[List[int], List[int]]
+    ) -> None:
+        starts, ends = IntervalDetectorModel._get_true_run_indices(np.array(sequence))
+        expected_starts, expected_ends = expected
+        assert starts.tolist() == expected_starts
+        assert ends.tolist() == expected_ends
+
+    def test_probability_of_at_least_one_m_run_in_n_trials(self) -> None:
+        """Compare vectorized solution against a known and correct dp solution."""
+        p = 0.05
+        for m in range(1, 100):
+            assert np.isclose(
+                _dp_solve(p=p, n=100, m=m)[-1],
+                IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
+                    p=p, n=100, m=m
+                ),
+            )
+        for n in range(1, 100):
+            assert np.isclose(
+                _dp_solve(p=p, n=n, m=n)[-1],
+                IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
+                    p=p, n=n, m=n
+                ),
+            )
+
+    def test_dp_solve(self) -> None:
+        """Test the _dp_solve helper function."""
+        _precomputed = [
+            0.0,
+            0.0025000000000000005,
+            0.004875000000000001,
+            0.007250000000000001,
+            0.009619062500000001,
+            0.011982484375,
+            0.014340265625,
+            0.0166924203515625,
+            0.019038961951171877,
+            0.021379903820312504,
+            0.023715259321977544,
+            0.026045041787343508,
+            0.028369264515770265,
+            0.030687940774880566,
+            0.03300108380063563,
+            0.035308706797410674,
+            0.03761082293807033,
+            0.03990744536404382,
+            0.042198587185399976,
+            0.04448426148092206,
+            0.04676448129818246,
+            0.049039259653617134,
+            0.05130860953259994,
+            0.05357254388951676,
+            0.055831075647839415,
+        ]
+        p = 0.05
+        q = 1 - p
+        run_1 = _dp_solve(p=p, n=25, m=1)
+        run_2 = _dp_solve(p=p, n=25, m=2)
+        run_3 = _dp_solve(p=p, n=25, m=3)
+        run_25 = _dp_solve(p=p, n=25, m=25)
+        # Verify simple cases solved by hand.
+        assert np.isclose(run_1[-1], 1 - 0.95**25)
+        assert np.isclose(run_2[2], p**3 + 2 * p**2 * q)
+        assert np.isclose(run_2[3], p**4 + 4 * p**3 * q + 3 * p**2 * q**2)
+        assert np.isclose(run_3[3], p**4 + 2 * p**3 * q)
+        assert np.isclose(run_3[4], p**5 + 3 * p**3 * q**2 + 4 * p**4 * q)
+        assert np.isclose(run_25[-1], p**25)
+        # Verify the entire precomputed sequence for a run of 2.
+        assert np.all(np.isclose(run_2, _precomputed))
+
+
 class TestTwoSampleProportionIntervalDetectorModel(TestCase):
     def setUp(self) -> None:
-        date_start = datetime.strptime("2020-03-01", "%Y-%m-%d")
-        self.time = [date_start + timedelta(hours=x) for x in range(60)]
-        self.value_a = np.array([0.05] * len(self.time))
-        self.value_b = np.array([0.08] * len(self.time))
-        self.variance_a = np.array([1] * len(self.time))
-        self.variance_b = np.array([1] * len(self.time))
-        self.sample_count_a = np.array([100] * len(self.time))
-        self.sample_count_b = np.array([100] * len(self.time))
-        self.effect_size = np.array([0.02] * len(self.time))
-        self.df = pd.DataFrame(
-            {
-                "time": self.time,
-                "value_a": self.value_a,
-                "value_b": self.value_b,
-                "variance_a": self.variance_a,
-                "variance_b": self.variance_b,
-                "sample_count_a": self.sample_count_a,
-                "sample_count_b": self.sample_count_b,
-                "effect_size": self.effect_size,
-            }
-        )
+        self.df = _generate_dataframe()
         self.interval_detector = TwoSampleProportionIntervalDetectorModel(
             alpha=0.05, duration=1
         )
@@ -107,71 +248,6 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
         with self.assertRaises(ValueError):
             TwoSampleProportionIntervalDetectorModel(alpha=0.05, duration=-1)
 
-    def test_no_test_direction(self) -> None:
-        with self.assertRaises(ValueError):
-            TwoSampleProportionIntervalDetectorModel(alpha=0.05, test_direction=None)
-
-    def test_column_names(self) -> None:
-        df = self.df.copy()
-        # valid df
-        self.interval_detector.schema._validate_names(df)
-        df.drop(columns=["variance_a"], inplace=True)
-        with self.assertRaises(ValueError):
-            self.interval_detector.schema._validate_names(df)
-
-    def test_non_negative_columns(self) -> None:
-        df = self.df.copy()
-        # valid df
-        self.interval_detector.schema._validate_data(df)
-        df["variance_a"].iloc[10] = -0.1
-        with self.assertRaises(ValueError):
-            self.interval_detector.schema._validate_data(df)
-
-    def test_positive_columns(self) -> None:
-        df = self.df.copy()
-        # valid df
-        self.interval_detector.schema._validate_data(df)
-        df["effect_size"].iloc[10] = -0.1
-        df["sample_count_a"].iloc[2] = 0.0
-        with self.assertRaises(ValueError):
-            self.interval_detector.schema._validate_data(df)
-
-    def test_integer_columns(self) -> None:
-        df = self.df.copy()
-        # valid df
-        self.interval_detector.schema._validate_data(df)
-        df["sample_count_a"].iloc[10] = 1.5
-        with self.assertRaises(ValueError):
-            self.interval_detector.schema._validate_data(df)
-
-    def test_na_in_data(self) -> None:
-        df = self.df.copy()
-        # valid df
-        self.interval_detector.schema._validate_data(df)
-        df["effect_size"].iloc[4] = None
-        with self.assertRaises(ValueError):
-            self.interval_detector.schema._validate_data(df)
-        df["effect_size"].iloc[6] = 1
-        df["value_a"].iloc[10] = None
-        with self.assertRaises(ValueError):
-            self.interval_detector.schema._validate_data(df)
-
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
-    @parameterized.expand(
-        [
-            [[True, True, False, True], ([0, 3], [1, 3])],
-            [[False, True, True, False], ([1], [2])],
-            [[False, False, False, False], ([], [])],
-        ]
-    )
-    def test_get_true_run_indices(
-        self, sequence: List[bool], expected: Tuple[List[int], List[int]]
-    ) -> None:
-        starts, ends = self.interval_detector._get_true_run_indices(np.array(sequence))
-        expected_starts, expected_ends = expected
-        assert starts.tolist() == expected_starts
-        assert ends.tolist() == expected_ends
-
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
         [
@@ -193,10 +269,10 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
         )
         test_statistic = self.interval_detector.get_test_statistic(df)
         # "manually" compute z-scores
-        diff = self.value_b - self.value_a - self.effect_size
+        diff = df.value_b - df.value_a - df.effect_size
         std_error = np.sqrt(
-            self.value_a * (1 - self.value_a) / self.sample_count_a
-            + self.value_b * (1 - self.value_b) / self.sample_count_b
+            df.value_a * (1 - df.value_a) / df.sample_count_a
+            + df.value_b * (1 - df.value_b) / df.sample_count_b
         )
         z_score = diff / std_error
         assert all(np.isclose(test_statistic.test_statistic.values, z_score))
@@ -210,18 +286,10 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
         self.interval_detector.test_statistic = TestStatistic.RELATIVE_DIFFERENCE
         test_statistic = self.interval_detector.get_test_statistic(df)
         # "manually" compute z-scores
-        diff = (
-            np.log(self.value_b) - np.log(self.value_a) - np.log(1 + self.effect_size)
-        )
+        diff = np.log(df.value_b) - np.log(df.value_a) - np.log(1 + df.effect_size)
         std_error = np.sqrt(
-            self.value_a
-            * (1 - self.value_a)
-            / self.sample_count_a
-            / (self.value_a**2)
-            + self.value_b
-            * (1 - self.value_b)
-            / self.sample_count_b
-            / (self.value_b**2)
+            df.value_a * (1 - df.value_a) / df.sample_count_a / (df.value_a**2)
+            + df.value_b * (1 - df.value_b) / df.sample_count_b / (df.value_b**2)
         )
         z_score = diff / std_error
         assert all(np.isclose(test_statistic.test_statistic.values, z_score))
@@ -234,8 +302,7 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
             [False],
         ]
     )
-    def test_blatent_anomaly(self, consolidate_into_intervals: bool) -> None:
-        """E2E test of an apparent anomaly."""
+    def test_consolidate_into_intervals(self, consolidate_into_intervals: bool) -> None:
         df = self.df.copy()
         df.value_b.iloc[10] = 1.0
         detector = TwoSampleProportionIntervalDetectorModel(
@@ -260,7 +327,7 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
             [TestStatistic.RELATIVE_DIFFERENCE],
         ]
     )
-    def test_blatent_anomalies(self, test_statistic: TestStatistic) -> None:
+    def test_e2e(self, test_statistic: TestStatistic) -> None:
         """E2E test of apparent anomalies."""
         df = self.df.copy()
         df.value_b.iloc[10:15] = 1.0
@@ -315,69 +382,6 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
         _predicted_ds: TimeSeriesData = anomaly_response.predicted_ts
         assert _predicted_ds.value.iloc[90].all()
 
-    def test_dp_solve(self) -> None:
-        """Test the _dp_solve helper function."""
-        _precomputed = [
-            0.0,
-            0.0025000000000000005,
-            0.004875000000000001,
-            0.007250000000000001,
-            0.009619062500000001,
-            0.011982484375,
-            0.014340265625,
-            0.0166924203515625,
-            0.019038961951171877,
-            0.021379903820312504,
-            0.023715259321977544,
-            0.026045041787343508,
-            0.028369264515770265,
-            0.030687940774880566,
-            0.03300108380063563,
-            0.035308706797410674,
-            0.03761082293807033,
-            0.03990744536404382,
-            0.042198587185399976,
-            0.04448426148092206,
-            0.04676448129818246,
-            0.049039259653617134,
-            0.05130860953259994,
-            0.05357254388951676,
-            0.055831075647839415,
-        ]
-        p = 0.05
-        q = 1 - p
-        run_1 = _dp_solve(p=p, n=25, m=1)
-        run_2 = _dp_solve(p=p, n=25, m=2)
-        run_3 = _dp_solve(p=p, n=25, m=3)
-        run_25 = _dp_solve(p=p, n=25, m=25)
-        # Verify simple cases solved by hand.
-        assert np.isclose(run_1[-1], 1 - 0.95**25)
-        assert np.isclose(run_2[2], p**3 + 2 * p**2 * q)
-        assert np.isclose(run_2[3], p**4 + 4 * p**3 * q + 3 * p**2 * q**2)
-        assert np.isclose(run_3[3], p**4 + 2 * p**3 * q)
-        assert np.isclose(run_3[4], p**5 + 3 * p**3 * q**2 + 4 * p**4 * q)
-        assert np.isclose(run_25[-1], p**25)
-        # Verify the entire precomputed sequence for a run of 2.
-        assert np.all(np.isclose(run_2, _precomputed))
-
-    def test_probability_of_at_least_one_m_run_in_n_trials(self) -> None:
-        """Compare vectorized solution against a known and correct dp solution."""
-        p = 0.05
-        for m in range(1, 100):
-            assert np.isclose(
-                _dp_solve(p=p, n=100, m=m)[-1],
-                self.interval_detector._probability_of_at_least_one_m_run_in_n_trials(
-                    p=p, n=100, m=m
-                ),
-            )
-        for n in range(1, 100):
-            assert np.isclose(
-                _dp_solve(p=p, n=n, m=n)[-1],
-                self.interval_detector._probability_of_at_least_one_m_run_in_n_trials(
-                    p=p, n=n, m=n
-                ),
-            )
-
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
         [
@@ -421,27 +425,9 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
 
 class TestTwoSampleRealValuedIntervalDetectorModel(TestCase):
     def setUp(self) -> None:
-        date_start = datetime.strptime("2020-03-01", "%Y-%m-%d")
-        self.time = [date_start + timedelta(hours=x) for x in range(60)]
-        self.value_a = np.array([5.0] * len(self.time))
-        self.value_b = np.array([6.0] * len(self.time))
-        self.variance_a = np.array([1] * len(self.time))
-        self.variance_b = np.array([1] * len(self.time))
-        self.sample_count_a = np.array([100] * len(self.time))
-        self.sample_count_b = np.array([100] * len(self.time))
-        self.effect_size = np.array([0.02] * len(self.time))
-        self.df = pd.DataFrame(
-            {
-                "time": self.time,
-                "value_a": self.value_a,
-                "value_b": self.value_b,
-                "variance_a": self.variance_a,
-                "variance_b": self.variance_b,
-                "sample_count_a": self.sample_count_a,
-                "sample_count_b": self.sample_count_b,
-                "effect_size": self.effect_size,
-            }
-        )
+        self.df = _generate_dataframe()
+        self.df.value_a = np.array([5.0] * len(self.df.time))
+        self.df.value_b = np.array([6.0] * len(self.df.time))
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
@@ -450,7 +436,7 @@ class TestTwoSampleRealValuedIntervalDetectorModel(TestCase):
             [TestStatistic.RELATIVE_DIFFERENCE],
         ]
     )
-    def test_blatent_anomalies(self, test_statistic: TestStatistic) -> None:
+    def test_e2e(self, test_statistic: TestStatistic) -> None:
         """E2E test of apparent anomalies."""
         df = self.df.copy()
         df.value_b.iloc[10:15] = 100.0
@@ -472,27 +458,9 @@ class TestTwoSampleRealValuedIntervalDetectorModel(TestCase):
 
 class TestTwoSampleCountIntervalDetectorModel(TestCase):
     def setUp(self) -> None:
-        date_start = datetime.strptime("2020-03-01", "%Y-%m-%d")
-        self.time = [date_start + timedelta(hours=x) for x in range(60)]
-        self.value_a = np.array([1] * len(self.time))
-        self.value_b = np.array([2] * len(self.time))
-        self.variance_a = np.array([1] * len(self.time))
-        self.variance_b = np.array([1] * len(self.time))
-        self.sample_count_a = np.array([100] * len(self.time))
-        self.sample_count_b = np.array([100] * len(self.time))
-        self.effect_size = np.array([0.02] * len(self.time))
-        self.df = pd.DataFrame(
-            {
-                "time": self.time,
-                "value_a": self.value_a,
-                "value_b": self.value_b,
-                "variance_a": self.variance_a,
-                "variance_b": self.variance_b,
-                "sample_count_a": self.sample_count_a,
-                "sample_count_b": self.sample_count_b,
-                "effect_size": self.effect_size,
-            }
-        )
+        self.df = _generate_dataframe()
+        self.df.value_a = np.array([1] * len(self.df.time))
+        self.df.value_b = np.array([2] * len(self.df.time))
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
@@ -501,13 +469,140 @@ class TestTwoSampleCountIntervalDetectorModel(TestCase):
             [TestStatistic.RELATIVE_DIFFERENCE],
         ]
     )
-    def test_blatent_anomalies(self, test_statistic: TestStatistic) -> None:
+    def test_e2e(self, test_statistic: TestStatistic) -> None:
         """E2E test of apparent anomalies."""
         df = self.df.copy()
         df.value_b.iloc[10:15] = 100
         df.value_b.iloc[40:45] = 100
         detector = TwoSampleCountIntervalDetectorModel(serialized_model=_SERIALIZED)
         detector.test_statistic = test_statistic
+        anomaly_response = detector.fit_predict(TimeSeriesData(df))
+        assert anomaly_response.predicted_ts is not None
+        assert anomaly_response.stat_sig_ts is not None
+        _predicted_ds: TimeSeriesData = anomaly_response.predicted_ts
+        _stat_sig_ts: TimeSeriesData = anomaly_response.stat_sig_ts
+        assert _predicted_ds.value.iloc[10:15].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[10:15].values, 0.0).all()
+        assert _predicted_ds.value.iloc[40:45].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[40:45].values, 0.0).all()
+
+
+class TestOneSidedLowerTwoSampleProportionIntervalDetectorModel(TestCase):
+    def setUp(self) -> None:
+        self.df = _generate_dataframe()
+        self.df.value_a = np.array([0.8] * len(self.df.time))
+        self.df.value_b = np.array([0.7] * len(self.df.time))
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            [TestStatistic.ABSOLUTE_DIFFERENCE],
+            [TestStatistic.RELATIVE_DIFFERENCE],
+        ]
+    )
+    def test_e2e(self, test_statistic: TestStatistic) -> None:
+        """E2E test of apparent anomalies."""
+        df = self.df.copy()
+        df.value_b.iloc[10:15] = 0.05
+        df.value_b.iloc[40:45] = 0.05
+        detector = TwoSampleProportionIntervalDetectorModel(
+            duration=1,
+            test_statistic=test_statistic,
+            test_type=TestType.ONE_SIDED_LOWER,
+        )
+        detector.test_statistic = test_statistic
+        anomaly_response = detector.fit_predict(TimeSeriesData(df))
+        assert anomaly_response.predicted_ts is not None
+        assert anomaly_response.stat_sig_ts is not None
+        _predicted_ds: TimeSeriesData = anomaly_response.predicted_ts
+        _stat_sig_ts: TimeSeriesData = anomaly_response.stat_sig_ts
+        assert _predicted_ds.value.iloc[10:15].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[10:15].values, 0.0).all()
+        assert _predicted_ds.value.iloc[40:45].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[40:45].values, 0.0).all()
+
+
+class TestTwoSidedTwoSampleProportionIntervalDetectorModel(TestCase):
+    def setUp(self) -> None:
+        self.df = _generate_dataframe()
+        self.df.value_a = np.array([0.5] * len(self.df.time))
+        self.df.value_b = np.array([0.5] * len(self.df.time))
+        self.df.sample_count_a = np.array([10000] * len(self.df.time))
+        self.df.sample_count_b = np.array([10000] * len(self.df.time))
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            [TestStatistic.ABSOLUTE_DIFFERENCE],
+            [TestStatistic.RELATIVE_DIFFERENCE],
+        ]
+    )
+    def test_e2e(self, test_statistic: TestStatistic) -> None:
+        """E2E test of apparent anomalies."""
+        df = self.df.copy()
+        df.value_b.iloc[10:15] = 0.001
+        df.value_b.iloc[40:45] = 0.999
+        detector = TwoSampleProportionIntervalDetectorModel(
+            duration=1,
+            test_statistic=test_statistic,
+            test_type=TestType.TWO_SIDED,
+        )
+        detector.test_statistic = test_statistic
+        anomaly_response = detector.fit_predict(TimeSeriesData(df))
+        assert anomaly_response.predicted_ts is not None
+        assert anomaly_response.stat_sig_ts is not None
+        _predicted_ds: TimeSeriesData = anomaly_response.predicted_ts
+        _stat_sig_ts: TimeSeriesData = anomaly_response.stat_sig_ts
+        assert _predicted_ds.value.iloc[10:15].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[10:15].values, 0.0).all()
+        assert _predicted_ds.value.iloc[40:45].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[40:45].values, 0.0).all()
+
+
+class TestOneSampleProportionIntervalDetectorModel(TestCase):
+    def setUp(self) -> None:
+        self.df = _generate_dataframe()
+        self.df["value"] = np.array([0.5] * len(self.df.time))
+        self.df["variance"] = np.array([1] * len(self.df.time))
+        self.df["effect_size"] = np.array([0.5] * len(self.df.time))
+        self.df["sample_count"] = np.array([1000] * len(self.df.time))
+
+    def test_e2e(self) -> None:
+        """E2E test of apparent anomalies."""
+        df = self.df.copy()
+        df["value"].iloc[10:15] = 0.999
+        df["value"].iloc[40:45] = 0.999
+        detector = OneSampleProportionIntervalDetectorModel(
+            duration=1,
+        )
+        anomaly_response = detector.fit_predict(TimeSeriesData(df))
+        assert anomaly_response.predicted_ts is not None
+        assert anomaly_response.stat_sig_ts is not None
+        _predicted_ds: TimeSeriesData = anomaly_response.predicted_ts
+        _stat_sig_ts: TimeSeriesData = anomaly_response.stat_sig_ts
+        assert _predicted_ds.value.iloc[10:15].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[10:15].values, 0.0).all()
+        assert _predicted_ds.value.iloc[40:45].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[40:45].values, 0.0).all()
+
+
+class TestTwoSidedOneSampleProportionIntervalDetectorModel(TestCase):
+    def setUp(self) -> None:
+        self.df = _generate_dataframe()
+        self.df["value"] = np.array([0.5] * len(self.df.time))
+        self.df["variance"] = np.array([1] * len(self.df.time))
+        self.df["effect_size"] = np.array([0.5] * len(self.df.time))
+        self.df["sample_count"] = np.array([1000] * len(self.df.time))
+
+    def test_e2e(self) -> None:
+        """E2E test of apparent anomalies."""
+        df = self.df.copy()
+        df["value"].iloc[10:15] = 0.001
+        df["value"].iloc[40:45] = 0.999
+        detector = OneSampleProportionIntervalDetectorModel(
+            duration=1,
+            test_type=TestType.TWO_SIDED,
+        )
         anomaly_response = detector.fit_predict(TimeSeriesData(df))
         assert anomaly_response.predicted_ts is not None
         assert anomaly_response.stat_sig_ts is not None
