@@ -20,6 +20,7 @@ from kats.consts import DEFAULT_VALUE_NAME, TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from kats.models.prophet import predict
+from scipy.stats import norm
 
 PROPHET_TIME_COLUMN = "ds"
 PROPHET_VALUE_COLUMN = "y"
@@ -28,10 +29,12 @@ PROPHET_YHAT_LOWER_COLUMN = "yhat_lower"
 PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
 
 # Previously assumed Prophet CI width was computed based on sample stddev,
-# where uncertainty_samples was num of samples. This scale constant ensures that the
+# where uncertainty_samples was num of samples. Also previously mistakenly
+# used CI width in place of Z-statistic. These scale constants ensure that the
 # corrected Z-score is scaled by the same amount as the original score when
-# using default values.
-Z_SCORE_SCALE_CONST: float = (50**0.5) / 2
+# using default values, but otherwise acts as a true Z-score.
+Z_SCORE_CI_THRESHOLD_SCALE_CONST: float = norm.ppf(0.8 / 2 + 0.5) / 0.8
+Z_SCORE_SCALE_CONST: float = (50**0.5) * Z_SCORE_CI_THRESHOLD_SCALE_CONST / 2
 MIN_STDEV = 1e-9
 PREDICTION_UNCERTAINTY_SAMPLES = 50
 OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES = 40
@@ -63,6 +66,7 @@ def deviation_from_predicted_val(
     data: TimeSeriesData,
     predict_df: pd.DataFrame,
     ci_threshold: Optional[float] = None,
+    **kwargs: Any,
 ) -> Union[pd.Series, pd.DataFrame]:
     return (data.value - predict_df[PROPHET_YHAT_COLUMN]) / predict_df[
         PROPHET_YHAT_COLUMN
@@ -73,15 +77,22 @@ def z_score(
     data: TimeSeriesData,
     predict_df: pd.DataFrame,
     ci_threshold: float = 0.8,
+    use_legacy_z_score: bool = True,
+    **kwargs: Any,
 ) -> Union[pd.Series, pd.DataFrame]:
-    actual_scaled_std = (
-        Z_SCORE_SCALE_CONST
-        * (
-            predict_df[PROPHET_YHAT_UPPER_COLUMN]
-            - predict_df[PROPHET_YHAT_LOWER_COLUMN]
-        )
-        / ci_threshold
+    ci_width = (
+        predict_df[PROPHET_YHAT_UPPER_COLUMN] - predict_df[PROPHET_YHAT_LOWER_COLUMN]
     )
+    if use_legacy_z_score:
+        actual_scaled_std = (
+            (Z_SCORE_SCALE_CONST / Z_SCORE_CI_THRESHOLD_SCALE_CONST)
+            * ci_width
+            / ci_threshold
+        )
+    else:
+        actual_scaled_std = (
+            Z_SCORE_SCALE_CONST * ci_width / norm.ppf(ci_threshold / 2 + 0.5)
+        )
 
     # if std is 0, set it to a very small value to prevent division by zero in next step
     scaled_std = np.maximum(actual_scaled_std, MIN_STDEV)
@@ -140,6 +151,7 @@ class ProphetDetectorModel(DetectorModel):
         uncertainty_samples: float = PREDICTION_UNCERTAINTY_SAMPLES,
         outlier_removal_uncertainty_samples: int = OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES,
         vectorize: bool = False,
+        use_legacy_z_score: bool = True,
     ) -> None:
         if serialized_model:
             self.model = model_from_json(serialized_model)
@@ -167,6 +179,7 @@ class ProphetDetectorModel(DetectorModel):
         else:
             self.uncertainty_samples: float = 0
         self.vectorize = vectorize
+        self.use_legacy_z_score = use_legacy_z_score
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -301,6 +314,7 @@ class ProphetDetectorModel(DetectorModel):
                     data=data,
                     predict_df=predict_df,
                     ci_threshold=model.interval_width,
+                    use_legacy_z_score=self.use_legacy_z_score,
                 ),
             ),
             confidence_band=confidence_band,

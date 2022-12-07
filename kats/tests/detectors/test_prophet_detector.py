@@ -236,15 +236,6 @@ class TestProphetDetector(TestCase):
 
         return merged_ts
 
-    def calc_std(
-        self, predicted_val: float, upper_bound: float, lower_bound: float
-    ) -> float:
-        actual_std = (50**0.5) * ((upper_bound - lower_bound) / 2) / 0.8
-
-        std = max(actual_std, 1e-9)
-
-        return std
-
     def calc_z_score(
         self,
         actual_val: float,
@@ -252,7 +243,9 @@ class TestProphetDetector(TestCase):
         upper_bound: float,
         lower_bound: float,
     ) -> float:
-        std = self.calc_std(predicted_val, upper_bound, lower_bound)
+        # Assumes default ProphetDetectorModel param values
+        actual_std = (50**0.5) * ((upper_bound - lower_bound) / 2) / 0.8
+        std = max(actual_std, 1e-9)
 
         return (actual_val - predicted_val) / std
 
@@ -483,6 +476,7 @@ class TestProphetDetector(TestCase):
         # add anomaly at index 95
         ts.value[95] += 100
 
+        np.random.seed(0)
         z_score_model = ProphetDetectorModel(score_func=ProphetScoreFunction.z_score)
         z_score_response = z_score_model.fit_predict(ts[90:], ts[:90])
         actual_z_score = self.calc_z_score(
@@ -510,6 +504,37 @@ class TestProphetDetector(TestCase):
         self.assertNotEqual(
             z_score_response.confidence_band.lower,
             z_score_response.predicted_ts,
+        )
+
+        # Corrected Z-score should be the same as legacy Z-score if using default
+        # scoring confidence interval
+        np.random.seed(0)
+        legacy_z_score_model = ProphetDetectorModel(
+            score_func=ProphetScoreFunction.z_score, use_legacy_z_score=False
+        )
+        legacy_z_score_response = legacy_z_score_model.fit_predict(ts[90:], ts[:90])
+        self.assertAlmostEqual(
+            legacy_z_score_response.scores.value[5],
+            # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
+            #  SupportsAbs[SupportsRound[object]]]` but got `float`.
+            actual_z_score,
+            places=5,
+        )
+
+        # If using custom scoring confidence interval, corrected Z-scores will differ
+        np.random.seed(0)
+        legacy_z_score_model = ProphetDetectorModel(
+            score_func=ProphetScoreFunction.z_score,
+            use_legacy_z_score=False,
+            scoring_confidence_interval=0.9,
+        )
+        legacy_z_score_response = legacy_z_score_model.fit_predict(ts[90:], ts[:90])
+        self.assertNotAlmostEqual(
+            legacy_z_score_response.scores.value[5],
+            # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
+            #  SupportsAbs[SupportsRound[object]]]` but got `float`.
+            actual_z_score,
+            places=5,
         )
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
