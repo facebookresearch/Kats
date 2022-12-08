@@ -1170,6 +1170,76 @@ class ModelBenchmarkNoSearchSpaceTest(TestCase):
         self.assertEqual(self.mb.margin, 172800)
 
 
+class ModelOptimizerUtilsTestShortTS(TestCase):
+    def setUp(self) -> None:
+        val1 = np.random.normal(1.5, 3, 30)
+        time1 = pd.date_range(start="2018-01-01 00:00:00", freq="d", periods=30)
+        self.ts1 = TimeSeriesData(
+            pd.DataFrame({"time": time1, "value": pd.Series(val1)})
+        )
+        # using two detectors as an example
+        self.det_dict = {"mk": MKDetectorModel, "statsig": StatSigDetectorModel}
+
+        self.params = {}
+        for det in self.det_dict:
+            dmss = DetectorModelSearchSpace(self.det_dict[det], self.ts1)
+            self.params[det] = dmss.get_params_search_space()
+
+    def test_recommend_params_search_space_for_short_ts(self) -> None:
+        my_params = {
+            "mk": [
+                {
+                    "name": "threshold",
+                    "type": "choice",
+                    "values": [0.8, 0.9, 0.95],
+                    "value_type": "float",
+                    "is_ordered": True,
+                },
+                {
+                    "name": "window_size",
+                    "type": "choice",
+                    "values": [3, 6],
+                    "value_type": "int",
+                    "is_ordered": True,
+                },
+                {
+                    "name": "training_days",
+                    "type": "choice",
+                    "values": [6, 9, 12],
+                    "value_type": "int",
+                    "is_ordered": True,
+                },
+                {
+                    "name": "direction",
+                    "type": "choice",
+                    "values": ["down", "up", "both"],
+                    "value_type": "str",
+                    "is_ordered": False,
+                },
+            ],
+            "statsig": [
+                {
+                    "name": "n_control",
+                    "type": "choice",
+                    "values": [3, 6, 9],
+                    "value_type": "int",
+                    "is_ordered": True,
+                },
+                {
+                    "name": "n_test",
+                    "type": "choice",
+                    "values": [3, 6, 9],
+                    "value_type": "int",
+                    "is_ordered": True,
+                },
+            ],
+        }
+
+        for det in self.det_dict:
+            for i in range(len(my_params[det])):
+                self.assertDictEqual(self.params[det][i], my_params[det][i])
+
+
 class MOForOutlierModel(TestCase):
     def setUp(self) -> None:
         self.eg_df: pd.DataFrame = generate_data_daily()
