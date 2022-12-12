@@ -17,6 +17,7 @@ from kats.detectors.interval_detector import (
     OneSampleProportionIntervalDetectorModel,
     TestStatistic,
     TestType,
+    TwoSampleArrivalTimeIntervalDetectorModel,
     TwoSampleCountIntervalDetectorModel,
     TwoSampleProportionIntervalDetectorModel,
     TwoSampleRealValuedIntervalDetectorModel,
@@ -476,6 +477,31 @@ class TestTwoSampleCountIntervalDetectorModel(TestCase):
         df.value_b.iloc[40:45] = 100
         detector = TwoSampleCountIntervalDetectorModel(serialized_model=_SERIALIZED)
         detector.test_statistic = test_statistic
+        anomaly_response = detector.fit_predict(TimeSeriesData(df))
+        assert anomaly_response.predicted_ts is not None
+        assert anomaly_response.stat_sig_ts is not None
+        _predicted_ds: TimeSeriesData = anomaly_response.predicted_ts
+        _stat_sig_ts: TimeSeriesData = anomaly_response.stat_sig_ts
+        assert _predicted_ds.value.iloc[10:15].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[10:15].values, 0.0).all()
+        assert _predicted_ds.value.iloc[40:45].all()
+        assert np.isclose(_stat_sig_ts.value.iloc[40:45].values, 0.0).all()
+
+
+class TestTwoSampleArrivalTimeIntervalDetectorModel(TestCase):
+    def setUp(self) -> None:
+        self.df = _generate_dataframe()
+        self.df.value_a = np.array([5.0] * len(self.df.time))
+        self.df.value_b = np.array([6.0] * len(self.df.time))
+
+    def test_e2e(self) -> None:
+        """E2E test of apparent anomalies."""
+        df = self.df.copy()
+        df.value_b.iloc[10:15] = 100.0
+        df.value_b.iloc[40:45] = 100.0
+        detector = TwoSampleArrivalTimeIntervalDetectorModel(
+            serialized_model=_SERIALIZED
+        )
         anomaly_response = detector.fit_predict(TimeSeriesData(df))
         assert anomaly_response.predicted_ts is not None
         assert anomaly_response.stat_sig_ts is not None

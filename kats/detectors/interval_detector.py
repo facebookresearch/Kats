@@ -1563,6 +1563,43 @@ class TwoSampleCountIntervalDetectorModel(TwoSampleIntervalDetectorModel):
         return _variance_a, _variance_b
 
 
+class TwoSampleArrivalTimeIntervalDetectorModel(TwoSampleIntervalDetectorModel):
+    """An extension that considers two arrival time values at each time index."""
+
+    def _get_test_statistic_hook(self, df: pd.core.frame.DataFrame) -> None:
+        self.schema._validate_postitive(
+            df, [TwoSampleColumns.VALUE_A, TwoSampleColumns.VALUE_B]
+        )
+
+    def _get_variance(
+        self,
+        value_a: pd.Series,
+        value_b: pd.Series,
+        effect_size: pd.Series,
+        variance_a: pd.Series,
+        variance_b: pd.Series,
+        sample_count_a: pd.Series,
+        sample_count_b: pd.Series,
+    ) -> Tuple[pd.Series, pd.Series]:
+        """A Normal approximation to the Gamma distribution.
+
+        X ~ Exponential(𝜆), then X_bar ~ Gamma(α=n, β=1/(𝜆n)).
+
+        And,
+
+        Gamma(α, β) -> Normal(μ=αβ, σ=√αβ) provided α≫10
+
+        So,
+        X_bar ≈ Normal(μ=1/𝜆, σ=1/(𝜆√n))
+
+        References:
+            http://webhome.auburn.edu/~carpedm/courses/stat3610b/documents/Exponential_sampling.pdf
+        """
+        _variance_a = value_a**2 / sample_count_a
+        _variance_b = value_b**2 / sample_count_b
+        return _variance_a, _variance_b
+
+
 class OneSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
     """An extension that considers one sample at each time index."""
 
