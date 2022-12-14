@@ -754,9 +754,8 @@ class IntervalDetectorModel(DetectorModel, ABC):
         m: int
         p: float
 
-    def _get_lowest_m(
-        self, p: float, n: int, r_tol: float, max_iter: int = 1000
-    ) -> LowestM:
+    @staticmethod
+    def _get_lowest_m(p: float, n: int, r_tol: float, max_iter: int = 1000) -> LowestM:
         """Finds lowest m such that the corrected probability is still less than p in n trials.
 
         Notes:
@@ -777,10 +776,12 @@ class IntervalDetectorModel(DetectorModel, ABC):
         m = 1
         while m < max_iter and p >= p_global and m <= n:
             # Correct p based off current iter and p_global.
-            p = self._probability_of_at_least_one_m_run_in_n_trials(p_global, n=n, m=m)
+            p = IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
+                p_global, n=n, m=m
+            )
             if p <= p_global * (r_tol + 1):
                 # We have found a solution meeting r_tol.
-                return self.LowestM(m=m, p=p)
+                return IntervalDetectorModel.LowestM(m=m, p=p)
             # Otherwise, try the next m.
             m += 1
         raise Exception(
@@ -792,8 +793,8 @@ class IntervalDetectorModel(DetectorModel, ABC):
         p_corrected: float
         p_global: float
 
+    @staticmethod
     def _get_lowest_p(
-        self,
         m: int,
         n: int,
         p_goal: float,
@@ -817,9 +818,14 @@ class IntervalDetectorModel(DetectorModel, ABC):
         Returns:
             A corrected p such that the global p is still within a relative tolerance of `p_goal`.
         """
+        if m > n:
+            raise ValueError(f"m must be <= n. Found n={n} and m={m}.")
+
         # p_goal = p ** n
         if n == m:
-            return self.LowestP(p_corrected=p_goal ** (1 / m), p_global=p_goal)
+            return IntervalDetectorModel.LowestP(
+                p_corrected=p_goal ** (1 / m), p_global=p_goal
+            )
 
         if r_tol < 1e-9:
             raise ValueError(
@@ -837,12 +843,16 @@ class IntervalDetectorModel(DetectorModel, ABC):
         p_high: float = (1 - (1 - p_goal) ** (1 / (n // m))) ** (1 / m)
         while p_low <= p_high and i <= max_iter:
             p_corrected = (p_high + p_low) / 2.0
-            p_global = self._probability_of_at_least_one_m_run_in_n_trials(
-                p_corrected, n=n, m=m
+            p_global = (
+                IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
+                    p_corrected, n=n, m=m
+                )
             )
             # Return if the corrected Type-I error is within our relative tolerance.
             if p_global <= p_goal * (r_tol + 1) and p_global >= p_goal * (1 - r_tol):
-                return self.LowestP(p_corrected=p_corrected, p_global=p_global)
+                return IntervalDetectorModel.LowestP(
+                    p_corrected=p_corrected, p_global=p_global
+                )
             # Otherwise search higher
             elif p_global < p_goal:
                 p_low = p_corrected
