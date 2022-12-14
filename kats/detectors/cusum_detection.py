@@ -76,7 +76,7 @@ class CUSUMChangePointVal:
     changepoint: int
     mu0: float
     mu1: float
-    changetime: List[float]
+    changetime: float
     stable_changepoint: bool
     delta: float
     llr_int: float
@@ -217,6 +217,65 @@ class CUSUMChangePoint(TimeSeriesChangePoint):
             f"p_value: {self._p_value}, p_value_int: {self._p_value_int})"
         )
 
+    def __eq__(self, other: TimeSeriesChangePoint) -> bool:
+        if not isinstance(other, CUSUMChangePoint):
+            # don't attempt to compare against unrelated types
+            raise NotImplementedError
+
+        return (
+            self._start_time == other._start_time
+            and self._end_time == other._end_time
+            and self._confidence == other._confidence
+            and self._direction == other._direction
+            and self._cp_index == other._cp_index
+            and self._delta == other._delta
+            and self._regression_detected == other._regression_detected
+            and self._stable_changepoint == other._stable_changepoint
+            and self._mu0 == other._mu0
+            and self._mu1 == other._mu1
+            and self._llr == other._llr
+            and self._llr_int == other._llr_int
+            and self._p_value == other._p_value
+            # and self._p_value_int == other._p_value_int
+        )
+
+    def _almost_equal(self, x: float, y: float, round_int: int = 10) -> bool:
+        return (
+            x == y
+            or round(x, round_int) == round(y, round_int)
+            or round(abs((y - x) / x), round_int) == 0
+        )
+
+    def almost_equal(self, other: TimeSeriesChangePoint, round_int: int = 10) -> bool:
+        """
+        Compare if two CUSUMChangePoint objects are almost equal to each other.
+        """
+
+        if not isinstance(other, CUSUMChangePoint):
+            # don't attempt to compare against unrelated types
+            raise NotImplementedError
+
+        res = [
+            self._start_time == other._start_time,
+            self._end_time == other._end_time,
+            self._almost_equal(self._confidence, other._confidence, round_int),
+            self._direction == other._direction,
+            self._cp_index == other._cp_index,
+            # pyre-ignore
+            self._almost_equal(self._delta, other._delta, round_int),
+            self._regression_detected == other._regression_detected,
+            self._stable_changepoint == other._stable_changepoint,
+            # pyre-ignore
+            self._almost_equal(self._mu0, other._mu0, round_int),
+            # pyre-ignore
+            self._almost_equal(self._mu1, other._mu1, round_int),
+            self._almost_equal(self._llr, other._llr, round_int),
+            self._almost_equal(self._llr_int, other._llr_int, round_int),
+            self._almost_equal(self._p_value, other._p_value, round_int),
+        ]
+
+        return all(res)
+
 
 class CUSUMDetector(Detector):
     interest_window: Optional[Tuple[int, int]] = None
@@ -308,12 +367,17 @@ class CUSUMDetector(Detector):
             pval_int = np.NaN
             delta_int = None
         else:
+            # need to re-calculating mu0 and mu1 after the while loop
+            mu0 = np.mean(ts_int[: (changepoint + 1)])
+            mu1 = np.mean(ts_int[(changepoint + 1) :])
+
             llr_int = self._get_llr(ts_int, mu0, mu1, changepoint)
             pval_int = 1 - chi2.cdf(llr_int, 2)
             delta_int = mu1 - mu0
             changepoint += interest_window[0]
 
         # full time changepoint and mean
+        # Note: here we are using whole TS
         mu0 = np.mean(ts[: (changepoint + 1)])
         mu1 = np.mean(ts[(changepoint + 1) :])
 
@@ -335,8 +399,6 @@ class CUSUMDetector(Detector):
         mu0: float,
         mu1: float,
         changepoint: int,
-        sigma0: Optional[float] = None,
-        sigma1: Optional[float] = None,
     ) -> float:
         """
         Calculate the log likelihood ratio
@@ -510,8 +572,6 @@ class CUSUMDetector(Detector):
                 change_meta.mu0,
                 change_meta.mu1,
                 change_meta.changepoint,
-                change_meta.sigma0,
-                change_meta.sigma1,
             )
             change_meta.p_value = 1 - chi2.cdf(llr, 2)
 
@@ -977,8 +1037,6 @@ class VectorizedCUSUMDetector(CUSUMDetector):
                     change_meta["mu0"],
                     change_meta["mu1"],
                     change_meta["changepoint"],
-                    change_meta["sigma0"],
-                    change_meta["sigma1"],
                 )
                 change_meta["p_value"] = 1 - chi2.cdf(change_meta["llr"], 2)
 
@@ -1034,7 +1092,11 @@ class VectorizedCUSUMDetector(CUSUMDetector):
         return ret
 
     def _get_change_point_multiple_ts(
-        self, ts: np.ndarray, max_iter: int, change_direction: str
+        self,
+        ts: np.ndarray,
+        max_iter: int,
+        change_direction: str,
+        start_point: Optional[int] = None,
     ) -> VectorizedCUSUMChangePointVal:
         """
         Find change points in a list of time series
@@ -1050,13 +1112,15 @@ class VectorizedCUSUMDetector(CUSUMDetector):
             changepoint_func = np.argmax
             _log.debug("Detecting decrease changepoint.")
 
-        n = 0
         if interest_window is not None:
             ts_int = ts[interest_window[0] : interest_window[1], :]
         else:
             ts_int = ts
+
         n_ts = ts_int.shape[1]
         n_pts = ts_int.shape[0]
+
+        # corner case
         if n_pts == 0:
             return VectorizedCUSUMChangePointVal(
                 changepoint=[],
@@ -1069,13 +1133,19 @@ class VectorizedCUSUMDetector(CUSUMDetector):
                 p_value_int=[],
                 delta_int=[],
             )
+
         # use the middle point as initial change point to estimate mu0 and mu1
         tmp = ts_int - np.tile(np.mean(ts_int, axis=0), (n_pts, 1))
         cusum_ts = np.cumsum(tmp, axis=0)
-        changepoint = np.minimum(changepoint_func(cusum_ts, axis=0), n_pts - 2)
+        if start_point is not None:
+            changepoint = np.asarray([start_point] * n_ts)
+        else:
+            changepoint = np.minimum(changepoint_func(cusum_ts, axis=0), n_pts - 2)
+
+        # iterate until the changepoint converage
         mu0 = mu1 = None
         stable_changepoint = [False] * len(changepoint)
-        # iterate until the changepoint converage
+        n = 0
         while n < max_iter:
             mask = np.zeros((n_pts, n_ts), dtype=bool)
             for i, c in enumerate(changepoint):
@@ -1099,8 +1169,8 @@ class VectorizedCUSUMDetector(CUSUMDetector):
                 break
             changepoint = next_changepoint
 
-        # full time changepoint and mean
-        mask = np.zeros((n_pts, n_ts), dtype=bool)
+        # need to re-calculating mu0 and mu1 after the while loop
+        mask = np.zeros(ts_int.shape, dtype=bool)
         for i, c in enumerate(changepoint):
             mask[: (c + 1), i] = True
         mu0 = np.divide(np.sum(np.multiply(ts_int, mask), axis=0), np.sum(mask, axis=0))
@@ -1110,9 +1180,9 @@ class VectorizedCUSUMDetector(CUSUMDetector):
 
         # llr in interest window
         if interest_window is None:
-            llr_int = [np.inf for _ in np.arange(n_ts)]
-            pval_int = [np.NaN for _ in np.arange(n_ts)]
-            delta_int = None
+            llr_int = [np.inf] * n_ts
+            pval_int = [np.NaN] * n_ts
+            delta_int = [None] * n_ts
         else:
             llr_int = []
             pval_int = []
@@ -1127,6 +1197,14 @@ class VectorizedCUSUMDetector(CUSUMDetector):
                 pval_int.append(_pval_int)
                 delta_int.append(_delta_int)
                 changepoint[col_idx] += interest_window[0]
+
+        # full time changepoint and mean
+        # Note: here we are using whole TS
+        mask = np.zeros(ts.shape, dtype=bool)
+        for i, c in enumerate(changepoint):
+            mask[: (c + 1), i] = True
+        mu0 = np.divide(np.sum(np.multiply(ts, mask), axis=0), np.sum(mask, axis=0))
+        mu1 = np.divide(np.sum(np.multiply(ts, ~mask), axis=0), np.sum(~mask, axis=0))
 
         return VectorizedCUSUMChangePointVal(
             changepoint=changepoint,
