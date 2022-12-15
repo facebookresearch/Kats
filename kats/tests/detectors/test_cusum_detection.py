@@ -4,13 +4,14 @@
 # LICENSE file in the root directory of this source tree.
 
 from operator import attrgetter
-from typing import Optional
+from typing import List, Optional
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.detectors.cusum_detection import (
+    CUSUMChangePoint,
     CUSUMDetector,
     MultiCUSUMDetector,
     VectorizedCUSUMDetector,
@@ -587,3 +588,61 @@ class VectorizedCUSUMDetectorTest(TestCase):
             len(self.dec_change_points_int_window),
             len(self.dec_change_points_vectorized_int_window),
         )
+
+    def _comp_cpval(
+        self,
+        cps1: List[List[CUSUMChangePoint]],
+        cps2: List[List[CUSUMChangePoint]],
+        round_int: int = 10,
+    ) -> bool:
+        for i in range(len(cps1)):
+            cp1 = cps1[i]
+            cp2 = cps2[i]
+            if len(cp1) != len(cp2):
+                return False
+
+            for j in range(len(cp1)):
+                if cp1[j].almost_equal(cp2[j], round_int):
+                    continue
+                else:
+                    return False
+
+        return True
+
+    def test_vectorized_detector_results(self) -> None:
+        np.random.seed(0)
+        y = pd.DataFrame(
+            {
+                "time": pd.Series(pd.date_range("2019-01-01", "2019-03-01")),
+                "val1": np.random.normal(1, 0.2, 60),
+                "val2": np.random.normal(1, 0.2, 60),
+                "val3": np.random.normal(1, 0.2, 60),
+            }
+        )
+        tsmul = TimeSeriesData(y)
+
+        # interest_window = [20, 50]
+        vcum = VectorizedCUSUMDetector(tsmul)
+        res1 = vcum.detector(interest_window=[20, 50])
+
+        res2 = []
+        for i in range(0, y.shape[1] - 1):
+            ts = TimeSeriesData(y.iloc[:, [0, i + 1]])
+            detector = CUSUMDetector(ts)
+            temp = detector.detector(interest_window=[20, 50])
+            res2.append(temp)
+
+        self.assertTrue(self._comp_cpval(res2, res1, 8))
+
+        # interest_window = None
+        vcum = VectorizedCUSUMDetector(tsmul)
+        res1 = vcum.detector()
+
+        res2 = []
+        for i in range(0, y.shape[1] - 1):
+            ts = TimeSeriesData(y.iloc[:, [0, i + 1]])
+            detector = CUSUMDetector(ts)
+            temp = detector.detector()
+            res2.append(temp)
+
+        self.assertTrue(self._comp_cpval(res2, res1, 8))
