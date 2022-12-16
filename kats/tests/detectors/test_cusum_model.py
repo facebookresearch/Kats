@@ -10,7 +10,11 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
-from kats.detectors.cusum_model import CUSUMDetectorModel, CusumScoreFunction
+from kats.detectors.cusum_model import (
+    CUSUMDetectorModel,
+    CusumScoreFunction,
+    VectorizedCUSUMDetectorModel,
+)
 from parameterized.parameterized import parameterized
 
 
@@ -757,3 +761,78 @@ class TestCUSUMDetectorModelIrregularGranularityError(TestCase):
             IRREGULAR_GRANULARITY_ERROR,
         ):
             _ = model.fit_predict(data=self.data_ts)
+
+
+class TestVectorizedCUSUMDetectorModel(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(0)
+        val1 = np.random.normal(1, 0.2, 60)
+        val1[50:] += 10
+        val2 = np.random.normal(1, 0.2, 60)
+        val2[40:] += 10
+        val3 = np.random.normal(1, 0.2, 60)
+        val3[45:] += 10
+        self.y = pd.DataFrame(
+            {
+                "time": pd.Series(pd.date_range("2019-01-01", "2019-03-01")),
+                "val1": val1,
+                "val2": val2,
+                "val3": val3,
+            }
+        )
+
+    def test_percentage_change_results(self) -> None:
+        tsmul = TimeSeriesData(self.y)
+
+        for score_func in [
+            CusumScoreFunction.percentage_change,
+            CusumScoreFunction.change,
+            CusumScoreFunction.z_score,
+        ]:
+
+            detector = VectorizedCUSUMDetectorModel(
+                scan_window=3600 * 24 * 10,
+                historical_window=3600 * 24 * 30,
+                remove_seasonality=False,
+                score_func=score_func,  # CusumScoreFunction.percentage_change | z_score | change
+            )
+            cp1 = detector.fit_predict(tsmul)
+
+            cp3 = {}
+            cps_list = []
+            alert_fired_list = []
+            for col in tsmul.value.columns:
+                d = CUSUMDetectorModel(
+                    scan_window=3600 * 24 * 10,
+                    historical_window=3600 * 24 * 30,
+                    remove_seasonality=False,
+                    score_func=score_func,  # CusumScoreFunction.percentage_change | z_score | change
+                )
+                cp3[col] = d.fit_predict(
+                    TimeSeriesData(
+                        value=tsmul.value[[col]],
+                        time=pd.to_datetime(tsmul.time, unit="s", origin="unix"),
+                    )
+                )
+
+                cps_list.append(d.cps)
+                alert_fired_list.append(d.alert_fired)
+
+            self.assertEqual(list(detector.cps), cps_list)
+            self.assertEqual(list(detector.alert_fired), alert_fired_list)
+
+            for col in ["val1", "val2", "val3"]:
+                self.assertEqual(
+                    (
+                        round(cp3[col].scores.value, 10)
+                        == round(cp1.scores.value.loc[:, col], 10)
+                    ).sum(0),
+                    60,
+                )
+                self.assertEqual(
+                    (
+                        round(cp3[col].anomaly_magnitude_ts.value, 10)
+                        == round(cp1.anomaly_magnitude_ts.value.loc[:, col], 10)
+                    ).sum(0),
+                    60,
+                )

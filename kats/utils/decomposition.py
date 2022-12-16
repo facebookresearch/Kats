@@ -57,10 +57,12 @@ class TimeSeriesDecomposition:
         method: str = "STL",
         **kwargs: Any,
     ) -> None:
-        if not isinstance(data.value, pd.Series):
-            msg = f"Only support univariate time series, but got {type(data.value)}."
+        if not isinstance(data.value, pd.Series) and method != "seasonal_decompose":
+            msg = f"Only support univariate time series, but got {type(data.value)}. \
+                For multivariate, use method='seasonal_decompose'."
             logging.error(msg)
             raise ValueError(msg)
+
         self.data = data
         if decomposition in ("additive", "multiplicative"):
             self.decomposition = decomposition
@@ -100,13 +102,8 @@ class TimeSeriesDecomposition:
         Internal function to interpolate time series and infer frequency of
         time series required for decomposition.
         """
-
-        original = pd.DataFrame(
-            list(self.data.value),
-            index=pd.to_datetime(self.data.time),
-            columns=["y"],
-            copy=False,
-        )
+        original = self.data.to_dataframe()
+        original.set_index(self.data.time_col_name, inplace=True)
 
         if self.data.infer_freq_robust() is None:
             original = original.asfreq("D")
@@ -120,7 +117,7 @@ class TimeSeriesDecomposition:
         )
 
         ## This is a hack since polynomial interpolation is not working here
-        if any(original["y"].isna()):
+        if any(original.isna()):
             original.interpolate(method="linear", limit_direction="both", inplace=True)
 
         # pyre-ignore[7]: Expected `DataFrame` but got
@@ -200,12 +197,13 @@ class TimeSeriesDecomposition:
 
     def __decompose(self, original: pd.DataFrame) -> Dict[str, TimeSeriesData]:
         output = self.method(original)
-        return {
-            name: TimeSeriesData(
-                ts.reset_index(), time_col_name=self.data.time_col_name
-            )
-            for name, ts in output.items()
-        }
+        ret = {}
+        for name, ts in output.items():
+            tmp = pd.DataFrame(ts)
+            if original.shape[1] > 1:
+                tmp.columns = original.columns
+            ret[name] = TimeSeriesData(value=tmp, time=original.index)
+        return ret
 
     def decomposer(self) -> Dict[str, TimeSeriesData]:
         """Decompose the time series.
