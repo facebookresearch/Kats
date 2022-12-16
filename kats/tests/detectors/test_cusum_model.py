@@ -836,3 +836,58 @@ class TestVectorizedCUSUMDetectorModel(TestCase):
                     ).sum(0),
                     60,
                 )
+
+    def test_seasonality_results(self) -> None:
+        tsmul = TimeSeriesData(self.y)
+
+        for score_func in [
+            CusumScoreFunction.percentage_change,
+            CusumScoreFunction.z_score,
+        ]:
+
+            detector = VectorizedCUSUMDetectorModel(
+                scan_window=3600 * 24 * 10,
+                historical_window=3600 * 24 * 30,
+                remove_seasonality=True,
+                score_func=score_func,
+            )
+            cp1 = detector.fit_predict(tsmul)
+
+            cp3 = {}
+            cps_list = []
+            alert_fired_list = []
+            for col in tsmul.value.columns:
+                d = CUSUMDetectorModel(
+                    scan_window=3600 * 24 * 10,
+                    historical_window=3600 * 24 * 30,
+                    remove_seasonality=True,
+                    score_func=score_func,
+                )
+                cp3[col] = d.fit_predict(
+                    TimeSeriesData(
+                        value=tsmul.value[[col]],
+                        time=pd.to_datetime(tsmul.time, unit="s", origin="unix"),
+                    )
+                )
+
+                cps_list.append(d.cps)
+                alert_fired_list.append(d.alert_fired)
+
+            self.assertEqual(list(detector.cps), cps_list)
+            self.assertEqual(list(detector.alert_fired), alert_fired_list)
+
+            for col in ["val1", "val2", "val3"]:
+                self.assertEqual(
+                    (
+                        round(cp3[col].scores.value, 10)
+                        == round(cp1.scores.value.loc[:, col], 10)
+                    ).sum(0),
+                    60,
+                )
+                self.assertEqual(
+                    (
+                        round(cp3[col].anomaly_magnitude_ts.value, 10)
+                        == round(cp1.anomaly_magnitude_ts.value.loc[:, col], 10)
+                    ).sum(0),
+                    60,
+                )
