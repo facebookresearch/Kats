@@ -30,12 +30,13 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Any, cast, Dict, List, NamedTuple, Optional, Union
+from typing import Any, cast, Dict, List, NamedTuple, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from kats.consts import DEFAULT_VALUE_NAME, IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
 from kats.detectors.cusum_detection import (
+    CUSUMChangePoint,
     CUSUMDefaultArgs,
     CUSUMDetector,
     VectorizedCUSUMDetector,
@@ -169,6 +170,7 @@ class CUSUMDetectorModel(DetectorModel):
         score_func: The score function to calculate the anomaly score.
         remove_seasonality: If apply STL to remove seasonality.
         season_period_freq: str, "daily"/"weekly"/"monthly"/"yearly"
+        vectorized: bool, transfer to multi-ts and call vectorized cusum model
     """
 
     def __init__(
@@ -187,6 +189,7 @@ class CUSUMDetectorModel(DetectorModel):
         score_func: Union[str, CusumScoreFunction] = DEFAULT_SCORE_FUNCTION,
         remove_seasonality: bool = CUSUMDefaultArgs.remove_seasonality,
         season_period_freq: str = "daily",
+        vectorized: bool = False,
     ) -> None:
         if serialized_model:
             previous_model = json.loads(serialized_model)
@@ -220,6 +223,8 @@ class CUSUMDetectorModel(DetectorModel):
                 "season_period_freq", "daily"
             )
 
+            self.vectorized: str = previous_model.get("vectorized", False)
+
         elif scan_window is not None and historical_window is not None:
             self.cps = []
             self.alert_fired = False
@@ -252,11 +257,15 @@ class CUSUMDetectorModel(DetectorModel):
                     score_func = DEFAULT_SCORE_FUNCTION
             self.score_func = score_func.value
 
+            self.vectorized: bool = vectorized
+
         else:
             raise ValueError(
                 "You must provide either serialized model or values for "
                 "scan_window and historical_window."
             )
+
+        self.vectorized_trans_flag: bool = False
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, CUSUMDetectorModel):
@@ -322,6 +331,49 @@ class CUSUMDetectorModel(DetectorModel):
             <= self.pre_mean + check_increase * self.pre_std
         )
 
+    def _fit_vec_row(
+        self,
+        vec_data_row: TimeSeriesData,
+        scan_window: Union[int, pd.Timedelta],
+        changepoints: List[CUSUMChangePoint],  # len = 1 or 0
+        time_adjust: pd.Timedelta,
+        change_directions: Optional[List[str]] = CUSUMDefaultArgs.change_directions,
+    ) -> None:
+        scan_start_time = vec_data_row.time.iloc[-1] - pd.Timedelta(
+            scan_window, unit="s"
+        )
+        scan_start_index = max(
+            0, np.argwhere((vec_data_row.time >= scan_start_time).values).min()
+        )
+
+        if not self.alert_fired:
+            if len(changepoints) > 0:
+                cp = changepoints[0]
+                self.cps.append((cp.start_time + time_adjust).value // 10**9)
+
+                if len(self.cps) > MAX_CHANGEPOINT:
+                    self.cps.pop(0)
+
+                self._set_alert_on(
+                    vec_data_row.value[: cp.cp_index + 1].mean(),
+                    # Note: std() from Pandas has default ddof=1, while std() from numpy has default ddof=0
+                    vec_data_row.value[: cp.cp_index + 1].std(ddof=0),
+                    cp.direction,
+                )
+        else:
+            cur_mean = vec_data_row[scan_start_index:].value.mean()
+
+            if self._if_normal(cur_mean, change_directions):
+                self.number_of_normal_scan += 1
+                if self.number_of_normal_scan >= NORMAL_TOLERENCE:
+                    self._set_alert_off()
+            else:
+                self.number_of_normal_scan = 0
+
+            current_time = int((vec_data_row.time.max() + time_adjust).value / 1e9)
+            if current_time - self.cps[-1] > CHANGEPOINT_RETENTION:
+                self._set_alert_off()
+
     def _fit(
         self,
         data: TimeSeriesData,
@@ -360,6 +412,7 @@ class CUSUMDetectorModel(DetectorModel):
         scan_start_index = max(
             0, np.argwhere((historical_data.time >= scan_start_time).values).min()
         )
+
         if not self.alert_fired:
             # if scan window is less than 2 data poins and there is no alert fired
             # skip this scan
@@ -557,7 +610,8 @@ class CUSUMDetectorModel(DetectorModel):
                 raise ValueError(IRREGULAR_GRANULARITY_ERROR)
 
         # check if historical_window, scan_window, and step_window are suitable for given TSs
-        self._check_window_sizes(frequency.total_seconds())
+        frequency_sec = frequency.total_seconds()
+        self._check_window_sizes(frequency_sec)
 
         if remove_seasonality:
             sh_data = SeasonalityHandler(
@@ -565,7 +619,7 @@ class CUSUMDetectorModel(DetectorModel):
             )
             historical_data = sh_data.remove_seasonality()
 
-        smooth_window = int(scan_window.total_seconds() / frequency.total_seconds())
+        smooth_window = int(scan_window.total_seconds() / frequency_sec)
         if smooth_window > 1:
             smooth_historical_value = pd.Series(
                 np.convolve(
@@ -630,33 +684,90 @@ class CUSUMDetectorModel(DetectorModel):
         else:
             step_window = pd.Timedelta(step_window, unit="s")
 
-        for start_time in pd.date_range(
-            anomaly_start_time,
-            min(
-                data.time.iloc[-1]
-                + frequency
-                - step_window,  # to include last data point
-                data.time.iloc[-1],  # make sure start_time won't beyond last data time
-            ),
-            freq=step_window,
-        ):
-            _log.debug(f"start_time {start_time}")
-            historical_start = self._time2idx(
-                historical_data, start_time - historical_window, "right"
+        # if need trans to multi-TS
+        # TS needs to have regular granularity, otherwise cannot transfer uni-TS to multi-TS, because
+        # columns might have different length
+        if self.vectorized:
+            if (
+                step_window.total_seconds() % frequency_sec == 0
+                and historical_window.total_seconds() % frequency_sec
+                == 0  # otherwise in the loop around row 715, each iteration might have slightly different data length
+                and pd.infer_freq(historical_data.time)
+                is not None  # regular granularity
+            ):
+                self.vectorized_trans_flag = True
+                _log.info("Using VectorizedCUSUMDetectorModel.")
+            else:
+                self.vectorized_trans_flag = False
+                _log.info("Cannot transfer to multi-variate TS.")
+
+        else:
+            self.vectorized_trans_flag = False
+
+        # if need trans to multi-TS
+        if self.vectorized_trans_flag:
+            # match _time2idx --- right
+            n_hist_win_pts = int(
+                np.ceil(historical_window.total_seconds() / frequency_sec)
             )
-            _log.debug(f"historical_start {historical_start}")
-            historical_end = self._time2idx(historical_data, start_time, "right")
-            _log.debug(f"historical_end {historical_end}")
-            scan_end = self._time2idx(historical_data, start_time + step_window, "left")
-            _log.debug(f"scan_end {scan_end}")
-            in_data = historical_data[historical_end : scan_end + 1]
-            if len(in_data) == 0:
-                # skip if there is no data in the step_window
-                continue
-            in_hist = historical_data[historical_start:historical_end]
-            self._fit(
-                in_data,
-                in_hist,
+            # match _time2idx --- left + 1
+            multi_ts_len = int(
+                np.ceil(
+                    (historical_window.total_seconds() + step_window.total_seconds())
+                    / frequency_sec
+                )
+            )
+            n_step_win_pts = multi_ts_len - n_hist_win_pts
+            multi_dim = len(historical_data[anomaly_start_idx:]) // n_step_win_pts
+
+            end_idx = anomaly_start_idx + multi_dim * n_step_win_pts
+            new_historical_data = self._reorganize_big_data(
+                historical_data[anomaly_start_idx - n_hist_win_pts : end_idx],
+                multi_ts_len,
+                n_step_win_pts,
+            )
+
+            new_smooth_historical_data = self._reorganize_big_data(
+                smooth_historical_data[anomaly_start_idx - n_hist_win_pts : end_idx],
+                multi_ts_len,
+                n_step_win_pts,
+            )
+
+            # remaining_part = historical_data[end_idx:]
+            ss_detect = VectorizedCUSUMDetectorModel(
+                scan_window=self.scan_window,
+                historical_window=self.historical_window,
+                # pyre-ignore
+                step_window=step_window.total_seconds(),
+                threshold=threshold,
+                delta_std_ratio=delta_std_ratio,
+                magnitude_quantile=magnitude_quantile,
+                magnitude_ratio=magnitude_ratio,
+                change_directions=change_directions,
+                score_func=score_func,
+                remove_seasonality=False,  # already removed
+            )
+            column_index = new_historical_data.value.columns
+            # pyre-ignore
+            ss_detect.alert_fired: pd.Series = pd.Series(False, index=column_index)
+            # pyre-ignore
+            ss_detect.pre_mean: pd.Series = pd.Series(0, index=column_index)
+            # pyre-ignore
+            ss_detect.pre_std: pd.Series = pd.Series(1, index=column_index)
+            # pyre-ignore
+            ss_detect.alert_change_direction: pd.Series = pd.Series(
+                "None", index=column_index
+            )
+            # pyre-ignore
+            ss_detect.number_of_normal_scan: pd.Series = pd.Series(
+                0, index=column_index
+            )
+            ss_detect.cps = [[] for _ in range(len(column_index))]
+            ss_detect.cps_meta = [[] for _ in range(len(column_index))]
+
+            ss_detect._fit(
+                data=TimeSeriesData(),
+                historical_data=new_historical_data,
                 scan_window=cast(Union[int, pd.Timedelta], scan_window),
                 threshold=threshold,
                 delta_std_ratio=delta_std_ratio,
@@ -664,15 +775,90 @@ class CUSUMDetectorModel(DetectorModel):
                 magnitude_ratio=magnitude_ratio,
                 change_directions=change_directions,
             )
-            predict_results = self._predict(
-                smooth_historical_data[historical_end : scan_end + 1],
+
+            for c in range(new_historical_data.value.shape[1]):
+                in_data = TimeSeriesData(
+                    time=new_historical_data.time,
+                    value=new_historical_data.value.iloc[:, c],
+                )
+
+                self._fit_vec_row(
+                    vec_data_row=in_data,
+                    scan_window=cast(Union[int, pd.Timedelta], scan_window),
+                    changepoints=ss_detect.cps_meta[c],
+                    time_adjust=pd.Timedelta(c * step_window, "s"),
+                    change_directions=change_directions,
+                )
+                ss_detect.pre_mean[c] = self.pre_mean
+                ss_detect.pre_std[c] = self.pre_std
+                ss_detect.alert_fired[c] = self.alert_fired
+
+            predict_results = ss_detect._predict(
+                new_smooth_historical_data[-n_step_win_pts:],
                 score_func=score_func,
             )
-            score_tsd.extend(
+            score_tsd_vec, change_tsd_vec = self._reorganize_back(
                 predict_results.score,
+                predict_results.absolute_change,
+                historical_data.value.name,
+            )
+            score_tsd.extend(
+                score_tsd_vec,
                 validate=False,
             )
-            change_tsd.extend(predict_results.absolute_change, validate=False)
+            change_tsd.extend(change_tsd_vec, validate=False)
+
+        else:
+
+            for start_time in pd.date_range(
+                anomaly_start_time,
+                min(
+                    data.time.iloc[-1]
+                    + frequency
+                    - step_window,  # to include last data point
+                    data.time.iloc[
+                        -1
+                    ],  # make sure start_time won't beyond last data time
+                ),
+                freq=step_window,
+            ):
+                _log.debug(f"start_time {start_time}")
+                historical_start = self._time2idx(
+                    historical_data, start_time - historical_window, "right"
+                )
+                _log.debug(f"historical_start {historical_start}")
+                historical_end = self._time2idx(historical_data, start_time, "right")
+                _log.debug(f"historical_end {historical_end}")
+                scan_end = self._time2idx(
+                    historical_data, start_time + step_window, "left"
+                )
+                _log.debug(f"scan_end {scan_end}")
+                in_data = historical_data[historical_end : scan_end + 1]
+                if len(in_data) == 0:
+                    # skip if there is no data in the step_window
+                    continue
+                in_hist = historical_data[historical_start:historical_end]
+
+                self._fit(
+                    in_data,
+                    in_hist,
+                    scan_window=cast(Union[int, pd.Timedelta], scan_window),
+                    threshold=threshold,
+                    delta_std_ratio=delta_std_ratio,
+                    magnitude_quantile=magnitude_quantile,
+                    magnitude_ratio=magnitude_ratio,
+                    change_directions=change_directions,
+                )
+
+                predict_results = self._predict(
+                    smooth_historical_data[historical_end : scan_end + 1],
+                    score_func=score_func,
+                )
+                score_tsd.extend(
+                    predict_results.score,
+                    validate=False,
+                )
+                change_tsd.extend(predict_results.absolute_change, validate=False)
 
         # Handle the remaining data
         remain_data_len = len(data) - len(score_tsd)
@@ -713,6 +899,63 @@ class CUSUMDetectorModel(DetectorModel):
             anomaly_magnitude_ts=change_tsd,
             stat_sig_ts=None,
         )
+
+    def _reorganize_big_data(
+        self,
+        org_data: TimeSeriesData,
+        multi_ts_len: int,
+        n_step_win_pts: int,
+    ) -> TimeSeriesData:
+        multi_ts_time_df = org_data[:multi_ts_len].time.copy()
+        multi_ts_val = [list(org_data[:multi_ts_len].value)]
+        for i in range(multi_ts_len, len(org_data), n_step_win_pts):
+            multi_ts_val.append(
+                list(
+                    org_data[
+                        i - multi_ts_len + n_step_win_pts : i + n_step_win_pts
+                    ].value
+                )
+            )
+
+        multi_ts_val_df = pd.DataFrame(multi_ts_val).T
+
+        multi_ts_df = pd.concat([multi_ts_time_df, multi_ts_val_df], 1)
+        df_names = ["val_" + str(i) for i in range(multi_ts_val_df.shape[1])]
+        multi_ts_df.columns = ["time"] + df_names
+
+        return TimeSeriesData(multi_ts_df)
+
+    def _reorganize_back(
+        self,
+        scores: TimeSeriesData,
+        magnitude_ts: TimeSeriesData,
+        name: str,
+    ) -> Tuple[TimeSeriesData, TimeSeriesData]:
+        anom_scores_val_array = np.asarray(scores.value)
+        anom_mag_val_array = np.asarray(magnitude_ts.value)
+        freq = scores.time[1] - scores.time[0]
+        time_need = pd.date_range(
+            start=scores.time.iloc[0],
+            end=None,
+            periods=anom_scores_val_array.shape[0] * anom_scores_val_array.shape[1],
+            freq=freq,
+        )
+
+        anom_scores_val_1d = pd.Series(
+            anom_scores_val_array.T.reshape([-1]),
+            name=name,
+        )
+
+        anom_scores_ts = TimeSeriesData(time=time_need, value=anom_scores_val_1d)
+
+        anom_mag_val_1d = pd.Series(
+            anom_mag_val_array.T.reshape([-1]),
+            name=name,
+        )
+
+        anom_mag_ts = TimeSeriesData(time=time_need, value=anom_mag_val_1d)
+
+        return anom_scores_ts, anom_mag_ts
 
     def _time2idx(self, tsd: TimeSeriesData, time: datetime, direction: str) -> int:
         """
@@ -796,6 +1039,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
         if serialized_model:
             previous_model = json.loads(serialized_model)
             self.cps: List[List[int]] = previous_model["cps"]
+            self.cps_meta: List[List[CUSUMChangePoint]] = previous_model["cps_meta"]
             self.alert_fired: pd.Series = previous_model["alert_fired"]
             self.pre_mean: pd.Series = previous_model["pre_mean"]
             self.pre_std: pd.Series = previous_model["pre_std"]
@@ -932,7 +1176,8 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
             change_directions: a list contain either or both 'increase' and 'decrease' to
                 specify what type of change to detect;
         """
-        historical_data.extend(data, validate=False)
+        if data != TimeSeriesData():
+            historical_data.extend(data, validate=False)
         n = len(historical_data)
         scan_start_time = historical_data.time.iloc[-1] - pd.Timedelta(
             scan_window, unit="s"
@@ -978,8 +1223,10 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
                 if cp is not None:
                     mask1[(cp.cp_index + 1) :, i] = False
                     self.cps[i].append(int(cp.start_time.value / 1e9))
+                    self.cps_meta[i].append(cp)
                     if len(self.cps[i]) > MAX_CHANGEPOINT:
                         self.cps[i].pop(0)
+                        self.cps_meta[i].pop(0)
 
             avg = np.divide(
                 np.sum(np.multiply(historical_data.value, mask1), axis=0),
@@ -1144,6 +1391,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
         )
         self.number_of_normal_scan: pd.Series = pd.Series(0, index=data.value.columns)
         self.cps = [[] for _ in range(num_timeseries)]
+        self.cps_meta = [[] for _ in range(num_timeseries)]
         # get parameters
         scan_window = self.scan_window
         historical_window = self.historical_window

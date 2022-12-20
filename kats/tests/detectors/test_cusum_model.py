@@ -891,3 +891,79 @@ class TestVectorizedCUSUMDetectorModel(TestCase):
                     ).sum(0),
                     60,
                 )
+
+
+class TestCallVectorizedCUSUM(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(2)
+        x = np.random.normal(0, 1, 90)
+        x[25:] += 10
+        x[50:] += 10
+        x[80:] += 10
+        y = pd.DataFrame(
+            {
+                "time": pd.Series(pd.date_range("2019-01-01", "2019-03-31")),
+                "val1": x,
+            }
+        )
+        self.ts = TimeSeriesData(y)
+
+    def test_vetorized_true_results(self) -> None:
+        d = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            remove_seasonality=False,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=False,
+        )
+        anom = d.fit_predict(self.ts)
+
+        d1 = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            remove_seasonality=False,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=True,
+        )
+        anom1 = d1.fit_predict(self.ts)
+
+        self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
+        self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
+        self.assertEqual(
+            np.round(
+                anom1.anomaly_magnitude_ts.value - anom.anomaly_magnitude_ts.value, 5
+            ).sum(0),
+            0,
+        )
+        self.assertTrue(np.round(anom1.scores.value, 5).sum(0) > 0)
+        self.assertTrue(np.round(anom1.anomaly_magnitude_ts.value, 5).sum(0) > 0)
+
+    def test_vetorized_true_seasonality_true_results(self) -> None:
+        d = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            remove_seasonality=True,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=False,
+        )
+        anom = d.fit_predict(self.ts)
+
+        d1 = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            remove_seasonality=True,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=True,
+        )
+        anom1 = d1.fit_predict(self.ts)
+
+        self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
+        self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
+        self.assertEqual(
+            np.round(
+                anom1.anomaly_magnitude_ts.value - anom.anomaly_magnitude_ts.value, 5
+            ).sum(0),
+            0,
+        )
+        self.assertTrue(np.round(anom1.scores.value, 5).sum(0) > 0)
+        self.assertTrue(np.round(anom1.anomaly_magnitude_ts.value, 5).sum(0) > 0)
