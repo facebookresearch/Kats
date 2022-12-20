@@ -428,12 +428,15 @@ class StatSigDetectorModel(DetectorModel):
             i += 1
 
         scores = TimeSeriesData(pd.DataFrame({"time": list(data.time), "value": res}))
+        anomaly_magnitude_ts = TimeSeriesData(
+            pd.DataFrame({"time": list(data.time), "value": [0] * len(list(data.time))})
+        )
 
         return AnomalyResponse(
             scores=scores,
             confidence_band=None,
             predicted_ts=None,
-            anomaly_magnitude_ts=TimeSeriesData(),
+            anomaly_magnitude_ts=anomaly_magnitude_ts,
             stat_sig_ts=None,
         )
 
