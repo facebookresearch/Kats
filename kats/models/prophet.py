@@ -412,7 +412,10 @@ class ProphetModel(Model[ProphetParams]):
             prophet.add_regressor(**regressor)
 
         try:
-            self.model = prophet.fit(df=df)
+            if "seed" in kwargs:
+                self.model = prophet.fit(df=df, seed=kwargs["seed"])
+            else:
+                self.model = prophet.fit(df=df)
         except Exception as e:
             logging.error(e)
             logging.error(f"df = {df}")
@@ -458,6 +461,10 @@ class ProphetModel(Model[ProphetParams]):
         self.freq = freq if freq is not None else self.data.infer_freq_robust()
         self.include_history = include_history
         future = self._future_validation(steps, future)
+
+        if "seed" in kwargs:
+            np.random.seed(kwargs["seed"])
+
         fcst = model.predict(future)
         if raw:
             return fcst

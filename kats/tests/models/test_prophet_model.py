@@ -477,6 +477,11 @@ class ProphetModelTest(TestCase):
         m_daily.predict(steps=30, include_history=True, freq="D", future=future)
         m_daily.plot()
 
+    def test_seed(self) -> None:
+        m = ProphetModel(TEST_DATA["daily"]["ts"], TEST_DATA["daily"]["params"])
+        m.fit(seed=0)
+        m.predict(steps=30, freq="MS", seed=0)
+
 
 if __name__ == "__main__":
     unittest.main()
