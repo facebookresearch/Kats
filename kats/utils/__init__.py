@@ -11,7 +11,6 @@ from . import (  # noqa  # noqa  # noqa  # noqa  # noqa  # noqa
     parameter_tuning_utils,
     simulator,
 )
-from . import testing  # noqa # usort: skip
 
 try:
     from . import time_series_parameter_tuning  # noqa
