@@ -594,12 +594,14 @@ class CUSUMDetectorModel(DetectorModel):
         # pull all the data in historical data
         if historical_data is not None:
             # make a copy of historical data
+            org_hist_len = len(historical_data)
             historical_data = historical_data[:]
             historical_data.extend(data, validate=False)
         else:
             # When historical_data is not provided, will use part of data as
             # historical_data, and fill with zero anomaly score.
             historical_data = data[:]
+            org_hist_len = 0
 
         frequency = historical_data.freq_to_timedelta()
         if frequency is None or frequency is pd.NaT:
@@ -696,7 +698,7 @@ class CUSUMDetectorModel(DetectorModel):
                 step_window.total_seconds() % frequency_sec == 0
                 and historical_window.total_seconds() % frequency_sec
                 == 0  # otherwise in the loop around row 715, each iteration might have slightly different data length
-                and pd.infer_freq(historical_data.time)
+                and pd.infer_freq(historical_data.time.values)
                 is not None  # regular granularity
             ):
                 self.vectorized_trans_flag = True
@@ -726,13 +728,17 @@ class CUSUMDetectorModel(DetectorModel):
 
             end_idx = anomaly_start_idx + multi_dim * n_step_win_pts
             new_historical_data = self._reorganize_big_data(
-                historical_data[anomaly_start_idx - n_hist_win_pts : end_idx],
+                historical_data[
+                    max(anomaly_start_idx - n_hist_win_pts + org_hist_len, 0) : end_idx
+                ],
                 multi_ts_len,
                 n_step_win_pts,
             )
 
             new_smooth_historical_data = self._reorganize_big_data(
-                smooth_historical_data[anomaly_start_idx - n_hist_win_pts : end_idx],
+                smooth_historical_data[
+                    max(anomaly_start_idx - n_hist_win_pts + org_hist_len, 0) : end_idx
+                ],
                 multi_ts_len,
                 n_step_win_pts,
             )
@@ -895,6 +901,9 @@ class CUSUMDetectorModel(DetectorModel):
                 validate=False,
             )
             change_tsd.extend(predict_results.absolute_change, validate=False)
+
+        score_tsd.time = data.time
+        change_tsd.time = data.time
 
         return AnomalyResponse(
             scores=score_tsd,

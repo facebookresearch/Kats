@@ -410,6 +410,109 @@ class TestStreamingCUSUMDetectorModel(TestCase):
         self.assertTrue(8 <= (self.anomaly_score.value > 0).sum() <= 12)
 
 
+class TestTZAwareDataCUSUMDetectorModel(TestCase):
+    def setUp(self) -> None:
+        np.random.seed(100)
+        freq = 86400
+        self.historical_window = 48 * freq  # in seconds
+        self.scan_window = 12 * freq  # in seconds
+        self.n = 72
+        values = np.concatenate(
+            [np.random.normal(1, 0.2, 60), np.random.normal(1.5, 0.2, 12)]
+        )
+        start_time = pd.Timestamp("2020-01-01").value // 10**9
+        df = pd.DataFrame(
+            {
+                "ts_value": values,
+                "time": np.arange(start_time, start_time + self.n * freq, freq),
+            }
+        )
+        df_irregular = pd.DataFrame(
+            {
+                "ts_value": values,
+                "time": np.concatenate(
+                    [
+                        np.arange(start_time, start_time + 24 * freq, freq),
+                        np.arange(
+                            start_time + 36 * freq,
+                            start_time + (self.n + 12) * freq,
+                            freq,
+                        ),
+                    ]
+                ),
+            }
+        )
+        self.tsd = TimeSeriesData(
+            df, use_unix_time=True, unix_time_units="s", tz="US/Pacific"
+        )
+        self.tsd_irregular = TimeSeriesData(
+            df_irregular, use_unix_time=True, unix_time_units="s", tz="US/Pacific"
+        )
+
+    def test_tzaware_data(self) -> None:
+        # Priming the model
+        model = CUSUMDetectorModel(
+            historical_window=self.historical_window, scan_window=self.scan_window
+        )
+        model.fit(data=self.tsd[:48])
+        pre_serialized_model = model.serialize()
+
+        anomaly_score = TimeSeriesData(
+            time=pd.Series(), value=pd.Series([], name="ts_value")
+        )
+        # feeding 1 new data point a time
+        for i in range(48, self.n):
+            model = CUSUMDetectorModel(
+                serialized_model=pre_serialized_model,
+                historical_window=self.historical_window,
+                scan_window=self.scan_window,
+            )
+            anomaly_score.extend(
+                model.fit_predict(
+                    data=self.tsd[i : i + 1], historical_data=self.tsd[i - 48 : i]
+                ).scores,
+                validate=False,
+            )
+            pre_serialized_model = model.serialize()
+
+        self.assertEqual(len(anomaly_score), self.n - 48)
+        self.assertTrue(7 <= (anomaly_score.value > 0).sum() <= 12)
+        self.assertTrue((anomaly_score.time.values == self.tsd[48:].time.values).all())
+
+    def test_irregular_tzaware_data(self) -> None:
+        # Priming the model
+        model = CUSUMDetectorModel(
+            historical_window=self.historical_window, scan_window=self.scan_window
+        )
+        model.fit(data=self.tsd_irregular[:48])
+        pre_serialized_model = model.serialize()
+
+        anomaly_score = TimeSeriesData(
+            time=pd.Series(), value=pd.Series([], name="ts_value")
+        )
+        # feeding 1 new data point a time
+        for i in range(48, self.n):
+            model = CUSUMDetectorModel(
+                serialized_model=pre_serialized_model,
+                historical_window=self.historical_window,
+                scan_window=self.scan_window,
+            )
+            anomaly_score.extend(
+                model.fit_predict(
+                    data=self.tsd_irregular[i : i + 1],
+                    historical_data=self.tsd_irregular[i - 48 : i],
+                ).scores,
+                validate=False,
+            )
+            pre_serialized_model = model.serialize()
+
+        self.assertEqual(len(anomaly_score), self.n - 48)
+        self.assertTrue(7 <= (anomaly_score.value > 0).sum() <= 12)
+        self.assertTrue(
+            (anomaly_score.time.values == self.tsd_irregular[48:].time.values).all()
+        )
+
+
 class TestDecomposingSeasonalityCUSUMDetectorModel(TestCase):
     def setUp(self) -> None:
         np.random.seed(100)
@@ -896,19 +999,40 @@ class TestVectorizedCUSUMDetectorModel(TestCase):
 class TestCallVectorizedCUSUM(TestCase):
     def setUp(self) -> None:
         np.random.seed(2)
-        x = np.random.normal(0, 1, 90)
+        x = np.random.normal(0, 1, 110)
         x[25:] += 10
         x[50:] += 10
         x[80:] += 10
+        freq = 86400
+        start_time = pd.Timestamp("2019-01-01").value // 10**9
         y = pd.DataFrame(
             {
-                "time": pd.Series(pd.date_range("2019-01-01", "2019-03-31")),
+                "time": np.arange(start_time, start_time + 110 * freq, freq),
                 "val1": x,
             }
         )
-        self.ts = TimeSeriesData(y)
+        y_irregular = pd.DataFrame(
+            {
+                "time": np.concatenate(
+                    [
+                        np.arange(start_time, start_time + 10 * freq, freq),
+                        np.arange(
+                            start_time + 12 * freq, start_time + 112 * freq, freq
+                        ),
+                    ]
+                ),
+                "val1": x,
+            }
+        )
+        self.ts = TimeSeriesData(y, use_unix_time=True, unix_time_units="s")
+        self.ts_tz_aware = TimeSeriesData(
+            y, use_unix_time=True, unix_time_units="s", tz="US/Pacific"
+        )
+        self.ts_irregular = TimeSeriesData(
+            y_irregular, use_unix_time=True, unix_time_units="s", tz="US/Pacific"
+        )
 
-    def test_vetorized_true_results(self) -> None:
+    def test_vectorized_true_results(self) -> None:
         d = CUSUMDetectorModel(
             scan_window=3600 * 24 * 8,
             historical_window=3600 * 24 * 10,
@@ -916,7 +1040,7 @@ class TestCallVectorizedCUSUM(TestCase):
             score_func=CusumScoreFunction.z_score,
             vectorized=False,
         )
-        anom = d.fit_predict(self.ts)
+        anom = d.fit_predict(data=self.ts[20:], historical_data=self.ts[:20])
 
         d1 = CUSUMDetectorModel(
             scan_window=3600 * 24 * 8,
@@ -925,7 +1049,7 @@ class TestCallVectorizedCUSUM(TestCase):
             score_func=CusumScoreFunction.z_score,
             vectorized=True,
         )
-        anom1 = d1.fit_predict(self.ts)
+        anom1 = d1.fit_predict(data=self.ts[20:], historical_data=self.ts[:20])
 
         self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
         self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
@@ -937,25 +1061,32 @@ class TestCallVectorizedCUSUM(TestCase):
         )
         self.assertTrue(np.round(anom1.scores.value, 5).sum(0) > 0)
         self.assertTrue(np.round(anom1.anomaly_magnitude_ts.value, 5).sum(0) > 0)
+        self.assertEqual(
+            (d.vectorized_trans_flag, d1.vectorized_trans_flag), (False, True)
+        )
 
-    def test_vetorized_true_seasonality_true_results(self) -> None:
+    def test_vectorized_true_results_tz_aware(self) -> None:
         d = CUSUMDetectorModel(
             scan_window=3600 * 24 * 8,
             historical_window=3600 * 24 * 10,
-            remove_seasonality=True,
+            remove_seasonality=False,
             score_func=CusumScoreFunction.z_score,
             vectorized=False,
         )
-        anom = d.fit_predict(self.ts)
+        anom = d.fit_predict(
+            data=self.ts_tz_aware[20:], historical_data=self.ts_tz_aware[:20]
+        )
 
         d1 = CUSUMDetectorModel(
             scan_window=3600 * 24 * 8,
             historical_window=3600 * 24 * 10,
-            remove_seasonality=True,
+            remove_seasonality=False,
             score_func=CusumScoreFunction.z_score,
             vectorized=True,
         )
-        anom1 = d1.fit_predict(self.ts)
+        anom1 = d1.fit_predict(
+            data=self.ts_tz_aware[20:], historical_data=self.ts_tz_aware[:20]
+        )
 
         self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
         self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
@@ -967,3 +1098,77 @@ class TestCallVectorizedCUSUM(TestCase):
         )
         self.assertTrue(np.round(anom1.scores.value, 5).sum(0) > 0)
         self.assertTrue(np.round(anom1.anomaly_magnitude_ts.value, 5).sum(0) > 0)
+        self.assertEqual(
+            (d.vectorized_trans_flag, d1.vectorized_trans_flag), (False, True)
+        )
+
+    def test_vectorized_true_results_irregular_granularity(self) -> None:
+        d = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            remove_seasonality=False,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=False,
+        )
+        anom = d.fit_predict(
+            data=self.ts_irregular[20:], historical_data=self.ts_irregular[:20]
+        )
+
+        d1 = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            remove_seasonality=False,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=True,
+        )
+        anom1 = d1.fit_predict(
+            data=self.ts_irregular[20:], historical_data=self.ts_irregular[:20]
+        )
+
+        self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
+        self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
+        self.assertEqual(
+            np.round(
+                anom1.anomaly_magnitude_ts.value - anom.anomaly_magnitude_ts.value, 5
+            ).sum(0),
+            0,
+        )
+        self.assertTrue(np.round(anom1.scores.value, 5).sum(0) > 0)
+        self.assertTrue(np.round(anom1.anomaly_magnitude_ts.value, 5).sum(0) > 0)
+        # Can't use VectorizedCUSUMDetector for irregular granularity data
+        self.assertEqual(
+            (d.vectorized_trans_flag, d1.vectorized_trans_flag), (False, False)
+        )
+
+    def test_vectorized_true_seasonality_true_results(self) -> None:
+        d = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            remove_seasonality=True,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=False,
+        )
+        anom = d.fit_predict(data=self.ts[20:], historical_data=self.ts[:20])
+
+        d1 = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            remove_seasonality=True,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=True,
+        )
+        anom1 = d1.fit_predict(data=self.ts[20:], historical_data=self.ts[:20])
+
+        self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
+        self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
+        self.assertEqual(
+            np.round(
+                anom1.anomaly_magnitude_ts.value - anom.anomaly_magnitude_ts.value, 5
+            ).sum(0),
+            0,
+        )
+        self.assertTrue(np.round(anom1.scores.value, 5).sum(0) > 0)
+        self.assertTrue(np.round(anom1.anomaly_magnitude_ts.value, 5).sum(0) > 0)
+        self.assertEqual(
+            (d.vectorized_trans_flag, d1.vectorized_trans_flag), (False, True)
+        )
