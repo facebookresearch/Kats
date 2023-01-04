@@ -189,7 +189,7 @@ class CUSUMDetectorModel(DetectorModel):
         score_func: Union[str, CusumScoreFunction] = DEFAULT_SCORE_FUNCTION,
         remove_seasonality: bool = CUSUMDefaultArgs.remove_seasonality,
         season_period_freq: str = "daily",
-        vectorized: bool = False,
+        vectorized: Optional[bool] = None,
     ) -> None:
         if serialized_model:
             previous_model = json.loads(serialized_model)
@@ -223,7 +223,11 @@ class CUSUMDetectorModel(DetectorModel):
                 "season_period_freq", "daily"
             )
 
-            self.vectorized: str = previous_model.get("vectorized", False)
+            # If vectorized is provided, it should supersede existing values
+            if vectorized is not None:
+                self.vectorized: bool = vectorized
+            else:
+                self.vectorized: bool = previous_model.get("vectorized", False)
 
         elif scan_window is not None and historical_window is not None:
             self.cps = []
@@ -257,7 +261,7 @@ class CUSUMDetectorModel(DetectorModel):
                     score_func = DEFAULT_SCORE_FUNCTION
             self.score_func = score_func.value
 
-            self.vectorized: bool = vectorized
+            self.vectorized: bool = vectorized or False
 
         else:
             raise ValueError(
