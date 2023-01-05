@@ -36,12 +36,14 @@ Typical usage example:
 
 from __future__ import annotations
 
+import itertools
+
 import json
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -50,7 +52,10 @@ from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from matplotlib import pyplot as plt
 from numpy.linalg import matrix_power
-from scipy.stats import beta, binom, norm
+from scipy.linalg import toeplitz
+from scipy.stats import beta, binom, mvn, norm
+from scipy.stats._multivariate import _PSD, multivariate_normal_gen
+from statsmodels.tsa.arima_process import ArmaProcess
 
 DEFAULT_FIGSIZE = (10, 12)
 
@@ -340,6 +345,20 @@ class ABInterval(IntervalAnomaly):
             _repr += _indent + f"length={len(self.indices)},"
         _repr += "\n)"
         return _repr
+
+
+def arma_p_q(ar: List[float], ma: List[float], n: int) -> np.ndarray:
+    """Returns the autocorrelation matrix of an ARMA(p, q) Process."""
+    # (1 - \phi_1 * L - ... - \phi_p * L^p) * y_t =
+    #       (1 + \theta_1 * L + ... + \theta_q * L^q) * e_t
+    return toeplitz(
+        ArmaProcess(ar=np.r_[1, -np.array(ar)], ma=np.r_[1, np.array(ma)]).acf(lags=n)
+    )
+
+
+def ar_1(rho: float, n: int) -> np.ndarray:
+    """Returns the autocorrelation matrix of an AR(1) Process."""
+    return arma_p_q(ar=[rho], ma=[], n=n)
 
 
 class IntervalDetectorModel(DetectorModel, ABC):
@@ -668,7 +687,9 @@ class IntervalDetectorModel(DetectorModel, ABC):
         if self.duration is None:
             # Use self.alpha and length to determine best duration
             # and also adjust alpha for the critical_value calculation.
-            lowest_m = self._get_lowest_m(p=self.alpha, n=length, r_tol=r_tol)
+            lowest_m = self._get_lowest_m(
+                p=self.alpha, n=length, test_type=self.test_type, r_tol=r_tol
+            )
             logging.warning(
                 f"Automatic duration with {length} data points:"
                 + f"\nduration set to {lowest_m.m}"
@@ -681,7 +702,11 @@ class IntervalDetectorModel(DetectorModel, ABC):
             # such that the global Type-I error still remains within a
             # relative threshold of self.alpha.
             lowest_p = self._get_lowest_p(
-                m=self.duration, n=length, p_goal=self.alpha, r_tol=r_tol
+                m=self.duration,
+                n=length,
+                p_goal=self.alpha,
+                test_type=self.test_type,
+                r_tol=r_tol,
             )
             logging.warning(
                 f"Type-I Adjustment with {length} data points:"
@@ -755,7 +780,9 @@ class IntervalDetectorModel(DetectorModel, ABC):
         p: float
 
     @staticmethod
-    def _get_lowest_m(p: float, n: int, r_tol: float, max_iter: int = 1000) -> LowestM:
+    def _get_lowest_m(
+        p: float, n: int, r_tol: float, test_type: TestType, max_iter: int = 1000
+    ) -> LowestM:
         """Finds lowest m such that the corrected probability is still less than p in n trials.
 
         Notes:
@@ -777,7 +804,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
         while m < max_iter and p >= p_global and m <= n:
             # Correct p based off current iter and p_global.
             p = IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
-                p_global, n=n, m=m
+                p_global, n=n, m=m, test_type=test_type
             )
             if p <= p_global * (r_tol + 1):
                 # We have found a solution meeting r_tol.
@@ -799,6 +826,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
         n: int,
         p_goal: float,
         r_tol: float,
+        test_type: TestType,
         max_iter: int = 1000,
     ) -> LowestP:
         """Finds a p so that the corrected p is with `r_tol` of `p_global` with n trials and m run size.
@@ -845,7 +873,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
             p_corrected = (p_high + p_low) / 2.0
             p_global = (
                 IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
-                    p_corrected, n=n, m=m
+                    p_corrected, n=n, m=m, test_type=test_type
                 )
             )
             # Return if the corrected Type-I error is within our relative tolerance.
@@ -865,68 +893,199 @@ class IntervalDetectorModel(DetectorModel, ABC):
         )
 
     @staticmethod
-    def _probability_of_at_least_one_m_run_in_n_trials(
-        p: float, n: int, m: int
+    def _mvn_mvnun(
+        lower: np.ndarray,
+        upper: np.ndarray,
+        mean: Optional[np.ndarray] = None,
+        cov: Union[int, np.ndarray] = 1,
+        allow_singular: bool = False,
+        maxpts: Optional[int] = None,
+        abseps: float = 1e-6,
+        releps: float = 1e-6,
     ) -> float:
-        """P(at least 1 run of m consecutive 1's in n bernoulli trials) in a vectorized formulation.
+        """Wrapper on scipy mvnun function enabling definite integrals.
 
-        Notes:
-            Solves the dynamic program using vectorized libraries:
-
-                P(r_j^k) = p^k + Σ_{i=0}^{k-1} p^i * (1 - p) * P(r_{j - i - 1}^k)
-
-                where r_j^k is the event that at least 1 run of m heads occurs in k
-                flips with probability p on the jth step.
+        References:
+            https://github.com/scipy/scipy/blob/main/scipy/stats/mvndst.f
 
         Args:
-            p: P(x_i = 1) for all i <= n.
-            n: total number of trials.
-            m: number of consecutive 1's.
+            lower: Lower limit of integration
+            upper: Upper limit of integration
+            mean: (N,) dimensional mean vector of MVN distribution.
+            cov: (N, N) dimensional covariance matrix of MVN distribution.
+            maxpts: The maximum number of points to use for integration
+            abseps: Absolute error tolerance
+            releps: Relative error tolerance
+        """
+        # Follow preprocessing from:
+        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.multivariate_normal.html
+        _multivariate_normal_gen = multivariate_normal_gen()
+        # pyre-ignore
+        dim, mean, cov = _multivariate_normal_gen._process_parameters(None, mean, cov)
+        # pyre-ignore
+        lower = _multivariate_normal_gen._process_quantiles(lower, dim)
+        upper = _multivariate_normal_gen._process_quantiles(upper, dim)
+        _PSD(cov, allow_singular=allow_singular)
+        return mvn.mvnun(
+            lower=lower,
+            upper=upper,
+            means=mean,
+            covar=cov,
+            maxpts=1_000_000 * dim if not maxpts else maxpts,
+            abseps=abseps,
+            releps=releps,
+        )[0]
+
+    @staticmethod
+    def _w_independent(m: int, p: float) -> np.ndarray:
+        return np.power(p, np.arange(m + 1)) * np.array([(1 - p)] * m + [1])
+
+    @staticmethod
+    def _w_one_tailed(
+        m: int, p: float, test_type: TestType, cov: np.ndarray
+    ) -> np.ndarray:
+        z_crit = norm().ppf(1.0 - p)
+        if test_type == TestType.ONE_SIDED_UPPER:
+            fail_to_reject_lower = np.array([z_crit] * (m - 1) + [-np.inf])
+            fail_to_reject_upper = np.array([np.inf] * (m - 1) + [z_crit])
+            reject_lower = np.full(m, z_crit)
+            reject_upper = np.full(m, np.inf)
+        elif test_type == TestType.ONE_SIDED_LOWER:
+            fail_to_reject_lower = np.array([-np.inf] * (m - 1) + [-z_crit])
+            fail_to_reject_upper = np.array([-z_crit] * (m - 1) + [np.inf])
+            reject_lower = np.full(m, -np.inf)
+            reject_upper = np.full(m, -z_crit)
+        else:
+            raise ValueError(f"Expected test_type to be of TestType. Found {test_type}")
+        res = [
+            IntervalDetectorModel._mvn_mvnun(
+                lower=fail_to_reject_lower[k:],
+                upper=fail_to_reject_upper[k:],
+                cov=cov[k:, k:],
+            )
+            for k in range(m - 1, -1, -1)
+        ]
+        res += [
+            IntervalDetectorModel._mvn_mvnun(
+                lower=reject_lower, upper=reject_upper, cov=cov
+            )
+        ]
+        return np.array(res)
+
+    @staticmethod
+    def _w_two_tailed(m: int, p: float, cov: np.ndarray) -> np.ndarray:
+        _m_warn = 8
+        if m > _m_warn:
+            logging.warning(
+                f"Non-spherical covariance is unstable for m > {_m_warn}"
+                + f" and requires {2 ** m} simulations / evaluation."
+            )
+        z_crit = norm().ppf(1.0 - p / 2)
+        # Integration region is an AND conjunction of several OR clauses.
+        # Instead of pre-specifying the integration regions such as in
+        # _w_one_tailed, we compute these on the fly.
+        res = [
+            sum(
+                [
+                    IntervalDetectorModel._mvn_mvnun(
+                        lower=np.array(
+                            [-np.inf if r == "l" else z_crit for r in regions]
+                            + [-z_crit]
+                        ),
+                        upper=np.array(
+                            [-z_crit if r == "l" else np.inf for r in regions]
+                            + [z_crit]
+                        ),
+                        cov=cov[k:, k:],
+                    )
+                    for regions in itertools.product(*["lh"], repeat=m - 1 - k)
+                ]
+            )
+            for k in range(m - 1, -1, -1)
+        ]
+        res += [
+            sum(
+                [
+                    IntervalDetectorModel._mvn_mvnun(
+                        lower=np.array(
+                            [-np.inf if r == "l" else z_crit for r in regions]
+                        ),
+                        upper=np.array(
+                            [-z_crit if r == "l" else np.inf for r in regions]
+                        ),
+                        cov=cov,
+                    )
+                    for regions in itertools.product(*["lh"], repeat=m)
+                ]
+            )
+        ]
+        return np.array(res)
+
+    @staticmethod
+    def _w(
+        m: int, p: float, test_type: TestType, cov: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        if cov is None:
+            return IntervalDetectorModel._w_independent(m=m, p=p)
+        elif TestType(test_type.value) == TestType.TWO_SIDED:
+            return IntervalDetectorModel._w_two_tailed(m=m, p=p, cov=cov)
+        else:
+            return IntervalDetectorModel._w_one_tailed(
+                m=m, p=p, test_type=TestType(test_type.value), cov=cov
+            )
+
+    @staticmethod
+    def _probability_of_at_least_one_m_run_in_n_trials(
+        p: float,
+        n: int,
+        m: int,
+        test_type: TestType = TestType.ONE_SIDED_UPPER,
+        cov: Optional[np.ndarray] = None,
+    ) -> float:
+        """P(at least 1 run of m consecutive rejections) in a vectorized formulation.
+
+        Notes:
+            - Passing cov=None will default to using an independence assumption
+            in _vec_solve. Otherwise, _mvn_mvnun is used to estimate weights.
+            - TestType.TWO_SIDED is significantly more intensive to compute for
+            non-spherical covariances. It is not recommended to use above m=8
+            in this setting.
+
+        Args:
+            p: P(reject H_i) ∀ i
+            n: total number of tests.
+            m: required number of consecutive rejections.
+            test_type: Tail(s) of the test that rejects.
+            cov: Covariance matrix of P(reject H_i ∩ reject H_j) for i ≠ j.
 
         Returns:
-            P(at least 1 run of m consecutive 1's in n bernoulli trials).
+            P(at least 1 run of m consecutive rejections).
         """
 
-        def _check_args(p: float, n: int, m: int) -> None:
+        def _check_args(n: int, m: int) -> None:
             if m <= 0:
                 raise ValueError(f"m must be > 0. Found m={m}.")
             if n <= 0:
                 raise ValueError(f"n must be > 0. Found n={n}.")
             if m > n:
                 raise ValueError(f"m must be <= n. Found n={n} and m={m}.")
-            if p < 0 or p > 1:
-                raise ValueError(f"p must be ∊ (0, 1). Found p={p}.")
 
-        def _vec_solve(p: float, n: int, m: int) -> np.ndarray:
-            """Probability of at least 1 run of m consecutive 1's in i bernoulli trials for all i <= n.
-
-            Args:
-                p: P(x_i = 1) for all i <= n.
-                n: total number of trials.
-                m: number of consecutive 1's.
-
-            Returns:
-                P(at least 1 run of m consecutive 1's in i trials bernoulli trials) ∀ i<=n
-            """
-            q = 1 - p
-
-            # state vector => (m + 1,)
-            s = np.array([p**m] + [0] * (m - 1) + [1])
-
-            # [p^0 * q, p^1 * q, ..., p^(m - 1) * q, p^m] => (m + 1,)
-            f = np.power(p, np.arange(m + 1))
-            f *= np.array([q] * m + [1])
-
-            # transition matrix => (m + 1) x (m + 1)
+        def _A(m: int, w: np.ndarray) -> np.ndarray:
             A = np.diag(v=[1.0] * m, k=1)
-            A[:, 0] = f
+            A[:, 0] = w
             A[-2, -1] = 0.0
             A[-1, -1] = 1.0
-            return s @ matrix_power(A, n - m)
+            return A
+
+        def _vec_solve(w: np.ndarray, n: int, m: int) -> np.ndarray:
+            r = np.array([0] * m + [1])
+            A = _A(m=m, w=w)
+            return r @ np.linalg.matrix_power(A, n - m + 1)
 
         # By default, return where i=n from the full state space.
-        _check_args(p=p, n=n, m=m)
-        return _vec_solve(p=p, n=n, m=m)[0]
+        _check_args(n=n, m=m)
+        w = IntervalDetectorModel._w(m=m, p=p, test_type=test_type, cov=cov)
+        return _vec_solve(w=w, n=n, m=m)[0]
 
     def _get_intervals(
         self,

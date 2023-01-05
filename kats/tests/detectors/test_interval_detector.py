@@ -13,6 +13,7 @@ import pandas as pd
 
 from kats.consts import TimeSeriesData
 from kats.detectors.interval_detector import (
+    ar_1,
     IntervalDetectorModel,
     OneSampleProportionIntervalDetectorModel,
     TestStatistic,
@@ -206,6 +207,53 @@ class TestIntervalDetectorModel(TestCase):
         # Verify the entire precomputed sequence for a run of 2.
         assert np.all(np.isclose(run_2, _precomputed))
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            [TestType.ONE_SIDED_LOWER],
+            [TestType.ONE_SIDED_UPPER],
+            [TestType.TWO_SIDED],
+        ]
+    )
+    def test_identity_covariance(self, test_type: TestType) -> None:
+        for m in range(1, 4):
+            for p in [0.01, 0.05, 0.1]:
+                for n in [100, 1_000, 10_000]:
+                    assert np.isclose(
+                        IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
+                            p=p, n=n, m=m, cov=None, test_type=test_type
+                        ),
+                        IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
+                            p=p, n=n, m=m, cov=np.identity(m), test_type=test_type
+                        ),
+                    )
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            [0.1],
+            [0.5],
+            [0.9],
+        ]
+    )
+    def test_ar_1_covariance(self, rho: float) -> None:
+        for m in range(2, 4):
+            for p in [0.01, 0.05, 0.1]:
+                assert np.greater_equal(
+                    IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
+                        p=p,
+                        n=100,
+                        m=m,
+                        cov=ar_1(rho=rho, n=m),
+                    ),
+                    IntervalDetectorModel._probability_of_at_least_one_m_run_in_n_trials(
+                        p=p,
+                        n=100,
+                        m=m,
+                        cov=None,
+                    ),
+                )
+
 
 class TestTwoSampleProportionIntervalDetectorModel(TestCase):
     def setUp(self) -> None:
@@ -252,14 +300,16 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
         [
-            [0.01],
-            [0.05],
-            [0.1],
+            [0.01, TestType.ONE_SIDED_LOWER],
+            [0.05, TestType.ONE_SIDED_UPPER],
+            [0.1, TestType.TWO_SIDED],
         ]
     )
-    def test_get_critical_value_custom_duration(self, p_goal: float) -> None:
+    def test_get_critical_value_custom_duration(
+        self, p_goal: float, test_type: TestType
+    ) -> None:
         lowest_p = self.interval_detector._get_lowest_p(
-            m=3, n=100, p_goal=p_goal, r_tol=1e-3
+            m=3, n=100, p_goal=p_goal, r_tol=1e-3, test_type=test_type
         )
         assert np.isclose(lowest_p.p_global, p_goal, rtol=1e-3)
 
@@ -386,16 +436,18 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     @parameterized.expand(
         [
-            [0.05, 0.0],
-            [0.05, 0.1],
-            [0.1, 0.0],
-            [0.1, 0.1],
+            [0.05, 0.0, TestType.ONE_SIDED_LOWER],
+            [0.05, 0.1, TestType.ONE_SIDED_LOWER],
+            [0.1, 0.0, TestType.ONE_SIDED_UPPER],
+            [0.1, 0.1, TestType.TWO_SIDED],
         ]
     )
-    def test_get_lowest_m(self, p: float, r_tol: float) -> None:
+    def test_get_lowest_m(self, p: float, r_tol: float, test_type: TestType) -> None:
         """Test user-facing automatic duration method."""
         for n in range(1, 100):
-            lowest_m = self.interval_detector._get_lowest_m(p, n, r_tol=r_tol)
+            lowest_m = self.interval_detector._get_lowest_m(
+                p, n, r_tol=r_tol, test_type=test_type
+            )
             assert lowest_m.p <= p * (1 + r_tol)
             assert lowest_m.m > 0
 
