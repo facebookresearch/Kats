@@ -464,6 +464,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
 
         return indiv_forecasts
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
     def plot(
         self,
         ax: Optional[plt.Axes] = None,

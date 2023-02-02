@@ -390,6 +390,7 @@ class MultivariateAnomalyDetector(Detector):
 
         return residual_scores_t[:top_k]
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Detector` inconsistently.
     def plot(
         self, figsize: Optional[Tuple[int, int]] = None, **kwargs: Any
     ) -> Tuple[plt.Axes, plt.Axes]:

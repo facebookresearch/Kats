@@ -351,6 +351,7 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
 
         return df[col_names]
 
+    # pyre-fixme[14]: `fit` overrides method defined in `Model` inconsistently.
     def fit(self, freq: Optional[str] = None, **kwargs: Any) -> None:
         """Fit NeuralProphet model
 
@@ -435,6 +436,7 @@ class NeuralProphetModel(Model[NeuralProphetParams]):
         logging.info("Fitted NeuralProphet model.")
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self,
         steps: int,

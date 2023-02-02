@@ -221,6 +221,7 @@ class LSTMModel(Model[LSTMParams]):
         return self
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(self, steps: int, *args: Any, **kwargs: Any) -> pd.DataFrame:
         """Prediction function for a multi-step forecast
 

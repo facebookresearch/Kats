@@ -65,6 +65,7 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
         )
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, dates: pd.Series, *_args: Optional[Any], **_kwargs: Optional[Any]
     ) -> pd.DataFrame:
@@ -88,6 +89,7 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
         result = np.sum(self.params * harmonics, axis=1)
         return pd.DataFrame({"time": dates, "fcst": result.tolist()}, copy=False)
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
     def plot(
         self,
         ax: Optional[plt.Axes] = None,

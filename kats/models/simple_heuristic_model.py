@@ -148,6 +148,7 @@ class SimpleHeuristicModel(Model[SimpleHeuristicModelParams]):
             self.model = self._calc_percentile
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, *args: Any, include_history: bool = False, **kwargs: Any
     ) -> pd.DataFrame:

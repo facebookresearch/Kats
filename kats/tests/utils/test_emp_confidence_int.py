@@ -245,6 +245,7 @@ class MyFakeModel(Model[FakeParams]):
         self.unfit = False
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
+    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history: bool = False, *_args: Any, **_kwargs: Any
     ) -> pd.DataFrame:
@@ -255,6 +256,7 @@ class MyFakeModel(Model[FakeParams]):
 
 class testEmpConfidenceInt(TestCase):
     @mock.patch("kats.utils.emp_confidence_int.BackTesterRollingWindow")
+    # pyre-fixme[14]: `setUp` overrides method defined in `TestCase` inconsistently.
     def setUp(self, backtester: BackTesterRollingWindow) -> None:
         backtester.raw_errors = _RAW_ERRORS
         self.TSData = load_air_passengers()
