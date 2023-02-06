@@ -93,7 +93,6 @@ class LinearModel(Model[LinearModelParams]):
         self.model = lm.fit()
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, include_history: bool = False, *args: Any, **kwargs: Any
     ) -> pd.DataFrame:

@@ -627,7 +627,6 @@ class MKDetector(Detector):
 
         return Tau_df, trend_df
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Detector` inconsistently.
     def plot(
         self,
         detected_time_points: Sequence[MKChangePoint],

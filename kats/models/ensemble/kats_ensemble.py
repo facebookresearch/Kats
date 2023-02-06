@@ -331,7 +331,6 @@ class KatsEnsemble(Model):
         return fitted, weights
 
     # pyre-fixme[15]: `fit` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[14]: `fit` overrides method defined in `Model` inconsistently.
     def fit(self, err_method: str = "mape") -> KatsEnsemble:
         """Fit individual forecasting models via calling fitExecutor
 

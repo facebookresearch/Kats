@@ -217,7 +217,6 @@ class VARModel(Model[VARParams]):
         ret = {k: TimeSeriesData(v) for k, v in fcst_dict.items()}
         return ret
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Model` inconsistently.
     def plot(
         self,
         ax: Optional[plt.Axes] = None,

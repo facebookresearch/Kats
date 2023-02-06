@@ -224,7 +224,6 @@ class HourlyRatioDetector(Detector):
         self.anomaly_dates = anomaly
         return anomaly
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Detector` inconsistently.
     def plot(self, weekday: int = 0, **kwargs: Any) -> plt.Axes:
         """plot the detection results.
 

@@ -163,7 +163,6 @@ class SARIMAModel(Model[SARIMAParams]):
             logging.error(msg)
             raise ValueError(msg)
 
-    # pyre-fixme[14]: `fit` overrides method defined in `Model` inconsistently.
     def fit(
         self,
         start_params: Optional[np.ndarray] = None,

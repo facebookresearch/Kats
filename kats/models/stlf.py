@@ -299,7 +299,6 @@ class STLFModel(Model[STLFParams]):
         return self
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
     def predict(
         self, steps: int, *args: Any, include_history: bool = False, **kwargs: Any
     ) -> pd.DataFrame:

@@ -449,7 +449,6 @@ class BOCPDetector(Detector):
 
         return change_points
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Detector` inconsistently.
     def plot(
         self,
         change_points: Sequence[BOCPDChangePoint],
@@ -947,7 +946,6 @@ class _BayesOnlineChangePoint(Detector):
 
         return rt_posterior
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Detector` inconsistently.
     def plot(
         self,
         threshold: Optional[Union[float, np.ndarray]] = None,

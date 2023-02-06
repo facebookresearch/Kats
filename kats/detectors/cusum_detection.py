@@ -680,7 +680,6 @@ class CUSUMDetector(Detector):
 
         return converted
 
-    # pyre-fixme[14]: `plot` overrides method defined in `Detector` inconsistently.
     def plot(
         self, change_points: Sequence[CUSUMChangePoint], **kwargs: Any
     ) -> plt.Axes:
@@ -793,8 +792,6 @@ class MultiCUSUMDetector(CUSUMDetector):
 
         return self._convert_cusum_changepoints(changes_meta, return_all_changepoints)
 
-    # pyre-fixme[14]: `_get_llr` overrides method defined in `CUSUMDetector`
-    #  inconsistently.
     def _get_llr(
         self,
         ts: np.ndarray,

@@ -551,8 +551,6 @@ class IntervalDetectorModel(DetectorModel, ABC):
         """Serializes a model into a json representation."""
         return json.dumps(self.json).encode("utf-8")
 
-    # pyre-fixme[14]: `fit_predict` overrides method defined in `DetectorModel`
-    #  inconsistently.
     def fit_predict(
         self,
         data: TimeSeriesData,
