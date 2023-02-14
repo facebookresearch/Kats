@@ -18,6 +18,7 @@ from kats.detectors.prophet_detector import (
     ProphetDetectorModel,
     ProphetScoreFunction,
     ProphetTrendDetectorModel,
+    SeasonalityTypes,
 )
 from kats.utils.simulator import Simulator
 from parameterized.parameterized import parameterized
@@ -88,6 +89,55 @@ class TestProphetDetector(TestCase):
         self.add_trend_shift(sim_ts, length, freq, min_val + magnitude)
 
         return sim_ts
+
+    def create_weekend_seasonality_ts(
+        self,
+        seed: int = 42,
+        days: int = 56,
+        freq: str = "6H",
+        trend: float = 1.0,
+        magnitude_weekday: float = 5,
+        magnitude_weekend: float = 2,
+        signal_to_noise_ratio: float = 0.1,
+    ) -> TimeSeriesData:
+        np.random.seed(seed)
+        ts = TimeSeriesData()
+        points_day = int(pd.to_timedelta("1D") / pd.to_timedelta(freq))
+        weeks = int(days / 7)
+        for i in range(weeks + 1):
+            rest_days_weekday = 5
+
+            if i >= weeks:
+                rest_days = days % 7
+                if rest_days == 0:
+                    break
+                rest_days_weekday = min(rest_days, 5)
+            start_ts = (
+                pd.to_datetime("2018-01-01")
+                if len(ts) == 0
+                else ts.time.iloc[-1] + pd.to_timedelta(freq)
+            )
+            sim = Simulator(n=rest_days_weekday * points_day, freq=freq, start=start_ts)
+            sim.add_seasonality(magnitude_weekday, timedelta(days=5))
+            sim.add_noise(magnitude=signal_to_noise_ratio * magnitude_weekday)
+            if len(ts) == 0:
+                ts = sim.stl_sim()
+            else:
+                ts.extend(sim.stl_sim() + trend)
+            rest_days_weekend = 2
+            if i >= weeks:
+                rest_days_weekend = rest_days - rest_days_weekday
+                if rest_days_weekend == 0:
+                    break
+            sim = Simulator(
+                n=rest_days_weekend * points_day,
+                freq=freq,
+                start=ts.time.iloc[-1] + pd.to_timedelta(freq),
+            )
+            sim.add_seasonality(magnitude_weekend, timedelta(days=2))
+            sim.add_noise(magnitude=signal_to_noise_ratio * magnitude_weekend)
+            ts.extend(sim.stl_sim() + trend)
+        return ts
 
     def add_smooth_anomaly(
         self,
@@ -599,9 +649,6 @@ class TestProphetDetector(TestCase):
         #  SupportsAbs[SupportsRound[object]]]` but got `float`.
         self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=5)
 
-    @unittest.skip(
-        "Prophet doesn't learn heteroskedastic seasonality with params used by ProphetDetectorModel"
-    )
     def test_heteroskedastic_noise_signal(self) -> None:
         """Tests the z-score strategy on signals with heteroskedastic noise
 
@@ -610,6 +657,7 @@ class TestProphetDetector(TestCase):
         verifies that anomalies in low-noise segments have higher z-scores than those
         in high-noise segments. This occurs because low noise segments will have lower
         standard deviations, which result in higher z-scores.
+        With call ProphetDetectorMopdel without weekend seasonaluty this taest fails
         """
         ts = self.create_ts(length=100 * 24, signal_to_noise_ratio=0.05, freq="1h")
 
@@ -618,15 +666,90 @@ class TestProphetDetector(TestCase):
         ts.value *= (
             (ts.time - pd.to_datetime("2020-01-01")) % timedelta(days=7)
             > timedelta(days=3.5)
-        ) * np.random.rand(100 * 24) + 0.5
+        ) * np.random.rand(100 * 24) * 2.5 + 0.5
 
         ts.value[93 * 24] += 100
         ts.value[96 * 24] += 100
 
-        model = ProphetDetectorModel(score_func="z_score")
-        response = model.fit_predict(ts[90 * 24 :], ts[: 90 * 24])
+        model = ProphetDetectorModel(
+            score_func="z_score", seasonalities={SeasonalityTypes.WEEKEND: True}
+        )
+        response = model.fit_predict(ts[80 * 24 :], ts[: 80 * 24])
 
-        self.assertGreater(response.scores.value[3 * 24], response.scores.value[6 * 24])
+        self.assertGreater(
+            response.scores.value[13 * 24], response.scores.value[16 * 24]
+        )
+
+    def test_weekend_seasonality_noise_signal(self) -> None:
+        """Tests the accuracy with heteroskedastic series and noise
+
+        This test creates several series with different seasonalities for weekdau and weekend
+        providing seasonality flag predictor provide better result, than without it.
+        With call ProphetDetectorMopdel without weekend seasonaluty this taest fails
+
+        """
+        ts = TestProphetDetector().create_weekend_seasonality_ts(
+            freq="6H", days=24, trend=1
+        )
+        ts_to_fit = ts[:40]
+        ts_to_pred = ts[40:]
+        model = ProphetDetectorModel(seasonalities={SeasonalityTypes.WEEKEND: True})
+        model.fit(ts_to_fit)
+        response = model.predict(ts_to_pred)
+        predicted_ts = response.predicted_ts
+        self.assertEqual(isinstance(predicted_ts, TimeSeriesData), True)
+        # pyre-ignore
+        res = predicted_ts.to_dataframe()
+        mae = sum(abs(res.set_index("time").values[:, 0] - ts_to_pred.value)) / len(res)
+        self.assertGreater(0.87, mae)
+        model = ProphetDetectorModel()
+        model.fit(ts_to_fit)
+        response = model.predict(ts_to_pred)
+        res = response.predicted_ts.to_dataframe()
+        maeWeekly = sum(
+            abs(res.set_index("time").values[:, 0] - ts_to_pred.value)
+        ) / len(res)
+        self.assertGreater(maeWeekly, mae)
+
+        ts = TestProphetDetector().create_weekend_seasonality_ts(
+            freq="6min", days=24, trend=1
+        )
+        ts_to_fit = ts[: 240 * 14]
+        ts_to_pred = ts[240 * 14 :]
+        model = ProphetDetectorModel(seasonalities=SeasonalityTypes.WEEKEND)
+        model.fit(ts_to_fit)
+        response = model.predict(ts_to_pred)
+        res = response.predicted_ts.to_dataframe()
+        mae = sum(abs(res.set_index("time").values[:, 0] - ts_to_pred.value)) / len(res)
+        self.assertGreater(1.61, mae)
+        model = ProphetDetectorModel()
+        model.fit(ts_to_fit)
+        response = model.predict(ts_to_pred)
+        res = response.predicted_ts.to_dataframe()
+        maeWeekly = sum(
+            abs(res.set_index("time").values[:, 0] - ts_to_pred.value)
+        ) / len(res)
+        self.assertGreater(maeWeekly, mae)
+
+        # ts = TestProphetDetector().create_weekend_seasonality_ts(freq="6min", days=28, trend=1)
+        ts = TestProphetDetector().create_ts(freq="1D", length=24, seed=0)
+        ts_to_fit = ts[:5]
+        ts_to_pred = ts[5:]
+        model = ProphetDetectorModel(seasonalities={SeasonalityTypes.WEEKEND: "auto"})
+        model.fit(ts_to_fit)
+        self.assertEqual(model.seasonalities_to_fit[SeasonalityTypes.WEEKEND], False)
+
+        ts = TestProphetDetector().create_ts(freq="2D", length=24, seed=0)
+        ts_to_fit = ts[:10]
+        ts_to_pred = ts[10:]
+        model = ProphetDetectorModel(seasonalities={SeasonalityTypes.WEEKEND: "auto"})
+        model.fit(ts_to_fit)
+        response = model.predict(ts_to_pred)
+        self.assertEqual(isinstance(predicted_ts, TimeSeriesData), True)
+        res = response.predicted_ts.to_dataframe()
+        mae = sum(abs(res.set_index("time").values[:, 0] - ts_to_pred.value)) / len(res)
+        self.assertEqual(model.seasonalities_to_fit[SeasonalityTypes.WEEKEND], "auto")
+        self.assertGreater(1.5, mae)
 
     def test_z_score_proportional_to_anomaly_magnitude(self) -> None:
         """Tests the z-score strategy on signals with different-sized anomalies

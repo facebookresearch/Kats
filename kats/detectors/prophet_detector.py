@@ -10,7 +10,7 @@ as a Detector Model.
 
 import logging
 from enum import Enum
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -121,6 +121,93 @@ STR_TO_SCORE_FUNC: Dict[str, ProphetScoreFunction] = {  # Used for param tuning
 }
 
 
+class SeasonalityTypes(Enum):
+    DAY = 0
+    WEEK = 1
+    YEAR = 2
+    WEEKEND = 3
+
+
+EMPTY_LIST: List[SeasonalityTypes] = []
+
+
+def seasonalities_to_dict(
+    seasonalities: Union[
+        SeasonalityTypes,
+        List[SeasonalityTypes],
+        Dict[SeasonalityTypes, Union[bool, str]],
+    ]
+) -> Dict[SeasonalityTypes, Union[bool, str]]:
+
+    if isinstance(seasonalities, SeasonalityTypes):
+        seasonalities = {seasonalities: True}
+    elif isinstance(seasonalities, list):
+        seasonalities = {seasonality: True for seasonality in seasonalities}
+    elif seasonalities is None:
+        seasonalities = {}
+    return seasonalities
+
+
+def seasonalities_processing(
+    times: pd.Series, seasonalities_raw: Dict[SeasonalityTypes, Union[bool, str]]
+) -> Dict[SeasonalityTypes, Union[bool, str]]:
+    seasonalities = seasonalities_raw.copy()
+
+    if (
+        SeasonalityTypes.WEEKEND in seasonalities.keys()
+        and seasonalities[SeasonalityTypes.WEEKEND] == "auto"
+    ):
+        first = times.min()
+        last = times.max()
+        dt = times.diff()
+        min_dt = dt.iloc[times.values.nonzero()[0]].min()
+        if (last - first < pd.Timedelta(weeks=2)) or (min_dt >= pd.Timedelta(weeks=1)):
+            seasonalities[SeasonalityTypes.WEEKEND] = False
+    for seasonalityType in list(SeasonalityTypes):
+        if seasonalityType not in list(seasonalities.keys()):
+            if seasonalityType == SeasonalityTypes.WEEK:
+                if seasonalities.get(SeasonalityTypes.WEEKEND):
+                    seasonalities[seasonalityType] = False
+                else:
+                    seasonalities[seasonalityType] = "auto"
+            elif seasonalityType in [SeasonalityTypes.DAY, SeasonalityTypes.YEAR]:
+                seasonalities[seasonalityType] = "auto"
+            elif seasonalityType == SeasonalityTypes.WEEKEND:
+                seasonalities[seasonalityType] = False
+        if (not isinstance(seasonalities[seasonalityType], bool)) and seasonalities[
+            seasonalityType
+        ] != "auto":
+            raise ValueError(
+                f"Seasonality must be bool/auto, got {seasonalities[seasonalityType]}"
+            )
+    return seasonalities
+
+
+def prophet_weekend_masks(
+    ts_df: pd.DataFrame, time_column: str = PROPHET_TIME_COLUMN
+) -> List[Dict[str, Any]]:
+    additional_seasonalities = []
+    ts_df["weekend_mask"] = ts_df[time_column].dt.weekday > 4
+    additional_seasonalities.append(
+        {
+            "name": "weekend_mask",
+            "period": 7,
+            "fourier_order": 3,
+            "condition_name": "weekend_mask",
+        }
+    )
+    ts_df["workday_mask"] = ts_df[time_column].dt.weekday <= 4
+    additional_seasonalities.append(
+        {
+            "name": "workday_mask",
+            "period": 7,
+            "fourier_order": 3,
+            "condition_name": "workday_mask",
+        }
+    )
+    return additional_seasonalities
+
+
 class ProphetDetectorModel(DetectorModel):
     """Prophet based anomaly detection model.
 
@@ -137,9 +224,12 @@ class ProphetDetectorModel(DetectorModel):
         serialized_model: json, representing data from a previously
             serialized model.
         vectorize: a boolean representing wether using vectorized method of generating prediction intervals.
+
     """
 
     model: Optional[Prophet] = None
+    seasonalities: Dict[SeasonalityTypes, Union[bool, str]] = {}
+    seasonalities_to_fit: Dict[SeasonalityTypes, Union[bool, str]] = {}
 
     def __init__(
         self,
@@ -152,7 +242,32 @@ class ProphetDetectorModel(DetectorModel):
         outlier_removal_uncertainty_samples: int = OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES,
         vectorize: bool = False,
         use_legacy_z_score: bool = True,
+        seasonalities: Optional[
+            Union[
+                SeasonalityTypes,
+                List[SeasonalityTypes],
+                Dict[SeasonalityTypes, Union[bool, str]],
+            ]
+        ] = EMPTY_LIST,
     ) -> None:
+        """
+        Initializartion of Prophet
+        serialized_model: Optional[bytes] = None, json, representing data from a previously serialized model.
+        score_func: Union[str, ProphetScoreFunction] = DEFAULT_SCORE_FUNCTION,
+        scoring_confidence_interval: float = 0.8,
+        remove_outliers: bool = False,
+        outlier_threshold: float = 0.99,
+        uncertainty_samples: float = 50, Number of samples required by Prophet to calculate uncertainty.
+        outlier_removal_uncertainty_samples: int = OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES,
+        vectorize: bool = False,
+        use_legacy_z_score: bool = True,
+        seasonalities:  Optional[ Union[ SeasonalityTypes, List[SeasonalityTypes], Dict[SeasonalityTypes, bool]]] = None, Provide information about seasonalities.
+            It may be instance of enum SeasonalityTypes, List[SeasonalityTypes], Dict[SeasonalityTypes, bool].
+            If argument  SeasonalityTypes, List[SeasonalityTypes], than mentioned seasonilities will be used in Prophet. If argument Dict[SeasonalityTypes, bool] - each seasonality can be setted directly (True - means used it, False - not to use, 'auto' according to Prophet.).
+            SeasonalityTypes enum values: DAY, WEEK , YEAR, WEEKEND
+            Daily, Weekly, Yearly seasonlities used  as "auto" by default.
+        """
+
         if serialized_model:
             self.model = model_from_json(serialized_model)
         else:
@@ -170,7 +285,7 @@ class ProphetDetectorModel(DetectorModel):
         self.remove_outliers = remove_outliers
         self.outlier_threshold = outlier_threshold
         self.outlier_removal_uncertainty_samples = outlier_removal_uncertainty_samples
-
+        self.seasonalities = {}
         # To improve runtime performance, we skip the confidence band
         # computation for non-Z score scoring strategy since it will not be
         # used anywhere
@@ -180,6 +295,9 @@ class ProphetDetectorModel(DetectorModel):
             self.uncertainty_samples: float = 0
         self.vectorize = vectorize
         self.use_legacy_z_score = use_legacy_z_score
+        if seasonalities is None:
+            seasonalities = []
+        self.seasonalities = seasonalities_to_dict(seasonalities)
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -251,12 +369,23 @@ class ProphetDetectorModel(DetectorModel):
                 uncertainty_samples=self.outlier_removal_uncertainty_samples,
                 vectorize=self.vectorize,
             )
-
+        # seasonalities depends on current time series
+        self.seasonalities_to_fit = seasonalities_processing(
+            data_df[PROPHET_TIME_COLUMN], self.seasonalities
+        )
+        additional_seasonalities = []
+        if self.seasonalities_to_fit[SeasonalityTypes.WEEKEND]:
+            additional_seasonalities = prophet_weekend_masks(data_df)
         # No incremental training. Create a model and train from scratch
         model = Prophet(
             interval_width=self.scoring_confidence_interval,
             uncertainty_samples=self.uncertainty_samples,
+            daily_seasonality=self.seasonalities_to_fit[SeasonalityTypes.DAY],
+            yearly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.YEAR],
+            weekly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.WEEK],
         )
+        for seasonality in additional_seasonalities:
+            model.add_seasonality(**seasonality)
         self.model = model.fit(data_df)
 
     def predict(
@@ -285,6 +414,11 @@ class ProphetDetectorModel(DetectorModel):
             raise ValueError(msg)
 
         time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time}, copy=False)
+        if self.seasonalities_to_fit.get(
+            SeasonalityTypes.WEEKEND
+        ) or self.seasonalities.get(SeasonalityTypes.WEEKEND):
+            prophet_weekend_masks(time_df)
+
         model.uncertainty_samples = self.uncertainty_samples
         predict_df = predict(model, time_df, self.vectorize)
         zeros_ts = TimeSeriesData(
