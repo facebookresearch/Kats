@@ -1124,7 +1124,10 @@ class TestInterpolateBase(TestCase):
 
     def test_seasonhandler_for_missing_data_with_nonzero_base(self) -> None:
         # example 1, base = -1
-        sh = SeasonalityHandler(self.tsd)
+        sh = SeasonalityHandler(
+            data=self.tsd,
+            seasonal_period="daily",
+        )
         data_nonseason = sh.remove_seasonality()
         data_season = sh.get_seasonality()
         self.assertEqual(sh.frequency_sec_str, "1800s")
@@ -1137,7 +1140,10 @@ class TestInterpolateBase(TestCase):
         )
 
         # example 2, base = 4
-        sh1 = SeasonalityHandler(self.tsd1)
+        sh1 = SeasonalityHandler(
+            data=self.tsd1,
+            seasonal_period="daily",
+        )
         data_nonseason1 = sh1.remove_seasonality()
         data_season1 = sh1.get_seasonality()
         self.assertEqual(sh1.frequency_sec_str, "1800s")
@@ -1155,6 +1161,7 @@ class TestInterpolateBase(TestCase):
             n_test=20,
             time_unit="1800s",
             rem_season=True,
+            seasonal_period="daily",
         )
         anom = ss_detect.fit_predict(data=self.tsd)
         self.assertEqual(len(anom.scores), len(self.tsd))
@@ -1164,6 +1171,7 @@ class TestInterpolateBase(TestCase):
             n_test=20,
             time_unit="1800s",
             rem_season=True,
+            seasonal_period="daily",
         )
         anom1 = ss_detect1.fit_predict(data=self.tsd1)
         self.assertEqual(len(anom1.scores), len(self.tsd1))

@@ -1310,8 +1310,9 @@ class SeasonalityHandler:
         if len(self.decomposer_input.time[data_time_idx]) != len(self.data):
             raise ValueError(IRREGULAR_GRANULARITY_ERROR)
 
-        self.period = int(
-            self.seasonal_period * 60 * 60 / self.frequency.total_seconds()
+        self.period: int = min(
+            int(self.seasonal_period * 60 * 60 / self.frequency.total_seconds()),
+            len(data),
         )
 
         if (
