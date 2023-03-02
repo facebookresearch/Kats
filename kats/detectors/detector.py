@@ -7,6 +7,7 @@
 Defines the base class for detectors.
 """
 
+import inspect
 from abc import ABC, ABCMeta, abstractmethod
 from typing import Any, Dict, Generic, Optional, Sequence, Tuple, Type, TypeVar, Union
 
@@ -19,7 +20,12 @@ except ImportError:
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesChangePoint, TimeSeriesData, TimeSeriesIterator
+from kats.consts import (
+    InternalError,
+    TimeSeriesChangePoint,
+    TimeSeriesData,
+    TimeSeriesIterator,
+)
 from kats.detectors.detector_consts import AnomalyResponse
 
 T = TypeVar("T")
@@ -27,30 +33,40 @@ D = TypeVar("D", bound="DetectorModel")
 
 
 class DetectorModelRegistry(ABCMeta, Generic[D]):
+    """
+    Registry of instantiable DetectorModel subclasses.
 
-    REGISTRY: Dict[str, Any] = {}
+    Can be used to look up and instantiate DetectorModels by their class name
+    as follows:
+      >> DetectorModelRegistry.get_detector_model_by_name("ConcreteDetectorModel")(...)
+    """
+
+    REGISTRY: Dict[str, Type[D]] = {}
 
     # __new__ is called when a sub class is defined and not instantiated
     def __new__(
         cls, name: str, bases: Tuple[Type[T], ...], attrs: Dict[str, Any]
     ) -> Type[T]:
-        # A callable which creates a new class of the given type
+        # Create the new class object (callable)
         new_cls = type.__new__(cls, name, bases, attrs)
-        # Store this callable with the key as the class name. Note that the class name is case sensitive
-        cls.REGISTRY[new_cls.__name__] = new_cls
+        # Only store instantiable (non-abstract) types
+        if not inspect.isabstract(new_cls):
+            # Store the class object with the key as the class name.
+            # Note that the class name is case sensitive
+            cls.REGISTRY[new_cls.__name__] = new_cls
         return new_cls
 
     @classmethod
-    def get_registry(cls) -> Dict[str, Any]:
+    def get_registry(cls) -> Dict[str, Type[D]]:
         return dict(cls.REGISTRY)
 
     @classmethod
     def get_detector_model_by_name(cls, class_name: str) -> Type[D]:
         try:
-            # Execute the callable and return a callable to instantiate the class
+            # Return the class object that can be called to instantiate the class
             return cls.REGISTRY[class_name]
         except KeyError as e:
-            raise ValueError(
+            raise InternalError(
                 f"No DetectorModel subclass exists with the name '{class_name}'!"
             ) from e
 
