@@ -4,9 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import random
-import unittest
 from datetime import timedelta
-from typing import Tuple
 from unittest import TestCase
 
 import numpy as np

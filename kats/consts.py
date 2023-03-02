@@ -68,6 +68,10 @@ class DataIrregualarGranularityError(DataError):
     pass
 
 
+class DataInsufficientError(DataError):
+    pass
+
+
 class ParameterError(KatsError):
     pass
 

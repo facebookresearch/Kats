@@ -16,7 +16,14 @@ import numpy as np
 import pandas as pd
 from fbprophet import Prophet
 from fbprophet.serialize import model_from_json, model_to_json
-from kats.consts import DEFAULT_VALUE_NAME, TimeSeriesData
+from kats.consts import (
+    DataError,
+    DataInsufficientError,
+    DEFAULT_VALUE_NAME,
+    InternalError,
+    ParameterError,
+    TimeSeriesData,
+)
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from kats.models.prophet import predict
@@ -51,7 +58,7 @@ def timeseries_to_prophet_df(ts_data: TimeSeriesData) -> pd.DataFrame:
     """
 
     if not ts_data.is_univariate():
-        raise ValueError("ProphetModel only works with univariate data")
+        raise DataError("ProphetModel only works with univariate data")
 
     return pd.DataFrame(
         {
@@ -177,7 +184,7 @@ def seasonalities_processing(
         if (not isinstance(seasonalities[seasonalityType], bool)) and seasonalities[
             seasonalityType
         ] != "auto":
-            raise ValueError(
+            raise ParameterError(
                 f"Seasonality must be bool/auto, got {seasonalities[seasonalityType]}"
             )
     return seasonalities
@@ -330,10 +337,13 @@ class ProphetDetectorModel(DetectorModel):
         """
 
         # train on historical, then predict on all data.
-        # pyre-fixme[6]: Expected `TimeSeriesData` for 1st param but got
-        #  `Optional[TimeSeriesData]`.
-        self.fit(data=historical_data, historical_data=None)
-        return self.predict(data)
+
+        if historical_data is None:
+            # if not raising an error here, will raise errors in self.fit() function.
+            raise DataInsufficientError("Need historical data for training models.")
+        else:
+            self.fit(data=historical_data, historical_data=None)
+            return self.predict(data)
 
     def fit(
         self,
@@ -411,7 +421,7 @@ class ProphetDetectorModel(DetectorModel):
         if model is None:
             msg = "Call fit() before predict()."
             logging.error(msg)
-            raise ValueError(msg)
+            raise InternalError(msg)
 
         time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time}, copy=False)
         if self.seasonalities_to_fit.get(
