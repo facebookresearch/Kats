@@ -7,8 +7,8 @@
 Defines the base class for detectors.
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Optional, Sequence, Union
+from abc import ABC, ABCMeta, abstractmethod
+from typing import Any, Dict, Generic, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 try:
     import plotly.graph_objs as go
@@ -21,6 +21,38 @@ import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData, TimeSeriesIterator
 from kats.detectors.detector_consts import AnomalyResponse
+
+T = TypeVar("T")
+D = TypeVar("D", bound="DetectorModel")
+
+
+class DetectorModelRegistry(ABCMeta, Generic[D]):
+
+    REGISTRY: Dict[str, Any] = {}
+
+    # __new__ is called when a sub class is defined and not instantiated
+    def __new__(
+        cls, name: str, bases: Tuple[Type[T], ...], attrs: Dict[str, Any]
+    ) -> Type[T]:
+        # A callable which creates a new class of the given type
+        new_cls = type.__new__(cls, name, bases, attrs)
+        # Store this callable with the key as the class name. Note that the class name is case sensitive
+        cls.REGISTRY[new_cls.__name__] = new_cls
+        return new_cls
+
+    @classmethod
+    def get_registry(cls) -> Dict[str, Any]:
+        return dict(cls.REGISTRY)
+
+    @classmethod
+    def get_detector_model_by_name(cls, class_name: str) -> Type[D]:
+        try:
+            # Execute the callable and return a callable to instantiate the class
+            return cls.REGISTRY[class_name]
+        except KeyError as e:
+            raise ValueError(
+                f"No DetectorModel subclass exists with the name '{class_name}'!"
+            ) from e
 
 
 class Detector(ABC):
@@ -78,7 +110,7 @@ class Detector(ABC):
         raise NotImplementedError()
 
 
-class DetectorModel(ABC):
+class DetectorModel(metaclass=DetectorModelRegistry):
     """
     Base Detector model class to be inherited by specific detectors. A DetectorModel
     keeps the state of the Detector, and implements the incremental model training.
