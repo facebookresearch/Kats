@@ -34,7 +34,14 @@ from typing import Any, cast, Dict, List, NamedTuple, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from kats.consts import DEFAULT_VALUE_NAME, IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
+from kats.consts import (
+    DataIrregualarGranularityError,
+    DEFAULT_VALUE_NAME,
+    InternalError,
+    IRREGULAR_GRANULARITY_ERROR,
+    ParameterError,
+    TimeSeriesData,
+)
 from kats.detectors.cusum_detection import (
     CUSUMChangePoint,
     CUSUMDefaultArgs,
@@ -264,7 +271,7 @@ class CUSUMDetectorModel(DetectorModel):
             self.vectorized: bool = vectorized or False
 
         else:
-            raise ValueError(
+            raise ParameterError(
                 "You must provide either serialized model or values for "
                 "scan_window and historical_window."
             )
@@ -527,12 +534,12 @@ class CUSUMDetectorModel(DetectorModel):
         """
         if self.step_window is not None:
             if self.step_window >= self.scan_window:
-                raise ValueError(
+                raise ParameterError(
                     "Step window is supposed to be smaller than scan window to ensure we "
                     "have overlap for scan windows."
                 )
             if self.step_window < frequency_sec:
-                raise ValueError(
+                raise ParameterError(
                     "Step window is supposed to be greater than TS granularity. "
                     f"TS granularity is: {frequency_sec} seconds. "
                     "Please provide a larger step window."
@@ -546,7 +553,7 @@ class CUSUMDetectorModel(DetectorModel):
             self.scan_window < 2 * frequency_sec
             or self.historical_window < 2 * frequency_sec
         ):
-            raise ValueError(
+            raise ParameterError(
                 "Scan window and historical window are supposed to be >= 2 * TS granularity. "
                 f"TS granularity is: {frequency_sec} seconds. "
                 "Please provide a larger scan window or historical_window."
@@ -617,7 +624,7 @@ class CUSUMDetectorModel(DetectorModel):
                 frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
-                raise ValueError(IRREGULAR_GRANULARITY_ERROR)
+                raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         # check if historical_window, scan_window, and step_window are suitable for given TSs
         frequency_sec = frequency.total_seconds()
@@ -990,7 +997,7 @@ class CUSUMDetectorModel(DetectorModel):
         elif direction == "left":
             return np.argwhere((tsd.time < time).values).max()
         else:
-            raise ValueError("direction can only be right or left")
+            raise InternalError("direction can only be right or left")
 
     def fit(
         self,
@@ -1009,7 +1016,7 @@ class CUSUMDetectorModel(DetectorModel):
         """
         predict is not implemented
         """
-        raise ValueError("predict is not implemented, call fit_predict() instead")
+        raise InternalError("predict is not implemented, call fit_predict() instead")
 
 
 class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
@@ -1122,7 +1129,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
             self.score_func: CusumScoreFunction = score_func.value
 
         else:
-            raise ValueError(
+            raise ParameterError(
                 "You must provide either serialized model or values for "
                 "scan_window and historical_window."
             )
@@ -1198,7 +1205,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
             change_directions: a list contain either or both 'increase' and 'decrease' to
                 specify what type of change to detect;
         """
-        if data != TimeSeriesData():
+        if len(data) > 0:
             historical_data.extend(data, validate=False)
         n = len(historical_data)
         scan_start_time = historical_data.time.iloc[-1] - pd.Timedelta(
@@ -1346,10 +1353,15 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
         return ret
 
     def _zeros_ts(self, data: TimeSeriesData) -> TimeSeriesData:
-        return TimeSeriesData(
-            time=data.time,
-            value=pd.DataFrame(np.zeros(data.value.shape), columns=data.value.columns),
-        )
+        if len(data) > 0:
+            return TimeSeriesData(
+                time=data.time,
+                value=pd.DataFrame(
+                    np.zeros(data.value.shape), columns=data.value.columns
+                ),
+            )
+        else:
+            return TimeSeriesData()
 
     def run_univariate_cusumdetectormodel(
         self, data: TimeSeriesData, historical_data: TimeSeriesData
@@ -1450,7 +1462,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
                 frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
-                raise ValueError("Not able to infer freqency of the time series")
+                raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         # check if historical_window, scan_window, and step_window are suitable for given TSs
         self._check_window_sizes(frequency.total_seconds())
@@ -1640,7 +1652,7 @@ class SeasonalityHandler:
         if seasonal_period not in _map:
             msg = "Invalid seasonal_period, possible values are 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
             logging.error(msg)
-            raise ValueError(msg)
+            raise ParameterError(msg)
         self.seasonal_period: int = _map[seasonal_period] * 24  # change to hours
 
         self.low_pass_jump_factor: float = kwargs.get("lpj_factor", 0.15)
@@ -1656,7 +1668,7 @@ class SeasonalityHandler:
                 self.frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
-                raise ValueError(IRREGULAR_GRANULARITY_ERROR)
+                raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         self.frequency_sec: int = int(self.frequency.total_seconds())
         self.frequency_sec_str: str = str(self.frequency_sec) + "s"
@@ -1678,7 +1690,7 @@ class SeasonalityHandler:
 
         data_time_idx = self.decomposer_input.time.isin(self.data.time)
         if len(self.decomposer_input.time[data_time_idx]) != len(self.data):
-            raise ValueError(IRREGULAR_GRANULARITY_ERROR)
+            raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         self.period: int = int(
             self.seasonal_period * 60 * 60 / self.frequency.total_seconds()

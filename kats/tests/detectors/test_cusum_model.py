@@ -9,7 +9,13 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from kats.consts import IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
+from kats.consts import (
+    DataIrregualarGranularityError,
+    InternalError,
+    IRREGULAR_GRANULARITY_ERROR,
+    ParameterError,
+    TimeSeriesData,
+)
 from kats.detectors.cusum_model import (
     CUSUMDetectorModel,
     CusumScoreFunction,
@@ -668,7 +674,9 @@ class TestRaiseCUSUMDetectorModel(TestCase):
         self.tsd = TimeSeriesData(df_increase)
 
     def test_raise_direction(self) -> None:
-        with self.assertRaisesRegex(ValueError, "direction can only be right or left"):
+        with self.assertRaisesRegex(
+            InternalError, "direction can only be right or left"
+        ):
             model = CUSUMDetectorModel(
                 scan_window=self.scan_window, historical_window=self.historical_window
             )
@@ -676,13 +684,15 @@ class TestRaiseCUSUMDetectorModel(TestCase):
 
     def test_raise_model_instantiation(self) -> None:
         with self.assertRaisesRegex(
-            ValueError,
+            ParameterError,
             "You must provide either serialized model or values for scan_window and historical_window.",
         ):
             _ = CUSUMDetectorModel()
 
     def test_raise_time_series_freq(self) -> None:
-        with self.assertRaisesRegex(ValueError, IRREGULAR_GRANULARITY_ERROR):
+        with self.assertRaisesRegex(
+            DataIrregualarGranularityError, IRREGULAR_GRANULARITY_ERROR
+        ):
             model = CUSUMDetectorModel(
                 scan_window=self.scan_window, historical_window=self.historical_window
             )
@@ -708,7 +718,7 @@ class TestRaiseCUSUMDetectorModel(TestCase):
 
     def test_raise_predict_not_implemented(self) -> None:
         with self.assertRaisesRegex(
-            ValueError, r"predict is not implemented, call fit_predict\(\) instead"
+            InternalError, r"predict is not implemented, call fit_predict\(\) instead"
         ):
             model = CUSUMDetectorModel(
                 scan_window=self.scan_window, historical_window=self.historical_window
@@ -771,14 +781,14 @@ class TestCUSUMDetectorModelWindowsErrors(TestCase):
         model = CUSUMDetectorModel(
             scan_window=1 * 24 * 60 * 60, historical_window=2 * 24 * 60 * 60
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParameterError):
             _ = model.fit_predict(data=self.data_ts)
 
         # case 2: historical_window < 2 * frequency_sec
         model = CUSUMDetectorModel(
             scan_window=2 * 24 * 60 * 60, historical_window=1 * 24 * 60 * 60
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParameterError):
             _ = model.fit_predict(data=self.data_ts)
 
         # case 3: step_window < frequency_sec
@@ -787,7 +797,7 @@ class TestCUSUMDetectorModelWindowsErrors(TestCase):
             historical_window=5 * 24 * 60 * 60,
             step_window=24 * 60 * 60 // 2,
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParameterError):
             _ = model.fit_predict(data=self.data_ts)
 
         # case 4: step_window >= scan_window
@@ -796,7 +806,7 @@ class TestCUSUMDetectorModelWindowsErrors(TestCase):
             historical_window=5 * 24 * 60 * 60,
             step_window=20 * 24 * 60 * 60,
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParameterError):
             _ = model.fit_predict(data=self.data_ts)
 
 
@@ -860,7 +870,7 @@ class TestCUSUMDetectorModelIrregularGranularityError(TestCase):
         )
 
         with self.assertRaisesRegex(
-            ValueError,
+            DataIrregualarGranularityError,
             IRREGULAR_GRANULARITY_ERROR,
         ):
             _ = model.fit_predict(data=self.data_ts)

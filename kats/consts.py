@@ -56,6 +56,26 @@ IRREGULAR_GRANULARITY_ERROR = (
 )
 
 
+class KatsError(Exception):
+    pass
+
+
+class DataError(KatsError):
+    pass
+
+
+class DataIrregualarGranularityError(DataError):
+    pass
+
+
+class ParameterError(KatsError):
+    pass
+
+
+class InternalError(KatsError):
+    pass
+
+
 def _log_error(msg: str) -> ValueError:
     logging.error(msg)
     return ValueError(msg)

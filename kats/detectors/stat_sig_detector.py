@@ -12,7 +12,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from kats.consts import IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
+from kats.consts import (
+    DataError,
+    DataIrregualarGranularityError,
+    InternalError,
+    IRREGULAR_GRANULARITY_ERROR,
+    ParameterError,
+    TimeSeriesData,
+)
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import (
     AnomalyResponse,
@@ -131,7 +138,7 @@ class StatSigDetectorModel(DetectorModel):
             self.min_perc_change: float = min_perc_change
 
         if (self.n_control is None) or (self.n_test is None):
-            raise ValueError(
+            raise ParameterError(
                 "You must either provide serialized model or values for control "
                 "and test intervals."
             )
@@ -163,7 +170,7 @@ class StatSigDetectorModel(DetectorModel):
                     self.time_unit = "1" + self.time_unit
                     _ = pd.Timedelta(self.time_unit)
                 except ValueError:
-                    raise ValueError("Invalide time_unit value.")
+                    raise ParameterError("Invalide time_unit value.")
 
         self.anomaly_scores_only: bool = anomaly_scores_only
 
@@ -205,7 +212,7 @@ class StatSigDetectorModel(DetectorModel):
         if not data.is_univariate():
             msg = "Input is multivariate but StatSigDetector expected univariate input."
             logging.error(msg)
-            raise ValueError(msg)
+            raise DataError(msg)
 
         self._set_time_unit(data=data, historical_data=historical_data)
         self.last_N = len(data)
@@ -612,7 +619,7 @@ class StatSigDetectorModel(DetectorModel):
         """
         data = self.data
         if data is None:
-            raise ValueError("Call fit_predict() before visualize()")
+            raise InternalError("Call fit_predict() before visualize()")
         response = self.response
         assert response is not None
         predicted_ts = response.predicted_ts
@@ -664,7 +671,7 @@ class StatSigDetectorModel(DetectorModel):
             elif historical_data and len(historical_data) >= 3:
                 frequency = historical_data.infer_freq_robust()
             else:
-                raise ValueError(
+                raise InternalError(
                     "Not able to infer freqency of the time series. "
                     "Please use longer time series data or pass the time_unit parameter to the initializer."
                 )
@@ -683,7 +690,7 @@ class StatSigDetectorModel(DetectorModel):
                 self.time_unit = "1" + self.time_unit
                 _ = pd.Timedelta(self.time_unit)
             except ValueError:
-                raise ValueError("Invalide time_unit value.")
+                raise ParameterError("Invalide time_unit value.")
 
     def _should_update(
         self, data: TimeSeriesData, historical_data: Optional[TimeSeriesData] = None
@@ -693,7 +700,7 @@ class StatSigDetectorModel(DetectorModel):
         """
 
         if self.time_unit is None:
-            raise ValueError("time_unit variable cannot be None")
+            raise InternalError("time_unit variable cannot be None")
 
         if not historical_data:
             start_time = data.time.iloc[0]
@@ -903,7 +910,7 @@ class StatSigDetectorModel(DetectorModel):
         Predict is not implemented.
         """
 
-        raise ValueError("predict is not implemented, call fit_predict() instead")
+        raise InternalError("predict is not implemented, call fit_predict() instead")
 
 
 class MultiStatSigDetectorModel(StatSigDetectorModel):
@@ -1020,7 +1027,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         if data.is_univariate():
             msg = "Input is univariate but MultiStatSigDetector expected multivariate input."
             logging.error(msg)
-            raise ValueError(msg)
+            raise DataError(msg)
 
         self._set_time_unit(data=data, historical_data=historical_data)
         self.last_N = len(data)
@@ -1281,7 +1288,7 @@ class SeasonalityHandler:
         if seasonal_period not in _map:
             msg = "Invalid seasonal_period, possible values are 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
             logging.error(msg)
-            raise ValueError(msg)
+            raise ParameterError(msg)
         self.seasonal_period: int = _map[seasonal_period] * 24  # change to hours
 
         self.low_pass_jump_factor: float = kwargs.get("lpj_factor", 0.15)
@@ -1308,7 +1315,7 @@ class SeasonalityHandler:
 
         data_time_idx = self.decomposer_input.time.isin(self.data.time)
         if len(self.decomposer_input.time[data_time_idx]) != len(self.data):
-            raise ValueError(IRREGULAR_GRANULARITY_ERROR)
+            raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         self.period: int = min(
             int(self.seasonal_period * 60 * 60 / self.frequency.total_seconds()),
@@ -1321,7 +1328,7 @@ class SeasonalityHandler:
         ):
             msg = "Invalid low_pass_jump or trend_jump_factor value, try a larger factor or try a larger seasonal_period"
             logging.error(msg)
-            raise ValueError(msg)
+            raise ParameterError(msg)
 
         self.decomp: Optional[dict[str, Any]] = None
 

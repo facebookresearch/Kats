@@ -11,7 +11,14 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from kats.consts import IRREGULAR_GRANULARITY_ERROR, TimeSeriesData
+from kats.consts import (
+    DataError,
+    DataIrregualarGranularityError,
+    InternalError,
+    IRREGULAR_GRANULARITY_ERROR,
+    ParameterError,
+    TimeSeriesData,
+)
 from kats.detectors.stat_sig_detector import (
     MultiStatSigDetectorModel,
     SeasonalityHandler,
@@ -78,7 +85,7 @@ class TestStatSigDetector(TestCase):
         )
 
         self.assertEqual(self.ss_detect.n_test, 7)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(DataError):
             self.ss_detect.fit_predict(historical_data=ts_init, data=ts_later)
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
@@ -100,18 +107,18 @@ class TestStatSigDetector(TestCase):
         self.assertEqual(_SERIALIZED2, detector.serialize())
 
     def test_missing_values(self) -> None:
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParameterError):
             _ = StatSigDetectorModel()
 
     def test_visualize_unpredicted(self) -> None:
         detector = StatSigDetectorModel(n_control=20, n_test=7)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InternalError):
             detector.visualize()
 
     def test_missing_time_unit(self) -> None:
         detector = StatSigDetectorModel(n_control=20, n_test=7)
         with mock.patch.object(detector, "_set_time_unit"):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(InternalError):
                 detector.fit_predict(data=self.ts_later, historical_data=self.ts_init)
 
     def test_no_update(self) -> None:
@@ -177,7 +184,7 @@ class TestStatSigDetector(TestCase):
             seasonal_period=7,
             seasonal_magnitude=0.575,
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParameterError):
             if period == "weekly":
                 SeasonalityHandler(
                     data=ts3, seasonal_period=period, lpj_factor=lpj_factor
@@ -584,7 +591,7 @@ class TestMultiStatSigDetector(TestCase):
 
         ss_detect = MultiStatSigDetectorModel(n_control=20, n_test=7)
         self.assertEqual(ss_detect.n_test, 7)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(DataError):
             ss_detect.fit_predict(historical_data=ts_init, data=ts_later)
 
     def test_multi_no_update(self) -> None:
@@ -603,7 +610,7 @@ class TestMultiStatSigDetector(TestCase):
         self.assertIsNone(self.ss_detect.fit(self.ts_init))
 
     def test_multi_predict(self) -> None:
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InternalError):
             self.ss_detect.predict(self.ts_later)
 
     def test_remove_season_multi(self) -> None:
@@ -1197,7 +1204,7 @@ class TestStatsigDetectorModelIrregularGranularityError(TestCase):
         )
 
         with self.assertRaisesRegex(
-            ValueError,
+            DataIrregualarGranularityError,
             IRREGULAR_GRANULARITY_ERROR,
         ):
             _ = model.fit_predict(data=self.data_ts)
