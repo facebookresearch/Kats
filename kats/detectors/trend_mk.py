@@ -19,7 +19,13 @@ try:
     _no_mk = False
 except ImportError:
     _no_mk = True
-from kats.consts import TimeSeriesChangePoint, TimeSeriesData
+from kats.consts import (
+    DataError,
+    InternalError,
+    ParameterError,
+    TimeSeriesChangePoint,
+    TimeSeriesData,
+)
 from kats.detectors.detector import Detector
 from statsmodels.tsa.api import SimpleExpSmoothing
 
@@ -235,7 +241,7 @@ class MKDetector(Detector):
                 x = x.flatten()
         else:
             msg = f"dim = 2 is expected but your data has dim = {dim}."
-            raise ValueError(msg)
+            raise DataError(msg)
 
         return x, c
 
@@ -397,7 +403,7 @@ class MKDetector(Detector):
             logging.info("Performing trend detection on the whole time series...")
             # check validity of the input value
             if len(ts) < window_size:
-                raise ValueError(
+                raise ParameterError(
                     f"For the whole time series analysis, data must have at "
                     f"least window_size={window_size} points."
                 )
@@ -410,13 +416,13 @@ class MKDetector(Detector):
 
             # check validity of the input value
             if training_days < window_size:
-                raise ValueError(
+                raise ParameterError(
                     f"For the anchor date analysis, training days should have "
                     f"at least window_size={window_size} points."
                 )
 
             if len(ts) < training_days:
-                raise ValueError(
+                raise ParameterError(
                     f"For the anchor date analysis, data must have "
                     f"at least training_days={training_days} points."
                 )
@@ -470,7 +476,9 @@ class MKDetector(Detector):
         """Obtain a subset of MK_statistics given the desired direction"""
 
         if direction not in ["up", "down", "both"]:
-            raise ValueError("direction should be chosen from {'up', 'down', 'both'}")
+            raise ParameterError(
+                "direction should be chosen from {'up', 'down', 'both'}"
+            )
 
         if self.multivariate:
             trend_df = pd.DataFrame.from_dict(list(MK_statistics.trend_direction))
@@ -521,7 +529,7 @@ class MKDetector(Detector):
         """Get the dataframe of MK_statistics."""
         MK_statistics = self.MK_statistics
         if MK_statistics is None:
-            raise ValueError("Call detector() first.")
+            raise InternalError("Call detector() first.")
         return MK_statistics
 
     def get_top_k_metrics(
@@ -612,7 +620,7 @@ class MKDetector(Detector):
 
     def _metrics_analysis(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
         if not self.multivariate:
-            raise ValueError("Your data is not multivariate.")
+            raise DataError("Your data is not multivariate.")
         MK_statistics = self.MK_statistics
         assert MK_statistics is not None
 
@@ -645,7 +653,7 @@ class MKDetector(Detector):
         """
         ts = self.ts
         if ts is None:
-            raise ValueError("detector() must be called before plot()")
+            raise InternalError("detector() must be called before plot()")
 
         with pd.option_context("plotting.matplotlib.register_converters", True):
             if ax is None:
