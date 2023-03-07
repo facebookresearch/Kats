@@ -319,7 +319,10 @@ class CUSUMDetectorModel(DetectorModel):
         self.pre_std = baseline_std
 
     def _if_normal(
-        self, cur_mean: float, change_directions: Optional[List[str]]
+        self,
+        cur_mean: float,
+        change_directions: Optional[List[str]],
+        delta_std_ratio: float = CUSUMDefaultArgs.delta_std_ratio,
     ) -> bool:
         if change_directions is not None:
             increase, decrease = (
@@ -331,9 +334,9 @@ class CUSUMDetectorModel(DetectorModel):
 
         if self.alert_change_direction == "increase":
             check_increase = 0 if increase else np.inf
-            check_decrease = 1.0 if decrease else np.inf
+            check_decrease = delta_std_ratio if decrease else np.inf
         elif self.alert_change_direction == "decrease":
-            check_increase = 1.0 if increase else np.inf
+            check_increase = delta_std_ratio if increase else np.inf
             check_decrease = 0 if decrease else np.inf
 
         return (
@@ -349,6 +352,7 @@ class CUSUMDetectorModel(DetectorModel):
         changepoints: List[CUSUMChangePoint],  # len = 1 or 0
         time_adjust: pd.Timedelta,
         change_directions: Optional[List[str]] = CUSUMDefaultArgs.change_directions,
+        delta_std_ratio: float = CUSUMDefaultArgs.delta_std_ratio,
     ) -> List[int]:
         scan_start_time = vec_data_row.time.iloc[-1] - pd.Timedelta(
             scan_window, unit="s"
@@ -376,7 +380,7 @@ class CUSUMDetectorModel(DetectorModel):
         else:
             cur_mean = vec_data_row[scan_start_index:].value.mean()
 
-            if self._if_normal(cur_mean, change_directions):
+            if self._if_normal(cur_mean, change_directions, delta_std_ratio):
                 self.number_of_normal_scan += 1
                 if self.number_of_normal_scan >= NORMAL_TOLERENCE:
                     self._set_alert_off()
@@ -458,7 +462,7 @@ class CUSUMDetectorModel(DetectorModel):
         else:
             cur_mean = historical_data[scan_start_index:].value.mean()
 
-            if self._if_normal(cur_mean, change_directions):
+            if self._if_normal(cur_mean, change_directions, delta_std_ratio):
                 self.number_of_normal_scan += 1
                 if self.number_of_normal_scan >= NORMAL_TOLERENCE:
                     self._set_alert_off()
@@ -675,7 +679,7 @@ class CUSUMDetectorModel(DetectorModel):
 
         if (
             historical_data.time.iloc[-1] - historical_data.time.iloc[0] + frequency
-            <= scan_window
+            < scan_window
         ):
             # if len(all data) is smaller than scan data return zero score
             # Calling first _predict to poulate self.change_point_delta
@@ -813,6 +817,7 @@ class CUSUMDetectorModel(DetectorModel):
                     changepoints=ss_detect.cps_meta[c],
                     time_adjust=pd.Timedelta(c * step_window, "s"),
                     change_directions=change_directions,
+                    delta_std_ratio=delta_std_ratio,
                 )
                 ss_detect.pre_mean[c] = self.pre_mean
                 ss_detect.pre_std[c] = self.pre_std
@@ -1150,7 +1155,10 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
         self.pre_std[set_on_mask] = baseline_std.combine_first(self.pre_std)
 
     def _if_back_to_normal(
-        self, cur_mean: pd.Series, change_directions: Optional[List[str]]
+        self,
+        cur_mean: pd.Series,
+        change_directions: Optional[List[str]],
+        delta_std_ratio: float = CUSUMDefaultArgs.delta_std_ratio,
     ) -> pd.Series:
         if change_directions is not None:
             increase, decrease = (
@@ -1165,9 +1173,9 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
             cur_increase = cur_decrease = 0
             if x == "increase":
                 cur_increase = 0 if increase else np.inf
-                cur_decrease = 1.0 if decrease else np.inf
+                cur_decrease = delta_std_ratio if decrease else np.inf
             elif x == "decrease":
-                cur_increase = 1.0 if increase else np.inf
+                cur_increase = delta_std_ratio if increase else np.inf
                 cur_decrease = 0 if decrease else np.inf
             check_increase = np.append(check_increase, cur_increase)
             check_decrease = np.append(check_decrease, cur_decrease)
@@ -1291,7 +1299,9 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
                 np.sum(np.multiply(historical_data.value, mask2), axis=0),
                 np.sum(mask2, axis=0),
             )
-            is_normal = self._if_back_to_normal(cur_mean, change_directions)
+            is_normal = self._if_back_to_normal(
+                cur_mean, change_directions, delta_std_ratio
+            )
             # if current mean is normal, num_normal_scan increment 1, if not, num_normal_scan set to 0
             self.number_of_normal_scan += is_normal
             # set off alert
@@ -1512,7 +1522,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
 
         if (
             historical_data.time.iloc[-1] - historical_data.time.iloc[0] + frequency
-            <= scan_window
+            < scan_window
         ):
             # if len(all data) is smaller than scan data return zero score
             # Calling first _predict to poulate self.change_point_delta

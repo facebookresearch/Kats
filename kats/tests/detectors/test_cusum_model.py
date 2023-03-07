@@ -1182,3 +1182,31 @@ class TestCallVectorizedCUSUM(TestCase):
         self.assertEqual(
             (d.vectorized_trans_flag, d1.vectorized_trans_flag), (False, True)
         )
+
+    def test_vetorized_delta_std_ratio_results(self) -> None:
+        d = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            vectorized=False,
+            delta_std_ratio=0.5,
+        )
+        anom = d.fit_predict(self.ts)
+
+        d1 = CUSUMDetectorModel(
+            scan_window=3600 * 24 * 8,
+            historical_window=3600 * 24 * 10,
+            vectorized=True,
+            delta_std_ratio=0.5,
+        )
+        anom1 = d1.fit_predict(self.ts)
+
+        self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 110)
+        self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
+        self.assertEqual(
+            np.round(
+                anom1.anomaly_magnitude_ts.value - anom.anomaly_magnitude_ts.value, 5
+            ).sum(0),
+            0,
+        )
+        self.assertTrue(np.round(anom1.scores.value, 5).sum(0) > 0)
+        self.assertTrue(np.round(anom1.anomaly_magnitude_ts.value, 5).sum(0) > 0)
