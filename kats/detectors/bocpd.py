@@ -1294,9 +1294,9 @@ class _NormalKnownPrec(_PredictiveModel):
                 self.parameters.known_prec_multiplier / var_arr.mean().values
             )
 
-        logging.debug("Empirical Prior: mu_0:", self.mu_0)
-        logging.debug("Empirical Prior: lambda_0:", self.lambda_0)
-        logging.debug("Empirical Prior: lambda_val:", self.lambda_val)
+        logging.debug(f"Empirical Prior: mu_0: {self.mu_0}")
+        logging.debug(f"Empirical Prior: lambda_0: {self.lambda_0}")
+        logging.debug(f"Empirical Prior: lambda_val: {self.lambda_val}")
 
     @staticmethod
     def _norm_logpdf(x: float, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
