@@ -212,6 +212,15 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             unix_time_units="s",
             tz="US/Pacific",
         )
+        # multivariate data with unixtime in US/Pacific with time zone
+        self.ts_multi_PST_tz = TimeSeriesData(
+            df=pd.DataFrame(
+                {"time": self.unix_list, "value1": [0] * 10, "value2": [0] * 10}
+            ),
+            use_unix_time=True,
+            unix_time_units="s",
+            tz="US/Pacific",
+        )
         # univariate data with unixtime in US/Pacific without time zone
         self.ts_univar_PST = TimeSeriesData(
             df=pd.DataFrame({"time": self.unix_list, "value": [0] * 10}),
@@ -228,6 +237,12 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         # univariate data with date str without tz
         self.ts_univar_str_date = TimeSeriesData(
             df=pd.DataFrame({"time": date, "value": [0] * 3}),
+            date_format="%Y-%m-%d",
+        )
+
+        # univariate data with date str without tz
+        self.ts_multi_str_date = TimeSeriesData(
+            df=pd.DataFrame({"time": date, "value1": [0] * 3, "value2": [0] * 3}),
             date_format="%Y-%m-%d",
         )
 
@@ -938,6 +953,39 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         self.assertEqual(self.ts_from_series_and_df_univar.is_data_missing(), False)
 
         self.assertEqual(self.ts_from_series_and_df_multivar.is_data_missing(), False)
+
+    def test_is_timezone_aware(self) -> None:
+        self.assertEqual(self.ts_univar_PST_tz.is_timezone_aware(), True)
+
+        self.assertEqual(self.ts_univar_str_date.is_timezone_aware(), False)
+
+        self.assertEqual(self.ts_multi_PST_tz.is_timezone_aware(), True)
+
+        self.assertEqual(self.ts_multi_str_date.is_timezone_aware(), False)
+
+    def test_set_timezone(self) -> None:
+        ts_local = self.ts_univar_str_date
+        self.assertEqual(ts_local.is_timezone_aware(), False)
+        ts_local.set_timezone(tz="US/Eastern")
+        self.assertEqual(ts_local.is_timezone_aware(), True)
+        self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Eastern")
+
+        ts_local = self.ts_multi_str_date
+        self.assertEqual(ts_local.is_timezone_aware(), False)
+        ts_local.set_timezone(tz="US/Pacific")
+        self.assertEqual(ts_local.is_timezone_aware(), True)
+        self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Pacific")
+
+    def test_convert_timezone(self) -> None:
+        ts_local = self.ts_univar_PST_tz
+        self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Pacific")
+        ts_local.convert_timezone(tz="US/Eastern")
+        self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Eastern")
+
+        ts_local = self.ts_multi_PST_tz
+        self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Pacific")
+        ts_local.convert_timezone(tz="US/Eastern")
+        self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Eastern")
 
     def test_min_max_values(self) -> None:
         # test min/max value for univariate

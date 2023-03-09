@@ -1028,6 +1028,35 @@ class TimeSeriesData:
         df.plot(x=self.time_col_name, y=cols, ax=ax, **plot_kwargs)
         return ax
 
+    def is_timezone_aware(self) -> bool:
+        if pd.DatetimeIndex(self.time).tzinfo is None:
+            return False
+        else:
+            return True
+
+    def convert_timezone(self, tz: str) -> None:
+        if self.is_timezone_aware():
+            self.time = (
+                pd.DatetimeIndex(self.time)
+                .tz_convert(tz)
+                .to_series()
+                .reset_index(drop=True)
+            )
+        else:
+            logging.warning("Please make sure the time series is timezone aware")
+
+    def set_timezone(self, tz: str) -> None:
+        if not (self.is_timezone_aware()):
+            self.time = (
+                # pyre-ignore
+                pd.DatetimeIndex(self.time)
+                .tz_localize(tz)
+                .to_series()
+                .reset_index(drop=True)
+            )
+        else:
+            logging.warning("Please make sure the time series is not timezone aware")
+
 
 class TimeSeriesIterator:
     a: Optional[pd.DataFrame] = None
