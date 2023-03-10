@@ -897,10 +897,10 @@ class TestVectorizedCUSUMDetectorModel(TestCase):
     def test_percentage_change_results(self) -> None:
         tsmul = TimeSeriesData(self.y)
 
-        for score_func in [
-            CusumScoreFunction.percentage_change,
-            CusumScoreFunction.change,
-            CusumScoreFunction.z_score,
+        for score_func, apm in [
+            (CusumScoreFunction.percentage_change, True),
+            (CusumScoreFunction.change, False),
+            (CusumScoreFunction.z_score, False),
         ]:
 
             detector = VectorizedCUSUMDetectorModel(
@@ -908,6 +908,7 @@ class TestVectorizedCUSUMDetectorModel(TestCase):
                 historical_window=3600 * 24 * 30,
                 remove_seasonality=False,
                 score_func=score_func,  # CusumScoreFunction.percentage_change | z_score | change
+                adapted_pre_mean=apm,
             )
             cp1 = detector.fit_predict(tsmul)
 
@@ -920,6 +921,7 @@ class TestVectorizedCUSUMDetectorModel(TestCase):
                     historical_window=3600 * 24 * 30,
                     remove_seasonality=False,
                     score_func=score_func,  # CusumScoreFunction.percentage_change | z_score | change
+                    adapted_pre_mean=apm,
                 )
                 cp3[col] = d.fit_predict(
                     TimeSeriesData(

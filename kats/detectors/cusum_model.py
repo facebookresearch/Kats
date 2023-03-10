@@ -178,6 +178,8 @@ class CUSUMDetectorModel(DetectorModel):
         remove_seasonality: If apply STL to remove seasonality.
         season_period_freq: str, "daily"/"weekly"/"monthly"/"yearly"
         vectorized: bool, transfer to multi-ts and call vectorized cusum model
+        adapted_pre_mean: bool, whether using a rolling pre-mean and pre-std when calculating
+            anomaly scores (when alert_fired = True)
     """
 
     def __init__(
@@ -197,6 +199,7 @@ class CUSUMDetectorModel(DetectorModel):
         remove_seasonality: bool = CUSUMDefaultArgs.remove_seasonality,
         season_period_freq: str = "daily",
         vectorized: Optional[bool] = None,
+        adapted_pre_mean: Optional[bool] = None,
     ) -> None:
         if serialized_model:
             previous_model = json.loads(serialized_model)
@@ -236,6 +239,14 @@ class CUSUMDetectorModel(DetectorModel):
             else:
                 self.vectorized: bool = previous_model.get("vectorized", False)
 
+            # If adapted_pre_mean is provided, it should supersede existing values
+            if adapted_pre_mean is not None:
+                self.adapted_pre_mean: bool = adapted_pre_mean
+            else:
+                self.adapted_pre_mean: bool = previous_model.get(
+                    "adapted_pre_mean", False
+                )
+
         elif scan_window is not None and historical_window is not None:
             self.cps = []
             self.alert_fired = False
@@ -269,6 +280,7 @@ class CUSUMDetectorModel(DetectorModel):
             self.score_func = score_func.value
 
             self.vectorized: bool = vectorized or False
+            self.adapted_pre_mean: bool = adapted_pre_mean or False
 
         else:
             raise ParameterError(
@@ -380,6 +392,10 @@ class CUSUMDetectorModel(DetectorModel):
         else:
             cur_mean = vec_data_row[scan_start_index:].value.mean()
 
+            if self.adapted_pre_mean:
+                self.pre_mean = vec_data_row.value[:scan_start_index].mean()
+                self.pre_std = vec_data_row.value[:scan_start_index].std(ddof=0)
+
             if self._if_normal(cur_mean, change_directions, delta_std_ratio):
                 self.number_of_normal_scan += 1
                 if self.number_of_normal_scan >= NORMAL_TOLERENCE:
@@ -459,8 +475,13 @@ class CUSUMDetectorModel(DetectorModel):
                     historical_data.value[: cp.cp_index + 1].std(ddof=0),
                     cp.direction,
                 )
+
         else:
             cur_mean = historical_data[scan_start_index:].value.mean()
+
+            if self.adapted_pre_mean:
+                self.pre_mean = historical_data.value[:scan_start_index].mean()
+                self.pre_std = historical_data.value[:scan_start_index].std(ddof=0)
 
             if self._if_normal(cur_mean, change_directions, delta_std_ratio):
                 self.number_of_normal_scan += 1
@@ -774,6 +795,7 @@ class CUSUMDetectorModel(DetectorModel):
                 change_directions=change_directions,
                 score_func=score_func,
                 remove_seasonality=False,  # already removed
+                adapted_pre_mean=False,
             )
 
             column_index = new_historical_data.value.columns
@@ -1053,6 +1075,8 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
         score_func: The score function to calculate the anomaly score.
         remove_seasonality: If apply STL to remove seasonality.
         season_period_freq: str = "daily" for seasonaly decomposition.
+        adapted_pre_mean: bool, whether using a rolling pre-mean and pre-std when calculating
+            anomaly scores (when alert_fired = True).
     """
 
     def __init__(
@@ -1069,6 +1093,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
         score_func: Union[str, CusumScoreFunction] = DEFAULT_SCORE_FUNCTION,
         remove_seasonality: bool = CUSUMDefaultArgs.remove_seasonality,
         season_period_freq: str = "daily",
+        adapted_pre_mean: Optional[bool] = None,
     ) -> None:
         if serialized_model:
             previous_model = json.loads(serialized_model)
@@ -1107,6 +1132,14 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
                 "season_period_freq", "daily"
             )
 
+            # If adapted_pre_mean is provided, it should supersede existing values
+            if adapted_pre_mean is not None:
+                self.adapted_pre_mean: bool = adapted_pre_mean
+            else:
+                self.adapted_pre_mean: bool = previous_model.get(
+                    "adapted_pre_mean", False
+                )
+
         elif scan_window is not None and historical_window is not None:
             self.serialized_model: Optional[bytes] = serialized_model
             self.scan_window: int = scan_window
@@ -1132,6 +1165,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
                 else:
                     score_func = DEFAULT_SCORE_FUNCTION
             self.score_func: CusumScoreFunction = score_func.value
+            self.adapted_pre_mean: bool = adapted_pre_mean or False
 
         else:
             raise ParameterError(
@@ -1299,6 +1333,31 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
                 np.sum(np.multiply(historical_data.value, mask2), axis=0),
                 np.sum(mask2, axis=0),
             )
+            if self.adapted_pre_mean:
+                mask3 = np.tile(alert_set_off_mask, (n_pts, 1))
+                mask3[scan_start_index:, :] = False
+                pre_mean = np.divide(
+                    np.sum(np.multiply(historical_data.value, mask3), axis=0),
+                    np.sum(mask3, axis=0),
+                )
+
+                pre_std = np.sqrt(
+                    np.divide(
+                        np.sum(
+                            np.multiply(
+                                np.square(historical_data.value - pre_mean), mask3
+                            ),
+                            axis=0,
+                        ),
+                        np.sum(mask3, axis=0),
+                    )
+                )
+
+                self.pre_mean[alert_set_off_mask] = pre_mean.combine_first(
+                    self.pre_mean
+                )
+                self.pre_std[alert_set_off_mask] = pre_std.combine_first(self.pre_std)
+
             is_normal = self._if_back_to_normal(
                 cur_mean, change_directions, delta_std_ratio
             )
