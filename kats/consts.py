@@ -375,6 +375,7 @@ class TimeSeriesData:
             raise _log_error(msg)
 
         self._calc_min_max_values()
+        self.sort_by_time: bool = sort_by_time
 
     @property
     def time(self) -> pd.Series:
@@ -885,17 +886,15 @@ class TimeSeriesData:
         Raises:
           ValueError: The :class:`TimeSeriesData` has less than 2 data points.
         """
-
-        df = self.to_dataframe()
-
-        if df.shape[0] <= 1:
+        if len(self) <= 1:
             raise ValueError("Cannot find frequency for less than two data points")
 
-        freq_counts = (
-            df[self.time_col_name].diff().value_counts().sort_values(ascending=False)
-        )
-
-        frequency = freq_counts.index[0]
+        # make sure the time series is sorted by time
+        if self.sort_by_time:
+            frequency = self.time.diff().mode()[0]
+        else:
+            # pyre-ignore
+            frequency = self.time.sort_values().diff().mode()[0]
 
         return frequency
 
