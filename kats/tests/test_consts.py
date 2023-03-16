@@ -55,6 +55,16 @@ EMPTY_DF_WITH_COLS: pd.DataFrame = pd.concat(
 )
 NUM_YEARS_OFFSET = 12
 
+CAT_TIME_INDEX = pd.Series(pd.date_range("2020-01-01", periods=5))
+CAT_VALUE = pd.Series(["a", "b", "c", "d", "e"], name="cat_var")
+CAT_MUL_DF = pd.DataFrame(
+    {
+        "time": CAT_TIME_INDEX,
+        "cat_var": CAT_VALUE,
+        "num_var": np.arange(5),
+    }
+)
+
 
 class TimeSeriesBaseTest(TestCase):
     def setUp(self) -> None:
@@ -255,6 +265,28 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             unix_time_units="s",
             tz="US/Pacific",
         )
+
+    def test_init_categorical_ts(self) -> None:
+        # univariate categorical data
+        _ = TimeSeriesData(
+            time=CAT_TIME_INDEX,
+            value=CAT_VALUE,
+            categorical_var=["cat_var"],
+        )
+        # multivariate categorical data
+        _ = TimeSeriesData(
+            df=CAT_MUL_DF,
+            categorical_var=["cat_var"],
+        )
+        # fail to initialize a TimeSeriesData object with categorical variable if not specified
+        self.assertRaises(
+            ValueError,
+            TimeSeriesData,
+            time=CAT_TIME_INDEX,
+            value=CAT_VALUE,
+        )
+        # fail to initialize a TimeSeriesData object with categorical variable if not specified
+        self.assertRaises(ValueError, TimeSeriesData, df=CAT_MUL_DF)
 
     # Testing univariate time series intialized from a DataFrame
     def test_init_from_df_univar(self) -> None:

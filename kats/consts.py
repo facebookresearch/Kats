@@ -182,6 +182,7 @@ class TimeSeriesData:
         (default "raise").
     - tz_nonexistant: A string representing how to handle nonexistant timezone
         values (default "raise").
+    - categorical_var: A list of column names of categorical variables that are not required to be numerical. Default is None.
 
     Raises:
       ValueError: Invalid params passed when trying to create the
@@ -232,10 +233,13 @@ class TimeSeriesData:
         tz: Optional[str] = None,
         tz_ambiguous: Union[str, np.ndarray] = "raise",
         tz_nonexistent: str = "raise",
+        categorical_var: Optional[List[str]] = None,
     ) -> None:
         """Initializes :class:`TimeSeriesData` class with arguments provided."""
         self.time_col_name = time_col_name
-
+        self.categorical_var: List[str] = (
+            categorical_var if categorical_var is not None else []
+        )
         # If DataFrame is passed
         if df is not None:
             if not isinstance(df, pd.DataFrame):
@@ -357,14 +361,22 @@ class TimeSeriesData:
             raise _log_error(msg)
 
         # Validate values
+
         if not self.value.empty and not (
             (
                 isinstance(self.value, pd.core.series.Series)
-                and is_numeric_dtype(self.value)
+                and (
+                    is_numeric_dtype(self.value)
+                    or self.value.name in self.categorical_var
+                )
             )
             or (
                 isinstance(self.value, pd.DataFrame)
-                and all(is_numeric_dtype(self.value[col]) for col in self.value)
+                and all(
+                    is_numeric_dtype(self.value[col])
+                    for col in self.value
+                    if col not in self.categorical_var
+                )
             )
         ):
             if isinstance(self.value, pd.core.series.Series):
