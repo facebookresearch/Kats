@@ -645,7 +645,7 @@ class CUSUMDetectorModel(DetectorModel):
             freq_counts = (
                 historical_data.time.diff().value_counts().sort_values(ascending=False)
             )
-            if freq_counts.iloc[0] >= int(len(historical_data)) * 0.8 - 1:
+            if freq_counts.iloc[0] >= int(len(historical_data)) * 0.5 - 1:
                 frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
@@ -1527,7 +1527,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
             freq_counts = (
                 historical_data.time.diff().value_counts().sort_values(ascending=False)
             )
-            if freq_counts.iloc[0] >= int(len(historical_data)) * 0.8 - 1:
+            if freq_counts.iloc[0] >= int(len(historical_data)) * 0.5 - 1:
                 frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
@@ -1733,7 +1733,7 @@ class SeasonalityHandler:
             freq_counts = (
                 self.data.time.diff().value_counts().sort_values(ascending=False)
             )
-            if freq_counts.iloc[0] >= int(len(self.data)) * 0.8 - 1:
+            if freq_counts.iloc[0] >= int(len(self.data)) * 0.5 - 1:
                 self.frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
