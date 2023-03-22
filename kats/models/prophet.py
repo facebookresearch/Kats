@@ -901,18 +901,22 @@ def sample_linear_predictive_trend_vectorize(
     m = prophet_model.params["m"][iteration]
     deltas = prophet_model.params["delta"][iteration]
     changepoints_t = prophet_model.changepoints_t
+    changepoint_ts = np.row_stack([changepoints_t] * sample_size)
+
+    deltas = np.row_stack([deltas] * sample_size)
 
     t = np.array(df["t"])
     T = t.max()
 
     # vectorize possion sample
     S = len(changepoints_t)
-    possion_sample = np.random.poisson(S * (T - 1), sample_size)
-    max_possion_num = possion_sample.max()
-
-    changepoint_ts = np.row_stack([changepoints_t] * sample_size)
-    lambda_ = np.mean(np.abs(deltas)) + 1e-8
-    deltas = np.row_stack([deltas] * sample_size)
+    if (
+        S * (T - 1) > 0
+    ):  # ensuring parameter of Poission distribution is valid; otherwise no need to generate samples
+        possion_sample = np.random.poisson(S * (T - 1), sample_size)
+        max_possion_num = possion_sample.max()
+    else:
+        max_possion_num = 0
 
     if max_possion_num > 0:
 
@@ -927,6 +931,7 @@ def sample_linear_predictive_trend_vectorize(
         mask = mask < possion_sample[:, None]
 
         # Sample deltas
+        lambda_ = np.mean(np.abs(deltas)) + 1e-8
         deltas_new = np.random.laplace(
             0, lambda_, max_possion_num * sample_size
         ).reshape(sample_size, -1)

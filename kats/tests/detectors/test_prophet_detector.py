@@ -376,13 +376,17 @@ class TestProphetDetector(TestCase):
         res0 = model.predict(ts[90:])
         # create test case for gap between training/testing time series
         res2 = model.predict(ts[95:])
+        # create test case for latest testing timestamp earlier to lastest training timestamp.
+        res4 = model.predict(ts[50:55])
 
         model = ProphetDetectorModel(vectorize=not vectorize)
         res1 = model.fit_predict(data=ts[90:], historical_data=ts[:90])
         res3 = model.fit_predict(data=ts[95:], historical_data=ts[:90])
+        res5 = model.fit_predict(data=ts[50:55], historical_data=ts[:90])
 
         self.assertEqual(res0.scores.value.to_list(), res1.scores.value.to_list())
         self.assertEqual(res2.scores.value.to_list(), res3.scores.value.to_list())
+        self.assertEqual(res4.scores.value.to_list(), res5.scores.value.to_list())
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     #  `parameterized.parameterized.parameterized.expand([["moderate", 0.990000],
