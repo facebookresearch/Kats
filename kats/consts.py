@@ -64,7 +64,7 @@ class DataError(KatsError):
     pass
 
 
-class DataIrregualarGranularityError(DataError):
+class DataIrregularGranularityError(DataError):
     pass
 
 

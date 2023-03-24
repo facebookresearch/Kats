@@ -10,7 +10,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 from kats.consts import (
-    DataIrregualarGranularityError,
+    DataIrregularGranularityError,
     InternalError,
     IRREGULAR_GRANULARITY_ERROR,
     ParameterError,
@@ -691,7 +691,7 @@ class TestRaiseCUSUMDetectorModel(TestCase):
 
     def test_raise_time_series_freq(self) -> None:
         with self.assertRaisesRegex(
-            DataIrregualarGranularityError, IRREGULAR_GRANULARITY_ERROR
+            DataIrregularGranularityError, IRREGULAR_GRANULARITY_ERROR
         ):
             model = CUSUMDetectorModel(
                 scan_window=self.scan_window, historical_window=self.historical_window
@@ -870,7 +870,7 @@ class TestCUSUMDetectorModelIrregularGranularityError(TestCase):
         )
 
         with self.assertRaisesRegex(
-            DataIrregualarGranularityError,
+            DataIrregularGranularityError,
             IRREGULAR_GRANULARITY_ERROR,
         ):
             _ = model.fit_predict(data=self.data_ts)

@@ -35,7 +35,7 @@ from typing import Any, cast, Dict, List, NamedTuple, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 from kats.consts import (
-    DataIrregualarGranularityError,
+    DataIrregularGranularityError,
     DEFAULT_VALUE_NAME,
     InternalError,
     IRREGULAR_GRANULARITY_ERROR,
@@ -649,7 +649,7 @@ class CUSUMDetectorModel(DetectorModel):
                 frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
-                raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
+                raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         # check if historical_window, scan_window, and step_window are suitable for given TSs
         frequency_sec = frequency.total_seconds()
@@ -1531,7 +1531,7 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
                 frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
-                raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
+                raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         # check if historical_window, scan_window, and step_window are suitable for given TSs
         self._check_window_sizes(frequency.total_seconds())
@@ -1737,7 +1737,7 @@ class SeasonalityHandler:
                 self.frequency = freq_counts.index[0]
             else:
                 _log.debug(f"freq_counts: {freq_counts}")
-                raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
+                raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         self.frequency_sec: int = int(self.frequency.total_seconds())
         self.frequency_sec_str: str = str(self.frequency_sec) + "s"
@@ -1759,7 +1759,7 @@ class SeasonalityHandler:
 
         data_time_idx = self.decomposer_input.time.isin(self.data.time)
         if len(self.decomposer_input.time[data_time_idx]) != len(self.data):
-            raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
+            raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         self.period: int = int(
             self.seasonal_period * 60 * 60 / self.frequency.total_seconds()

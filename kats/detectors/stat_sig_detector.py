@@ -14,7 +14,7 @@ import pandas as pd
 import scipy.stats as stats
 from kats.consts import (
     DataError,
-    DataIrregualarGranularityError,
+    DataIrregularGranularityError,
     InternalError,
     IRREGULAR_GRANULARITY_ERROR,
     ParameterError,
@@ -1315,7 +1315,7 @@ class SeasonalityHandler:
 
         data_time_idx = self.decomposer_input.time.isin(self.data.time)
         if len(self.decomposer_input.time[data_time_idx]) != len(self.data):
-            raise DataIrregualarGranularityError(IRREGULAR_GRANULARITY_ERROR)
+            raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         self.period: int = min(
             int(self.seasonal_period * 60 * 60 / self.frequency.total_seconds()),

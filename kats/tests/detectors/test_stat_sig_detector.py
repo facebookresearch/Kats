@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from kats.consts import (
     DataError,
-    DataIrregualarGranularityError,
+    DataIrregularGranularityError,
     InternalError,
     IRREGULAR_GRANULARITY_ERROR,
     ParameterError,
@@ -1204,7 +1204,7 @@ class TestStatsigDetectorModelIrregularGranularityError(TestCase):
         )
 
         with self.assertRaisesRegex(
-            DataIrregualarGranularityError,
+            DataIrregularGranularityError,
             IRREGULAR_GRANULARITY_ERROR,
         ):
             _ = model.fit_predict(data=self.data_ts)
