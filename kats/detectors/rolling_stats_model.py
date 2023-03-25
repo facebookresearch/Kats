@@ -177,9 +177,9 @@ class RollingStatsModel(DetectorModel):
 
             # We allow stats_score_function to be a str for compatibility with param tuning
             if isinstance(statistics, str):
-                if statistics in STR_TO_STATS_SCORE_FUNC:
+                if statistics.lower() in STR_TO_STATS_SCORE_FUNC:
                     self.statistics: RollStatsFunction = STR_TO_STATS_SCORE_FUNC[
-                        statistics
+                        statistics.lower()
                     ]
                 else:
                     self.statistics: RollStatsFunction = DEFAULT_STATS_SCORE_FUNCTION
@@ -241,12 +241,17 @@ class RollingStatsModel(DetectorModel):
         data_interp: TimeSeriesData,
         n_points_hist_data: int,
     ) -> AnomalyResponse:
-        if n_points_hist_data <= self.rolling_window:
+        if self.extend_rolling_window:
+            rolling_window = self.rolling_window
+        else:
+            rolling_window = self.rolling_window - 1
+
+        if n_points_hist_data <= rolling_window:
             data_value = data_interp.value.values
             reorg_data = self._point_based_vectorized_data(
                 np.concatenate(
                     [
-                        np.nan * np.zeros(self.rolling_window - n_points_hist_data),
+                        np.nan * np.zeros(rolling_window - n_points_hist_data),
                         data_value,
                     ],
                     0,
@@ -254,7 +259,7 @@ class RollingStatsModel(DetectorModel):
             )
         else:
             data_value = data_interp.value.values[
-                (n_points_hist_data - self.rolling_window) :
+                (n_points_hist_data - rolling_window) :
             ]
             reorg_data = self._point_based_vectorized_data(data_value)
 
