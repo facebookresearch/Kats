@@ -110,7 +110,7 @@ def generate_irregular_granularity_data(
     ts_val = np.random.normal(10, 3, n)
     ts_time = pd.date_range(
         start="2020-01-01", freq=str(granularities_sec) + "s", periods=length
-    )[np.random.choice(list(range(length)), n)]
+    )[np.random.choice(list(range(length)), n, replace=False)]
 
     ts = TimeSeriesData(pd.DataFrame({"time": ts_time, "value": pd.Series(ts_val)}))
     return ts
