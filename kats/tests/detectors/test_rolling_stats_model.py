@@ -133,6 +133,8 @@ class TestRollingStatsModels(TestCase):
             ("modified_z_score_mad", 10, False, False),
             ("modified_z_score_iqr", 20, True, False),
             ("modified_z_score_iqr", 20, False, False),
+            ("iqr_median_deviation", 20, True, False),
+            ("iqr_median_deviation", 20, False, False),
         ]
     )
     def test_irregular_granularity_data(
@@ -190,6 +192,8 @@ class TestRollingStatsModels(TestCase):
             ("modified_z_score_mad", 10, False, False),
             ("modified_z_score_iqr", 20, True, False),
             ("modified_z_score_iqr", 20, False, False),
+            ("iqr_median_deviation", 20, True, False),
+            ("iqr_median_deviation", 20, False, False),
         ]
     )
     def test_data_with_individual_missing_datapoints(
@@ -247,6 +251,8 @@ class TestRollingStatsModels(TestCase):
             ("modified_z_score_mad", 10, False, False),
             ("modified_z_score_iqr", 20, True, False),
             ("modified_z_score_iqr", 20, False, False),
+            ("iqr_median_deviation", 20, True, False),
+            ("iqr_median_deviation", 20, False, False),
         ]
     )
     def test_data_with_sudden_granularity_changes(
@@ -302,6 +308,8 @@ class TestRollingStatsModels(TestCase):
             ("modified_z_score_mad", 9, False, False),
             ("modified_z_score_iqr", 9, True, False),
             ("modified_z_score_iqr", 9, False, False),
+            ("iqr_median_deviation", 9, True, False),
+            ("iqr_median_deviation", 9, False, False),
         ]
     )
     def test_score_computation_func(
@@ -329,6 +337,49 @@ class TestRollingStatsModels(TestCase):
         )
         # prediction returns scores of same length
         self.assertEqual(len(anom.scores), 1)
+
+    def test_regular_ts_data(self) -> None:
+        # enough historical data
+        ts = generate_ts_data()
+        model = RollingStatsModel(
+            rolling_window=10,
+            statistics="mad",
+            point_based=True,
+        )
+        s = model.fit_predict(historical_data=ts[:15], data=ts[15:]).scores
+        model2 = RollingStatsModel(
+            rolling_window=600,
+            statistics="mad",
+            point_based=False,
+        )
+        s2 = model2.fit_predict(historical_data=ts[:15], data=ts[15:]).scores
+        self.assertTrue(
+            np.array_equal(
+                np.round(s.value.values, 5),
+                np.round(s2.value.values, 5),
+                equal_nan=True,
+            )
+        )
+
+        # No historical data
+        ts = generate_ts_data()
+        model = RollingStatsModel(
+            rolling_window=10,
+            point_based=True,
+        )
+        s = model.fit_predict(data=ts).scores
+        model2 = RollingStatsModel(
+            rolling_window=600,
+            point_based=False,
+        )
+        s2 = model2.fit_predict(data=ts).scores
+        self.assertTrue(
+            np.array_equal(
+                np.round(s.value.values, 5),
+                np.round(s2.value.values, 5),
+                equal_nan=True,
+            )
+        )
 
 
 class TestRollingStatsModelsError(TestCase):

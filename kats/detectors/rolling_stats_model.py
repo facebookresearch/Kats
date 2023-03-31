@@ -33,6 +33,7 @@ class RollStatsFunction(Enum):
     z_score = "z_score"
     modified_z_score_mad = "modified_z_score_mad"
     modified_z_score_iqr = "modified_z_score_iqr"
+    iqr_median_deviation = "iqr_median_deviation"
 
 
 DEFAULT_STATS_SCORE_FUNCTION: RollStatsFunction = RollStatsFunction.z_score
@@ -44,7 +45,7 @@ STR_TO_STATS_SCORE_FUNC: Dict[str, RollStatsFunction] = {
 }
 
 
-def calculate_iqr(data_list: np.ndarray) -> Union[float, np.ndarray]:
+def calculate_iqr(data_list: np.ndarray, **kwargs: Any) -> Union[float, np.ndarray]:
     """
     Calculate IQR = Q3 - Q1
     """
@@ -54,7 +55,9 @@ def calculate_iqr(data_list: np.ndarray) -> Union[float, np.ndarray]:
     return result[0] if len(result) == 1 else result
 
 
-def calculate_z_scores(data_list: np.ndarray) -> Union[float, np.ndarray]:
+def calculate_z_scores(
+    data_list: np.ndarray, **kwargs: Any
+) -> Union[float, np.ndarray]:
     """
     Calculate the z-score of the last data point in data_list.
     Or calculate the z-score of the last data point in each row of the data_list.
@@ -71,7 +74,7 @@ def calculate_z_scores(data_list: np.ndarray) -> Union[float, np.ndarray]:
     return result[0] if len(result) == 1 else result
 
 
-def calculate_mad(data_list: np.ndarray) -> Union[float, np.ndarray]:
+def calculate_mad(data_list: np.ndarray, **kwargs: Any) -> Union[float, np.ndarray]:
     """
     Calculate MAD: the mean (average) distance between each data
     value and the mean of the data set.
@@ -83,7 +86,9 @@ def calculate_mad(data_list: np.ndarray) -> Union[float, np.ndarray]:
     return result[0] if len(result) == 1 else result
 
 
-def calculate_modified_z_scores_mad(data_list: np.ndarray) -> Union[float, np.ndarray]:
+def calculate_modified_z_scores_mad(
+    data_list: np.ndarray, **kwargs: Any
+) -> Union[float, np.ndarray]:
     """
     Calculate Modified z-score: (x-median)/MAD.
     x: the last point of data_list.
@@ -100,7 +105,9 @@ def calculate_modified_z_scores_mad(data_list: np.ndarray) -> Union[float, np.nd
     return result[0] if len(result) == 1 else result
 
 
-def calculate_modified_z_scores_iqr(data_list: np.ndarray) -> Union[float, np.ndarray]:
+def calculate_modified_z_scores_iqr(
+    data_list: np.ndarray, **kwargs: Any
+) -> Union[float, np.ndarray]:
     """
     Calculate Modified z-score (iqr version): (x-median)/IQR
     x: the last point of data_list.
@@ -117,6 +124,41 @@ def calculate_modified_z_scores_iqr(data_list: np.ndarray) -> Union[float, np.nd
     return result[0] if len(result) == 1 else result
 
 
+def calculate_iqr_median_deviation(
+    data_list: np.ndarray, **kwargs: Any
+) -> Union[float, np.ndarray]:
+    """
+    Calculate IQR based median-deviation scores.
+
+    median_deviation is defined as ABS(Current_value - Historic_median) / Historic_median.
+    IQR is defined as Q3 - Q1.
+    If the current point is >= Q3 + iqr_base * IQR, then it gets a postive multipler (+1),
+    if the current point is < Q1 - iqr_base * IQR, then it gets a negative multipler (-1),
+    otherwise, it gets a neutral multipler (0).
+
+    Final results: multipler * median_deviation
+    """
+
+    iqr_base = kwargs.get("iqr_base", 1.5)
+    data_list_2dim = data_list.reshape((-1, data_list.shape[-1]))
+    m = np.nanmedian(data_list_2dim[:, :-1], axis=1)
+    q3, q1 = np.nanpercentile(data_list_2dim[:, :-1], [75, 25], axis=1)
+
+    iqr_range = iqr_base * (q3 - q1)
+    ge_upper_bound = data_list_2dim[:, -1] >= (q3 + iqr_range)
+    l_lower_bound = data_list_2dim[:, -1] < (q1 - iqr_range)
+    neutral = 1 - (ge_upper_bound | l_lower_bound)
+
+    iqr_sign = (-1) ** l_lower_bound * 0**neutral * (1) ** ge_upper_bound
+
+    numerator = abs(data_list_2dim[:, -1] - m)
+    result = iqr_sign * np.divide(
+        numerator, m, out=np.zeros_like(numerator), where=m != 0
+    )
+
+    return result[0] if len(result) == 1 else result
+
+
 # pyre-ignore[24]
 SCORE_FUNC_DICT: Dict[str, Callable] = {
     RollStatsFunction.iqr.value: calculate_iqr,
@@ -124,6 +166,7 @@ SCORE_FUNC_DICT: Dict[str, Callable] = {
     RollStatsFunction.mad.value: calculate_mad,
     RollStatsFunction.modified_z_score_mad.value: calculate_modified_z_scores_mad,
     RollStatsFunction.modified_z_score_iqr.value: calculate_modified_z_scores_iqr,
+    RollStatsFunction.iqr_median_deviation.value: calculate_iqr_median_deviation,
 }
 
 _log: logging.Logger = logging.getLogger("rolling_Stats_model")
@@ -131,7 +174,8 @@ _log: logging.Logger = logging.getLogger("rolling_Stats_model")
 
 class RollingStatsModel(DetectorModel):
     """RollingStatsModel
-    It includes calculating z-scores, IQR-scores, MAD-scores, IQR/MAD based modified z-scores
+    It includes calculating z-scores, IQR-scores, MAD-scores, IQR/MAD based modified z-scores,
+    and IQR based median-deviation scores.
 
     Attributes:
         rolling_window: int. Either in terms of seconds or number of points.
@@ -163,6 +207,7 @@ class RollingStatsModel(DetectorModel):
         point_based: bool = True,
         seasonality_period: str = "daily",
         score_base: float = 1.0,
+        iqr_base: float = 1.5,
     ) -> None:
         if serialized_model:
             previous_model = json.loads(serialized_model)
@@ -171,6 +216,8 @@ class RollingStatsModel(DetectorModel):
             self.remove_seasonality: bool = previous_model["remove_seasonality"]
             self.point_based: bool = previous_model["point_based"]
             self.seasonality_period: str = previous_model["seasonality_period"]
+            self.score_base: float = previous_model["score_base"]
+            self.iqr_base: float = previous_model["iqr_base"]
 
         else:
             self.rolling_window: int = rolling_window
@@ -196,15 +243,18 @@ class RollingStatsModel(DetectorModel):
             # For denominator == MAD, it should be 0.6745
             self.score_base: float = score_base
 
-            # We're creating 2 types of scores:
-            # IQR/MAD: rolling stats that are computed on a window of length w inclusive of the current point
-            # Z-scores: scores on the current point compared against a mean/median and stddev
-            #     or equivalent computed on a window of length w exclusive of the current point.
-            # Thus, for Z_scores, rolling window will be extended by 1.
-            if self.statistics.value in {"mad", "iqr"}:
-                self.extend_rolling_window: bool = False
-            else:
-                self.extend_rolling_window: bool = True
+            # default is 1.5
+            self.iqr_base: float = iqr_base
+
+        # We're creating 2 types of scores:
+        # IQR/MAD: rolling stats that are computed on a window of length w inclusive of the current point
+        # Z-scores: scores on the current point compared against a mean/median and stddev
+        #     or equivalent computed on a window of length w exclusive of the current point.
+        # Thus, for Z_scores, rolling window will be extended by 1.
+        if self.statistics.value in {"mad", "iqr"}:
+            self.extend_rolling_window: bool = False
+        else:
+            self.extend_rolling_window: bool = True
 
     def serialize(self) -> bytes:
         """
@@ -264,7 +314,8 @@ class RollingStatsModel(DetectorModel):
             reorg_data = self._point_based_vectorized_data(data_value)
 
         scores_array = (
-            SCORE_FUNC_DICT[self.statistics.value](reorg_data) * self.score_base
+            SCORE_FUNC_DICT[self.statistics.value](reorg_data, iqr_base=self.iqr_base)
+            * self.score_base
         )
         scores_tsd = TimeSeriesData(
             time=data_interp.time[n_points_hist_data:], value=pd.Series(scores_array)
@@ -351,10 +402,15 @@ class RollingStatsModel(DetectorModel):
             for i in range(len(data.time)):
                 # TODO: this loop could be further optimized by vectorization
                 test_end_dt = pd.to_datetime(data.time[i])
-                test_start_dt = test_end_dt - pd.Timedelta(
-                    str(self.rolling_window) + "s"
-                )
-                window_data_array = total_data_df[
+                if self.extend_rolling_window:
+                    test_start_dt = test_end_dt - pd.Timedelta(
+                        str(self.rolling_window) + "s"
+                    )
+                else:
+                    test_start_dt = test_end_dt - pd.Timedelta(
+                        str(self.rolling_window - frequency_sec) + "s"
+                    )
+                window_data_array = total_data_df.loc[
                     test_start_dt:test_end_dt
                 ].value.values
                 if len(window_data_array) >= 2:
@@ -363,7 +419,7 @@ class RollingStatsModel(DetectorModel):
                         * self.score_base
                     )
                 else:
-                    score = np.nan
+                    score = 0
                 scores.append(score)
 
             scores_tsd = TimeSeriesData(
