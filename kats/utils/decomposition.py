@@ -277,7 +277,7 @@ class SeasonalityHandler:
     SeasonalityHandler is a class that do timeseries STL decomposition for detecors
     Attributes:
         data: TimeSeriesData that need to be decomposed
-        seasonal_period: str, default value is 'weekly'. Other possible values: 'daily', 'biweekly', 'monthly', 'yearly'
+        seasonal_period: str, default value is 'weekly'. Other possible values: 'hourly', 'daily', 'biweekly', 'monthly', 'yearly'
 
     >>> # Example usage:
     >>> from kats.utils.simulator import Simulator
@@ -294,14 +294,26 @@ class SeasonalityHandler:
         seasonal_period: str = "daily",
         **kwargs: Any,
     ) -> None:
+        if len(data) < 7:
+            msg = "Input data for SeasonalityHandler must have at least 7 data points."
+            _log.error(msg)
+            raise ParameterError(msg)
+
         self.data = data
 
-        _map = {"daily": 1, "weekly": 7, "biweekly": 14, "monthly": 30, "yearly": 365}
+        _map = {
+            "hourly": 1,
+            "daily": 24,
+            "weekly": 7 * 24,
+            "biweekly": 14 * 24,
+            "monthly": 30 * 24,
+            "yearly": 365 * 24,
+        }
         if seasonal_period not in _map:
-            msg = "Invalid seasonal_period, possible values are 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
+            msg = "Invalid seasonal_period, possible values are 'hourly', 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
             logging.error(msg)
             raise ParameterError(msg)
-        self.seasonal_period: int = _map[seasonal_period] * 24  # change to hours
+        self.seasonal_period: int = _map[seasonal_period]
 
         self.low_pass_jump_factor: float = kwargs.get("lpj_factor", 0.15)
         self.trend_jump_factor: float = kwargs.get("tj_factor", 0.15)
@@ -340,10 +352,13 @@ class SeasonalityHandler:
         if len(self.decomposer_input.time[data_time_idx]) != len(self.data):
             raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
-        self.period: int = int(
-            self.seasonal_period * 60 * 60 / self.frequency.total_seconds()
+        self.period: int = min(
+            int(self.seasonal_period * 60 * 60 / self.frequency.total_seconds()),
+            len(self.data) // 2,
         )
+
         if self.period < 2:
+            _log.info(f"The period {self.period} is less than 2. Setting to 7.")
             self.period = 7
 
         self.decomp: Optional[dict[str, Any]] = None
