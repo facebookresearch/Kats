@@ -12,10 +12,10 @@ from typing import Any, Callable, Dict, Optional, Union
 import numpy as np
 import pandas as pd
 from kats.consts import DataError, InternalError, ParameterError, TimeSeriesData
-
-from kats.detectors.cusum_model import SeasonalityHandler
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
+
+from kats.utils.decomposition import SeasonalityHandler
 from scipy import stats
 
 
