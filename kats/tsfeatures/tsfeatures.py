@@ -2085,3 +2085,127 @@ class TsFeatures:
         except Exception as e:
             logging.warning(f"Time failed {e}")
         return time_features
+
+
+# valid calendar attributes
+_calendar_attrs = {
+    "minute",
+    "hour",
+    "day",
+    "weekday",
+    "dayofyear",
+    "week",
+    "month",
+    "quarter",
+    "year",
+    "dayofyear",
+    "weekofyear",
+}
+
+
+class TsCalenderFeatures:
+    """Class for computing calendar related features from time series."""
+
+    def __init__(
+        self,
+        features: List[str],
+    ) -> None:
+        self.features = features
+
+    def get_features(
+        self, data: Union[TimeSeriesData, pd.Series], raw: bool = False
+    ) -> Union[pd.DataFrame, np.ndarray,]:
+
+        if isinstance(data, TimeSeriesData):
+            timestamps = data.time.dt
+        else:
+            timestamps = pd.to_datetime(data).dt
+
+        col_names = []
+        res = []
+        for attr in self.features:
+            if attr in _calendar_attrs:  # compute corresponding feature
+                col_names.append(attr)
+                res.append(getattr(timestamps, attr))
+            elif attr == "minuteofday":
+                col_names.append(attr)
+                res.append(timestamps.hour * 60 + timestamps.minute)
+            else:
+                raise ValueError(f"attribute {attr} is invalid.")
+        res = np.column_stack(res)
+        if raw:
+            return res
+        res = pd.DataFrame(res)
+        res.columns = col_names
+        return res
+
+
+class TsFourierFeatures:
+    """Class for computing Fourier related features from time series.
+
+    Attributes:
+        fourier_period: a positive number of a list of positive numbers for the targeted periods to compute.
+        fourier_order: an int or a list of positive numbers with length equal to the length of `fourier_period` for corresponding orders. If list, it will be used to compute the fourier order.
+        offset: a positive number represent the offset for timestamps. Default is `offset=1`, where data is taken as second level; Common offsets are 60 (minutely), 3600 (hourly), 24*3600 (daily), etc.
+    """
+
+    def __init__(
+        self,
+        fourier_period: Union[int, float, List[Union[int, float]]],
+        fourier_order: Union[int, List[int]] = 10,
+        offset: Union[int, float] = 1,
+    ) -> None:
+        self.fourier_period: List[Union[int, float]] = (
+            fourier_period if isinstance(fourier_period, List) else [fourier_period]
+        )
+        self.fourier_order: List[int] = (
+            fourier_order
+            if isinstance(fourier_order, List)
+            else [fourier_order] * len(self.fourier_period)
+        )
+        if len(self.fourier_period) != len(self.fourier_order):
+            msg = f"`fourier_period` and `fourier_order` should be the same length. Got {self.fourier_period} and {self.fourier_order}."
+            raise AssertionError(msg)
+        self.offset = float(offset)
+        if not isinstance(self.offset, float) or self.offset < 0:
+            msg = f"`offset` should be a positive number. Got {self.offset}."
+            raise AssertionError(msg)
+
+    def get_features(self, data: Union[TimeSeriesData, pd.Series]) -> np.ndarray:
+
+        if isinstance(data, TimeSeriesData):
+            data = np.array(data.time.astype("int") // 10**9)
+        else:
+            try:
+                data = np.array(data.astype("int") // 10**9)
+            except Exception:
+                data = np.array(pd.to_datetime(data).dt // 10**9)
+        data = data / self.offset
+        return self._compute_fourier_order(
+            data, np.array(self.fourier_period), np.array(self.fourier_order)
+        )
+
+    @staticmethod
+    @jit(nopython=True)
+    def _compute_fourier_order(
+        data: np.ndarray, period: np.ndarray, order: np.ndarray
+    ) -> np.ndarray:
+        """
+        Compute fourier order from given data and order.
+
+        Args:
+            data: a 1-d `np.ndarray` for the data to compute fourier series for.
+            period: a 1-d `np.ndarray` for the period of the Fourier series to compute.
+            order: a 1-d `np.ndarray` for the order of Fourier series to be computed for the corresponding period.
+        """
+        res = np.empty(shape=(len(data), np.sum(order) * 2))
+        col = 0
+        for i in range(len(period)):
+            p, r = period[i], order[i]
+            val = 2.0 * np.pi * data / p
+            for j in range(r):
+                tmp = val * j
+                res[:, col] = np.sin(tmp)
+                res[:, col + 1] = np.cos(tmp)
+                col += 2
+        return res

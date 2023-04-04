@@ -17,7 +17,12 @@ import pandas as pd
 from kats.compat import statsmodels
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
-from kats.tsfeatures.tsfeatures import _FEATURE_GROUP_MAPPING, TsFeatures
+from kats.tsfeatures.tsfeatures import (
+    _FEATURE_GROUP_MAPPING,
+    TsCalenderFeatures,
+    TsFeatures,
+    TsFourierFeatures,
+)
 from parameterized.parameterized import parameterized
 
 SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
@@ -722,3 +727,74 @@ class TSfeaturesTest(TestCase):
             self.test_nowcasting_error()
 
         importlib.reload(kats.tsfeatures.tsfeatures)
+
+
+class TestTsCalendarFeatures(TestCase):
+    # pyre-fixme
+    @parameterized.expand(
+        [
+            (TimeSeriesData(SAMPLE_INPUT_TS_BOCPD_SCALED), ["year", "minute"]),
+            (
+                TimeSeriesData(SAMPLE_INPUT_TS_BOCPD_SCALED),
+                [
+                    "minute",
+                    "hour",
+                    "day",
+                    "weekday",
+                    "dayofyear",
+                    "week",
+                    "month",
+                    "quarter",
+                    "year",
+                    "dayofyear",
+                    "weekofyear",
+                    "minuteofday",
+                ],
+            ),
+        ]
+    )
+    def test_get_features(self, ts: TimeSeriesData, feature_list: List[str]) -> None:
+        tcf = TsCalenderFeatures(feature_list)
+        f1 = tcf.get_features(ts.time)
+        f2 = tcf.get_features(ts)
+        self.assertTrue(
+            f1.equals(f2), "Features computed from the same timestamps are not equal."
+        )
+
+
+class TestTsFourierFeatures(TestCase):
+    # pyre-fixme
+    @parameterized.expand(
+        [
+            (TimeSeriesData(SAMPLE_INPUT_TS_BOCPD_SCALED), 20, 5, 1),
+            (TimeSeriesData(SAMPLE_INPUT_TS_BOCPD_SCALED), [5, 20], 1, 10),
+            (TimeSeriesData(SAMPLE_INPUT_TS_BOCPD_SCALED), [3.5, 7.5], [2, 3], 10),
+        ]
+    )
+    def test_get_features(
+        self,
+        ts: TimeSeriesData,
+        fourier_period: Union[float, int, List[Union[int, float]]],
+        fourier_order: Union[List[int], int],
+        offset: Union[float, int],
+    ) -> None:
+
+        tff = TsFourierFeatures(fourier_period, fourier_order, offset)
+        f1 = tff.get_features(ts)
+        f2 = tff.get_features(ts.time)
+        fourier_period2 = (
+            [t * float(offset) for t in fourier_period]
+            if isinstance(fourier_period, list)
+            else fourier_period * float(offset)
+        )
+        tff2 = TsFourierFeatures(fourier_period2, fourier_order, 1)
+        f3 = tff2.get_features(ts)
+        self.assertTrue(
+            np.all(f1 == f2),
+            f"Get different values when using the same timestamps, f1 = {f1} and f2 = {f2}.",
+        )
+        mdiff = np.max(np.abs(f1 - f3))
+        self.assertTrue(
+            mdiff < 1e-5,
+            f"Get different values via offset with maximum difference {mdiff}, f1 = {f1} and f3 = {f3}.",
+        )
