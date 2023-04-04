@@ -27,7 +27,7 @@ from kats.detectors.detector_consts import (
     ConfidenceBand,
     PercentageChange,
 )
-from kats.utils.decomposition import TimeSeriesDecomposition
+from kats.utils.decomposition import SeasonalityHandler
 
 
 """Statistical Significance Detector Module
@@ -245,7 +245,9 @@ class StatSigDetectorModel(DetectorModel):
         # remove seasonality
         if self.rem_season:
             sh_data = SeasonalityHandler(
-                data=data, seasonal_period=self.seasonal_period
+                data=data,
+                seasonal_period=self.seasonal_period,
+                ignore_irregular_freq=True,
             )
 
             self.data_season = sh_data.get_seasonality()
@@ -255,6 +257,7 @@ class StatSigDetectorModel(DetectorModel):
                 sh_hist_data = SeasonalityHandler(
                     data=historical_data,
                     seasonal_period=self.seasonal_period,
+                    ignore_irregular_freq=True,
                 )
                 historical_data = sh_hist_data.remove_seasonality()
 
@@ -1053,7 +1056,9 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         # remove seasonality
         if self.rem_season:
             sh_data = SeasonalityHandler(
-                data=data, seasonal_period=self.seasonal_period
+                data=data,
+                seasonal_period=self.seasonal_period,
+                ignore_irregular_freq=True,
             )
 
             self.data_season = sh_data.get_seasonality()
@@ -1063,6 +1068,7 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
                 sh_hist_data = SeasonalityHandler(
                     data=historical_data,
                     seasonal_period=self.seasonal_period,
+                    ignore_irregular_freq=True,
                 )
                 historical_data = sh_hist_data.remove_seasonality()
 
@@ -1258,178 +1264,3 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         self.test_interval.data = data_history
         self.control_interval = ChangePointInterval(control_start_dt, control_end_dt)
         self.control_interval.data = data_history
-
-
-class SeasonalityHandler:
-    """
-    SeasonalityHandler is a class that do timeseries STL decomposition for detecors
-    Attributes:
-        data: TimeSeriesData that need to be decomposed
-        seasonal_period: str, default value is 'weekly'. Other possible values: 'daily', 'biweekly', 'monthly', 'yearly'
-
-    >>> # Example usage:
-    >>> from kats.utils.simulator import Simulator
-    >>> sim = Simulator(n=120, start='2018-01-01')
-    >>> ts = sim.level_shift_sim(cp_arr = [60], level_arr=[1.35, 1.05], noise=0.05, seasonal_period=7, seasonal_magnitude=0.575)
-    >>> sh = SeasonalityHandler(data=ts, seasonal_period='weekly')
-    >>> sh.get_seasonality()
-    >>> sh.remove_seasonality()
-    """
-
-    def __init__(
-        self,
-        data: TimeSeriesData,
-        seasonal_period: str = "weekly",
-        **kwargs: Any,
-    ) -> None:
-        self.data = data
-
-        _map = {"daily": 1, "weekly": 7, "biweekly": 14, "monthly": 30, "yearly": 365}
-        if seasonal_period not in _map:
-            msg = "Invalid seasonal_period, possible values are 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
-            logging.error(msg)
-            raise ParameterError(msg)
-        self.seasonal_period: int = _map[seasonal_period] * 24  # change to hours
-
-        self.low_pass_jump_factor: float = kwargs.get("lpj_factor", 0.15)
-        self.trend_jump_factor: float = kwargs.get("tj_factor", 0.15)
-
-        self.frequency: pd.Timedelta = self.data.infer_freq_robust()
-        self.frequency_sec: int = int(self.frequency.total_seconds())
-        self.frequency_sec_str: str = str(self.frequency_sec) + "s"
-
-        # calculate resample base in second level
-        time0 = pd.to_datetime(self.data.time[0])
-        # calculate remainder as resampling base
-        resample_base_sec = (
-            time0.day * 24 * 60 * 60
-            + time0.hour * 60 * 60
-            + time0.minute * 60
-            + time0.second
-        ) % self.frequency_sec
-
-        self.decomposer_input: TimeSeriesData = self.data.interpolate(
-            freq=self.frequency_sec_str,
-            base=resample_base_sec,
-        )
-
-        data_time_idx = self.decomposer_input.time.isin(self.data.time)
-        if len(self.decomposer_input.time[data_time_idx]) != len(self.data):
-            raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
-
-        self.period: int = min(
-            int(self.seasonal_period * 60 * 60 / self.frequency.total_seconds()),
-            len(data),
-        )
-
-        if (
-            int((self.period + 1) * self.low_pass_jump_factor) < 1
-            or int((self.period + 1) * self.trend_jump_factor) < 1
-        ):
-            msg = "Invalid low_pass_jump or trend_jump_factor value, try a larger factor or try a larger seasonal_period"
-            logging.error(msg)
-            raise ParameterError(msg)
-
-        self.decomp: Optional[dict[str, Any]] = None
-
-        self.ifmulti: bool = False
-        # for multi-variate TS
-        if len(self.data.value.values.shape) != 1:
-            self.ifmulti = True
-            self.num_seq: int = self.data.value.values.shape[1]
-
-        self.data_season = TimeSeriesData(time=self.data.time, value=self.data.value)
-        self.data_nonseason = TimeSeriesData(time=self.data.time, value=self.data.value)
-
-    def _decompose(self) -> None:
-        if not self.ifmulti:
-            decomposer = TimeSeriesDecomposition(
-                self.decomposer_input,
-                period=self.period,
-                robust=True,
-                seasonal_deg=0,
-                trend_deg=1,
-                low_pass_deg=1,
-                low_pass_jump=int((self.period + 1) * self.low_pass_jump_factor),
-                seasonal_jump=1,
-                trend_jump=int((self.period + 1) * self.trend_jump_factor),
-            )
-
-            self.decomp = decomposer.decomposer()
-            return
-
-        self._decompose_multi()
-
-    def _decompose_multi(self) -> None:
-        self.decomp = {}
-        for i in range(self.num_seq):
-            temp_ts = TimeSeriesData(
-                time=self.decomposer_input.time,
-                value=pd.Series(self.decomposer_input.value.values[:, i], copy=False),
-            )
-            decomposer = TimeSeriesDecomposition(
-                temp_ts,
-                period=self.period,
-                robust=True,
-                seasonal_deg=0,
-                trend_deg=1,
-                low_pass_deg=1,
-                low_pass_jump=int((self.period + 1) * self.low_pass_jump_factor),
-                seasonal_jump=1,
-                trend_jump=int((self.period + 1) * self.trend_jump_factor),
-            )
-            assert self.decomp is not None
-            self.decomp[str(i)] = decomposer.decomposer()
-
-    def remove_seasonality(self) -> TimeSeriesData:
-        if self.decomp is None:
-            self._decompose()
-        if not self.ifmulti:
-            decomp = self.decomp
-            assert decomp is not None
-            data_time_idx = decomp["rem"].time.isin(self.data_nonseason.time)
-
-            self.data_nonseason.value = pd.Series(
-                decomp["rem"][data_time_idx].value
-                + decomp["trend"][data_time_idx].value,
-                name=self.data_nonseason.value.name,
-                copy=False,
-            )
-            return self.data_nonseason
-        decomp = self.decomp
-        assert decomp is not None
-        data_time_idx = decomp[str(0)]["rem"].time.isin(self.data_nonseason.time)
-        for i in range(self.num_seq):
-            self.data_nonseason.value.iloc[:, i] = pd.Series(
-                decomp[str(i)]["rem"][data_time_idx].value
-                + decomp[str(i)]["trend"][data_time_idx].value,
-                name=self.data_nonseason.value.iloc[:, i].name,
-                copy=False,
-            )
-
-        return self.data_nonseason
-
-    def get_seasonality(self) -> TimeSeriesData:
-
-        if self.decomp is None:
-            self._decompose()
-        decomp = self.decomp
-        assert decomp is not None
-        if not self.ifmulti:
-            data_time_idx = decomp["seasonal"].time.isin(self.data_season.time)
-            self.data_season.value = pd.Series(
-                decomp["seasonal"][data_time_idx].value,
-                name=self.data_season.value.name,
-                copy=False,
-            )
-            return self.data_season
-
-        data_time_idx = decomp[str(0)]["seasonal"].time.isin(self.data_season.time)
-        for i in range(self.num_seq):
-            self.data_season.value.iloc[:, i] = pd.Series(
-                decomp[str(i)]["seasonal"][data_time_idx].value,
-                name=self.data_season.value.iloc[:, i].name,
-                copy=False,
-            )
-
-        return self.data_season

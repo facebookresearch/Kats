@@ -21,11 +21,12 @@ from kats.consts import (
 )
 from kats.detectors.stat_sig_detector import (
     MultiStatSigDetectorModel,
-    SeasonalityHandler,
     StatSigDetectorModel,
 )
+from kats.utils.decomposition import SeasonalityHandler
 from kats.utils.simulator import Simulator
 from parameterized.parameterized import parameterized
+
 
 _SERIALIZED = b'{"n_control": 20, "n_test": 7, "time_unit": "s"}'
 _SERIALIZED2 = b'{"n_control": 20, "n_test": 7, "time_unit": "1s", "rem_season": false, "seasonal_period": "weekly", "use_corrected_scores": true, "max_split_ts_length": 500, "min_perc_change": 0.0}'
@@ -167,30 +168,6 @@ class TestStatSigDetector(TestCase):
         )
         anom3 = ss_detect5.fit_predict(data=ts3)
         self.assertEqual(np.min(anom3.scores.value.values) < -5, True)
-
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
-    @parameterized.expand(
-        [
-            ["weekly", 0.1],
-            ["daily"],
-        ]
-    )
-    def test_season_handler(self, period: str, lpj_factor: float = 0.1) -> None:
-        sim3 = Simulator(n=120, start="2018-01-01")
-        ts3 = sim3.level_shift_sim(
-            cp_arr=[60],
-            level_arr=[1.35, 1.05],
-            noise=0.05,
-            seasonal_period=7,
-            seasonal_magnitude=0.575,
-        )
-        with self.assertRaises(ParameterError):
-            if period == "weekly":
-                SeasonalityHandler(
-                    data=ts3, seasonal_period=period, lpj_factor=lpj_factor
-                )
-            else:
-                SeasonalityHandler(data=ts3, seasonal_period=period)
 
     def test_min_perc_change(self) -> None:
         sim3 = Simulator(n=120, start="2018-01-01")
@@ -1134,6 +1111,7 @@ class TestInterpolateBase(TestCase):
         sh = SeasonalityHandler(
             data=self.tsd,
             seasonal_period="daily",
+            ignore_irregular_freq=True,
         )
         data_nonseason = sh.remove_seasonality()
         data_season = sh.get_seasonality()
@@ -1150,6 +1128,7 @@ class TestInterpolateBase(TestCase):
         sh1 = SeasonalityHandler(
             data=self.tsd1,
             seasonal_period="daily",
+            ignore_irregular_freq=True,
         )
         data_nonseason1 = sh1.remove_seasonality()
         data_season1 = sh1.get_seasonality()

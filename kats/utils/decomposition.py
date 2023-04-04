@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from kats.consts import (
+    DataError,
     DataIrregularGranularityError,
     IRREGULAR_GRANULARITY_ERROR,
     ParameterError,
@@ -277,7 +278,7 @@ class SeasonalityHandler:
     SeasonalityHandler is a class that do timeseries STL decomposition for detecors
     Attributes:
         data: TimeSeriesData that need to be decomposed
-        seasonal_period: str, default value is 'weekly'. Other possible values: 'hourly', 'daily', 'biweekly', 'monthly', 'yearly'
+        seasonal_period: str, default value is 'daily'. Other possible values: 'hourly', 'weekly', 'biweekly', 'monthly', 'yearly'
 
     >>> # Example usage:
     >>> from kats.utils.simulator import Simulator
@@ -292,12 +293,13 @@ class SeasonalityHandler:
         self,
         data: TimeSeriesData,
         seasonal_period: str = "daily",
+        ignore_irregular_freq: bool = False,
         **kwargs: Any,
     ) -> None:
         if len(data) < 7:
             msg = "Input data for SeasonalityHandler must have at least 7 data points."
             _log.error(msg)
-            raise ParameterError(msg)
+            raise DataError(msg)
 
         self.data = data
 
@@ -318,17 +320,21 @@ class SeasonalityHandler:
         self.low_pass_jump_factor: float = kwargs.get("lpj_factor", 0.15)
         self.trend_jump_factor: float = kwargs.get("tj_factor", 0.15)
 
-        self.frequency: pd.Timedelta = self.data.freq_to_timedelta()
-        if self.frequency is None or self.frequency is pd.NaT:
-            # Use the top frequency if any, when not able to infer from data.
-            freq_counts = (
-                self.data.time.diff().value_counts().sort_values(ascending=False)
-            )
-            if freq_counts.iloc[0] >= int(len(self.data)) * 0.5 - 1:
-                self.frequency = freq_counts.index[0]
-            else:
-                _log.debug(f"freq_counts: {freq_counts}")
-                raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
+        if ignore_irregular_freq:
+            self.frequency: pd.Timedelta = self.data.infer_freq_robust()
+
+        else:
+            self.frequency: pd.Timedelta = self.data.freq_to_timedelta()
+            if self.frequency is None or self.frequency is pd.NaT:
+                # Use the top frequency if any, when not able to infer from data.
+                freq_counts = (
+                    self.data.time.diff().value_counts().sort_values(ascending=False)
+                )
+                if freq_counts.iloc[0] >= int(len(self.data)) * 0.5 - 1:
+                    self.frequency = freq_counts.index[0]
+                else:
+                    _log.debug(f"freq_counts: {freq_counts}")
+                    raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         self.frequency_sec: int = int(self.frequency.total_seconds())
         self.frequency_sec_str: str = str(self.frequency_sec) + "s"
