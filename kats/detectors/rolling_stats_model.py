@@ -7,7 +7,7 @@
 import json
 import logging
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Set, Union
 
 import numpy as np
 import pandas as pd
@@ -19,11 +19,13 @@ from kats.utils.decomposition import SeasonalityHandler
 from scipy import stats
 
 
-SEASON_PERIOD_FREQ_MAP: Dict[str, int] = {
-    "daily": 1,
-    "weekly": 7,
-    "monthly": 30,
-    "yearly": 365,
+SEASON_PERIOD_SUPPORTED: Set[str] = {
+    "hourly",
+    "daily",
+    "weekly",
+    "biweekly",
+    "monthly",
+    "yearly",
 }
 
 
@@ -186,6 +188,7 @@ class RollingStatsModel(DetectorModel):
         point_based: bool = True. Matched with parameter rolling_window's unit.
         seasonality_period: str = "daily". Seasonality period for seasonality decomposition.
         score_base: float = 1.0. For modified z scores. Multiplier for the denominator.
+        iqr_base: float. Default is 1.5. 1.5XIQR rule for outlier detection.
 
     Example:
     >>> model = RollingStatsModel(
@@ -238,6 +241,11 @@ class RollingStatsModel(DetectorModel):
 
             self.remove_seasonality: bool = remove_seasonality
             self.point_based: bool = point_based
+
+            if seasonality_period not in SEASON_PERIOD_SUPPORTED:
+                raise ParameterError(
+                    f"Invalid seasonality period: {seasonality_period}. We are supporting {SEASON_PERIOD_SUPPORTED}."
+                )
             self.seasonality_period: str = seasonality_period
 
             # For denominator == MAD, it should be 0.6745
