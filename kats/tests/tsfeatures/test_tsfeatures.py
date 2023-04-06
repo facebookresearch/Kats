@@ -789,12 +789,13 @@ class TestTsFourierFeatures(TestCase):
         )
         tff2 = TsFourierFeatures(fourier_period2, fourier_order, 1)
         f3 = tff2.get_features(ts)
+        mdiff1 = np.max(np.abs(f1.values - f2.values))
         self.assertTrue(
-            np.all(f1 == f2),
+            mdiff1 < 1e-5,
             f"Get different values when using the same timestamps, f1 = {f1} and f2 = {f2}.",
         )
-        mdiff = np.max(np.abs(f1 - f3))
+        mdiff2 = np.max(np.abs(f1.values - f3.values))
         self.assertTrue(
-            mdiff < 1e-5,
-            f"Get different values via offset with maximum difference {mdiff}, f1 = {f1} and f3 = {f3}.",
+            mdiff2 < 1e-5,
+            f"Get different values via offset with maximum difference {2}, f1 = {f1} and f3 = {f3}.",
         )

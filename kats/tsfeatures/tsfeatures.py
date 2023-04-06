@@ -2171,7 +2171,20 @@ class TsFourierFeatures:
             msg = f"`offset` should be a positive number. Got {self.offset}."
             raise AssertionError(msg)
 
-    def get_features(self, data: Union[TimeSeriesData, pd.Series]) -> np.ndarray:
+    def _get_columns(
+        self, fourier_period: List[Union[float, int]], fourier_order: List[int]
+    ) -> List[str]:
+        ans = []
+        for p, r in zip(fourier_period, fourier_order):
+            tmp = [""] * r * 2
+            tmp[::2] = [f"{p}_{t}_sin" for t in range(r)]
+            tmp[1::2] = [f"{p}_{t}_cos" for t in range(r)]
+            ans.extend(tmp)
+        return ans
+
+    def get_features(
+        self, data: Union[TimeSeriesData, pd.Series], raw: bool = False
+    ) -> Union[np.ndarray, pd.DataFrame]:
 
         if isinstance(data, TimeSeriesData):
             data = np.array(data.time.astype("int") // 10**9)
@@ -2181,9 +2194,13 @@ class TsFourierFeatures:
             except Exception:
                 data = np.array(pd.to_datetime(data).dt // 10**9)
         data = data / self.offset
-        return self._compute_fourier_order(
+        raw_data = self._compute_fourier_order(
             data, np.array(self.fourier_period), np.array(self.fourier_order)
         )
+        if raw:
+            return raw_data
+        col_names = self._get_columns(self.fourier_period, self.fourier_order)
+        return pd.DataFrame(raw_data, columns=col_names)
 
     @staticmethod
     @jit(nopython=True)
