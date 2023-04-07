@@ -135,6 +135,22 @@ air_passengers_ts = TimeSeriesData(air_passengers_df)
 features = TsFeatures().transform(air_passengers_ts)
 ```
 
+## Citing Kats
+
+If you use Kats in your work or research, please use the following BibTeX entry.
+
+```
+@software{Jiang_KATS_2022,
+author = {Jiang, Xiaodong and Srivastava, Sudeep and Chatterjee, Sourav and Yu, Yang and Handler, Jeffrey and Zhang, Peiyi and Bopardikar, Rohan and Li, Dawei and Lin, Yanjun and Thakore, Uttam and Brundage, Michael and Holt, Ginger and Komurlu, Caner and Nagalla, Rakshita and Wang, Zhichao and Sun, Hechao and Gao, Peng and Cheung, Wei and Gao, Jun and Wang, Qi and Guerard, Marius and Kazemi, Morteza and Chen, Yulin and Zhou, Chong and Lee, Sean and Laptev, Nikolay and Levendovszky, Tihamér and Taylor, Jake and Qian, Huijun and Zhang, Jian and Shoydokova, Aida and Singh, Trisha and Zhu, Chengjun and Baz, Zeynep and Bergmeir, Christoph and Yu, Di and Koylan, Ahmet and Jiang, Kun and Temiyasathit, Ploy and Yurtbay, Emre},
+license = {MIT License},
+month = {3},
+title = {{Kats}},
+url = {https://github.com/facebookresearch/Kats},
+version = {0.2.0},
+year = {2022}
+}
+```
+
 ## Changelog
 
 ### Version 0.2.0
