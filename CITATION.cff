@@ -1,0 +1,187 @@
+cff-version: 0.1.0
+title: KATS
+message: >-
+  If you use this library, please cite using the
+  following metadata.
+type: software
+authors:
+  - given-names: Xiaodong
+    email: iamxiaodong@meta.com
+    family-names: Jiang
+    affiliation: Meta
+  - given-names: Sudeep
+    email: sudeeps@meta.com
+    family-names: Srivastava
+    affiliation: Meta
+  - given-names: Sourav
+    email: souravc83@meta.com
+    family-names: Chatterjee
+    affiliation: Meta
+  - given-names: Yang
+    email: yangbk@meta.com
+    family-names: Yu
+    affiliation: Meta
+  - given-names: Jeffrey
+    email: jeffhandl@meta.com
+    family-names: Handler
+    affiliation: Meta
+  - given-names: Peiyi
+    email: peiyizhang@meta.com
+    family-names: Zhang
+    affiliation: Meta
+  - given-names: Rohan
+    # email:
+    family-names: Bopardikar
+    affiliation: Meta
+  - given-names: Dawei
+    # email:
+    family-names: Li
+    affiliation: Apple
+  - given-names: Yanjun
+    # email:
+    family-names: Lin
+    affiliation: Meta
+  - given-names: Uttam
+    email: uthakore@meta.com
+    family-names: Thakore
+    affiliation: Meta
+  - given-names: Michael
+    # email:
+    family-names: Brundage
+    affiliation: Meta
+  - given-names: Ginger
+    # email:
+    family-names: Holt
+    affiliation: Databricks
+  - given-names: Caner
+    # email:
+    family-names: Komurlu
+    affiliation: Somatus
+  - given-names: Rakshita
+    # email:
+    family-names: Nagalla
+    affiliation: LinkedIn
+  - given-names: Zhichao
+    # email:
+    family-names: Wang
+    affiliation: Doordash
+  - given-names: Hechao
+    # email:
+    family-names: Sun
+    affiliation: Instacart
+  - given-names: Peng
+    # email:
+    family-names: Gao
+    affiliation: Meta
+  - given-names: Wei
+    # email:
+    family-names: Cheung
+    affiliation: Meta
+  - given-names: Jun
+    # email:
+    family-names: Gao
+    affiliation: Meta
+  - given-names: Qi
+    # email:
+    family-names: Wang
+    affiliation: Meta
+  - given-names: Marius
+    # email:
+    family-names: Guerard
+    affiliation: Google
+  - given-names: Morteza
+    email:
+    family-names: Kazemi
+    # affiliation:
+  - given-names: Yulin
+    # email:
+    family-names: Chen
+    affiliation: Meta
+  - given-names: Chong
+    # email:
+    family-names: Zhou
+    affiliation: Meta
+  - given-names: Sean
+    email: seunghak@meta.com
+    family-names: Lee
+    affiliation: Meta
+  - given-names: Nikolay
+    # email:
+    family-names: Laptev
+    affiliation: Meta
+  - given-names: Tihamér
+    # email:
+    family-names: Levendovszky
+    affiliation: Meta
+  - given-names: Jake
+    # email:
+    family-names: Taylor
+    affiliation: Meta
+  - given-names: Huijun
+    # email:
+    family-names: Qian
+    affiliation: Meta
+  - given-names: Jian
+    # email:
+    family-names: Zhang
+    affiliation: Meta
+  - given-names: Aida
+    # email:
+    family-names: Shoydokova
+    affiliation: Meta
+  - given-names: Trisha
+    # email:
+    family-names: Singh
+    affiliation: Meta
+  - given-names: Chengjun
+    # email:
+    family-names: Zhu
+    affiliation: Meta
+  - given-names: Zeynep
+    # email:
+    family-names: Baz
+    affiliation: Meta
+  - given-names: Christoph
+    # email:
+    family-names: Bergmeir
+    affiliation: Monash University
+  - given-names: Di
+    # email:
+    family-names: Yu
+    affiliation: Meta
+  - given-names: Ahmet
+    # email:
+    family-names: Koylan
+    # affiliation:
+  - given-names: Kun
+    # email:
+    family-names: Jiang
+    affiliation: Meta
+  - given-names: Ploy
+    # email:
+    family-names: Temiyasathit
+    affiliation: Graphcore
+  - given-names: Emre
+    # email:
+    family-names: Yurtbay
+    affiliation: Meta
+repository-code: 'https://github.com/facebookresearch/Kats'
+abstract: >-
+  Kats is a toolkit to analyze time series data, a lightweight, easy-to-use,
+  and generalizable framework to perform time series analysis. Time series
+  analysis is an essential component of Data Science and Engineering work
+  at industry, from understanding the key statistics and characteristics,
+  detecting regressions and anomalies, to forecasting future trends.
+  Kats aims to provide the one-stop shop for time series analysis,
+  including detection, forecasting, feature extraction/embedding,
+  multivariate analysis, etc.
+keywords:
+  - 'Kats, time series, forecasting, detection, embedding'
+license: MIT License
+license-url: https://github.com/facebookresearch/Kats/blob/main/LICENSE
+version: '0.2.0'
+date-released: '2022-03-15'
+identifiers:
+  - type: url
+    value: "https://github.com/facebookresearch/Kats/releases/tag/v0.2.0"
+    description: The GitHub release URL of tag 0.2.0
