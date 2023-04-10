@@ -266,6 +266,45 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
             tz="US/Pacific",
         )
 
+        # test ambiguous
+        self.tsd_dst_ambiguous = TimeSeriesData(
+            df=pd.DataFrame(
+                {
+                    "time": [
+                        "2022-11-06 00:00:00",
+                        "2022-11-06 00:30:00",
+                        "2022-11-06 01:00:00",
+                        "2022-11-06 01:30:00",
+                        "2022-11-06 01:00:00",
+                        "2022-11-06 01:30:00",
+                        "2022-11-06 02:00:00",
+                        "2022-11-06 02:30:00",
+                        "2022-11-06 03:00:00",
+                        "2022-11-06 03:30:00",
+                        "2022-11-06 04:00:00",
+                        "2022-11-06 04:30:00",
+                    ],
+                    "value": [0] * 12,
+                }
+            ),
+            sort_by_time=False,
+        )
+
+        # test nonexistent
+        self.tsd_dst_nonexistent = TimeSeriesData(
+            df=pd.DataFrame(
+                {
+                    "time": [
+                        "2020-03-08 02:00:00",
+                        "2020-03-08 02:30:00",
+                        "2020-03-08 03:00:00",
+                    ],
+                    "value": [0] * 3,
+                }
+            ),
+            sort_by_time=False,
+        )
+
     def test_init_categorical_ts(self) -> None:
         # univariate categorical data
         _ = TimeSeriesData(
@@ -1005,6 +1044,20 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         ts_local = self.ts_multi_str_date
         self.assertEqual(ts_local.is_timezone_aware(), False)
         ts_local.set_timezone(tz="US/Pacific")
+        self.assertEqual(ts_local.is_timezone_aware(), True)
+        self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Pacific")
+
+        ts_local = self.tsd_dst_ambiguous
+        self.assertEqual(ts_local.is_timezone_aware(), False)
+        ts_local.set_timezone(tz="US/Eastern", tz_ambiguous="infer", sort_by_time=True)
+        self.assertEqual(ts_local.is_timezone_aware(), True)
+        self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Eastern")
+
+        ts_local = self.tsd_dst_nonexistent
+        self.assertEqual(ts_local.is_timezone_aware(), False)
+        ts_local.set_timezone(
+            tz="US/Pacific", tz_nonexistent="shift_forward", sort_by_time=True
+        )
         self.assertEqual(ts_local.is_timezone_aware(), True)
         self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Pacific")
 

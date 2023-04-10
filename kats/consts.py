@@ -1056,15 +1056,23 @@ class TimeSeriesData:
         else:
             logging.warning("Please make sure the time series is timezone aware")
 
-    def set_timezone(self, tz: str) -> None:
+    def set_timezone(
+        self,
+        tz: str,
+        tz_ambiguous: Union[str, np.ndarray] = "raise",
+        tz_nonexistent: str = "raise",
+        sort_by_time: bool = True,
+    ) -> None:
         if not (self.is_timezone_aware()):
             self.time = (
                 # pyre-ignore
                 pd.DatetimeIndex(self.time)
-                .tz_localize(tz)
+                .tz_localize(tz, ambiguous=tz_ambiguous, nonexistent=tz_nonexistent)
                 .to_series()
                 .reset_index(drop=True)
             )
+            df = self._sort_by_time(sort_by_time=sort_by_time, df=self.to_dataframe())
+            self._extract_from_df(df=df)
         else:
             logging.warning("Please make sure the time series is not timezone aware")
 
