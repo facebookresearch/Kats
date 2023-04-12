@@ -226,6 +226,7 @@ class FFTDetector(Detector):
             "seasonalities": selected_seasonalities,
         }
 
+    # pyre-fixme[14]: `plot` overrides method defined in `Detector` inconsistently.
     def plot(
         self,
         time_unit: str,
