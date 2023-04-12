@@ -10,6 +10,7 @@ from . import (  # noqa  # noqa  # noqa  # noqa  # noqa  # noqa
     harmonic_regression,
     holtwinters,
     linear_model,
+    ml_ar,
 )
 
 try:
