@@ -327,11 +327,11 @@ class AnomalyPostProcessHandler:
             t0 = stats.ttest_ind(group_a0, group_b0).pvalue <= 0.05
         if t0:
             x01 = np.arange(0, len(group_a0))
-            z01 = np.polyfit(x01, group_a0, 1)[0]
+            z01 = np.polyfit(x01, group_a0, 1)[1]
 
             group_all = np.concatenate([group_a0, group_b0])
             x02 = np.arange(0, len(group_all))
-            z02 = np.polyfit(x02, group_all, 1)[0]
+            z02 = np.polyfit(x02, group_all, 1)[1]
 
             if (
                 z01 < self.level_shift_coefficient * z02
@@ -349,11 +349,11 @@ class AnomalyPostProcessHandler:
             t1 = stats.ttest_ind(group_a1, group_b1).pvalue <= 0.05
         if t1:
             x11 = np.arange(0, len(group_a1))
-            z11 = np.polyfit(x11, group_a1, 1)[0]
+            z11 = np.polyfit(x11, group_a1, 1)[1]
 
             group_all = np.concatenate([group_a1, group_b1])
             x12 = np.arange(0, len(group_all))
-            z12 = np.polyfit(x12, group_all, 1)[0]
+            z12 = np.polyfit(x12, group_all, 1)[1]
 
             if (
                 z11 < self.level_shift_coefficient * z12
