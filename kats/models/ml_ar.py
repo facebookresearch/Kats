@@ -5,7 +5,7 @@
 
 import logging
 
-from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, cast, Dict, List, Optional, Set, Tuple, Union
 
 import lightgbm as gbm  # @manual
 import numpy as np
@@ -21,21 +21,15 @@ from numba import njit
 from numpy.random import RandomState
 
 
-def find_length(curr_series_data: pd.DataFrame, target_variable: List[str]) -> int:
-    return int(find_length_array(curr_series_data[target_variable].values) + 1)
+# @njit
+def find_first_missing_number(nums: np.ndarray) -> int:
+    missing_numbers = np.sort(np.setdiff1d(np.arange(1, len(nums) + 2), nums))
 
-
-@njit
-def find_length_array(nums: np.ndarray) -> int:
-    if len(nums.shape) == 1:
-        for i in range(len(nums) - 1, -1, -1):
-            if ~np.isnan(nums[i]):
-                return i
+    if len(missing_numbers) == 0:
+        missing = np.nan
     else:
-        for i in range(len(nums) - 1, -1, -1):
-            if np.any(~np.isnan(nums[i])):
-                return i
-    return -1
+        missing = missing_numbers[0]
+    return missing
 
 
 def normalize(
@@ -92,31 +86,6 @@ def denormalize(
     return norm_data
 
 
-# TODO: Fourier terms related computation should be wrapped in TsFourierFeatures
-def fourier_terms(
-    dates: pd.Series, period: Union[float, int], series_order: int
-) -> np.ndarray:
-    """Provides Fourier series components with the specified frequency
-    and order. The starting time is always the epoch.
-
-    Args:
-        dates: pd.Series containing timestamps.
-        period: Number of hours of the period.
-        series_order: Number of components.
-    Returns:
-        A `np.ndarray` representing the Fourier Features.
-    """
-    # convert to days since epoch
-    t = np.array(dates.astype("int") // 10**9) / 3600.0
-    return np.column_stack(
-        [
-            fun((2.0 * (i + 1) * np.pi * t / period))
-            for i in range(series_order)
-            for fun in (np.sin, np.cos)
-        ]
-    )
-
-
 def categorical_encode(
     df: pd.DataFrame,
     categoricals: List[str],
@@ -140,19 +109,14 @@ def categorical_encode(
 
 @njit
 def embed(series: np.ndarray, lags: int, horizon: int, max_lags: int) -> np.ndarray:
-    # slight speed-up against the earlier version
+
     result = np.full(
         shape=(series.size - max_lags + 1, lags + horizon), fill_value=np.nan
     )
-
-    # do the windowing for the bulk of the series
-    for i in range((max_lags - lags), series.size - (lags + horizon)):
-        result[i - (max_lags - lags), :] = series[i : i + lags + horizon]
-
-    # do the windowing for the final part of the series, and fill missing horizons with nan
-    for i in range(series.size - (lags + horizon), series.size - lags + 1):
+    for i in range((max_lags - lags), (series.size - lags + 1)):
+        j = i - (max_lags - lags)
         curr_wind = series[i : i + lags + horizon]
-        result[i - (max_lags - lags), 0 : curr_wind.size] = curr_wind
+        result[j, 0 : curr_wind.size] = curr_wind
 
     return result
 
@@ -199,7 +163,7 @@ class MLARParams:
     def __init__(
         self,
         target_variable: Union[List[str], str] = "y",
-        horizon: int = 10,
+        horizon: Union[List[int], int] = 10,
         input_window: int = 10,
         freq: Optional[str] = None,
         cov_history_input_windows: Optional[Dict[str, int]] = None,
@@ -235,6 +199,7 @@ class MLARParams:
         cov_history_norm: bool = False,
         cov_future_norm: bool = False,
         use_sum_stats: bool = True,
+        calculate_fit: bool = False,
     ) -> None:
         self.n_jobs = n_jobs
         self.max_depth = max_depth
@@ -254,7 +219,21 @@ class MLARParams:
         self.target_variable: List[str] = (
             target_variable if isinstance(target_variable, List) else [target_variable]
         )
-        self.horizon = horizon
+
+        if isinstance(horizon, int) and horizon > 0:
+            self.horizon: List[int] = list(range(1, horizon + 1))
+            self.max_horizon: int = horizon
+        elif (
+            isinstance(horizon, list)
+            and all([isinstance(t, int) for t in horizon])
+            and all([t > 0 for t in horizon])
+        ):
+            self.horizon: List[int] = horizon
+            self.max_horizon: int = max(horizon)
+        else:
+            msg = f"`horizon` is invalid. Got {horizon}."
+            raise ValueError(msg)
+
         self.input_window = input_window
         self.cov_history_input_windows: Dict[str, int] = (
             {}
@@ -297,6 +276,8 @@ class MLARParams:
 
         self.use_sum_stats = use_sum_stats
 
+        self.calculate_fit = calculate_fit
+
         # get all necessary column names
         self.all_vars: set[str] = set()
         if self.cov_history_input_windows:
@@ -310,7 +291,9 @@ class MLARParams:
         self.lag_names: List[str] = [
             "lag_" + str(i) for i in range(self.input_window - 1, -1, -1)
         ]
-        self.hor_names: List[str] = ["hor_" + str(i + 1) for i in range(self.horizon)]
+        self.hor_names: List[str] = [
+            "hor_" + str(i) for i in range(1, self.max_horizon + 1)
+        ]
         # set up max_lags
         self.max_lags: int = (
             max(
@@ -346,8 +329,8 @@ class MLARParams:
                 raise ValueError(msg)
 
         for k, v in self.cov_future_input_windows.items():
-            if v < 0 or v > self.horizon:
-                msg = f"the value of the key '{k}' in cov_future_input_windows must be between 0 and {self.horizon}, but receives {v}."
+            if v < 0 or v > self.max_horizon:
+                msg = f"the value of the key '{k}' in cov_future_input_windows must be between 0 and {self.max_horizon}, but receives {v}."
                 logging.error(msg)
                 raise ValueError(msg)
 
@@ -396,9 +379,10 @@ class MLARModel:
         self.forecast_data_in: np.ndarray = np.array([])
 
         self.full_mat: np.ndarray = np.array([])
-        self.curr_idx_full_mat = 0
-        self.num_rows_full_mat = 0
-        self.num_cols_full_mat = 0
+
+        self.num_hist_reg = 0
+
+        self.all_series: Dict[str, pd.DataFrame] = {}
 
         self.all_dates: List[str] = []
         self.feature_columns: List[str] = []
@@ -420,9 +404,7 @@ class MLARModel:
                 freq = "Y"
         return freq
 
-    def _check_single_ts(
-        self, data: TimeSeriesData
-    ) -> Tuple[pd.DataFrame, pd.Timestamp, pd.Timestamp, int]:
+    def _check_single_ts(self, data: TimeSeriesData) -> pd.DataFrame:
         """Validate input dataset columns"""
         if not isinstance(data, TimeSeriesData):
             msg = f"Every element in dataset should be a TimeSeriesData but received {type(data)}."
@@ -447,18 +429,12 @@ class MLARModel:
         )
         curr_series_data = curr_series_data.reindex(idx, fill_value=np.nan)
 
-        # calculate min and max timestamp
-        min_ts_idx = curr_series_data.index.min()
-        max_ts_idx = curr_series_data[self.params.target_variable].last_valid_index()
-
-        # get valid length of timeseries
-        length = find_length(curr_series_data, self.params.target_variable)
-        return curr_series_data, min_ts_idx, max_ts_idx, length
+        return curr_series_data
 
     def _valid_and_fillna(
         self,
         data: Union[Dict[str, TimeSeriesData], List[TimeSeriesData]],
-    ) -> Tuple[Dict[str, int], pd.Timestamp, pd.Timestamp, Dict[str, pd.DataFrame]]:
+    ) -> Tuple[Dict[str, pd.DataFrame], Set[pd.Timestamp]]:
         """This is a function to validate dataset before training and prediction
             For both input as :class:`kats.consts.TimeSeriesData` or :class:`kats.consts.TimeSeriesData`
             categorical features is optional, and if `categoricals` is initiated, all `categoricals` must exist in TimeSeriesData's columns
@@ -488,29 +464,15 @@ class MLARModel:
         self.params.freq = self._infer_freq(data[keys[0]].time, self.params.freq)
 
         data_dict = {}
-        lengths = {}
-        min_ts = None
-        max_ts = None
+        timestamps = set()
 
         for k in keys:
-            curr_series_data, min_ts_idx, max_ts_idx, length = self._check_single_ts(
-                data[k]
-            )
+
+            curr_series_data = self._check_single_ts(data[k])
 
             data_dict[k] = curr_series_data
 
-            lengths[k] = length
-
-            min_ts = min(min_ts, min_ts_idx) if min_ts is not None else min_ts_idx
-            max_ts = max(max_ts, max_ts_idx) if max_ts is not None else max_ts_idx
-
-        if np.max(list(lengths.values())) < self.params.input_window:
-            msg = "Not enough data for direct modeling, please include more history or decrease input window length"
-            logging.error(msg)
-            raise ValueError(msg)
-
-        # pyre-ignore
-        return lengths, min_ts, max_ts, data_dict
+        return data_dict, timestamps
 
     def _normalize_data(
         self,
@@ -656,6 +618,7 @@ class MLARModel:
         all_col_names = []
 
         for i, target_var in enumerate(target_vars):
+
             # Embed the target var
             emb_ts = pd.DataFrame(
                 embed(data[target_var].values, lags, horizon, max_lags)
@@ -701,6 +664,7 @@ class MLARModel:
             all_norm_in_data.append(target_var_one_hot)
 
             all_norm_in_data = np.column_stack(all_norm_in_data)
+
             all_norm_out_data = pd.concat(
                 [norm_out_data, normalizer, emb_time_stamps], axis=1, copy=False
             )
@@ -717,7 +681,7 @@ class MLARModel:
             + cat_encoded_data_cols
             + ["TV_" + t for t in target_vars]
         )
-
+        self.num_hist_reg = len(all_col_names)
         return all_norm_in_data_dict, all_norm_out_data_dict, all_col_names
 
     def _generate_auto_calendar_feature(self, freq: Optional[str]) -> List[str]:
@@ -783,23 +747,11 @@ class MLARModel:
 
     def _gen_cal_feat(
         self,
-        min_ts: pd.Timestamp,
-        max_ts: pd.Timestamp,
-        horizon: int,
+        timestamps: Set[pd.Timestamp],
         calendar_features: Union[str, List[str]],
     ) -> pd.DataFrame:
 
-        offset = pd.tseries.frequencies.to_offset(self.params.freq)
-
-        timestamps = pd.Series(
-            pd.date_range(
-                min_ts,
-                # pyre-ignore
-                max_ts + offset * horizon,
-                freq=self.params.freq,
-            )
-        )
-
+        ts = pd.Series(list(timestamps))
         # Compute calendar features
         calendar_features = (
             self.params.calendar_features
@@ -809,7 +761,7 @@ class MLARModel:
         if calendar_features != []:
             calendar_features_df = TsCalenderFeatures(
                 cast(List[str], calendar_features)
-            ).get_features(timestamps)
+            ).get_features(ts)
             calendar_features_df = cast(pd.DataFrame, calendar_features_df)
         else:
             calendar_features_df = pd.DataFrame()
@@ -834,14 +786,14 @@ class MLARModel:
                 forder,
                 # pyre-fixme
                 foffset,
-            ).get_features(timestamps)
+            ).get_features(ts)
             fourier_features_df = cast(pd.DataFrame, fourier_features_df)
         else:
             fourier_features_df = pd.DataFrame()
 
         features = pd.concat([calendar_features_df, fourier_features_df], axis=1)
         if len(features) > 0:
-            features.set_index(timestamps, inplace=True)
+            features.set_index(ts, inplace=True)
 
         return features
 
@@ -849,13 +801,12 @@ class MLARModel:
         self,
         data: pd.DataFrame,
     ) -> pd.DataFrame:
-        emb_ts_curr_cov_dict = {}
+        if not self.params.cov_future_input_windows:
+            return pd.DataFrame()
+        emb_ts_curr_cov_list = []
 
-        for curr_cov in self.params.cov_future_input_windows.keys():
+        for curr_cov in self.params.cov_future_input_windows:
             curr_cov_lags = self.params.cov_future_input_windows[curr_cov]
-
-            # TODO: Currently we go the same amount of lags into the past
-            # and into the future for the future regressors
             emb_ts_curr_cov = pd.DataFrame(
                 embed(
                     data[curr_cov].to_numpy(),
@@ -876,139 +827,99 @@ class MLARModel:
                     emb_ts_curr_cov, None, curr_cov_lags
                 )
 
-                emb_ts_curr_cov_dict[curr_cov] = norm_emb_ts_curr_cov
+                emb_ts_curr_cov_list.append(norm_emb_ts_curr_cov)
             else:
-                emb_ts_curr_cov_dict[curr_cov] = emb_ts_curr_cov
+                emb_ts_curr_cov_list.append(emb_ts_curr_cov)
 
-        cov_future_data = list(emb_ts_curr_cov_dict.values())
-
-        all_cov_future_data = pd.DataFrame()
-
-        if len(cov_future_data) > 0:
-            all_cov_future_data = cov_future_data[0]
-
-        if len(cov_future_data) > 1:
-            all_cov_future_data = all_cov_future_data.join(
-                cov_future_data[1:], how="outer"
-            )
-
+        all_cov_future_data = pd.concat(emb_ts_curr_cov_list, axis=1, join="outer")
         return all_cov_future_data
 
     def _merge_past_and_future_reg(
         self,
         norm_in_data: Dict[str, np.ndarray],
         norm_out_data: Dict[str, pd.DataFrame],
-        horizon: int,
+        horizons: List[int],
         cal_feat: pd.DataFrame,
         emb_fut_cov: pd.DataFrame,
-    ) -> Tuple[pd.DataFrame, List[str]]:
+        gen_meta_data: bool = True,
+    ) -> Tuple[np.ndarray, pd.DataFrame, List[str]]:
 
-        first_norm_in_data = norm_in_data[list(norm_in_data.keys())[0]]
+        offset = pd.tseries.frequencies.to_offset(self.params.freq)
+        num_cols = self.num_hist_reg + cal_feat.shape[1] + emb_fut_cov.shape[1] + 1
+        tv_idx = 0
+        num_rows_full_mat = int(
+            np.sum([len(norm_out_data[t]) for t in norm_out_data]) * len(horizons)
+        )
 
-        if self.num_cols_full_mat == 0:
-            self.num_cols_full_mat = (
-                first_norm_in_data.shape[1]
-                + cal_feat.shape[1]
-                + emb_fut_cov.shape[1]
-                + 1
-            )
-            self.full_mat = np.full(
-                shape=(self.num_rows_full_mat, self.num_cols_full_mat),
-                fill_value=np.nan,
-            )
+        full_mat = np.full(
+            shape=(num_rows_full_mat, num_cols),
+            fill_value=np.nan,
+        )
 
         all_out_data_list = []
 
         for target_var in norm_out_data.keys():
 
-            for curr_horizon in range(1, self.params.horizon + 1):
+            for curr_horizon in horizons:
 
-                # find offset between our current dataset and the precomputed Fourier terms, then select the right cal features
-                offset_cf = np.where(
-                    cal_feat.index == norm_out_data[target_var].index.min()
-                )[0][0]
-                curr_cal_feat = cal_feat.iloc[
-                    (offset_cf + curr_horizon) : (
-                        offset_cf + curr_horizon + norm_out_data[target_var].shape[0]
-                    ),
-                    :,
-                ]
+                target_timestamps = pd.DataFrame(
+                    index=norm_out_data[target_var].index
+                    # pyre-fixme
+                    + offset * curr_horizon
+                )
 
-                if not emb_fut_cov.empty:
-                    offset_fut_cov = np.where(
-                        emb_fut_cov.index == norm_out_data[target_var].index.min()
-                    )[0][0]
-                    curr_fut_cov = emb_fut_cov.iloc[
-                        (offset_fut_cov + curr_horizon) : (
-                            offset_fut_cov
-                            + curr_horizon
-                            + norm_out_data[target_var].shape[0]
-                        ),
-                        :,
-                    ]
-                else:
-                    curr_fut_cov = pd.DataFrame()
+                curr_feat = target_timestamps[[]].join(cal_feat, how="left")
+
+                curr_feat = curr_feat.join(emb_fut_cov, how="left")
 
                 curr_out_data = pd.DataFrame()
                 curr_out_data["origin_time"] = norm_out_data[target_var].index
-                curr_out_data["target_time"] = curr_cal_feat.index
+
                 curr_out_data["output"] = norm_out_data[target_var][
                     f"hor_{curr_horizon}"
-                ].to_numpy()
-                curr_out_data["normalizer"] = norm_out_data[target_var][
-                    "normalizer"
-                ].to_numpy()
-                curr_out_data["variable"] = target_var
+                ].values
 
-                if "normalizer2" in norm_out_data[target_var]:
-                    curr_out_data["normalizer2"] = norm_out_data[target_var][
-                        "normalizer2"
+                if gen_meta_data:
+                    curr_out_data["target_time"] = curr_feat.index
+                    curr_out_data["normalizer"] = norm_out_data[target_var][
+                        "normalizer"
                     ].to_numpy()
+                    curr_out_data["variable"] = target_var
 
-                hor = np.repeat(curr_horizon, norm_in_data[target_var].shape[0])
+                    if "normalizer2" in norm_out_data[target_var]:
+                        curr_out_data["normalizer2"] = norm_out_data[target_var][
+                            "normalizer2"
+                        ].to_numpy()
 
-                tv_idx = self.curr_idx_full_mat
                 num_rows_dat = norm_in_data[target_var].shape[0]
                 num_cols_dat = norm_in_data[target_var].shape[1]
-                num_cols_cal_feat = curr_cal_feat.shape[1]
-                num_cols_fut_cov = curr_fut_cov.shape[1]
 
-                self.full_mat[
+                print(self.full_mat.shape)
+                print(tv_idx, norm_in_data[target_var].shape, num_rows_dat)
+                full_mat[
                     tv_idx : (tv_idx + num_rows_dat), 0:num_cols_dat
                 ] = norm_in_data[target_var]
 
-                if num_cols_cal_feat != 0:
-                    self.full_mat[
-                        tv_idx : (tv_idx + num_rows_dat),
-                        num_cols_dat : (num_cols_dat + num_cols_cal_feat),
-                    ] = curr_cal_feat.to_numpy()
-
-                if num_cols_fut_cov != 0:
-                    self.full_mat[
-                        tv_idx : (tv_idx + num_rows_dat),
-                        (num_cols_dat + num_cols_cal_feat) : (
-                            num_cols_dat + num_cols_cal_feat + num_cols_fut_cov
-                        ),
-                    ] = curr_fut_cov.to_numpy()
-
-                self.full_mat[
+                full_mat[
                     tv_idx : (tv_idx + num_rows_dat),
-                    num_cols_dat + num_cols_cal_feat + num_cols_fut_cov,
-                ] = hor
+                    num_cols_dat : num_cols_dat + curr_feat.shape[1],
+                ] = curr_feat.values
+
+                full_mat[
+                    tv_idx : (tv_idx + num_rows_dat), num_cols_dat + curr_feat.shape[1]
+                ] = curr_horizon
 
                 all_out_data_list.append(curr_out_data)
 
-                self.curr_idx_full_mat = (
-                    self.curr_idx_full_mat + norm_in_data[target_var].shape[0]
-                )
+                tv_idx = tv_idx + norm_in_data[target_var].shape[0]
 
         all_out_data = pd.concat(all_out_data_list, copy=False)
 
-        col_names = list(curr_cal_feat.columns)
-        col_names.extend(curr_fut_cov.columns)
-        col_names.append("horizon")
+        col_names = list(curr_feat.columns) + ["horizon"]
+        print("all_out_data shape: ", all_out_data.shape)
+        print("self.full_mat shape:", self.full_mat.shape)
 
-        return all_out_data, col_names
+        return full_mat, all_out_data, col_names
 
     def _get_all_cat_labels(
         self, all_series: Dict[str, pd.DataFrame], categoricals: List[str]
@@ -1034,36 +945,32 @@ class MLARModel:
 
     def _embed_and_gen_features(
         self,
-        data: Union[Dict[str, TimeSeriesData], List[TimeSeriesData]],
-        horizon: int,
+        timestamps: Set[pd.Timestamp],
+        curr_all_series: Dict[str, pd.DataFrame],
+        horizons: List[int],
         lags: int,
         fillna: Optional[float] = None,
+        gen_meta_data: bool = True,
     ) -> Tuple[pd.DataFrame, List[str]]:
 
-        lengths, min_ts, max_ts, all_series = self._valid_and_fillna(data)
-
-        # amount of rows the large matrix will have
-        lens = [
-            (t - lags + 1) * horizon * len(self.params.target_variable)
-            for t in lengths.values()
-        ]
-        self.num_rows_full_mat = np.array(lens).sum()
-
+        all_in_data_list = []
         all_meta_data_list = []
 
         all_res_data_np = np.array([])
-        curr_idx = 0
 
         cat_labels = {}
         all_col_names = []
         if self.params.categoricals:
-            cat_labels = self._get_all_cat_labels(all_series, self.params.categoricals)
+            cat_labels = self._get_all_cat_labels(
+                curr_all_series, self.params.categoricals
+            )
 
         cal_feat = self._gen_cal_feat(
-            min_ts, max_ts, horizon, self.params.calendar_features
+            timestamps,
+            self.params.calendar_features,
         )
 
-        for curr_series_name in all_series:
+        for curr_series_name in curr_all_series:
 
             logging.info(f"Current time series to be preprocessed: {curr_series_name}")
 
@@ -1072,31 +979,31 @@ class MLARModel:
                 norm_out_data,
                 in_data_col_names,
             ) = self._embed_and_gen_past_features_single_series(
-                all_series[curr_series_name],
-                horizon=horizon,
+                curr_all_series[curr_series_name],
+                horizon=self.params.max_horizon,
                 lags=lags,
                 target_vars=self.params.target_variable,
                 cat_labels=cat_labels,
             )
 
-            emb_fut_cov = self._embed_future_cov(all_series[curr_series_name])
+            emb_fut_cov = self._embed_future_cov(curr_all_series[curr_series_name])
 
             logging.info("_embed_and_gen_past_features_single_series finished")
 
-            meta_data, add_col_names = self._merge_past_and_future_reg(
+            in_data, meta_data, add_col_names = self._merge_past_and_future_reg(
                 norm_in_data,
                 norm_out_data,
-                horizon,
+                horizons,
                 cal_feat,
                 emb_fut_cov,
+                gen_meta_data,
             )
 
             # add the series name dummy
             meta_data["series_name"] = curr_series_name
-
+            all_in_data_list.append(in_data)
             all_meta_data_list.append(meta_data)
 
-            logging.info(f"curr_idx: {curr_idx}")
             if not all_col_names:
                 all_col_names.extend(in_data_col_names)
                 all_col_names.extend(add_col_names)
@@ -1104,6 +1011,7 @@ class MLARModel:
         logging.info(f"all_res_data_np_shape: {all_res_data_np.shape}")
 
         all_meta_data = pd.concat(all_meta_data_list, copy=False)
+        self.full_mat = np.row_stack(all_in_data_list)
 
         logging.info("Finished _embed_and_gen_features")
 
@@ -1139,19 +1047,12 @@ class MLARModel:
         """
 
         logging.info("feature columns:" + str(self.feature_columns))
-        # logging.info("forecast:")
         forecast_index = meta_and_out_data["output"].apply(np.isnan)
         train_index = ~forecast_index
 
         self.train_data_in = in_data[train_index, :]
-        self.forecast_data_in = in_data[forecast_index, :]
-
         self.train_data = meta_and_out_data.loc[train_index]
-        self.forecast_data = meta_and_out_data.loc[forecast_index]
-
         normalized_train_y = meta_and_out_data["output"].loc[train_index]
-
-        # optimized parameter from backtesting (model performance not very sensitive to these parameters)
         lgb_params = {
             "n_jobs": self.params.n_jobs,
             "max_depth": self.params.max_depth,
@@ -1180,47 +1081,113 @@ class MLARModel:
         regr.fit(
             self.train_data_in, normalized_train_y, feature_name=self.feature_columns
         )
-        # predict lightgbm
 
-        self.train_data.loc[:, "forecast"] = regr.predict(self.train_data_in)
+        if self.params.calculate_fit:
+            self.train_data.loc[:, "forecast"] = regr.predict(self.train_data_in)
 
-        if "normalizer2" in self.train_data.columns:
-            normalizer2 = self.train_data["normalizer2"]
-        else:
-            normalizer2 = None
+            if "normalizer2" in self.train_data.columns:
+                normalizer2 = self.train_data["normalizer2"]
+            else:
+                normalizer2 = None
 
-        self.train_data.loc[:, "forecast"] = denormalize(
-            self.train_data[["forecast"]],
-            self.train_data["normalizer"],
-            normalizer2,
-            use_default_min=self.params.use_default_min,
-            default_min=self.params.default_min,
-            sub_div=self.params.sub_div,
-        )
-
-        if self.params.transform_data == "log":
-            self.train_data.loc[:, "forecast"] = np.exp(
-                self.train_data.loc[:, "forecast"]
+            self.train_data.loc[:, "forecast"] = denormalize(
+                self.train_data[["forecast"]],
+                self.train_data["normalizer"],
+                normalizer2,
+                use_default_min=self.params.use_default_min,
+                default_min=self.params.default_min,
+                sub_div=self.params.sub_div,
             )
 
-        logging.info(
-            "train sMAPE: "
-            + str(
-                smape(
-                    self.train_data["output"].values, self.train_data["forecast"].values
+            if self.params.transform_data == "log":
+                self.train_data.loc[:, "forecast"] = np.exp(
+                    self.train_data.loc[:, "forecast"]
+                )
+
+            logging.info(
+                "train sMAPE: "
+                + str(
+                    smape(
+                        self.train_data["output"].values,
+                        self.train_data["forecast"].values,
+                    )
                 )
             )
-        )
+
         self.model = regr
+
         return
 
     def _predict(
         self,
+        fill_missing: bool = False,
+        new_data: Optional[Dict[Union[str, int], pd.DataFrame]] = None,
     ) -> None:
-        """forecast session
-        Args: None
-        Returns: None
-        """
+
+        new_data_dict = {}
+        offset = pd.tseries.frequencies.to_offset(self.params.freq)
+
+        for curr_series in self.all_series.keys():
+            in_data = self.all_series[curr_series]
+
+            if new_data is None:
+                fc_origin = np.max(in_data.index)
+            else:
+                fc_wide = new_data[curr_series].pivot(
+                    index="time", columns="variable", values="forecast"
+                )
+                fc_origin = np.max(fc_wide.index)
+
+                # find the first gap in the horizon, and set fc_origin to the value before, so that we can fill the gap with forecasts
+                if fill_missing:
+
+                    min_ts = np.min(fc_wide.index)
+                    all_missing = pd.date_range(
+                        min_ts,
+                        fc_origin,
+                        freq=self.params.freq,
+                    ).difference(fc_wide.index)
+
+                    if len(all_missing) != 0:
+                        fc_origin = all_missing[0] - offset
+
+            # get needed time stamps
+            timestamps = pd.Series(
+                pd.date_range(
+                    # pyre-ignore
+                    fc_origin - offset * (self.params.max_lags - 1),
+                    fc_origin,
+                    freq=self.params.freq,
+                )
+            )
+
+            # get actual data that is available
+            in_window = pd.DataFrame(index=timestamps)
+            in_window = in_window.join(in_data, how="left")
+
+            if new_data is not None:
+                # fill rest of the data with forecasts
+                # pyre-fixme
+                in_window[in_window.isnull()] = fc_wide
+
+            new_data_dict[curr_series] = TimeSeriesData(
+                in_window.reset_index(),
+                time_col_name="index",
+                categorical_var=self.params.categoricals,
+            )
+
+        curr_all_series, timestamps = self._valid_and_fillna(new_data_dict)
+
+        meta_data, all_col_names = self._embed_and_gen_features(
+            timestamps,
+            curr_all_series,
+            horizons=self.params.horizon,
+            lags=self.params.input_window,
+            fillna=np.nan,
+        )
+
+        self.forecast_data_in = self.full_mat
+        self.forecast_data = meta_data
 
         self.forecast_data.loc[:, "forecast"] = self.model.predict(
             self.forecast_data_in
@@ -1245,15 +1212,8 @@ class MLARModel:
                 self.forecast_data.loc[:, "forecast"]
             )
 
-        # TODO CB: Need to check what this is doing!
-        # self.forecast_data.dropna(
-        #     subset=[c for c in self.forecast_data.columns if "ts" in c],
-        #     how="all",
-        #     inplace=True,
-        # )
-
         logging.info(
-            "sMAPE between forecast and median of most renct three weeks actual: "
+            "sMAPE between forecast and median of most recent three weeks actual: "
             + str(
                 smape(
                     self.forecast_data["normalizer"].values,
@@ -1274,15 +1234,16 @@ class MLARModel:
         Returns: None
         """
 
-        self.curr_idx_full_mat = 0
-        self.num_rows_full_mat = 0
-        self.num_cols_full_mat = 0
+        curr_all_series, timestamps = self._valid_and_fillna(data)
 
+        self.all_series = curr_all_series
         meta_data, all_col_names = self._embed_and_gen_features(
-            data,
-            horizon=self.params.horizon,
+            timestamps,
+            curr_all_series,
+            horizons=self.params.horizon,
             lags=self.params.input_window,
             fillna=np.nan,
+            gen_meta_data=self.params.calculate_fit,
         )
 
         self.feature_columns = all_col_names
@@ -1292,7 +1253,8 @@ class MLARModel:
 
     def predict(
         self,
-        steps: int,
+        steps: Union[List[int], int, None] = None,
+        new_data: Optional[Dict[Union[str, int], pd.DataFrame]] = None,
     ) -> Union[Dict[str, pd.DataFrame], List[pd.DataFrame]]:
         """Full workflow of train and forecast with post process
         Args:
@@ -1301,9 +1263,49 @@ class MLARModel:
             a list of of pd.DataFrame forecasting without categorical information
         """
 
-        self._predict()
-
+        print(f"new_data {new_data}")
+        self._predict(fill_missing=False, new_data=new_data)
         forecast_result = self._post_process()
+
+        if steps is not None:
+
+            horizons = np.array(self.params.horizon)
+
+            if 1 not in horizons:
+                logging.warning(
+                    "Model not trained for 1-step, so iterating the model may not work properly."
+                )
+
+            if type(steps) == int:
+                steps = np.arange(1, steps + 1)
+
+            cont_steps_in_hor = find_first_missing_number(horizons) - 1
+
+            # TODO: Steps needs to be an int, otherwise it all gets too complicated and not very useful?
+
+            i = 1
+            iterate_horizons = np.setdiff1d(steps, horizons)
+
+            while len(iterate_horizons) != 0:
+                # pyre-fixme
+                self._predict(fill_missing=True, new_data=forecast_result)
+                fcr = self._post_process()
+                for curr_series in forecast_result.keys():
+                    # forecast_result[curr_series] = pd.concat([forecast_result[curr_series], fcr[curr_series]], axis=0)
+
+                    forecast_result[curr_series].set_index("time", inplace=True)
+                    fcr[curr_series].set_index("time", inplace=True)
+                    forecast_result[curr_series] = forecast_result[
+                        curr_series
+                    ].combine_first(fcr[curr_series])
+                    forecast_result[curr_series].reset_index(inplace=True, drop=False)
+
+                horizons = np.union1d(
+                    horizons, np.array(self.params.horizon) + i * cont_steps_in_hor
+                )
+                i += 1
+                iterate_horizons = np.setdiff1d(steps, horizons)
+
         return forecast_result
 
     def __str__(self) -> str:

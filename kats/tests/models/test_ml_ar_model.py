@@ -97,16 +97,14 @@ mht_mt_sc_nf_param = MLARParams(
 )
 
 
-mht_mft_mt_mc_ts_1 = TimeSeriesData(
-    Multi_Data_df_1_short, categorical_var=["cat_1", "cat_2"]
-)
+mht_mft_mt_mc_ts_1 = TimeSeriesData(Multi_Data_df_1, categorical_var=["cat_1", "cat_2"])
 mht_mft_mt_mc_param = MLARParams(
     horizon=5,
     input_window=5,
     target_variable=["target_1", "target_2"],
     cov_history_input_windows={"reg_1": 3, "reg_2": 2},
     cov_future_input_windows={"future_reg_1": 1, "future_reg_2": 2},
-    categoricals=["cat_1"],
+    categoricals=["cat_1", "cat_2"],
 )
 
 
@@ -114,18 +112,41 @@ class TestMLARModel(TestCase):
     # pyre-fixme
     @parameterized.expand(
         [
-            (single_univariate_ts, single_univariate_param, 2),
-            ([shr_st_ts_1], shr_st_param, 1),
-            ([mhr_mt_ts_1], mhr_mt_param, 2),
-            ([shr_st_ts_1] * 2, shr_st_param, 1),
-            ([mhr_mt_ts_1] * 2, mhr_mt_param, 2),
-            ([mht_mt_sc_ts_1] * 2, mht_mt_sc_param, 5),
-            ([mht_mft_mt_mc_ts_1], mht_mft_mt_mc_param, 3),
+            (
+                "single_univariate_model",
+                single_univariate_ts,
+                single_univariate_param,
+                20,
+            ),
+            ("uni_target_uni_regressor", [shr_st_ts_1], shr_st_param, 1),
+            ("mul_target_mul_regressor_cal_feature", [mhr_mt_ts_1], mhr_mt_param, 2),
+            ("uni_target_uni_regressor_mul_ts", [shr_st_ts_1] * 2, shr_st_param, 1),
+            (
+                "mul_target_mul_regressor_cal_feature_mul_ts",
+                [mhr_mt_ts_1] * 2,
+                mhr_mt_param,
+                2,
+            ),
+            (
+                "mul_target_mul_regressor_uni_cat_mul_ts",
+                [mht_mt_sc_ts_1] * 2,
+                mht_mt_sc_param,
+                5,
+            ),
+            (
+                "mul_target_mul_regressor_mul_cat_single_ts",
+                [mht_mft_mt_mc_ts_1],
+                mht_mft_mt_mc_param,
+                3,
+            ),
         ]
     )
     def test_ml_ar_model(
-        self, data: List[TimeSeriesData], params: MLARParams, steps: int
+        self, name: str, data: List[TimeSeriesData], params: MLARParams, steps: int
     ) -> None:
         model = MLARModel(params)
         model.train(data)
-        model.predict(steps)
+        fcst = model.predict(steps)
+        for t in fcst:
+            # pyre-fixme
+            self.assertEqual(fcst[t]["forecast"].isna().sum(), 0)
