@@ -22,6 +22,49 @@ _log: logging.Logger = logging.getLogger("anomaly_post_processing")
 
 
 class AnomalyPostProcessHandler:
+    """
+    AnomalyPostProcessHandler: an anomaly alerts analyzer module
+
+    The alert analyzer includes severity score (alert volume, alert magnitude, and alert average height, etc)
+    calculation, and alert type analysis to classify anomalies into 4 categories:
+    Level shift, Volatility change, Individual Anomaly, and Trend change.
+
+    Attributes:
+        ts_data: TimeSeriesData. Raw time series data
+        anomaly_scores: TimeSeriesData. Anomaly scores returned by Kats detection algorithm
+        threshold_low: Optional[float] = None. Lower bound threshold for transferring anomaly scores into anomaly intervals.
+            Threshold value is the value which anomaly scores are compared against.
+        threshold_high: Optional[float] = None. Upper bound threshold for transferring anomaly scores into anomaly intervals
+            Threshold value is the value which anomaly scores are compared against.
+        level_shift_coefficient: Optional[float] = None. Coefficient for deciding attribute level_shift
+        volatility_change_coefficient: Optional[float] = None. Coefficient for deciding attribute volatility_change
+        direction: Optional[ChangeDirections] = None. Direction for transferring anomaly scores into anomaly intervals
+            Direction means which direction we care about when anomaly scores are beyond thresholds
+            (upward, downward, inside/outside range, etc.).
+        detection_window_sec: Optional[int] = None. Detection_window size for transferring anomaly scores into anomaly intervals
+            Detection window is the size of the window within which we calculate the fraction of anomaly
+            scores that are beyond the threshold value in the direction specified.
+        fraction: Optional[float] = None. Fraction for transferring anomaly scores into anomaly intervals
+
+    >>> # Example usage:
+    >>> from kats.detectors.anomaly_postprocessing import AnomalyPostProcessHandler
+    >>> from kats.detectors.stat_sig_detector import StatSigDetectorModel
+    >>> ts = TimeSeriesData(ts_df)
+    >>> DetectorModel = StatSigDetectorModel(n_control=3*24, n_test=12)
+    >>> detection_results = DetectorModel.fit_predict(data=ts)
+    >>> app = AnomalyPostProcessHandler(
+            ts_data=ts,
+            anomaly_scores=detection_results.scores,
+            threshold_low=-1,
+            threshold_high=2,
+        )
+    >>> app.get_severity_score_df()
+    >>> app.get_overall_severity_score()
+    >>> app.get_each_anomaly_type()
+    >>> app.plot()
+    >>> app.plot(on_ts=False)
+    """
+
     def __init__(
         self,
         ts_data: TimeSeriesData,
