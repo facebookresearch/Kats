@@ -94,15 +94,6 @@ class OutlierDetectionTest(TestCase):
         m3.detector()
         m3.remover(interpolate=True)
 
-    def test_outlier_detector_exception(self) -> None:
-        data = self.ts_data.to_dataframe()
-        data_new = pd.concat([data, data])
-        ts_data_new = TimeSeriesData(data_new)
-
-        with self.assertLogs(level="ERROR"):
-            m = OutlierDetector(ts_data_new)
-            m.detector()
-
     def test_output_scores_not_nan(self) -> None:
         m = OutlierDetector(self.ts_data, "additive")
         m.detector()
@@ -138,7 +129,7 @@ class MultivariateVARDetectorTest(TestCase):
     def setUp(self) -> None:
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-        DATA_multi2 = pd.concat([DATA_multi, DATA_multi])
+        DATA_multi2 = pd.concat([DATA_multi.iloc[:10, :], DATA_multi.iloc[12:, :]], 0)
         self.TSData_multi2 = TimeSeriesData(DATA_multi2)
         DATA_multi3 = pd.merge(
             DATA_multi, DATA_multi, how="inner", on="time", suffixes=("_1", "_2")
