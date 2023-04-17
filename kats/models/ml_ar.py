@@ -16,9 +16,19 @@ from kats.tsfeatures.tsfeatures import TsCalenderFeatures, TsFourierFeatures
 from kats.utils.parameter_tuning_utils import (
     get_default_lightgbm_parameter_search_space,
 )
-
-from numba import njit
 from numpy.random import RandomState
+
+try:
+    from numba import jit  # @manual
+except ImportError:
+    logging.warning("numba is not installed. jit compilation of tsfeatures is disabled")
+
+    # pyre-fixme
+    def jit(func):  # type ignore
+        def tmp(*args, **kwargs):  # type: ignore
+            return func(*args, **kwargs)
+
+        return tmp
 
 
 # @njit
@@ -107,7 +117,7 @@ def categorical_encode(
     return result, list(result.columns)
 
 
-@njit
+@jit
 def embed(series: np.ndarray, lags: int, horizon: int, max_lags: int) -> np.ndarray:
 
     result = np.full(
@@ -465,13 +475,19 @@ class MLARModel:
 
         data_dict = {}
         timestamps = set()
+        offset = pd.tseries.frequencies.to_offset(self.params.freq)
 
         for k in keys:
 
             curr_series_data = self._check_single_ts(data[k])
 
             data_dict[k] = curr_series_data
-
+            timestamps.update(curr_series_data.index)
+            # add forecast timestamps
+            timestamps.update(
+                # pyre-fixme
+                [curr_series_data.index[-1] + offset * i for i in self.params.horizon]
+            )
         return data_dict, timestamps
 
     def _normalize_data(
@@ -868,9 +884,13 @@ class MLARModel:
                     + offset * curr_horizon
                 )
 
-                curr_feat = target_timestamps[[]].join(cal_feat, how="left")
+                curr_feat = target_timestamps[[]].merge(
+                    cal_feat, left_index=True, right_index=True, how="left"
+                )
 
-                curr_feat = curr_feat.join(emb_fut_cov, how="left")
+                curr_feat = curr_feat.merge(
+                    emb_fut_cov, left_index=True, right_index=True, how="left"
+                )
 
                 curr_out_data = pd.DataFrame()
                 curr_out_data["origin_time"] = norm_out_data[target_var].index
@@ -894,8 +914,6 @@ class MLARModel:
                 num_rows_dat = norm_in_data[target_var].shape[0]
                 num_cols_dat = norm_in_data[target_var].shape[1]
 
-                print(self.full_mat.shape)
-                print(tv_idx, norm_in_data[target_var].shape, num_rows_dat)
                 full_mat[
                     tv_idx : (tv_idx + num_rows_dat), 0:num_cols_dat
                 ] = norm_in_data[target_var]
@@ -916,8 +934,6 @@ class MLARModel:
         all_out_data = pd.concat(all_out_data_list, copy=False)
 
         col_names = list(curr_feat.columns) + ["horizon"]
-        print("all_out_data shape: ", all_out_data.shape)
-        print("self.full_mat shape:", self.full_mat.shape)
 
         return full_mat, all_out_data, col_names
 
@@ -1263,7 +1279,6 @@ class MLARModel:
             a list of of pd.DataFrame forecasting without categorical information
         """
 
-        print(f"new_data {new_data}")
         self._predict(fill_missing=False, new_data=new_data)
         forecast_result = self._post_process()
 
