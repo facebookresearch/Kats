@@ -16,19 +16,9 @@ from kats.tsfeatures.tsfeatures import TsCalenderFeatures, TsFourierFeatures
 from kats.utils.parameter_tuning_utils import (
     get_default_lightgbm_parameter_search_space,
 )
+
+from numba import njit
 from numpy.random import RandomState
-
-try:
-    from numba import jit  # @manual
-except ImportError:
-    logging.warning("numba is not installed. jit compilation of tsfeatures is disabled")
-
-    # pyre-fixme
-    def jit(func):  # type ignore
-        def tmp(*args, **kwargs):  # type: ignore
-            return func(*args, **kwargs)
-
-        return tmp
 
 
 # @njit
@@ -117,7 +107,7 @@ def categorical_encode(
     return result, list(result.columns)
 
 
-@jit
+@njit
 def embed(series: np.ndarray, lags: int, horizon: int, max_lags: int) -> np.ndarray:
 
     result = np.full(
@@ -180,7 +170,7 @@ class MLARParams:
         cov_future_input_windows: Optional[Dict[str, int]] = None,
         categoricals: Optional[List[str]] = None,
         one_hot_encode: bool = True,
-        calendar_features: Union[str, List[str]] = "auto",
+        calendar_features: Union[str, List[str]] = [],
         fourier_features_period: Union[str, List[Union[float, int]]] = "auto",
         fourier_features_order: Union[str, List[int]] = "auto",
         fourier_features_offset: Union[str, int] = "auto",
@@ -414,7 +404,10 @@ class MLARModel:
                 freq = "Y"
         return freq
 
-    def _check_single_ts(self, data: TimeSeriesData) -> pd.DataFrame:
+    def _check_single_ts(
+        self, data: TimeSeriesData
+    ) -> [pd.DataFrame, Set[pd.Timestamp]]:
+
         """Validate input dataset columns"""
         if not isinstance(data, TimeSeriesData):
             msg = f"Every element in dataset should be a TimeSeriesData but received {type(data)}."
@@ -439,7 +432,7 @@ class MLARModel:
         )
         curr_series_data = curr_series_data.reindex(idx, fill_value=np.nan)
 
-        return curr_series_data
+        return curr_series_data, set(curr_series_data.index)
 
     def _valid_and_fillna(
         self,
@@ -452,9 +445,8 @@ class MLARModel:
             data: a list of :class:`kats.consts.TimeSeriesData` or a dictionary of :class:`kats.consts.TimeSeriesData`
             where key is the unique category for the :class:`kats.consts.TimeSeriesData`.
         Returns:
-            lengths: a dictionary that stores the length of the dataset
             data: a dictionary of :class:`kats.consts.TimeSeriesData`
-            [min_ts, max_ts]: the minimum and maximum valid timestamp of all input time series.
+            timestamps: all time stamps encountered in the data, plus the time stamps of the horizons to forecast for each series.
         """
         if len(data) < 1:
             msg = "Input dataset should be non-empty."
@@ -475,19 +467,22 @@ class MLARModel:
 
         data_dict = {}
         timestamps = set()
-        offset = pd.tseries.frequencies.to_offset(self.params.freq)
 
         for k in keys:
 
-            curr_series_data = self._check_single_ts(data[k])
+            curr_series_data, curr_series_ts = self._check_single_ts(data[k])
 
             data_dict[k] = curr_series_data
-            timestamps.update(curr_series_data.index)
-            # add forecast timestamps
-            timestamps.update(
-                # pyre-fixme
-                [curr_series_data.index[-1] + offset * i for i in self.params.horizon]
-            )
+            timestamps = timestamps.union(curr_series_ts)
+
+            offset = pd.tseries.frequencies.to_offset(self.params.freq)
+            last_ts = max(curr_series_ts)
+
+
+            ts_future = [last_ts + offset * i for i in self.params.horizon]
+            timestamps = timestamps.union(ts_future)
+
+
         return data_dict, timestamps
 
     def _normalize_data(
@@ -736,7 +731,7 @@ class MLARModel:
     def _generate_auto_fourier_features(
         self, freq: Optional[str]
     ) -> Tuple[List[int], List[int], int]:
-        """Generate default fourier featureas based on data frequency."""
+        """Generate default fourier features based on data frequency."""
         if freq == "W":
             fperiod = [365]
             forder = [7]
@@ -793,6 +788,7 @@ class MLARModel:
                 self.params.fourier_features_order,
                 self.params.fourier_features_offset,
             )
+
         if len(fperiod) > 0:
 
             fourier_features_df = TsFourierFeatures(
@@ -884,13 +880,9 @@ class MLARModel:
                     + offset * curr_horizon
                 )
 
-                curr_feat = target_timestamps[[]].merge(
-                    cal_feat, left_index=True, right_index=True, how="left"
-                )
+                curr_feat = target_timestamps[[]].join(cal_feat, how="left")
 
-                curr_feat = curr_feat.merge(
-                    emb_fut_cov, left_index=True, right_index=True, how="left"
-                )
+                curr_feat = curr_feat.join(emb_fut_cov, how="left")
 
                 curr_out_data = pd.DataFrame()
                 curr_out_data["origin_time"] = norm_out_data[target_var].index
@@ -914,6 +906,8 @@ class MLARModel:
                 num_rows_dat = norm_in_data[target_var].shape[0]
                 num_cols_dat = norm_in_data[target_var].shape[1]
 
+                #print(self.full_mat.shape)
+                #print(tv_idx, norm_in_data[target_var].shape, num_rows_dat)
                 full_mat[
                     tv_idx : (tv_idx + num_rows_dat), 0:num_cols_dat
                 ] = norm_in_data[target_var]
@@ -934,6 +928,8 @@ class MLARModel:
         all_out_data = pd.concat(all_out_data_list, copy=False)
 
         col_names = list(curr_feat.columns) + ["horizon"]
+        #print("all_out_data shape: ", all_out_data.shape)
+        #print("self.full_mat shape:", self.full_mat.shape)
 
         return full_mat, all_out_data, col_names
 
@@ -1016,6 +1012,11 @@ class MLARModel:
             )
 
             # add the series name dummy
+            
+            # if series name is a tuple, make it into a string
+            if isinstance(curr_series_name, tuple):
+                curr_series_name = "_".join(curr_series_name)
+
             meta_data["series_name"] = curr_series_name
             all_in_data_list.append(in_data)
             all_meta_data_list.append(meta_data)
@@ -1138,6 +1139,7 @@ class MLARModel:
         self,
         fill_missing: bool = False,
         new_data: Optional[Dict[Union[str, int], pd.DataFrame]] = None,
+        new_data_is_forecast = True
     ) -> None:
 
         new_data_dict = {}
@@ -1147,32 +1149,45 @@ class MLARModel:
             in_data = self.all_series[curr_series]
 
             if new_data is None:
-                fc_origin = np.max(in_data.index)
+                fc_origin = in_data[self.params.target_variable].last_valid_index()
+                max_ts = max(fc_origin, max(in_data.index))
             else:
-                fc_wide = new_data[curr_series].pivot(
-                    index="time", columns="variable", values="forecast"
-                )
-                fc_origin = np.max(fc_wide.index)
+                if new_data_is_forecast:
+                    fc_wide = new_data[curr_series].pivot(
+                        index="time", columns="variable", values="forecast"
+                    )
+                    fc_origin = np.max(fc_wide.index)
 
-                # find the first gap in the horizon, and set fc_origin to the value before, so that we can fill the gap with forecasts
-                if fill_missing:
+                    # find the first gap in the horizon, and set fc_origin to the value before, so that we can fill the gap with forecasts
+                    if fill_missing:
 
-                    min_ts = np.min(fc_wide.index)
-                    all_missing = pd.date_range(
-                        min_ts,
-                        fc_origin,
-                        freq=self.params.freq,
-                    ).difference(fc_wide.index)
+                        min_ts = np.min(fc_wide.index)
+                        all_missing = pd.date_range(
+                            min_ts,
+                            fc_origin,
+                            freq=self.params.freq,
+                        ).difference(fc_wide.index)
 
-                    if len(all_missing) != 0:
-                        fc_origin = all_missing[0] - offset
+                        if len(all_missing) != 0:
+                            fc_origin = all_missing[0] - offset
+                    max_ts = max(fc_origin, max(in_data.index))
+                else:
+                    curr_new_data = new_data[curr_series].to_dataframe()
+                    time_col = new_data[curr_series].time_col_name
+                    last_index = curr_new_data[self.params.target_variable].last_valid_index()
+                    if last_index is None:
+                        fc_origin = min(curr_new_data[time_col]) - offset
+                    else:
+                        fc_origin = curr_new_data.loc[last_index, time_col]
+                    max_ts = max(fc_origin, max(curr_new_data[time_col]))
 
-            # get needed time stamps
+            # get needed time stamps, the full input window 
+            # and any future values that may be there in the data
             timestamps = pd.Series(
                 pd.date_range(
                     # pyre-ignore
                     fc_origin - offset * (self.params.max_lags - 1),
-                    fc_origin,
+                    max_ts,
                     freq=self.params.freq,
                 )
             )
@@ -1181,10 +1196,23 @@ class MLARModel:
             in_window = pd.DataFrame(index=timestamps)
             in_window = in_window.join(in_data, how="left")
 
+
             if new_data is not None:
                 # fill rest of the data with forecasts
                 # pyre-fixme
-                in_window[in_window.isnull()] = fc_wide
+
+                if new_data_is_forecast:
+                    in_window.update(fc_wide[fc_wide.index<=fc_origin], overwrite=False)
+                else:
+                    #in case the new_data is actually earlier than the training data, we need to remove any data
+                    #that we want to predict but that may have actuals in the training data
+                    in_window.loc[in_window.index>fc_origin,self.params.target_variable] = np.nan
+
+                    curr_new_data = new_data[curr_series].to_dataframe()
+                    time_col = new_data[curr_series].time_col_name
+                    curr_new_data.set_index(time_col, inplace=True)
+
+                    in_window.update(curr_new_data, overwrite=True)
 
             new_data_dict[curr_series] = TimeSeriesData(
                 in_window.reset_index(),
@@ -1193,6 +1221,10 @@ class MLARModel:
             )
 
         curr_all_series, timestamps = self._valid_and_fillna(new_data_dict)
+
+        #if we are running with actual new data, save the new data as the all_series object for later forecast iteration
+        if (new_data is not None) and (not new_data_is_forecast):
+            self.all_series = curr_all_series
 
         meta_data, all_col_names = self._embed_and_gen_features(
             timestamps,
@@ -1279,7 +1311,8 @@ class MLARModel:
             a list of of pd.DataFrame forecasting without categorical information
         """
 
-        self._predict(fill_missing=False, new_data=new_data)
+        #print(f"new_data {new_data}")
+        self._predict(fill_missing=False, new_data=new_data, new_data_is_forecast = False)
         forecast_result = self._post_process()
 
         if steps is not None:
