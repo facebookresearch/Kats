@@ -2177,8 +2177,9 @@ class TsFourierFeatures:
         ans = []
         for p, r in zip(fourier_period, fourier_order):
             tmp = [""] * r * 2
-            tmp[::2] = [f"{p}_{t}_sin" for t in range(r)]
-            tmp[1::2] = [f"{p}_{t}_cos" for t in range(r)]
+            tmp[::2] = [f"{p}_{t}_sin" for t in range(1, r + 1)]
+            tmp[1::2] = [f"{p}_{t}_cos" for t in range(1, r + 1)]
+
             ans.extend(tmp)
         return ans
 
@@ -2220,7 +2221,8 @@ class TsFourierFeatures:
         for i in range(len(period)):
             p, r = period[i], order[i]
             val = 2.0 * np.pi * data / p
-            for j in range(r):
+            for j in range(1, r + 1):
+
                 tmp = val * j
                 res[:, col] = np.sin(tmp)
                 res[:, col + 1] = np.cos(tmp)

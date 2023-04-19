@@ -147,8 +147,7 @@ class MLARParams:
         cov_future_input_windows: a dictionary representing future covariate information, whose keys are strings for covariate names and values are positive integers for number of leaps. Default is None.
         categoricals: a list of strings for the column names of categorical columns.
         one_hot_encode: a boolean for whether using one-hot encoding for categorical covariates. Default is True.
-        calendar_features: a string representing calendar feature type. Can be 'cal_own_cal' or 'cal_own_ft'. Default is 'cal_own_cal'.
-
+        calendar_features: a list of strings for the calendar features or "auto" for default calendar features. Default is None, which is for no calendar features.
         n_jobs: integer Number of jobs in LGBMRegressor, default = 1
         max_depth: integer max_depth in LGBMRegressor -- (int, optional (default=-1)) – Maximum tree depth for base learners, <=0 means no limit
         min_data_in_leaf: integer min_data_in_leaf in LGBMRegressor -- min_child_samples (int, optional (default=20)) – Minimum number of data needed in a child (leaf)
@@ -180,8 +179,8 @@ class MLARParams:
         cov_future_input_windows: Optional[Dict[str, int]] = None,
         categoricals: Optional[List[str]] = None,
         one_hot_encode: bool = True,
-        calendar_features: Union[str, List[str]] = "auto",
-        fourier_features_period: Union[str, List[Union[float, int]]] = "auto",
+        calendar_features: Union[None, str, List[str]] = None,
+        fourier_features_period: Union[None, str, List[Union[float, int]]] = "auto",
         fourier_features_order: Union[str, List[int]] = "auto",
         fourier_features_offset: Union[str, int] = "auto",
         n_jobs: int = 1,
@@ -345,6 +344,7 @@ class MLARParams:
                 raise ValueError(msg)
 
         # [TODO] add more verififcation for calendar features
+
         if isinstance(self.calendar_features, str) and self.calendar_features != "auto":
             msg = f"`calendar_features` only accepts `auto` or a list of calendar features. Got {self.calendar_features}."
             raise ValueError(msg)
@@ -764,20 +764,22 @@ class MLARModel:
     def _gen_cal_feat(
         self,
         timestamps: Set[pd.Timestamp],
-        calendar_features: Union[str, List[str]],
+        calendar_features: Union[None, str, List[str]],
     ) -> pd.DataFrame:
 
         ts = pd.Series(list(timestamps))
         # Compute calendar features
-        calendar_features = (
-            self.params.calendar_features
-            if self.params.calendar_features != "auto"
-            else self._generate_auto_calendar_feature(self.params.freq)
-        )
+        if calendar_features is None:
+            calendar_features = []
+        elif self.params.calendar_features == "auto":
+            calendar_features = self._generate_auto_calendar_feature(self.params.freq)
+        else:
+            calendar_features = cast(List[str], self.params.calendar_features)
+
         if calendar_features != []:
-            calendar_features_df = TsCalenderFeatures(
-                cast(List[str], calendar_features)
-            ).get_features(ts)
+            calendar_features_df = TsCalenderFeatures(calendar_features).get_features(
+                ts
+            )
             calendar_features_df = cast(pd.DataFrame, calendar_features_df)
         else:
             calendar_features_df = pd.DataFrame()
@@ -793,7 +795,7 @@ class MLARModel:
                 self.params.fourier_features_order,
                 self.params.fourier_features_offset,
             )
-        if len(fperiod) > 0:
+        if fperiod is not None and len(fperiod) > 0:
 
             fourier_features_df = TsFourierFeatures(
                 # pyre-fixme
