@@ -1140,6 +1140,7 @@ class MLARModel:
         self,
         fill_missing: bool = False,
         new_data: Optional[Dict[Union[str, int], pd.DataFrame]] = None,
+        new_data_is_forecast: bool = True,
     ) -> None:
 
         new_data_dict = {}
@@ -1149,32 +1150,47 @@ class MLARModel:
             in_data = self.all_series[curr_series]
 
             if new_data is None:
-                fc_origin = np.max(in_data.index)
+                fc_origin = in_data[self.params.target_variable].last_valid_index()
+                max_ts = max(fc_origin, max(in_data.index))
             else:
-                fc_wide = new_data[curr_series].pivot(
-                    index="time", columns="variable", values="forecast"
-                )
-                fc_origin = np.max(fc_wide.index)
+                if new_data_is_forecast:
+                    fc_wide = new_data[curr_series].pivot(
+                        index="time", columns="variable", values="forecast"
+                    )
+                    fc_origin = np.max(fc_wide.index)
 
-                # find the first gap in the horizon, and set fc_origin to the value before, so that we can fill the gap with forecasts
-                if fill_missing:
+                    # find the first gap in the horizon, and set fc_origin to the value before, so that we can fill the gap with forecasts
+                    if fill_missing:
 
-                    min_ts = np.min(fc_wide.index)
-                    all_missing = pd.date_range(
-                        min_ts,
-                        fc_origin,
-                        freq=self.params.freq,
-                    ).difference(fc_wide.index)
+                        min_ts = np.min(fc_wide.index)
+                        all_missing = pd.date_range(
+                            min_ts,
+                            fc_origin,
+                            freq=self.params.freq,
+                        ).difference(fc_wide.index)
 
-                    if len(all_missing) != 0:
-                        fc_origin = all_missing[0] - offset
+                        if len(all_missing) != 0:
+                            fc_origin = all_missing[0] - offset
+                    max_ts = max(fc_origin, max(in_data.index))
+                else:
+                    curr_new_data = new_data[curr_series].to_dataframe()
+                    time_col = new_data[curr_series].time_col_name
+                    last_index = curr_new_data[
+                        self.params.target_variable
+                    ].last_valid_index()
+                    if last_index is None:
+                        fc_origin = min(curr_new_data[time_col]) - offset
+                    else:
+                        fc_origin = curr_new_data.loc[last_index, time_col]
+                    max_ts = max(fc_origin, max(curr_new_data[time_col]))
 
-            # get needed time stamps
+            # get needed time stamps, the full input window
+            # and any future values that may be there in the data
             timestamps = pd.Series(
                 pd.date_range(
                     # pyre-ignore
                     fc_origin - offset * (self.params.max_lags - 1),
-                    fc_origin,
+                    max_ts,
                     freq=self.params.freq,
                 )
             )
@@ -1185,8 +1201,22 @@ class MLARModel:
 
             if new_data is not None:
                 # fill rest of the data with forecasts
-                # pyre-fixme
-                in_window[in_window.isnull()] = fc_wide
+                if new_data_is_forecast:
+                    in_window.update(
+                        fc_wide[fc_wide.index <= fc_origin], overwrite=False
+                    )
+                else:
+                    # in case the new_data is actually earlier than the training data, we need to remove any data
+                    # that we want to predict but that may have actuals in the training data
+                    in_window.loc[
+                        in_window.index > fc_origin, self.params.target_variable
+                    ] = np.nan
+
+                    curr_new_data = new_data[curr_series].to_dataframe()
+                    time_col = new_data[curr_series].time_col_name
+                    curr_new_data.set_index(time_col, inplace=True)
+
+                    in_window.update(curr_new_data, overwrite=True)
 
             new_data_dict[curr_series] = TimeSeriesData(
                 in_window.reset_index(),
@@ -1195,6 +1225,10 @@ class MLARModel:
             )
 
         curr_all_series, timestamps = self._valid_and_fillna(new_data_dict)
+
+        # if we are running with actual new data, save the new data as the all_series object for later forecast iteration
+        if (new_data is not None) and (not new_data_is_forecast):
+            self.all_series = curr_all_series
 
         meta_data, all_col_names = self._embed_and_gen_features(
             timestamps,
@@ -1281,7 +1315,7 @@ class MLARModel:
             a list of of pd.DataFrame forecasting without categorical information
         """
 
-        self._predict(fill_missing=False, new_data=new_data)
+        self._predict(fill_missing=False, new_data=new_data, new_data_is_forecast=False)
         forecast_result = self._post_process()
 
         if steps is not None:
