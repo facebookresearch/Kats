@@ -272,10 +272,10 @@ class TimeSeriesData:
                     tz_nonexistent=tz_nonexistent,
                 )
                 # drop duplicate time stamps
-                df = df.drop_duplicates(subset=[self.time_col_name], keep="first")
-                logging.warning(
-                    "Drop duplicates in the time series if timestamps are identical."
-                )
+                # df = df.drop_duplicates(subset=[self.time_col_name], keep="first")
+                # logging.warning(
+                #     "Drop duplicates in the time series if timestamps are identical."
+                # )
 
                 # Sort by time
                 df = self._sort_by_time(sort_by_time=sort_by_time, df=df)
@@ -353,10 +353,10 @@ class TimeSeriesData:
 
             df = self.to_dataframe()
             # drop duplicate time stamps
-            df = df.drop_duplicates(subset=[self.time_col_name], keep="first")
-            logging.warning(
-                "Drop duplicates in the time series if timestamps are identical."
-            )
+            # df = df.drop_duplicates(subset=[self.time_col_name], keep="first")
+            # logging.warning(
+            #     "Drop duplicates in the time series if timestamps are identical."
+            # )
 
             df = self._sort_by_time(sort_by_time=sort_by_time, df=df)
             self._extract_from_df(df=df)
