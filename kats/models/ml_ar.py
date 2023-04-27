@@ -64,7 +64,7 @@ def normalize(
     elif sub_div == "sub_div":
         norm_data = (x.sub(normalizer, axis=0)).div(normalizer2, axis=0)
     else:
-        raise ValueError(f"`sub_dive` method {sub_div} is invalid.")
+        raise ValueError(f"`sub_div` method {sub_div} is invalid.")
 
     return norm_data
 
@@ -137,17 +137,19 @@ class MLARParams:
     This is the parameter class for time series LightGBM model. Details of lightgbm inherented params
     can be found https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMRegressor.html
 
-    [TODO] Parameters needs updates
     Args:
         target_variable: either a string or a list of strings for target variables columns.
-        horizon: a positive integer for output window, default is 10.
+        horizon: a list of horizons to train with. Alternatively, a positive integer i that gets expanded to the range from 1 to i. The default is 10.
         input_window: a positive integer for input windows, i.e., the number of lags. Default is 10.
-        freq: a string representing the frequency of time series. Default is "D".
+        freq: a string representing the frequency of time series. Default is "D". If missing, the algorithm will try to infer the frequency.
         cov_history_input_windows: a dictionary representing historical covariate information, whose keys are strings for covariate names and values are positive integers for number of lags. Default is None.
         cov_future_input_windows: a dictionary representing future covariate information, whose keys are strings for covariate names and values are positive integers for number of leaps. Default is None.
         categoricals: a list of strings for the column names of categorical columns.
-        one_hot_encode: a boolean for whether using one-hot encoding for categorical covariates. Default is True.
-        calendar_features: a list of strings for the calendar features or "auto" for default calendar features. Default is None, which is for no calendar features.
+        one_hot_encode: a boolean for whether to use one-hot encoding for categorical covariates or not. Default is True.
+        calendar_features: a list of strings for the calendar features or "auto" for default calendar features. Default is None, which is for no calendar features (as by default Fourier terms are used). Possible values are "year", "quarter", "month", "weekday", "hour", "minuteofday"
+        fourier_features_period: Can be None for no Fourier terms, or "auto" to automatically determine the features. Otherwise, a list of numbers for the periods. For example, for hourly series we can use [24, 24 * 7, 24 * 365] to model a daily, weekly, and yearly seasonality.
+        fourier_features_order: Can be "auto" to automatically determine features. Otherwise a list of ints to determine the order of Fourier terms (parameter k in many notations). For example, for hourly series we can use [3, 5, 7] for daily, weekly, yearly orders.
+        fourier_features_offset: Can be "auto", otherwise an int. Determines by which factor all Fourier series need to be divided, relative to seconds. For example, for hourly series set to 3600, for daily series to 86400.
         n_jobs: integer Number of jobs in LGBMRegressor, default = 1
         max_depth: integer max_depth in LGBMRegressor -- (int, optional (default=-1)) – Maximum tree depth for base learners, <=0 means no limit
         min_data_in_leaf: integer min_data_in_leaf in LGBMRegressor -- min_child_samples (int, optional (default=20)) – Minimum number of data needed in a child (leaf)
@@ -165,8 +167,19 @@ class MLARParams:
         subsample_for_bin: integer subsample_for_bin in LGBMRegressor -- (int, optional (default=200000)) – Number of samples for constructing bins.
         objective: str as objective function for LGBMRegressor, we set default as quantile
             as the objective function of the algorithm, i.e. what it's trying to maximize or minimize, e.g. "regression" means it's minimizing squared residuals.
-        alpha: float for alpha in LGMRegressor default = 0.9, type = double, constraints: alpha > 0.0, used only in huber and quantile regression applications.
+        alpha: float for alpha in LGBMRegressor default = 0.9, type = double, constraints: alpha > 0.0, used only in huber and quantile regression applications.
+        verbose: verbosity level of LGBMRegressor, default is -1. Level 3 is full verbosity.
         random_state: int or RandomState or None type random_state argument in LGBMRegressor function. It is used to seed the random number generator during the training process.
+        norm_window_size: integer for the window size of the normalization window (can be smaller than the input window), default is same size as input window
+        norm_sum_stat: string to determine how to calculate the window normalizer. Default is "mean", other options are: "median", "max", "std", "z-score"
+        sub_div: string to determine how to apply the normalizer. "div" for division, "sub" for subtraction. "sub_div" to subtract normalizer1 and then divide by normalizer2 (currently only used for z-score)
+        use_default_min: bool to determine if default_min is added to series and normalizer before normalization
+        default_min: Default is 1e-8. It is a small value that is added to both serise and normalizer, e.g., to avoid division by zero
+        transform_data: string to determine if target_vars should be transformed before processing (i.e., before normalization and training). After prediction they are back-transformed. Currently, only transform implemented is "log". Default is None.
+        cov_history_norm: bool to determine if historic covariates should be normalized. If true, the same per-window normalization is applied as for the the target vars. Default is False.
+        cov_future_norm: bool to determine if future covariates should be normalized. If true, the same per-window normalization is applied as for the the target vars. Default is False.
+        use_sum_stats: bool to determine if min, max, mean, median, std should be calculated over the input window, and added as a feature. Default is True.
+        calculate_fit: bool to determine if the predict function should be called finally over the full training set to calculate the fit on the training set. For large datasets, can be slow, and will mean that the training dataset is fully stored in the model object. Default is False.
     """
 
     def __init__(
