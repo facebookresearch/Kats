@@ -183,6 +183,7 @@ class TimeSeriesData:
     - tz_nonexistant: A string representing how to handle nonexistant timezone
         values (default "raise").
     - categorical_var: A list of column names of categorical variables that are not required to be numerical. Default is None.
+    - drop_duplicate_time: A bool variable to indicate whether to drop the duplicate time stamps.
 
     Raises:
       ValueError: Invalid params passed when trying to create the
@@ -234,6 +235,7 @@ class TimeSeriesData:
         tz_ambiguous: Union[str, np.ndarray] = "raise",
         tz_nonexistent: str = "raise",
         categorical_var: Optional[List[str]] = None,
+        drop_duplicate_time: bool = False,
     ) -> None:
         """Initializes :class:`TimeSeriesData` class with arguments provided."""
         self.time_col_name = time_col_name
@@ -271,8 +273,9 @@ class TimeSeriesData:
                     tz_ambiguous=tz_ambiguous,
                     tz_nonexistent=tz_nonexistent,
                 )
-                # drop duplicate time stamps
-                df = df.drop_duplicates(subset=[self.time_col_name], keep="first")
+                if drop_duplicate_time:
+                    # drop duplicate time stamps
+                    df = df.drop_duplicates(subset=[self.time_col_name], keep="first")
 
                 # Sort by time
                 df = self._sort_by_time(sort_by_time=sort_by_time, df=df)
@@ -349,8 +352,9 @@ class TimeSeriesData:
             self.validate_data(validate_frequency=False, validate_dimension=True)
 
             df = self.to_dataframe()
-            # drop duplicate time stamps
-            df = df.drop_duplicates(subset=[self.time_col_name], keep="first")
+            if drop_duplicate_time:
+                # drop duplicate time stamps
+                df = df.drop_duplicates(subset=[self.time_col_name], keep="first")
 
             df = self._sort_by_time(sort_by_time=sort_by_time, df=df)
             self._extract_from_df(df=df)
