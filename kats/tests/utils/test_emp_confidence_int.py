@@ -256,7 +256,6 @@ class MyFakeModel(Model[FakeParams]):
 
 class testEmpConfidenceInt(TestCase):
     @mock.patch("kats.utils.emp_confidence_int.BackTesterRollingWindow")
-    # pyre-fixme[14]: `setUp` overrides method defined in `TestCase` inconsistently.
     def setUp(self, backtester: BackTesterRollingWindow) -> None:
         backtester.raw_errors = _RAW_ERRORS
         self.TSData = load_air_passengers()
