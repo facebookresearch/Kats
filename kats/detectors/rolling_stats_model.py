@@ -29,7 +29,7 @@ SEASON_PERIOD_SUPPORTED: Set[str] = {
 }
 
 
-class RollStatsFunction(Enum):
+class RollStatsFunction(str, Enum):
     iqr = "iqr"
     mad = "mad"
     z_score = "z_score"
