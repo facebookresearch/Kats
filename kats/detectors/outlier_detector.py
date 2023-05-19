@@ -81,7 +81,7 @@ class OutlierDetectorModel(DetectorModel):
         if historical_data is None:
             total_data = data
         else:
-            historical_data.extend(data)
+            historical_data.extend(data, validate=False)
             total_data = historical_data
 
         self.model = OutlierDetector(
@@ -105,7 +105,7 @@ class OutlierDetectorModel(DetectorModel):
                 exactly where the data begins.
 
         Returns:
-            AnomalyResponse object. The length of this obj.ect is same as data. The score property
+            AnomalyResponse object. The length of this object is same as data. The score property
             gives the score for anomaly.
         """
         # When no iterpolate argument is given by default it is taking False
@@ -122,25 +122,26 @@ class OutlierDetectorModel(DetectorModel):
         output_detector_remover = self.model.remover(interpolate=interpolate)
 
         assert output_scores_df is not None
-        output_scores_df = output_scores_df[output_scores_df.index >= data.time.min()]
+        output_scores_df = output_scores_df.loc[data.time]
+        assert output_detector_remover is not None
+        output_detector_remover = output_detector_remover[
+            output_detector_remover.time.isin(data.time)
+        ]
 
         zeros = pd.DataFrame(np.zeros(shape=output_scores_df.shape), copy=False)
-        # all fields other than scores and predicted_ts are left as TimeSeriesData with all zero values
+        # all fields other than scores and predicted_ts are left as None or TimeSeriesData with all zero values
         response = AnomalyResponse(
             scores=TimeSeriesData(
                 time=data.time,
                 value=output_scores_df,
             ),
-            confidence_band=ConfidenceBand(
-                upper=TimeSeriesData(time=data.time, value=zeros),
-                lower=TimeSeriesData(time=data.time, value=zeros),
-            ),
+            confidence_band=None,
             predicted_ts=TimeSeriesData(
                 time=output_detector_remover.time,
                 value=pd.DataFrame(output_detector_remover.value, copy=False),
             ),
             anomaly_magnitude_ts=TimeSeriesData(time=data.time, value=zeros),
-            stat_sig_ts=TimeSeriesData(time=data.time, value=zeros),
+            stat_sig_ts=None,
         )
 
         return response
@@ -164,6 +165,4 @@ class OutlierDetectorModel(DetectorModel):
             AnomalyResponse object. The length of this object is same as data. The score property
             gives the score for anomaly.
         """
-        self.fit(data=data, historical_data=historical_data)
-
-        return self.predict(data=data, **kwargs)
+        return self.predict(data=data, historical_data=historical_data, **kwargs)

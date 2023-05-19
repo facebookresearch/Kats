@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import random
+from typing import cast
 from unittest import TestCase
 
 import numpy as np
@@ -54,13 +55,27 @@ class TestOutlierDetectorModel(TestCase):
 
     def test_response_shape_with_historical_data(self) -> None:
         single_ts = TimeSeriesData(self.data)
-        historical_ts = TimeSeriesData(self.data)
-        single_ts.time = single_ts.time + pd.tseries.offsets.DateOffset(
-            months=len(self.data)
-        )
-        response = self.outlier_detector.fit_predict(single_ts, historical_ts)
+        split_point = len(single_ts) // 2
+        ts = single_ts[split_point:]
+        historical_ts = single_ts[:split_point]
+        response = self.outlier_detector.fit_predict(ts, historical_ts)
 
-        self.assertTrue(np.array_equal(response.scores.time, single_ts.time))
+        self.assertTrue(np.array_equal(response.scores.time, ts.time))
+        self.assertTrue(
+            np.array_equal(cast(TimeSeriesData, response.predicted_ts).time, ts.time)
+        )
+
+        response_with_interpolate = self.outlier_detector.fit_predict(
+            ts, historical_ts, interpolate=True
+        )
+
+        self.assertTrue(np.array_equal(response_with_interpolate.scores.time, ts.time))
+        self.assertTrue(
+            np.array_equal(
+                cast(TimeSeriesData, response_with_interpolate.predicted_ts).time,
+                ts.time,
+            )
+        )
 
     def test_pmm_use_case(self) -> None:
         random.seed(100)
@@ -104,7 +119,7 @@ class TestOutlierDetectorModel(TestCase):
         single_ts = TimeSeriesData(self.data)
 
         response_with_interpolate = self.outlier_detector.fit_predict(
-            single_ts, historical_ts=None, interpolate=True
+            single_ts, historical_data=None, interpolate=True
         )
 
         response_with_no_interpolate = self.outlier_detector.fit_predict(
