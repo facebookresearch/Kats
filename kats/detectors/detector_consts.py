@@ -618,9 +618,11 @@ class AnomalyResponse:
             self._inplace_update_ts(cb.lower, time, ci_lower),
             self._inplace_update_ts(cb.upper, time, ci_upper)
 
-        self._inplace_update_ts(self.predicted_ts, time, pred)
+        if self.predicted_ts is not None:
+            self._inplace_update_ts(self.predicted_ts, time, pred)
         self._inplace_update_ts(self.anomaly_magnitude_ts, time, anom_mag)
-        self._inplace_update_ts(self.stat_sig_ts, time, stat_sig)
+        if self.stat_sig_ts is not None:
+            self._inplace_update_ts(self.stat_sig_ts, time, stat_sig)
 
     def _inplace_update_ts(
         self,
@@ -655,6 +657,47 @@ class AnomalyResponse:
             anomaly_magnitude_ts=self.anomaly_magnitude_ts[-N:],
             stat_sig_ts=None if ssts is None else ssts[-N:],
         )
+
+    def extend(self, other: "AnomalyResponse", validate: bool = True) -> None:
+        """
+        Extends :class:`AnomalyResponse` with another :class:`AnomalyResponse`
+        object.
+
+        Args:
+          other: The other :class:`AnomalyResponse` object.
+          validate (optional): A boolean representing if the contained
+            :class:`TimeSeriesData` objects should be validated after
+            concatenation (default True).
+
+        Raises:
+          ValueError: Validation failed, or some of the components of this
+            :class:`AnomalyResponse` are None while `other`'s are not (or vice
+            versa).
+        """
+        if not isinstance(other, AnomalyResponse):
+            raise TypeError("extend must take another AnomalyResponse object")
+        component_mismatch_error_msg = (
+            "The {} in one of the AnomalyResponse objects is None while the "
+            "other is not. Either both should be None or neither."
+        )
+        if (self.confidence_band is None) ^ (other.confidence_band is None):
+            raise ValueError(component_mismatch_error_msg.format("confidence_band"))
+        if (self.predicted_ts is None) ^ (other.predicted_ts is None):
+            raise ValueError(component_mismatch_error_msg.format("predicted_ts"))
+        if (self.stat_sig_ts is None) ^ (other.stat_sig_ts is None):
+            raise ValueError(component_mismatch_error_msg.format("stat_sig_ts"))
+
+        self.scores.extend(other.scores, validate=validate)
+        if self.confidence_band is not None:
+            cb = self.confidence_band
+            other_cb = cast(ConfidenceBand, other.confidence_band)
+            cb.upper.extend(other_cb.upper, validate=validate)
+            cb.lower.extend(other_cb.lower, validate=validate)
+        if self.predicted_ts is not None:
+            self.predicted_ts.extend(other.predicted_ts, validate=validate)
+        self.anomaly_magnitude_ts.extend(other.anomaly_magnitude_ts, validate=validate)
+        if self.stat_sig_ts is not None:
+            self.stat_sig_ts.extend(other.stat_sig_ts, validate=validate)
 
     def __str__(self) -> str:
         cb = self.confidence_band

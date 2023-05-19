@@ -689,6 +689,15 @@ class TestUnivariateAnomalyResponse(TestCase):
             stat_sig_ts=self.stat_sig_ts,
         )
 
+        self.response_min_required = AnomalyResponse(
+            scores=self.score_ts,
+            confidence_band=None,
+            predicted_ts=None,
+            anomaly_magnitude_ts=self.mag_ts,
+            stat_sig_ts=None,
+        )
+
+        # test update
         new_date = previous_seq[-1] + timedelta(days=1)
         self.N = len(previous_seq)
         common_val = 1.23
@@ -698,6 +707,16 @@ class TestUnivariateAnomalyResponse(TestCase):
             score=common_val,
             ci_upper=common_val,
             ci_lower=(common_val - 0.1),
+            pred=common_val,
+            anom_mag=common_val,
+            stat_sig=0,
+        )
+
+        self.response_min_required.update(
+            time=new_date,
+            score=common_val,
+            ci_upper=common_val,
+            ci_lower=common_val - 0.1,
             pred=common_val,
             anom_mag=common_val,
             stat_sig=0,
@@ -789,6 +808,81 @@ class TestUnivariateAnomalyResponse(TestCase):
         self.assertEqual(
             response_last_n.scores.value.values.tolist(), score_list[-n_val:]
         )
+
+    def test_extend(self) -> None:
+        extension_len = 10
+        shifted_time = self.response.scores.time + (
+            pd.Timedelta(self.response.scores.time[:2].diff()[1].value)
+            * len(self.response.scores.time)
+        )
+        extension = AnomalyResponse(
+            scores=TimeSeriesData(time=shifted_time, value=self.score_ts.value + 0.01)[
+                :extension_len
+            ],
+            confidence_band=ConfidenceBand(
+                upper=TimeSeriesData(
+                    time=shifted_time, value=self.conf_band.upper.value + 0.01
+                )[:extension_len],
+                lower=TimeSeriesData(
+                    time=shifted_time, value=self.conf_band.lower.value - 0.01
+                )[:extension_len],
+            ),
+            predicted_ts=TimeSeriesData(
+                time=shifted_time, value=self.pred_ts.value + 0.01
+            )[:extension_len],
+            anomaly_magnitude_ts=TimeSeriesData(
+                time=shifted_time, value=self.mag_ts.value + 0.01
+            )[:extension_len],
+            stat_sig_ts=TimeSeriesData(
+                time=shifted_time, value=self.stat_sig_ts.value + 0.01
+            )[:extension_len],
+        )
+        extension_min_required = AnomalyResponse(
+            scores=TimeSeriesData(time=shifted_time, value=self.score_ts.value + 0.01)[
+                :extension_len
+            ],
+            confidence_band=None,
+            predicted_ts=None,
+            anomaly_magnitude_ts=TimeSeriesData(
+                time=shifted_time, value=self.mag_ts.value + 0.01
+            )[:extension_len],
+            stat_sig_ts=None,
+        )
+
+        self.response.extend(extension)
+        self.response_min_required.extend(extension_min_required)
+
+        last_n = self.response.get_last_n(extension_len)
+        for attribute in [
+            "scores",
+            "confidence_band.upper",
+            "confidence_band.lower",
+            "predicted_ts",
+            "anomaly_magnitude_ts",
+            "stat_sig_ts",
+        ]:
+            self.assertEqual(
+                attrgetter(attribute)(last_n).value.values.tolist(),
+                attrgetter(attribute)(extension).value.values.tolist(),
+            )
+
+        last_n_min_required = self.response_min_required.get_last_n(extension_len)
+        for attribute in ["scores", "anomaly_magnitude_ts"]:
+            self.assertEqual(
+                attrgetter(attribute)(last_n_min_required).value.values.tolist(),
+                attrgetter(attribute)(extension_min_required).value.values.tolist(),
+            )
+
+    def test_extend_fail_validation(self) -> None:
+        with self.assertRaises(ValueError):
+            self.response.extend(self.response, validate=True)
+
+        # When validate = False, this should succeed
+        self.response_min_required.extend(self.response_min_required, validate=False)
+
+    def test_extend_mismatch(self) -> None:
+        with self.assertRaises(ValueError):
+            self.response.extend(self.response_min_required, validate=False)
 
 
 class TestMultivariateAnomalyResponse(TestCase):
@@ -885,11 +979,29 @@ class TestMultivariateAnomalyResponse(TestCase):
             stat_sig_ts=self.stat_sig_ts,
         )
 
+        self.response_min_required = AnomalyResponse(
+            scores=self.score_ts,
+            confidence_band=None,
+            predicted_ts=None,
+            anomaly_magnitude_ts=self.mag_ts,
+            stat_sig_ts=None,
+        )
+
         # test update
         new_date = previous_seq[-1] + timedelta(days=1)
         common_val = 1.23 * np.ones(self.num_seq)
 
         self.response.update(
+            time=new_date,
+            score=common_val,
+            ci_upper=common_val,
+            ci_lower=common_val - 0.1,
+            pred=common_val,
+            anom_mag=common_val,
+            stat_sig=np.zeros(self.num_seq),
+        )
+
+        self.response_min_required.update(
             time=new_date,
             score=common_val,
             ci_upper=common_val,
@@ -988,3 +1100,78 @@ class TestMultivariateAnomalyResponse(TestCase):
         self.assertEqual(
             response_last_n.scores.value.values.tolist(), score_list[-n_val:]
         )
+
+    def test_extend(self) -> None:
+        extension_len = 10
+        shifted_time = self.response.scores.time + (
+            pd.Timedelta(self.response.scores.time[:2].diff()[1].value)
+            * len(self.response.scores.time)
+        )
+        extension = AnomalyResponse(
+            scores=TimeSeriesData(time=shifted_time, value=self.score_ts.value + 0.01)[
+                :extension_len
+            ],
+            confidence_band=ConfidenceBand(
+                upper=TimeSeriesData(
+                    time=shifted_time, value=self.conf_band.upper.value + 0.01
+                )[:extension_len],
+                lower=TimeSeriesData(
+                    time=shifted_time, value=self.conf_band.lower.value - 0.01
+                )[:extension_len],
+            ),
+            predicted_ts=TimeSeriesData(
+                time=shifted_time, value=self.pred_ts.value + 0.01
+            )[:extension_len],
+            anomaly_magnitude_ts=TimeSeriesData(
+                time=shifted_time, value=self.mag_ts.value + 0.01
+            )[:extension_len],
+            stat_sig_ts=TimeSeriesData(
+                time=shifted_time, value=self.stat_sig_ts.value + 0.01
+            )[:extension_len],
+        )
+        extension_min_required = AnomalyResponse(
+            scores=TimeSeriesData(time=shifted_time, value=self.score_ts.value + 0.01)[
+                :extension_len
+            ],
+            confidence_band=None,
+            predicted_ts=None,
+            anomaly_magnitude_ts=TimeSeriesData(
+                time=shifted_time, value=self.mag_ts.value + 0.01
+            )[:extension_len],
+            stat_sig_ts=None,
+        )
+
+        self.response.extend(extension)
+        self.response_min_required.extend(extension_min_required)
+
+        last_n = self.response.get_last_n(extension_len)
+        for attribute in [
+            "scores",
+            "confidence_band.upper",
+            "confidence_band.lower",
+            "predicted_ts",
+            "anomaly_magnitude_ts",
+            "stat_sig_ts",
+        ]:
+            self.assertEqual(
+                attrgetter(attribute)(last_n).value.values.tolist(),
+                attrgetter(attribute)(extension).value.values.tolist(),
+            )
+
+        last_n_min_required = self.response_min_required.get_last_n(extension_len)
+        for attribute in ["scores", "anomaly_magnitude_ts"]:
+            self.assertEqual(
+                attrgetter(attribute)(last_n_min_required).value.values.tolist(),
+                attrgetter(attribute)(extension_min_required).value.values.tolist(),
+            )
+
+    def test_extend_fail_validation(self) -> None:
+        with self.assertRaises(ValueError):
+            self.response.extend(self.response, validate=True)
+
+        # When validate = False, this should succeed
+        self.response_min_required.extend(self.response_min_required, validate=False)
+
+    def test_extend_mismatch(self) -> None:
+        with self.assertRaises(ValueError):
+            self.response.extend(self.response_min_required, validate=False)
