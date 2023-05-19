@@ -680,7 +680,6 @@ class TimeSeriesData:
         Raises:
           ValueError: The frequency and/or dimensions were invalid.
         """
-
         # check the time frequency is constant
         if validate_frequency and pd.infer_freq(self.time_to_index()) is None:
             raise ValueError("Only constant frequency is supported for time!")
