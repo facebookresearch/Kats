@@ -9,7 +9,13 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from kats.consts import DataError, InternalError, ParameterError, TimeSeriesData
+from kats.consts import (
+    DataError,
+    DataInsufficientError,
+    InternalError,
+    ParameterError,
+    TimeSeriesData,
+)
 from kats.detectors.rolling_stats_model import RollingStatsModel
 from parameterized.parameterized import parameterized
 
@@ -146,6 +152,7 @@ class TestRollingStatsModels(TestCase):
     ) -> None:
         ig_ts = generate_irregular_granularity_data(percentage=0.85)
 
+        window_size_points = window_size
         if not point_based:
             window_size *= 60
 
@@ -157,17 +164,18 @@ class TestRollingStatsModels(TestCase):
         )
 
         anom = model.fit_predict(
-            historical_data=ig_ts[:15],
-            data=ig_ts[15:],
+            historical_data=ig_ts[:window_size_points],
+            data=ig_ts[window_size_points:],
         )
         # prediction returns scores of same length
-        self.assertEqual(len(anom.scores), len(ig_ts[15:]))
+        self.assertEqual(len(anom.scores), len(ig_ts[window_size_points:]))
 
         model1 = RollingStatsModel(
             rolling_window=window_size,
             statistics=score_func,
             remove_seasonality=remove_seasonality,
             point_based=point_based,
+            allow_expanding_window=True,
         )
 
         anom1 = model1.fit_predict(
@@ -205,6 +213,7 @@ class TestRollingStatsModels(TestCase):
     ) -> None:
         ig_ts = generate_data_with_individual_missing_datapoints()
 
+        window_size_points = window_size
         if not point_based:
             window_size *= 60
 
@@ -216,17 +225,18 @@ class TestRollingStatsModels(TestCase):
         )
 
         anom = model.fit_predict(
-            historical_data=ig_ts[:15],
-            data=ig_ts[15:],
+            historical_data=ig_ts[:window_size_points],
+            data=ig_ts[window_size_points:],
         )
         # prediction returns scores of same length
-        self.assertEqual(len(anom.scores), len(ig_ts[15:]))
+        self.assertEqual(len(anom.scores), len(ig_ts[window_size_points:]))
 
         model1 = RollingStatsModel(
             rolling_window=window_size,
             statistics=score_func,
             remove_seasonality=remove_seasonality,
             point_based=point_based,
+            allow_expanding_window=True,
         )
 
         anom1 = model1.fit_predict(
@@ -264,6 +274,7 @@ class TestRollingStatsModels(TestCase):
     ) -> None:
         ig_ts = generate_data_with_sudden_granularity_changes()
 
+        window_size_points = window_size
         if not point_based:
             window_size *= 3600
 
@@ -275,17 +286,18 @@ class TestRollingStatsModels(TestCase):
         )
 
         anom = model.fit_predict(
-            historical_data=ig_ts[:15],
-            data=ig_ts[15:],
+            historical_data=ig_ts[:window_size_points],
+            data=ig_ts[window_size_points:],
         )
         # prediction returns scores of same length
-        self.assertEqual(len(anom.scores), len(ig_ts[15:]))
+        self.assertEqual(len(anom.scores), len(ig_ts[window_size_points:]))
 
         model1 = RollingStatsModel(
             rolling_window=window_size,
             statistics=score_func,
             remove_seasonality=remove_seasonality,
             point_based=point_based,
+            allow_expanding_window=True,
         )
 
         anom1 = model1.fit_predict(
@@ -322,7 +334,7 @@ class TestRollingStatsModels(TestCase):
         ts = generate_ts_data(length=10)
 
         if not point_based:
-            window_size *= 3600
+            window_size *= 60
 
         model = RollingStatsModel(
             rolling_window=window_size,
@@ -346,13 +358,13 @@ class TestRollingStatsModels(TestCase):
             statistics="mad",
             point_based=True,
         )
-        s = model.fit_predict(historical_data=ts[:15], data=ts[15:]).scores
+        s = model.fit_predict(historical_data=ts[:10], data=ts[10:]).scores
         model2 = RollingStatsModel(
             rolling_window=600,
             statistics="mad",
             point_based=False,
         )
-        s2 = model2.fit_predict(historical_data=ts[:15], data=ts[15:]).scores
+        s2 = model2.fit_predict(historical_data=ts[:10], data=ts[10:]).scores
         self.assertTrue(
             np.array_equal(
                 np.round(s.value.values, 5),
@@ -366,11 +378,13 @@ class TestRollingStatsModels(TestCase):
         model = RollingStatsModel(
             rolling_window=10,
             point_based=True,
+            allow_expanding_window=True,
         )
         s = model.fit_predict(data=ts).scores
         model2 = RollingStatsModel(
             rolling_window=600,
             point_based=False,
+            allow_expanding_window=True,
         )
         s2 = model2.fit_predict(data=ts).scores
         self.assertTrue(
@@ -417,3 +431,31 @@ class TestRollingStatsModelsError(TestCase):
 
         with self.assertRaises(DataError):
             _ = model.fit_predict(data=self.ts, historical_data=self.multi_ts)
+
+    # pyre-ignore[56]
+    @parameterized.expand(
+        [
+            # score func, rolling_window
+            ("z_score", 9),
+            ("mad", 10),
+            ("iqr", 10),
+            ("modified_z_score_mad", 9),
+            ("modified_z_score_iqr", 9),
+            ("iqr_median_deviation", 9),
+        ]
+    )
+    def test_insufficient_data_error(
+        self,
+        score_func: str,
+        window_size: int,
+    ) -> None:
+        model = RollingStatsModel(
+            rolling_window=10,
+            point_based=True,
+            allow_expanding_window=False,
+        )
+        with self.assertRaises(DataInsufficientError):
+            _ = model.fit_predict(data=self.ts)
+
+        with self.assertRaises(DataInsufficientError):
+            _ = model.fit_predict(data=self.ts[9:], historical_data=self.ts[:9])

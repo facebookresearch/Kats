@@ -11,7 +11,13 @@ from typing import Any, Callable, Dict, Optional, Set, Union
 
 import numpy as np
 import pandas as pd
-from kats.consts import DataError, InternalError, ParameterError, TimeSeriesData
+from kats.consts import (
+    DataError,
+    DataInsufficientError,
+    InternalError,
+    ParameterError,
+    TimeSeriesData,
+)
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
 
@@ -189,6 +195,9 @@ class RollingStatsModel(DetectorModel):
         seasonality_period: str = "daily". Seasonality period for seasonality decomposition.
         score_base: float = 1.0. For modified z scores. Multiplier for the denominator.
         iqr_base: float. Default is 1.5. 1.5XIQR rule for outlier detection.
+        allow_expanding_window: bool = False. If True, when less than the rolling window of data is
+            available, use an expanding window (up to the rolling window) to compute the stats.
+            If False, raise an exception in this case. Only applies when point_based is True.
 
     Example:
     >>> model = RollingStatsModel(
@@ -211,6 +220,7 @@ class RollingStatsModel(DetectorModel):
         seasonality_period: str = "daily",
         score_base: float = 1.0,
         iqr_base: float = 1.5,
+        allow_expanding_window: bool = False,
     ) -> None:
         if serialized_model:
             previous_model = json.loads(serialized_model)
@@ -221,6 +231,7 @@ class RollingStatsModel(DetectorModel):
             self.seasonality_period: str = previous_model["seasonality_period"]
             self.score_base: float = previous_model["score_base"]
             self.iqr_base: float = previous_model["iqr_base"]
+            self.allow_expanding_window: bool = previous_model["allow_expanding_window"]
 
         else:
             self.rolling_window: int = rolling_window
@@ -234,13 +245,14 @@ class RollingStatsModel(DetectorModel):
                 else:
                     self.statistics: RollStatsFunction = DEFAULT_STATS_SCORE_FUNCTION
                     _log.info(
-                        "Invalid Statstics name. Using default score function: z_score."
+                        "Invalid statstics name. Using default score function: z_score."
                     )
             else:
                 self.statistics: RollStatsFunction = statistics
 
             self.remove_seasonality: bool = remove_seasonality
             self.point_based: bool = point_based
+            self.allow_expanding_window = allow_expanding_window
 
             if seasonality_period not in SEASON_PERIOD_SUPPORTED:
                 raise ParameterError(
@@ -266,7 +278,7 @@ class RollingStatsModel(DetectorModel):
 
     def serialize(self) -> bytes:
         """
-        Retrun serilized model.
+        Return serialized model.
         """
         return str.encode(json.dumps(self.__dict__))
 
@@ -299,12 +311,25 @@ class RollingStatsModel(DetectorModel):
         data_interp: TimeSeriesData,
         n_points_hist_data: int,
     ) -> AnomalyResponse:
+        """
+        Params:
+            data_interp: The data on which to compute the stats
+            n_point_hist_data: How many points from the original data were historical
+                data. Used to keep track of how many points need to be scored since
+                historical_data and data are merged in fit_predict().
+        """
         if self.extend_rolling_window:
             rolling_window = self.rolling_window
         else:
             rolling_window = self.rolling_window - 1
 
-        if n_points_hist_data <= rolling_window:
+        if n_points_hist_data < rolling_window:
+            if not self.allow_expanding_window:
+                raise DataInsufficientError(
+                    f"{n_points_hist_data} vs. {rolling_window}. "
+                    "Insufficient historical data provided! Either decrease the "
+                    "rolling_window parameter or increase the history window."
+                )
             data_value = data_interp.value.values
             reorg_data = self._point_based_vectorized_data(
                 np.concatenate(
@@ -312,7 +337,7 @@ class RollingStatsModel(DetectorModel):
                         np.nan * np.zeros(rolling_window - n_points_hist_data),
                         data_value,
                     ],
-                    0,
+                    axis=0,
                 )
             )
         else:
@@ -356,12 +381,12 @@ class RollingStatsModel(DetectorModel):
     ) -> AnomalyResponse:
         if not data.is_univariate():
             raise DataError(
-                "Multiple time series not supported for Rolling-Stats algorithm."
+                "Multiple time series not supported for RollingStats algorithm."
             )
 
         if historical_data and not historical_data.is_univariate():
             raise DataError(
-                "Multiple time series not supported for Rolling-Stats algorithm."
+                "Multiple time series not supported for RollingStats algorithm."
             )
 
         # pull all the data in historical data
