@@ -11,12 +11,13 @@ import numpy as np
 import pandas as pd
 from kats.consts import (
     DataError,
+    DataInsufficientError,
     DataIrregularGranularityError,
     InternalError,
     ParameterError,
     TimeSeriesData,
 )
-from kats.detectors.density_distance_model import DensityDistanceModel
+from kats.detectors.distribution_distance_model import DistributionDistanceModel
 from parameterized.parameterized import parameterized
 
 
@@ -133,11 +134,11 @@ def generate_irregular_granularity_data(
     return ts
 
 
-class TestDensityDistanceModels(TestCase):
+class TestDistributionDistanceModels(TestCase):
     # pyre-ignore
     @parameterized.expand(
         [
-            # distance_metric, window_size
+            # distance_metric, window_size_sec
             ("braycurtis", 3600),
             ("canberra", 3600),
             ("chebyshev", 3600),
@@ -162,14 +163,14 @@ class TestDensityDistanceModels(TestCase):
     def test_regular_granularity_data(
         self,
         distance_metric: str,
-        window_size: int,
+        window_size_sec: int,
     ) -> None:
         ig_ts = generate_multi_ts_data()
 
         # case 1: historical data is not none, but can not cover window size
-        model = DensityDistanceModel(
+        model = DistributionDistanceModel(
             distance_metric=distance_metric,
-            window_size=window_size,
+            window_size_sec=window_size_sec,
         )
 
         anom = model.fit_predict(
@@ -179,26 +180,26 @@ class TestDensityDistanceModels(TestCase):
         # prediction returns scores of same length
         self.assertEqual(len(anom.scores), len(ig_ts[15:]))
         # 0.9 is the tolerance fraction
-        n = int(window_size / 60 * 0.9 - 1 - 15)
+        n = int(window_size_sec / 60 * 0.9 - 1 - 15)
         self.assertEqual(anom.scores.value.iloc[:n].sum(), 0)
 
         # case 2: no historical data
-        model1 = DensityDistanceModel(
+        model1 = DistributionDistanceModel(
             distance_metric=distance_metric,
-            window_size=window_size,
+            window_size_sec=window_size_sec,
         )
 
         anom1 = model1.fit_predict(data=ig_ts)
         # prediction returns scores of same length
         self.assertEqual(len(anom1.scores), len(ig_ts))
         # 0.9 is the tolerance fraction
-        n = int(window_size / 60 * 0.9 - 1 - 0)
+        n = int(window_size_sec / 60 * 0.9 - 1 - 0)
         self.assertEqual(anom1.scores.value.iloc[:n].sum(), 0)
 
         # case 3: historical data is not none, and can cover window size
-        model2 = DensityDistanceModel(
+        model2 = DistributionDistanceModel(
             distance_metric=distance_metric,
-            window_size=window_size,
+            window_size_sec=window_size_sec,
         )
 
         anom2 = model2.fit_predict(
@@ -211,7 +212,7 @@ class TestDensityDistanceModels(TestCase):
     # pyre-ignore
     @parameterized.expand(
         [
-            # distance_metric, window_size
+            # distance_metric, window_size_sec
             ("braycurtis", 3600),
             ("canberra", 3600),
             ("chebyshev", 3600),
@@ -236,13 +237,13 @@ class TestDensityDistanceModels(TestCase):
     def test_data_with_individual_missing_datapoints(
         self,
         distance_metric: str,
-        window_size: int,
+        window_size_sec: int,
     ) -> None:
         ig_ts = generate_data_with_individual_missing_datapoints()
 
-        model = DensityDistanceModel(
+        model = DistributionDistanceModel(
             distance_metric=distance_metric,
-            window_size=window_size,
+            window_size_sec=window_size_sec,
         )
 
         anom = model.fit_predict(
@@ -252,9 +253,9 @@ class TestDensityDistanceModels(TestCase):
         # prediction returns scores of same length
         self.assertEqual(len(anom.scores), len(ig_ts[15:]))
 
-        model1 = DensityDistanceModel(
+        model1 = DistributionDistanceModel(
             distance_metric=distance_metric,
-            window_size=window_size,
+            window_size_sec=window_size_sec,
         )
 
         anom1 = model1.fit_predict(data=ig_ts)
@@ -264,7 +265,7 @@ class TestDensityDistanceModels(TestCase):
     # pyre-ignore
     @parameterized.expand(
         [
-            # distance_metric, window_size
+            # distance_metric, window_size_sec
             ("braycurtis", 3600),
             ("canberra", 3600),
             ("chebyshev", 3600),
@@ -279,13 +280,13 @@ class TestDensityDistanceModels(TestCase):
     def test_irregular_granularity_data(
         self,
         distance_metric: str,
-        window_size: int,
+        window_size_sec: int,
     ) -> None:
         ig_ts = generate_irregular_granularity_data(percentage=0.8, seed=3)
 
-        model = DensityDistanceModel(
+        model = DistributionDistanceModel(
             distance_metric=distance_metric,
-            window_size=window_size,
+            window_size_sec=window_size_sec,
         )
 
         anom = model.fit_predict(
@@ -295,9 +296,9 @@ class TestDensityDistanceModels(TestCase):
         # prediction returns scores of same length
         self.assertEqual(len(anom.scores), len(ig_ts[15:]))
 
-        model1 = DensityDistanceModel(
+        model1 = DistributionDistanceModel(
             distance_metric=distance_metric,
-            window_size=window_size,
+            window_size_sec=window_size_sec,
         )
 
         anom1 = model1.fit_predict(data=ig_ts)
@@ -305,7 +306,7 @@ class TestDensityDistanceModels(TestCase):
         self.assertEqual(len(anom1.scores), len(ig_ts))
 
 
-class TestDensityDistanceModelError(TestCase):
+class TestDistributionDistanceModelError(TestCase):
     def setUp(self) -> None:
         self.multi_ts = generate_multi_ts_data()
         self.ts = TimeSeriesData(
@@ -321,14 +322,14 @@ class TestDensityDistanceModelError(TestCase):
 
     def test_metric_error(self) -> None:
         with self.assertRaises(ParameterError):
-            _ = DensityDistanceModel(
+            _ = DistributionDistanceModel(
                 distance_metric="two_sum",
-                window_size=100,
+                window_size_sec=100,
             )
 
     def test_data_error(self) -> None:
-        model = DensityDistanceModel(
-            window_size=3600,
+        model = DistributionDistanceModel(
+            window_size_sec=3600,
         )
 
         # This algorithm is supporting multivariate time series data only.
@@ -345,9 +346,23 @@ class TestDensityDistanceModelError(TestCase):
         with self.assertRaises(DataError):
             _ = model.fit_predict(data=self.ts_random)
 
+    def test_data_insufficient_error(
+        self,
+    ) -> None:
+        # case 1: historical data and data together are < window size
+        model = DistributionDistanceModel(
+            window_size_sec=3600,
+        )
+
+        with self.assertRaises(DataInsufficientError):
+            _ = model.fit_predict(
+                historical_data=self.multi_ts[:15],
+                data=self.multi_ts[15:30],
+            )
+
     def test_internal_error(self) -> None:
-        model = DensityDistanceModel(
-            window_size=3600,
+        model = DistributionDistanceModel(
+            window_size_sec=3600,
         )
 
         with self.assertRaises(InternalError):
@@ -357,23 +372,23 @@ class TestDensityDistanceModelError(TestCase):
             _ = model.predict(data=self.ts)
 
     def test_data_irregular_granularity_error(self) -> None:
-        for distance_metric, window_size in [
+        for distance_metric, window_size_sec in [
             ("euclidean", 3600),
             ("jensenshannon", 3600),
         ]:
             ig_ts = generate_data_with_sudden_granularity_changes()
-            model = DensityDistanceModel(
+            model = DistributionDistanceModel(
                 distance_metric=distance_metric,
-                window_size=window_size,
+                window_size_sec=window_size_sec,
             )
             with self.assertRaises(DataIrregularGranularityError):
                 _ = model.fit_predict(
                     historical_data=ig_ts[:15],
                     data=ig_ts[15:],
                 )
-            model1 = DensityDistanceModel(
+            model1 = DistributionDistanceModel(
                 distance_metric=distance_metric,
-                window_size=window_size,
+                window_size_sec=window_size_sec,
             )
             with self.assertRaises(DataIrregularGranularityError):
                 _ = model1.fit_predict(data=ig_ts)
