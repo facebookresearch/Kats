@@ -45,7 +45,24 @@ MINIMAL_KATS=1 pip install kats
 which omits many dependencies (everything in `test_requirements.txt`).
 However, this will disable many functionalities and cause `import kats` to log
 warnings. See `setup.py` for full details and options.
+## Installation working on windows [updated on 22 May 2023]
+Create conda environment in a particular directory
 
+    conda create --prefix ./env python=3.7
+
+Install fbprophet
+
+    conda install -c conda-forge fbprophet
+
+Install Kats
+
+    pip install kats
+
+Downgrade Packaging to 21.3 using **Anaconda Navigator**
+
+Change the line 178 in the site-packages\holidays\registry.py file in conda environment 
+from super().init(*args, *kwargs) to super().init() 
+Note : Sometime it requires to downgrade pandas to 1.3.0 
 ## Examples
 
 Here are a few sample snippets from a subset of Kats offerings:
