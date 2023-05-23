@@ -13,4 +13,5 @@ setuptools-git>=1.2
 statsmodels==0.12.2
 lightgbm>=2.3.0
 numba>=0.55.0
+holidays==0.23
 typing-extensions; python_version < '3.8'
