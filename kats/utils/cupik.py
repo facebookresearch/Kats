@@ -118,8 +118,10 @@ class Pipeline:
                 logging.error(msg)
                 raise ValueError(msg)
             s.data.time = pd.to_datetime(s.data.time)
+            # pyre-fixme[16]: `Step` has no attribute `__subtype__`.
             if s.__subtype__ == "outlier":
                 extra_params["pipe"] = True
+            # pyre-fixme[16]: `Step` has no attribute `detector`.
             metadata.append(s.detector(**extra_params))
             if (
                 self.remove and s.__subtype__ == "outlier"
