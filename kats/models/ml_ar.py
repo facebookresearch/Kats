@@ -714,7 +714,7 @@ class MLARModel:
         return all_norm_in_data_dict, all_norm_out_data_dict, all_col_names
 
     def _generate_auto_calendar_feature(self, freq: Optional[str]) -> List[str]:
-        """Generate default calender featureas based on data frequency."""
+        """Generate default calendar featureas based on data frequency."""
         calendar_features = []
         if freq == "Q":
             calendar_features = ["year"]
@@ -1363,6 +1363,9 @@ class MLARModel:
                         curr_series
                     ].combine_first(fcr[curr_series])
                     forecast_result[curr_series].reset_index(inplace=True, drop=False)
+                    forecast_result[curr_series] = forecast_result[
+                        curr_series
+                    ].drop_duplicates()
 
                 horizons = np.union1d(
                     horizons, np.array(self.params.horizon) + i * cont_steps_in_hor
