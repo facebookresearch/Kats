@@ -1174,6 +1174,12 @@ class IntervalAnomaly:
         self.start: pd.Timestamp = start
         self.end: pd.Timestamp = end
 
+    def __str__(self) -> str:
+        return f"IntervalAnomaly(start: {self.start}, end: {self.end})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
     @property
     def second_len(self) -> int:
         return (self.end - self.start) / np.timedelta64(1, "s")
