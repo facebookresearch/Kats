@@ -423,7 +423,7 @@ class GMBackTester:
             tmp = bt_test_valid_TSs[k].value.values
             tmp_step = len(tmp) // fcst_window + int(len(tmp) % fcst_window != 0)
             tmp_fcst_step = fcst_window * tmp_step
-            actuals = np.full(tmp_fcst_step, np.nan, np.float)
+            actuals = np.full(tmp_fcst_step, np.nan, float)
             actuals[: len(tmp)] = tmp
             for j in range(tmp_step):
                 tmp_actuals = actuals[j * fcst_window : (j + 1) * fcst_window]

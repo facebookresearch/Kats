@@ -926,7 +926,7 @@ class GMModel:
             tmp = test_valid_TSs[k].value.values
             tmp_step = len(tmp) // fcst_window + int(len(tmp) % fcst_window != 0)
             tmp_fcst_length = tmp_step * fcst_window
-            actuals = np.full(tmp_fcst_length, np.nan, np.float)
+            actuals = np.full(tmp_fcst_length, np.nan, float)
             actuals[: len(tmp)] = tmp
             for j in range(tmp_step):
                 tmp_actuals = actuals[j * fcst_window : (j + 1) * fcst_window]

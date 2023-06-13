@@ -146,7 +146,7 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
         """
         # convert to days since epoch
         t = (
-            np.array((dates - datetime(1970, 1, 1)).dt.total_seconds().astype(np.float))
+            np.array((dates - datetime(1970, 1, 1)).dt.total_seconds().astype(float))
             / 3600.0
         )
         return np.column_stack(
