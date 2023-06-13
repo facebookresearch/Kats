@@ -55,7 +55,7 @@ class NeuralProphetParams(Params):
           changepoints: A list of dates at which to include potential changepoints.
               If not specified, potential changepoints are selected automatically.
               data format: list of str, list of np.datetimes, np.array of np.datetimes
-              (not np.array of np.str)
+              (not np.array of str)
           n_changepoints: Number of potential changepoints to include.
               Changepoints are selected uniformly from the first `changepoints_range`
               proportion of the history.
