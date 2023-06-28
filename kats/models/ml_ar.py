@@ -70,7 +70,7 @@ def normalize(
 
 
 def denormalize(
-    x: pd.DataFrame,
+    x: Union[pd.DataFrame, pd.Series],
     normalizer: pd.Series,
     normalizer2: Optional[pd.Series] = None,
     use_default_min: bool = False,
@@ -1003,7 +1003,7 @@ class MLARModel:
 
         for curr_series_name in curr_all_series:
 
-            logging.info(f"Current time series to be preprocessed: {curr_series_name}")
+            # logging.info(f"Current time series to be preprocessed: {curr_series_name}")
 
             (
                 norm_in_data,
@@ -1019,7 +1019,7 @@ class MLARModel:
 
             emb_fut_cov = self._embed_future_cov(curr_all_series[curr_series_name])
 
-            logging.info("_embed_and_gen_past_features_single_series finished")
+            # logging.info("_embed_and_gen_past_features_single_series finished")
 
             in_data, meta_data, add_col_names = self._merge_past_and_future_reg(
                 norm_in_data,
@@ -1122,7 +1122,7 @@ class MLARModel:
                 normalizer2 = None
 
             self.train_data.loc[:, "forecast"] = denormalize(
-                self.train_data[["forecast"]],
+                self.train_data["forecast"],
                 self.train_data["normalizer"],
                 normalizer2,
                 use_default_min=self.params.use_default_min,
@@ -1139,7 +1139,14 @@ class MLARModel:
                 "train sMAPE: "
                 + str(
                     smape(
-                        self.train_data["output"].values,
+                        denormalize(
+                            self.train_data["output"],
+                            self.train_data["normalizer"],
+                            normalizer2,
+                            use_default_min=self.params.use_default_min,
+                            default_min=self.params.default_min,
+                            sub_div=self.params.sub_div,
+                        ).values,
                         self.train_data["forecast"].values,
                     )
                 )
