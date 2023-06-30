@@ -1120,7 +1120,6 @@ class GMModel:
 
             if training_mode or is_valid:
 
-                # pyre-fixme
                 encoder.prepare_decoder(decoder)
                 encoder_step = (
                     batch.training_encoder_step_num
