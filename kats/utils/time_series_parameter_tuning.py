@@ -15,6 +15,7 @@ such as a factory that creates search strategy objects.
   >>> a_search_strategy = tspt.SearchMethodFactory.create_search_method(...)
 """
 
+import copy
 import logging
 import math
 import time
@@ -204,7 +205,7 @@ class TimeSeriesEvaluationMetric(Metric):
         try:
             if self.multiprocessing:
                 with Pool(processes=min(len(trial.arms), MAX_NUM_PROCESSES)) as pool:
-                    records = pool.map(self.evaluate_arm, trial.arms)
+                    records = pool.map(copy.deepcopy(self.evaluate_arm), trial.arms)
                     pool.close()
             else:
                 records = list(map(self.evaluate_arm, trial.arms))
