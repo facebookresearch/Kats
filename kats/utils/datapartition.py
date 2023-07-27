@@ -65,7 +65,7 @@ class DataPartitionBase(ABC):
             elif isinstance(max_core, int) and max_core > 0 and max_core < total_cores:
                 self.max_core = max_core
             elif isinstance(max_core, int) and max_core > total_cores:
-                logging.warn(
+                logging.warning(
                     f"`max_core` is larger than maximum available cores ({total_cores}) and sets `max_core = {total_cores}`."
                 )
             else:
