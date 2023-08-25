@@ -86,7 +86,7 @@ def metadata_detect_preprocessor(
     return table
 
 
-class MetaDetectModelSelect(object):
+class MetaDetectModelSelect:
     """
     Meta-learner framework on detection model selection.
     This framework uses classification algorithms to recommend suitable detection models.

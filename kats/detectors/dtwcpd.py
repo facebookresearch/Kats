@@ -71,7 +71,7 @@ class DTWTimeSeriesTooSmallException(Exception):
 
 
 @dataclass
-class DTWSubsequenceMatch(object):
+class DTWSubsequenceMatch:
     matching_ts_name: str
     matching_ts_index: int
     matched_ts_name: str
