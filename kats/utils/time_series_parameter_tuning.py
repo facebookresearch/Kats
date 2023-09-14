@@ -113,6 +113,7 @@ class TimeSeriesEvaluationMetric(Metric):
         evaluation_function: The name of the function to be used in evaluation.
         logger: the logger object to log.
         multiprocessing: Flag to decide whether evaluation will run in parallel.
+        NOTE: if multiprocessing turned on we expect, that evalution_function will be immutable or serializable to support multiprocessing
 
 
     """
@@ -205,7 +206,14 @@ class TimeSeriesEvaluationMetric(Metric):
         try:
             if self.multiprocessing:
                 with Pool(processes=min(len(trial.arms), MAX_NUM_PROCESSES)) as pool:
-                    records = pool.map(copy.deepcopy(self.evaluate_arm), trial.arms)
+                    try:
+                        evaluate_arm_for_thread = copy.deepcopy(self.evaluate_arm)
+                    except Exception as e:
+                        evaluate_arm_for_thread = self.evaluate_arm
+                        self.logger.warning(
+                            f"Unable to copy evaluation object with exception {e} multiprocessing pool."
+                        )
+                    records = pool.map(evaluate_arm_for_thread, trial.arms)
                     pool.close()
             else:
                 records = list(map(self.evaluate_arm, trial.arms))
