@@ -289,6 +289,15 @@ class SeasonalityHandler:
     >>> sh.remove_seasonality()
     """
 
+    PERIOD_MAP: Dict[str, int] = {
+        "hourly": 1,
+        "daily": 24,
+        "weekly": 7 * 24,
+        "biweekly": 14 * 24,
+        "monthly": 30 * 24,
+        "yearly": 365 * 24,
+    }
+
     def __init__(
         self,
         data: TimeSeriesData,
@@ -303,19 +312,11 @@ class SeasonalityHandler:
 
         self.data = data
 
-        _map = {
-            "hourly": 1,
-            "daily": 24,
-            "weekly": 7 * 24,
-            "biweekly": 14 * 24,
-            "monthly": 30 * 24,
-            "yearly": 365 * 24,
-        }
-        if seasonal_period not in _map:
+        if seasonal_period not in SeasonalityHandler.PERIOD_MAP:
             msg = "Invalid seasonal_period, possible values are 'hourly', 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
             logging.error(msg)
             raise ParameterError(msg)
-        self.seasonal_period: int = _map[seasonal_period]
+        self.seasonal_period: int = SeasonalityHandler.PERIOD_MAP[seasonal_period]
 
         self.low_pass_jump_factor: float = kwargs.get("lpj_factor", 0.15)
         self.trend_jump_factor: float = kwargs.get("tj_factor", 0.15)
