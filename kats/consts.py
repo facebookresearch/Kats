@@ -254,7 +254,7 @@ class TimeSeriesData:
             if df.empty:
                 self._time = pd.Series([], name=time_col_name, dtype=float)
                 self._value = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
-                logging.warning("Initializing empty TimeSeriesData object")
+                logging.info("Initializing empty TimeSeriesData object")
             # Otherwise initialize TimeSeriesData from DataFrame
             else:
                 # Ensuring time column is present in DataFrame
@@ -363,7 +363,7 @@ class TimeSeriesData:
         elif not time and not value:
             self._time = pd.Series([], name=time_col_name)
             self._value = pd.Series([], name=DEFAULT_VALUE_NAME)
-            logging.warning("Initializing empty TimeSeriesData object")
+            logging.info("Initializing empty TimeSeriesData object")
 
         # Error if only one of time or value is None
         else:
