@@ -21,6 +21,7 @@ import math
 import time
 import uuid
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from functools import reduce
 from multiprocessing import cpu_count
 from multiprocessing.pool import Pool
@@ -35,15 +36,18 @@ from ax.core.metric import Metric, MetricFetchE, MetricFetchResult
 from ax.core.objective import Objective
 from ax.core.outcome_constraint import OutcomeConstraint
 from ax.core.trial import BaseTrial
+from ax.global_stopping.strategies.improvement import ImprovementGlobalStoppingStrategy
 from ax.modelbridge.discrete import DiscreteModelBridge
+from ax.modelbridge.dispatch_utils import choose_generation_strategy
 from ax.modelbridge.registry import Models
 from ax.runners.synthetic import SyntheticRunner
+from ax.service.scheduler import Scheduler, SchedulerOptions
 from ax.service.utils.instantiation import InstantiationBase
 from ax.utils.common.result import Err, Ok
 from kats.consts import SearchMethodEnum
 
 # Maximum number of worker processes used to evaluate trial arms in parallel
-MAX_NUM_PROCESSES = 50
+MAX_NUM_PROCESSES = 150
 
 
 def compute_search_cardinality(params_space: List[Dict[str, Any]]) -> float:
@@ -113,7 +117,7 @@ class TimeSeriesEvaluationMetric(Metric):
     Attributes:
         evaluation_function: The name of the function to be used in evaluation.
         logger: the logger object to log.
-        multiprocessing: Flag to decide whether evaluation will run in parallel.
+        multiprocessing: Flag to decide whether evaluation will run in parallel, or if it's int -1 - use max number of cores, 0 - single process, positive number - max number of cores
         NOTE: if multiprocessing turned on we expect, that evalution_function will be immutable or serializable to support multiprocessing
 
 
@@ -125,12 +129,14 @@ class TimeSeriesEvaluationMetric(Metric):
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         evaluation_function: Callable,
         logger: logging.Logger,
-        multiprocessing: bool = False,
+        multiprocessing: Union[bool, int] = False,
     ) -> None:
         super().__init__(name)
         self.evaluation_function = evaluation_function
         self.logger = logger
         self.multiprocessing = multiprocessing
+        if type(multiprocessing) is bool:
+            self.multiprocessing = -1 if multiprocessing else 0
 
     @classmethod
     def is_available_while_running(cls) -> bool:
@@ -141,14 +147,14 @@ class TimeSeriesEvaluationMetric(Metric):
         return True
 
     # pyre-fixme[2]: Parameter must be annotated.
-    # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
-    #  `typing.Dict` to avoid runtime subscripting errors.
+    # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use `typing.Dict` to avoid runtime subscripting errors.
     def evaluate_arm(self, arm) -> Dict:
         """Evaluates the performance of an arm.
 
         Takes an arm object, gets its parameter values, runs
         evaluation_function and returns what that function returns
         after reformatting it.
+        Contains this is arm level parallelization
 
         Args:
             arm: The arm object to be evaluated.
@@ -194,6 +200,7 @@ class TimeSeriesEvaluationMetric(Metric):
             "sem": evaluation_result[1],
         }
 
+    # This is arm level parallelization incomatible with trial level parallelization, used in Random and GRID searches
     def fetch_trial_data(self, trial: BaseTrial, **kwargs: Any) -> MetricFetchResult:
         """Calls evaluation of every arm in a trial.
 
@@ -205,16 +212,23 @@ class TimeSeriesEvaluationMetric(Metric):
         """
 
         try:
-            if self.multiprocessing:
-                with Pool(processes=min(len(trial.arms), MAX_NUM_PROCESSES)) as pool:
+            max_processes = (
+                MAX_NUM_PROCESSES if self.multiprocessing < 0 else self.multiprocessing
+            )  # to avoid all problems with negative values we count the max number of processes
+
+            max_processes = min(len(trial.arms), max_processes, cpu_count())
+
+            if self.multiprocessing and max_processes > 1:
+                with Pool(
+                    processes=min(len(trial.arms), max_processes, cpu_count())
+                ) as pool:
                     try:
-                        evaluate_arm_for_thread = copy.deepcopy(self.evaluate_arm)
+                        records = pool.map(self.evaluate_arm, trial.arms)
                     except Exception as e:
-                        evaluate_arm_for_thread = self.evaluate_arm
                         self.logger.warning(
-                            f"Unable to copy evaluation object with exception {e} multiprocessing pool."
+                            f"Unable to evaluate function in multiprocessing mode with exception {e} multiprocessing pool. Trying to copy across threads and run agin"
                         )
-                    records = pool.map(evaluate_arm_for_thread, trial.arms)
+                        records = pool.map(copy.deepcopy(self.evaluate_arm), trial.arms)
                     pool.close()
             else:
                 records = list(map(self.evaluate_arm, trial.arms))
@@ -294,7 +308,8 @@ class TimeSeriesParameterTuning(ABC):
         experiment_name: Optional[str] = None,
         objective_name: Optional[str] = None,
         outcome_constraints: Optional[List[str]] = None,
-        multiprocessing: bool = False,
+        multiprocessing: Union[bool, int] = False,
+        experiment: Optional[Experiment] = None,
     ) -> None:
         if parameters is None:
             parameters = [{}]
@@ -329,12 +344,18 @@ class TimeSeriesParameterTuning(ABC):
             objective_name if objective_name else f"objective_{self.job_id}"
         )
         self.multiprocessing = multiprocessing
-
-        self._exp = Experiment(
-            name=self.experiment_name,
-            search_space=self._kats_search_space,
-            runner=SyntheticRunner(),
+        if type(multiprocessing) is bool:
+            self.multiprocessing = -1 if multiprocessing else 0
+        self._exp: Experiment = (  # type: ignore
+            experiment
+            if experiment is not None
+            else Experiment(
+                name=self.experiment_name,
+                search_space=self._kats_search_space,
+                runner=SyntheticRunner(),
+            )
         )
+
         self._trial_data = Data()
         self.logger.info("Experiment is created.")
 
@@ -493,8 +514,7 @@ class TimeSeriesParameterTuning(ABC):
             "_".join(tpl) for tpl in new_cols[2:]
         ]
         transform["parameters"] = parameters_holder
-        # pyre-fixme[7]: Expected `DataFrame` but got `Union[DataFrame, Series]`.
-        return transform
+        return transform  # type: ignore
 
     def list_parameter_value_scores(
         self, legit_arms_only: bool = False
@@ -577,6 +597,15 @@ class TimeSeriesParameterTuning(ABC):
         return armscore_df
 
 
+@dataclass
+class SearchMethodOptions:
+    experiment_name: Optional[str] = None
+    objective_name: Optional[str] = "objective"
+    outcome_constraints: Optional[List[str]] = None
+    multiprocessing: Union[bool, int] = False
+    seed: Optional[int] = None
+
+
 class SearchMethodFactory(metaclass=Final):
     """Generates and returns  search strategy object."""
 
@@ -599,6 +628,8 @@ class SearchMethodFactory(metaclass=Final):
         evaluation_function: Optional[Callable] = None,
         bootstrap_arms_for_bayes_opt: Optional[List[Dict[str, Any]]] = None,
         multiprocessing: bool = False,
+        # option for new interface
+        method_options: Optional[SearchMethodOptions] = None,
     ) -> TimeSeriesParameterTuning:
         """The static method of factory class that creates the search method
         object. It does not require the class to be instantiated.
@@ -666,6 +697,7 @@ class SearchMethodFactory(metaclass=Final):
                 bootstrap_arms_for_bayes_opt=bootstrap_arms_for_bayes_opt,
                 outcome_constraints=outcome_constraints,
                 multiprocessing=multiprocessing,
+                method_options=method_options,  # type: ignore
             )
         else:
             raise NotImplementedError(
@@ -700,7 +732,7 @@ class GridSearch(TimeSeriesParameterTuning):
         experiment_name: Optional[str] = None,
         objective_name: Optional[str] = None,
         outcome_constraints: Optional[List[str]] = None,
-        multiprocessing: bool = False,
+        multiprocessing: Union[bool, int] = False,
         # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
@@ -774,7 +806,7 @@ class RandomSearch(TimeSeriesParameterTuning):
         seed: Optional[int] = None,
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
         outcome_constraints: Optional[List[str]] = None,
-        multiprocessing: bool = False,
+        multiprocessing: Union[bool, int] = False,
         # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
@@ -834,6 +866,19 @@ class RandomSearch(TimeSeriesParameterTuning):
         )
 
 
+@dataclass
+class BayesMethodOptions(SearchMethodOptions):
+    # default parameters for Global stop strategy
+    max_trials: int = 100
+    min_trials: int = 3
+    window_global_stop_size: int = 3
+    experiment: Optional[Experiment] = None
+    timeout_hours: Optional[int] = None  # timeout in hours for optimization
+    improvement_bar: float = 0.02  # imporvement step for gloabl stop strategy, imporvement bar default value sets for f_score func
+    max_initialization_trials: int = 5
+    seed: Optional[int] = None
+
+
 class BayesianOptSearch(TimeSeriesParameterTuning):
     """Bayesian optimization search for hyperparameter tuning.
 
@@ -852,7 +897,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             Name of the objective to be used in Ax's experiment evaluation.
         bootstrap_size: int = 5,
             The number of arms that will be randomly generated to bootstrap the
-            Bayesian optimization.
+            Bayesian optimization. this parameters will be elemnated
         seed: int = None,
             Seed for Ax quasi-random model. If None, then time.time() is set.
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
@@ -862,6 +907,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         outcome_constraints: List[str] = None
             List of constraints defined as strings. Example: ['metric1 >= 0',
             'metric2 < 5]
+
     """
 
     # pyre-fixme[11]: Annotation `BOTORCH` is not defined as a type.
@@ -879,9 +925,13 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
         outcome_constraints: Optional[List[str]] = None,
         multiprocessing: bool = False,
+        method_options: Optional[BayesMethodOptions] = None,
         # pyre-fixme[2]: Parameter must be annotated.
         **kwargs,
     ) -> None:
+        if method_options is not None:
+            self.init_with_options(parameters=parameters, method_options=method_options)
+            return
         super().__init__(
             parameters,
             experiment_name,
@@ -889,6 +939,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             outcome_constraints,
             multiprocessing,
         )
+        self.options: Optional[BayesMethodOptions] = None
         if seed is None:
             seed = int(time.time())
             self.logger.info(
@@ -933,7 +984,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
     def generate_evaluate_new_parameter_values(
         self,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
-        evaluation_function: Callable,
+        evaluation_function: Optional[Callable] = None,
         arm_count: int = 1,
     ) -> None:
         """This method can be called as many times as desired with arm_count in
@@ -946,7 +997,12 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         it is not guaranteed that the candidates will be identical across these
         scenarios. We re-initiate BOTORCH model on each call.
         """
-
+        if self.options is not None:
+            self.generate_evaluate_new_parameter_values_with_options(
+                evaluation_function=evaluation_function, arm_count=arm_count
+            )
+            return
+        assert evaluation_function
         self._bayes_opt_model = Models.BOTORCH(
             experiment=self._exp,
             data=self._trial_data,
@@ -957,6 +1013,114 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             # pyre-fixme[6]: Expected `DiscreteModelBridge` for 2nd param but got
             #  `GeneratorRun`.
             generator_run=model_run,
+        )
+
+    def init_with_options(
+        self,
+        parameters: List[Dict[str, Any]],
+        method_options: BayesMethodOptions,
+    ) -> None:
+        super().__init__(
+            parameters,
+            method_options.experiment_name,
+            method_options.objective_name,
+            method_options.outcome_constraints,
+            method_options.multiprocessing,
+            method_options.experiment,
+        )
+        self.options = method_options
+        if self.options.seed is None:
+            self.options.seed = int(time.time())  # type: ignore
+            self.logger.info(
+                "No seed is given by the user, it will be set by the current time"
+            )
+
+    def generate_evaluate_new_parameter_values_with_options(
+        self,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
+        evaluation_function: Optional[Callable] = None,
+        arm_count: int = 1,
+    ) -> None:
+        """In comparison with other generate_evaluate_new_parameter_values for GRID
+        and RANDOM search, this method use Scheduler in order to manipulate epochs
+        of optimization, and do NOT use generator_run_for_search_method function.
+        """
+
+        options: BayesMethodOptions = self.options  # type: ignore
+        outcome_constraints = self.outcome_constraints
+        self.evaluation_function = evaluation_function
+
+        if self.evaluation_function is not None:
+            if outcome_constraints:
+                # Convert dummy base Metrics to TimeseriesEvaluationMetrics
+                self.outcome_constraints = [
+                    OutcomeConstraint(
+                        TimeSeriesEvaluationMetric(
+                            name=oc.metric.name,
+                            evaluation_function=evaluation_function,  # type: ignore
+                            logger=self.logger,
+                            multiprocessing=self.multiprocessing,
+                        ),
+                        op=oc.op,
+                        bound=oc.bound,
+                        relative=oc.relative,
+                    )
+                    for oc in outcome_constraints
+                ]
+            self._exp.optimization_config = OptimizationConfig(
+                objective=Objective(
+                    metric=TimeSeriesEvaluationMetric(
+                        name=str(options.objective_name),
+                        evaluation_function=self.evaluation_function,
+                        logger=self.logger,
+                        multiprocessing=options.multiprocessing,
+                    ),
+                    minimize=True,
+                ),
+                outcome_constraints=self.outcome_constraints,
+            )
+        else:
+            self.evaluation_function = list(
+                self._exp.optimization_config.metrics.values()  # type: ignore
+            )[0].evaluation_function
+        generation_strategy = choose_generation_strategy(
+            search_space=self._exp.search_space,
+            max_parallelism_cap=min(
+                cpu_count(),
+                options.multiprocessing
+                if options.multiprocessing > 0
+                else options.max_trials,
+            ),
+            # use_batch_trials option somehow on parallel run limits initial number ob trials to 1 ¯\_(ツ)_/¯
+            # use_batch_trials=bool(self.multiprocessing),
+            experiment=self._exp,
+            optimization_config=self._exp.optimization_config,
+            max_initialization_trials=options.max_initialization_trials,
+        )
+
+        stop_strategy = ImprovementGlobalStoppingStrategy(
+            min_trials=options.min_trials,
+            window_size=options.window_global_stop_size,
+            improvement_bar=options.improvement_bar,
+        )
+        scheduler = Scheduler(
+            experiment=self._exp,
+            generation_strategy=generation_strategy,
+            options=SchedulerOptions(
+                global_stopping_strategy=stop_strategy,
+                run_trials_in_batches=bool(options.multiprocessing),
+            ),
+        )
+
+        scheduler.run_n_trials(
+            max_trials=options.max_trials, timeout_hours=options.timeout_hours
+        )
+        res_data = scheduler.experiment.lookup_data()
+        self._trial_data = Data.from_multiple_data(
+            [
+                self._trial_data,
+                res_data,
+            ]
         )
 
 

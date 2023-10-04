@@ -299,8 +299,18 @@ class GridSearchTest(TestCase):
             compute_search_cardinality(my_space_2),
         )
 
+    # this test was to turned off, as bayes initialization took about 5-8 minutes.
     # def test_time_series_parameter_tuning_prophet_bayes_opt(self) -> None:
-    #     random_state = np.random.RandomState(seed=0)
+    #     random_state = RandomState(seed=0)
+    #     prophet_small_grid = [
+    #         {
+    #             "name": "seasonality_prior_scale",
+    #             "type": "choice",
+    #             "value_type": "float",
+    #             "values": [0.01, 10.0],
+    #             "is_ordered": True,
+    #         }
+    #     ]
 
     #     def prophet_evaluation_function(params):
     #         error = random_state.random()
@@ -308,19 +318,23 @@ class GridSearchTest(TestCase):
     #         return error, sem
 
     #     time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
-    #         parameters=ProphetModel.get_parameter_search_space(),
+    #         parameters=prophet_small_grid,
     #         selected_search_method=SearchMethodEnum.BAYES_OPT,
     #         evaluation_function=prophet_evaluation_function,
+    #         bootstrap_size=1
     #         # objective_name='some_objective'
     #     )
-
+    #     # time_series_parameter_tuner.generate_evaluate_new_parameter_values(
+    #     #     evaluation_function=prophet_evaluation_function
+    #     # )
     #     parameter_values_with_scores = (
     #         time_series_parameter_tuner.list_parameter_value_scores()
     #     )
 
     #     self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
-    #     self.assertEqual(len(parameter_values_with_scores.index), 5)
-    #     for _ in range(5):
+
+    #     self.assertGreaterEqual(len(parameter_values_with_scores.index), 1)
+    #     for _ in range(1):
     #         time_series_parameter_tuner.generate_evaluate_new_parameter_values(
     #             evaluation_function=prophet_evaluation_function, arm_count=1
     #         )
@@ -329,7 +343,82 @@ class GridSearchTest(TestCase):
     #     )
     #     # print(f'* * * {parameter_values_with_scores.to_string()}')
     #     self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
-    #     self.assertEqual(len(parameter_values_with_scores.index), 10)
+    #     self.assertGreaterEqual(len(parameter_values_with_scores.index), 2)
+
+    def test_time_series_parameter_tuning_prophet_bayes_opt_scheduler(self) -> None:
+        random_state: RandomState = RandomState(seed=0)
+        #     # pyre-fixme[2]: Parameter must be annotated.
+        def prophet_evaluation_function(params) -> Tuple[float, float]:
+            error: float = random_state.random()
+            sem = 0.0  # standard error of the mean of model's estimation error.
+            return error, sem
+
+        prophet_small_grid = [
+            {
+                "name": "seasonality_prior_scale",
+                "type": "choice",
+                "value_type": "float",
+                "values": [0.01, 0.05, 1, 2, 4, 6, 10.0],
+            }
+        ]
+        min_trials = 2
+        bayesOptions = tpt.BayesMethodOptions(
+            min_trials=min_trials,
+            max_trials=3,
+            window_global_stop_size=1,
+            objective_name="some_objective",
+        )
+        time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
+            parameters=prophet_small_grid,  # for full search: ProphetModel.get_parameter_search_space(),
+            selected_search_method=SearchMethodEnum.BAYES_OPT,
+            evaluation_function=prophet_evaluation_function,
+            method_options=bayesOptions,
+        )
+
+        parameter_values_with_scores = (
+            time_series_parameter_tuner.list_parameter_value_scores()
+        )
+
+        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+        print(f"before {len(parameter_values_with_scores.index)}")
+        time_series_parameter_tuner.generate_evaluate_new_parameter_values(
+            evaluation_function=prophet_evaluation_function, arm_count=1
+        )
+        parameter_values_with_scores = (
+            time_series_parameter_tuner.list_parameter_value_scores()
+        )
+
+        # print(f'* * * {parameter_values_with_scores.to_string()}')
+        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+        self.assertGreaterEqual(len(parameter_values_with_scores.index), min_trials)
+
+        bayesOptions = tpt.BayesMethodOptions(
+            min_trials=min_trials,
+            max_trials=3,
+            window_global_stop_size=1,
+            multiprocessing=5,
+            experiment=time_series_parameter_tuner._exp,
+        )
+        time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
+            parameters=prophet_small_grid,  # for full search: ProphetModel.get_parameter_search_space(),
+            selected_search_method=SearchMethodEnum.BAYES_OPT,
+            evaluation_function=prophet_evaluation_function,
+            method_options=bayesOptions,
+        )
+
+        parameter_values_with_scores = (
+            time_series_parameter_tuner.list_parameter_value_scores()
+        )
+
+        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+        # pyre-ignore
+        time_series_parameter_tuner.generate_evaluate_new_parameter_values(arm_count=1)
+        parameter_values_with_scores = (
+            time_series_parameter_tuner.list_parameter_value_scores()
+        )
+        # print(f'* * * {parameter_values_with_scores.to_string()}')
+        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+        self.assertGreaterEqual(len(parameter_values_with_scores.index), min_trials)
 
     # def test_outcome_constraint_without_filter(self) -> None:
     #     def run_model(x):
