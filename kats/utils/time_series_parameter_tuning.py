@@ -22,6 +22,7 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from functools import reduce
+from multiprocessing import cpu_count
 from multiprocessing.pool import Pool
 from numbers import Number
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -227,6 +228,45 @@ class TimeSeriesEvaluationMetric(Metric):
             return Err(
                 MetricFetchE(message=f"Failed to fetch {self.name}", exception=e)
             )
+
+    # This is grid level parallelization incomatible with arm level parallelization, used in Bayes search
+    def bulk_fetch_experiment_data(
+        self,
+        experiment: Experiment,
+        metrics: List[Metric],
+        trials: Optional[List[BaseTrial]] = None,
+        **kwargs: Any,
+    ) -> Dict[int, Dict[str, MetricFetchResult]]:
+        """Fetch multiple metrics data for multiple trials on an experiment, using
+        instance attributes of the metrics.
+
+        Returns Dict of metric_name => Result
+        Default behavior calls `fetch_trial_data` for each metric.
+        Subclasses should override this to trial data computation for multiple metrics.
+        """
+        trials = list(experiment.trials.values()) if trials is None else trials
+        experiment.validate_trials(trials=trials)
+        trial_indxs = [trial.index for trial in trials if trial.status.expecting_data]
+        trials_records = [
+            (trial, metrics) for trial in trials if trial.status.expecting_data
+        ]
+        max_processes = (
+            MAX_NUM_PROCESSES if self.multiprocessing < 0 else self.multiprocessing
+        )  # to avoid all problems with negative values we count the max number of processes
+        max_processes = min(len(trials_records), max_processes, cpu_count())
+        self.logger.info(
+            f"running bulk_fetch_experiment_data on {len(trials)} trials with  {max_processes} processes."
+        )
+        if max_processes > 1:
+            with Pool(processes=max_processes) as pool:
+                records = pool.starmap(self.bulk_fetch_trial_data, trials_records)
+                pool.close()
+        else:
+            return super().bulk_fetch_experiment_data(
+                experiment=experiment, metrics=metrics, trials=trials, **kwargs
+            )
+        assert len(trial_indxs) == len(records)
+        return {trial_indxs[i]: records[i] for i in range(len(trial_indxs))}
 
 
 class TimeSeriesParameterTuning(ABC):
