@@ -434,7 +434,48 @@ class GridSearchTest(TestCase):
                 "values": [0.01, 0.05, 1, 2, 4, 6, 10.0],
             }
         ]
-        ngOptions = tpt.NevergradOptions(objective_name="some_objective", budget=61)
+        ngOptions = tpt.NevergradOptions(objective_name="some_objective", budget=3)
+        time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
+            parameters=prophet_small_grid,  # for full search: ProphetModel.get_parameter_search_space(),
+            selected_search_method=SearchMethodEnum.NEVERGRAD,
+            evaluation_function=prophet_evaluation_function,
+            method_options=ngOptions,
+        )
+
+        parameter_values_with_scores = (
+            time_series_parameter_tuner.list_parameter_value_scores()
+        )
+
+        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+        time_series_parameter_tuner.generate_evaluate_new_parameter_values(
+            evaluation_function=prophet_evaluation_function, arm_count=1
+        )
+        parameter_values_with_scores = (
+            time_series_parameter_tuner.list_parameter_value_scores()
+        )
+
+        # print(f'* * * {parameter_values_with_scores.to_string()}')
+        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+        self.assertGreaterEqual(len(parameter_values_with_scores.index), 1)
+
+    def test_time_series_parameter_tuning_NeverGrad_multi(self) -> None:
+        random_state: RandomState = RandomState(seed=0)
+        #     # pyre-fixme[2]: Parameter must be annotated.
+        def prophet_evaluation_function(**kwargs) -> float:
+            error: float = random_state.random()
+            return error
+
+        prophet_small_grid = [
+            {
+                "name": "seasonality_prior_scale",
+                "type": "choice",
+                "value_type": "float",
+                "values": [0.01, 0.05, 1, 2, 4, 6, 10.0],
+            }
+        ]
+        ngOptions = tpt.NevergradOptions(
+            objective_name="some_objective", budget=3, multiprocessing=True
+        )
         time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
             parameters=prophet_small_grid,  # for full search: ProphetModel.get_parameter_search_space(),
             selected_search_method=SearchMethodEnum.NEVERGRAD,

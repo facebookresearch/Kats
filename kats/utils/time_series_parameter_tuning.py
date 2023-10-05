@@ -1142,8 +1142,8 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
 @dataclass
 class NevergradOptions(SearchMethodOptions):
     # default parameters for Global stop strategy
-    budget: int = 500
-    no_improvement_tolerance: int = 50
+    budget: int = 40
+    no_improvement_tolerance: int = 10
     optimizer_name: str = "DoubleFastGADiscreteOnePlusOne"
 
 
@@ -1236,9 +1236,18 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
         self.parameters = parameters
         self.inst: ng.p.Instrumentation = get_nevergrad_param_from_ax(parameters)
         self.options: NevergradOptions = method_options
+        num_workers: int = 1
+        if type(self.options.multiprocessing) is bool:
+            if self.options.multiprocessing:
+                num_workers = cpu_count()
+        else:
+            num_workers = min(cpu_count(), self.options.multiprocessing)
+        num_workers = max(num_workers, 1)
         # type: ignore
         self.optimizer = ng.optimizers.__dict__[self.options.optimizer_name](
-            parametrization=self.inst, budget=self.options.budget
+            parametrization=self.inst,
+            budget=self.options.budget,
+            num_workers=num_workers,
         )
         self.optimizer.register_callback(
             "ask",
@@ -1255,8 +1264,7 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
         evaluation_function: Callable,
         arm_count: int = 1,
     ) -> None:
-        """Init of Nevergrad optimizer"""
-
+        """Evaluate of Nevergrad optimizer"""
         recommendation = self.optimizer.minimize(evaluation_function)
         result_loss = recommendation.loss
         res_df = pd.DataFrame(
