@@ -608,6 +608,8 @@ class SearchMethodOptions:
     outcome_constraints: Optional[List[str]] = None
     multiprocessing: Union[bool, int] = False
     seed: Optional[int] = None
+    time_limit: float = -1.0
+    target_metric_val: Optional[float] = None
 
 
 class SearchMethodFactory(metaclass=Final):
@@ -1171,6 +1173,22 @@ class _LossImprovementToleranceCriterion:
         return self._tolerance_count > self._tolerance_window
 
 
+class _LossTargetMetricCriterion:
+    def __init__(self, target_metric_val: float) -> None:
+        self.target_metric_val: float = target_metric_val
+
+    def __call__(self, optimizer: Any) -> bool:  # type: ignore
+        best_param = optimizer.provide_recommendation()
+        if best_param is None or (
+            best_param.loss is None and best_param._losses is None
+        ):
+            return False
+        best_last_losses = best_param.losses
+        if best_last_losses is None:
+            return False
+        return best_last_losses <= self.target_metric_val
+
+
 def get_nevergrad_param_from_ax(
     ax_params: List[Dict[str, Any]]
 ) -> ng.p.Instrumentation:
@@ -1257,6 +1275,19 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
                 )
             ),
         )  # should get triggered
+        if self.options.time_limit > 0:
+            self.optimizer.register_callback(
+                "ask",
+                ng.callbacks.EarlyStopping.timer(self.options.time_limit),
+            )  # should get triggered
+
+        if self.options.target_metric_val is not None:
+            self.optimizer.register_callback(
+                "ask",
+                ng.callbacks.EarlyStopping(
+                    _LossTargetMetricCriterion(self.options.target_metric_val)
+                ),
+            )  # should get triggered
 
     def generate_evaluate_new_parameter_values(
         self,
