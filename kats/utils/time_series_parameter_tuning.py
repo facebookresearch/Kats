@@ -875,7 +875,6 @@ class RandomSearch(TimeSeriesParameterTuning):
         it is not guaranteed that the candidates will be identical across these
         scenarios.
         """
-
         model_run = self._random_strategy_model.gen(n=arm_count)
         self.generator_run_for_search_method(
             evaluation_function=evaluation_function, generator_run=model_run
@@ -1148,6 +1147,30 @@ class NevergradOptions(SearchMethodOptions):
     optimizer_name: str = "DoubleFastGADiscreteOnePlusOne"
 
 
+class _LossImprovementToleranceCriterion:
+    def __init__(self, tolerance_window: int) -> None:
+        self._tolerance_window: int = tolerance_window
+        self._best_value: Any = None  # type: ignore
+        self._tolerance_count: int = 0
+
+    def __call__(self, optimizer: Any) -> bool:  # type: ignore
+        best_param = optimizer.provide_recommendation()
+        if best_param is None or (
+            best_param.loss is None and best_param._losses is None
+        ):
+            return False
+        best_last_losses = best_param.losses
+        if self._best_value is None:
+            self._best_value = best_last_losses
+            return False
+        if self._best_value <= best_last_losses:
+            self._tolerance_count += 1
+        else:
+            self._tolerance_count = 0
+            self._best_value = best_last_losses
+        return self._tolerance_count > self._tolerance_window
+
+
 def get_nevergrad_param_from_ax(
     ax_params: List[Dict[str, Any]]
 ) -> ng.p.Instrumentation:
@@ -1217,6 +1240,14 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
         self.optimizer = ng.optimizers.__dict__[self.options.optimizer_name](
             parametrization=self.inst, budget=self.options.budget
         )
+        self.optimizer.register_callback(
+            "ask",
+            ng.callbacks.EarlyStopping(
+                _LossImprovementToleranceCriterion(
+                    self.options.no_improvement_tolerance
+                )
+            ),
+        )  # should get triggered
 
     def generate_evaluate_new_parameter_values(
         self,
@@ -1227,9 +1258,7 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
         """Init of Nevergrad optimizer"""
 
         recommendation = self.optimizer.minimize(evaluation_function)
-        result_loss = evaluation_function(
-            *(recommendation.value[0]), **(recommendation.value[1])
-        )
+        result_loss = recommendation.loss
         res_df = pd.DataFrame(
             {
                 "arm_name": [f"nevergrad_{arm_count}"],

@@ -434,9 +434,7 @@ class GridSearchTest(TestCase):
                 "values": [0.01, 0.05, 1, 2, 4, 6, 10.0],
             }
         ]
-        ngOptions = tpt.NevergradOptions(
-            objective_name="some_objective",
-        )
+        ngOptions = tpt.NevergradOptions(objective_name="some_objective", budget=61)
         time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
             parameters=prophet_small_grid,  # for full search: ProphetModel.get_parameter_search_space(),
             selected_search_method=SearchMethodEnum.NEVERGRAD,
