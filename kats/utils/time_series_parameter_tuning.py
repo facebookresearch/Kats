@@ -358,6 +358,7 @@ class TimeSeriesParameterTuning(ABC):
         )
 
         self._trial_data = Data()
+        self._list_parameter_value_scores: Optional[pd.DataFrame] = None
         self.logger.info("Experiment is created.")
 
     @staticmethod
@@ -532,10 +533,12 @@ class TimeSeriesParameterTuning(ABC):
         Returns:
             A Pandas DataFrame that holds arms populated and evaluated so far.
         """
+        if self._list_parameter_value_scores is not None:
+            return self._list_parameter_value_scores
 
         # For experiments which have not ran generate_evaluate_new_parameter_values,
         # we cannot provide trial data without metrics, so we return empty dataframe
-        if not self._exp.metrics:
+        if self._exp is None or not self._exp.metrics:
             return pd.DataFrame(
                 [],
                 columns=[
@@ -1152,7 +1155,7 @@ def get_nevergrad_param_from_ax(
 
     for param in ax_params:
         if param["type"] == "choice":
-            params_list[param["name"]] = ng.p.Choice(param["value"])
+            params_list[param["name"]] = ng.p.Choice(param["values"])
         elif param["type"] == "range":
             params_list[param["name"]] = ng.p.Scalar(
                 init=param["bounds"][0],
@@ -1218,12 +1221,26 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
     def generate_evaluate_new_parameter_values(
         self,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
-        evaluation_function: Optional[Callable] = None,
+        evaluation_function: Callable,
         arm_count: int = 1,
     ) -> None:
         """Init of Nevergrad optimizer"""
 
-        pass
+        recommendation = self.optimizer.minimize(evaluation_function)
+        result_loss = evaluation_function(
+            *(recommendation.value[0]), **(recommendation.value[1])
+        )
+        res_df = pd.DataFrame(
+            {
+                "arm_name": [f"nevergrad_{arm_count}"],
+                "metric_name": [self.options.objective_name],
+                "mean": [result_loss],
+                "sem": [0.0],
+                "trial_index": [arm_count],
+                "parameters": [recommendation.value[1]],
+            }
+        )
+        self._list_parameter_value_scores = res_df
 
 
 class SearchForMultipleSpaces:
