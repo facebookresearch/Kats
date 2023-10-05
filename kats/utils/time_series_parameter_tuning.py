@@ -28,6 +28,7 @@ from multiprocessing.pool import Pool
 from numbers import Number
 from typing import Any, Callable, Dict, List, Optional, Union
 
+import nevergrad as ng
 import pandas as pd
 from ax import Arm, ComparisonOp, Data, OptimizationConfig, SearchSpace
 from ax.core.experiment import Experiment
@@ -699,11 +700,23 @@ class SearchMethodFactory(metaclass=Final):
                 multiprocessing=multiprocessing,
                 method_options=method_options,  # type: ignore
             )
-        else:
-            raise NotImplementedError(
-                "A search method yet to implement is selected. Only grid"
-                " search and random search are implemented."
+        elif selected_search_method == SearchMethodEnum.NEVERGRAD:
+            if method_options is None:
+                method_options = NevergradOptions()
+            if objective_name is not None:
+                method_options.objective_name = objective_name
+            if multiprocessing is not None:
+                method_options.multiprocessing = multiprocessing
+            if seed is not None:
+                method_options.seed = seed
+            return NevergradOptSearch(
+                parameters=parameters,
+                method_options=method_options,  # type: ignore
             )
+        raise NotImplementedError(
+            "A search method yet to implement is selected. Only grid"
+            " search and random search are implemented."
+        )
 
 
 class GridSearch(TimeSeriesParameterTuning):
@@ -1122,6 +1135,95 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
                 res_data,
             ]
         )
+
+
+@dataclass
+class NevergradOptions(SearchMethodOptions):
+    # default parameters for Global stop strategy
+    budget: int = 500
+    no_improvement_tolerance: int = 50
+    optimizer_name: str = "DoubleFastGADiscreteOnePlusOne"
+
+
+def get_nevergrad_param_from_ax(
+    ax_params: List[Dict[str, Any]]
+) -> ng.p.Instrumentation:
+    params_list: Dict[str, Any] = {}  # type: ignore
+
+    for param in ax_params:
+        if param["type"] == "choice":
+            params_list[param["name"]] = ng.p.Choice(param["value"])
+        elif param["type"] == "range":
+            params_list[param["name"]] = ng.p.Scalar(
+                init=param["bounds"][0],
+                lower=param["bounds"][0],
+                upper=param["bounds"][1],
+            )
+            if "value_type" in param.keys() and param["value_type"] == "int":
+                params_list[param["name"]].set_integer_casting()
+        else:
+            raise ValueError(f"Unknown param type: {param['type']}")
+    return ng.p.Instrumentation(**params_list)
+
+
+class NevergradOptSearch(TimeSeriesParameterTuning):
+    """Nevergrad lib optimization search for hyperparameter tuning.
+
+    Do not instantiate this class using its constructor.
+    Rather use the factory, SearchMethodFactory.
+
+    Attributes:
+        parameters: List[Dict],
+            Defines parameters by their names, their types their optional
+            values for custom parameter search space.
+        experiment_name: str = None,
+            Name of the experiment to be used in Ax's experiment object.
+        objective_name: str = None,
+            Name of the objective to be used in Ax's experiment evaluation.
+        seed: int = None,
+            Seed for Ax quasi-random model. If None, then time.time() is set.
+        random_strategy: SearchMethodEnum = SearchMethodEnum.RANDOM_SEARCH_UNIFORM,
+            By now, we already know that the search method is random search.
+            However, there are optional random strategies: UNIFORM, or SOBOL.
+            This parameter allows to select it.
+        outcome_constraints: List[str] = None
+            List of constraints defined as strings. Example: ['metric1 >= 0',
+            'metric2 < 5]
+    """
+
+    def __init__(
+        self,
+        parameters: List[Dict[str, Any]],
+        method_options: Optional[NevergradOptions] = None,
+        # pyre-fixme[2]: Parameter must be annotated.
+        **kwargs,
+    ) -> None:
+        if method_options is None:
+            method_options = NevergradOptions()
+        super().__init__(
+            parameters,
+            method_options.experiment_name,
+            method_options.objective_name,
+            method_options.outcome_constraints,
+            method_options.multiprocessing,
+        )
+        self.parameters = parameters
+        self.inst: ng.p.Instrumentation = get_nevergrad_param_from_ax(parameters)
+        self.options: NevergradOptions = method_options
+        # type: ignore
+        self.optimizer = ng.optimizers.__dict__[self.options.optimizer_name](
+            parametrization=self.inst, budget=self.options.budget
+        )
+
+    def generate_evaluate_new_parameter_values(
+        self,
+        # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
+        evaluation_function: Optional[Callable] = None,
+        arm_count: int = 1,
+    ) -> None:
+        """Init of Nevergrad optimizer"""
+
+        pass
 
 
 class SearchForMultipleSpaces:

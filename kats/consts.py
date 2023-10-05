@@ -1211,6 +1211,7 @@ class SearchMethodEnum(Enum):
     RANDOM_SEARCH_UNIFORM = auto()
     RANDOM_SEARCH_SOBOL = auto()
     BAYES_OPT = auto()
+    NEVERGRAD = auto()
 
 
 @unique
