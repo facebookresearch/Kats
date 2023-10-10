@@ -608,7 +608,7 @@ class SearchMethodOptions:
     outcome_constraints: Optional[List[str]] = None
     multiprocessing: Union[bool, int] = False
     seed: Optional[int] = None
-    time_limit: float = -1.0
+    time_limit_sec: float = -1.0
     target_metric_val: Optional[float] = None
 
 
@@ -1141,36 +1141,15 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         )
 
 
+DEFAULT_BUDGET_NEVERGRAD: int = 100
+
+
 @dataclass
 class NevergradOptions(SearchMethodOptions):
     # default parameters for Global stop strategy
-    budget: int = 40
-    no_improvement_tolerance: int = 10
+    budget: int = -1
+    no_improvement_tolerance: int = -1
     optimizer_name: str = "DoubleFastGADiscreteOnePlusOne"
-
-
-class _LossImprovementToleranceCriterion:
-    def __init__(self, tolerance_window: int) -> None:
-        self._tolerance_window: int = tolerance_window
-        self._best_value: Any = None  # type: ignore
-        self._tolerance_count: int = 0
-
-    def __call__(self, optimizer: Any) -> bool:  # type: ignore
-        best_param = optimizer.provide_recommendation()
-        if best_param is None or (
-            best_param.loss is None and best_param._losses is None
-        ):
-            return False
-        best_last_losses = best_param.losses
-        if self._best_value is None:
-            self._best_value = best_last_losses
-            return False
-        if self._best_value <= best_last_losses:
-            self._tolerance_count += 1
-        else:
-            self._tolerance_count = 0
-            self._best_value = best_last_losses
-        return self._tolerance_count > self._tolerance_window
 
 
 class _LossTargetMetricCriterion:
@@ -1261,33 +1240,34 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
         else:
             num_workers = min(cpu_count(), self.options.multiprocessing)
         num_workers = max(num_workers, 1)
+        budget = self.options.budget
+        if budget < 0:
+            budget = DEFAULT_BUDGET_NEVERGRAD
         # type: ignore
         self.optimizer = ng.optimizers.__dict__[self.options.optimizer_name](
             parametrization=self.inst,
-            budget=self.options.budget,
+            budget=budget,
             num_workers=num_workers,
         )
-        self.optimizer.register_callback(
-            "ask",
-            ng.callbacks.EarlyStopping(
-                _LossImprovementToleranceCriterion(
-                    self.options.no_improvement_tolerance
-                )
-            ),
-        )  # should get triggered
-        if self.options.time_limit > 0:
+        if self.options.no_improvement_tolerance > 0:
             self.optimizer.register_callback(
                 "ask",
-                ng.callbacks.EarlyStopping.timer(self.options.time_limit),
-            )  # should get triggered
-
+                ng.callbacks.EarlyStopping.no_improvement_stopper(
+                    self.options.no_improvement_tolerance
+                ),
+            )
+        if self.options.time_limit_sec > 0:
+            self.optimizer.register_callback(
+                "ask",
+                ng.callbacks.EarlyStopping.timer(self.options.time_limit_sec),
+            )
         if self.options.target_metric_val is not None:
             self.optimizer.register_callback(
                 "ask",
                 ng.callbacks.EarlyStopping(
                     _LossTargetMetricCriterion(self.options.target_metric_val)
                 ),
-            )  # should get triggered
+            )
 
     def generate_evaluate_new_parameter_values(
         self,
