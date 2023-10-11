@@ -519,7 +519,7 @@ class KDEResidualTranslatorTest(TestCase):
         self._residual = self._y - self._yhat
 
     def test_setup(self) -> None:
-        self.assertEquals(self._yhat.value.isnull().sum(), 7)
+        self.assertEqual(self._yhat.value.isnull().sum(), 7)
 
     def test_illegal_truncated_fracs(self) -> None:
         with self.assertRaises(ValueError):
