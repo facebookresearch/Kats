@@ -453,9 +453,47 @@ class GridSearchTest(TestCase):
         parameter_values_with_scores = (
             time_series_parameter_tuner.list_parameter_value_scores()
         )
-
-        # print(f'* * * {parameter_values_with_scores.to_string()}')
         self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+
+        self.assertGreaterEqual(len(parameter_values_with_scores.index), 1)
+
+        prophet_small_grid_fixed = [
+            {
+                "name": "seasonality_prior_scale",
+                "type": "choice",
+                "value_type": "float",
+                "values": [0.01, 0.05, 1, 2, 4, 6, 10.0],
+            },
+            {
+                "name": "n_control",
+                "type": "choice",
+                "values": [39],
+                "value_type": "int",
+                "is_ordered": True,
+            },
+            {
+                "name": "n_test",
+                "type": "fixed",
+                "value": 79,
+                "value_type": "int",
+                "is_ordered": True,
+            },
+        ]
+        time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
+            parameters=prophet_small_grid_fixed,  # for full search: ProphetModel.get_parameter_search_space(),
+            selected_search_method=SearchMethodEnum.NEVERGRAD,
+            evaluation_function=prophet_evaluation_function,
+            method_options=ngOptions,
+        )
+
+        time_series_parameter_tuner.generate_evaluate_new_parameter_values(
+            evaluation_function=prophet_evaluation_function, arm_count=1
+        )
+        parameter_values_with_scores = (
+            time_series_parameter_tuner.list_parameter_value_scores()
+        )
+        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+
         self.assertGreaterEqual(len(parameter_values_with_scores.index), 1)
 
     def test_time_series_parameter_tuning_NeverGrad_multi(self) -> None:

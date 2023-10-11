@@ -22,7 +22,7 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from functools import reduce
+from functools import partial, reduce
 from multiprocessing import cpu_count
 from multiprocessing.pool import Pool
 from numbers import Number
@@ -1148,8 +1148,9 @@ DEFAULT_BUDGET_NEVERGRAD: int = 100
 class NevergradOptions(SearchMethodOptions):
     # default parameters for Global stop strategy
     budget: int = -1
-    no_improvement_tolerance: int = -1
+    no_improvement_tolerance: int = 30
     optimizer_name: str = "DoubleFastGADiscreteOnePlusOne"
+    fixed_params_in_space: bool = False
 
 
 class _LossTargetMetricCriterion:
@@ -1169,7 +1170,7 @@ class _LossTargetMetricCriterion:
 
 
 def get_nevergrad_param_from_ax(
-    ax_params: List[Dict[str, Any]]
+    ax_params: List[Dict[str, Any]], get_fixed: bool = True
 ) -> ng.p.Instrumentation:
     params_list: Dict[str, Any] = {}  # type: ignore
 
@@ -1177,16 +1178,32 @@ def get_nevergrad_param_from_ax(
         if param["type"] == "choice":
             params_list[param["name"]] = ng.p.Choice(param["values"])
         elif param["type"] == "range":
+            if "bounds" in param.keys():
+                bounds = param["bounds"]
+            elif "values" in param.keys() and len(param["values"]) == 2:
+                bounds = param["values"]
+            else:
+                raise ValueError(f"bad range param: {param}")
             params_list[param["name"]] = ng.p.Scalar(
-                init=param["bounds"][0],
-                lower=param["bounds"][0],
-                upper=param["bounds"][1],
+                init=bounds[0],
+                lower=bounds[0],
+                upper=bounds[1],
             )
             if "value_type" in param.keys() and param["value_type"] == "int":
                 params_list[param["name"]].set_integer_casting()
+        elif param["type"] == "fixed":
+            if get_fixed:
+                params_list[param["name"]] = ng.p.Constant(param["value"])
         else:
             raise ValueError(f"Unknown param type: {param['type']}")
     return ng.p.Instrumentation(**params_list)
+
+
+def get_fixed_param_from_ax(
+    ax_params: List[Dict[str, Any]]
+) -> Dict[str, Any]:  # type: ignore
+    params_list: Dict[str, Any] = {param["name"]: param["value"] for param in ax_params if param["type"] == "fixed"}  # type: ignore
+    return params_list
 
 
 class NevergradOptSearch(TimeSeriesParameterTuning):
@@ -1231,7 +1248,12 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
             method_options.multiprocessing,
         )
         self.parameters = parameters
-        self.inst: ng.p.Instrumentation = get_nevergrad_param_from_ax(parameters)
+        self.inst: ng.p.Instrumentation = get_nevergrad_param_from_ax(
+            parameters, get_fixed=method_options.fixed_params_in_space
+        )
+        self.fixed_params: Optional[Dict[str, Any]] = None  # type: ignore
+        if method_options.fixed_params_in_space:
+            self.fixed_params = get_fixed_param_from_ax(parameters)
         self.options: NevergradOptions = method_options
         num_workers: int = 1
         if type(self.options.multiprocessing) is bool:
@@ -1276,6 +1298,8 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
         arm_count: int = 1,
     ) -> None:
         """Evaluate of Nevergrad optimizer"""
+        if self.fixed_params and len(self.fixed_params) > 0:
+            evaluation_function = partial(evaluation_function, **self.fixed_params)
         recommendation = self.optimizer.minimize(evaluation_function)
         result_loss = recommendation.loss
         res_df = pd.DataFrame(
