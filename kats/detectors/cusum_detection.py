@@ -525,7 +525,8 @@ class CUSUMDetector(Detector):
                 None means the middle of the time series.
             change_directions: Optional; list<str>; a list contain either or
                 both 'increase' and 'decrease' to specify what type of change
-                want to detect.
+                want to detect, to point both directions can be also setted up
+                as empty list ([]), None or ["both"]
             interest_window: Optional; list<int, int>, a list containing the
                 start and end of interest windows where we will look for change
                 points. Note that llr will still be calculated using all data
@@ -572,8 +573,15 @@ class CUSUMDetector(Detector):
         ts = self.data.value.to_numpy()
         ts = ts.astype("float64")
         changes_meta = {}
+        if type(change_directions) is str:
+            change_directions = [change_directions]
 
-        if change_directions is None:
+        if (
+            change_directions is None
+            or change_directions == [""]
+            or change_directions == ["both"]
+            or change_directions == []
+        ):
             change_directions = ["increase", "decrease"]
 
         for change_direction in change_directions:
@@ -1024,7 +1032,16 @@ class VectorizedCUSUMDetector(CUSUMDetector):
             ts_multi = ts_multi[:, np.newaxis]
 
         changes_meta_multi = {}
-        if change_directions is None:
+
+        if type(change_directions) is str:
+            change_directions = [change_directions]
+
+        if (
+            change_directions is None
+            or change_directions == [""]
+            or change_directions == ["both"]
+            or change_directions == []
+        ):
             change_directions = ["increase", "decrease"]
 
         for change_direction in change_directions:

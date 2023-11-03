@@ -95,7 +95,7 @@ class CUSUMDetectorTest(TestCase):
                 self.periodicity * self.total_cycles - 1,
             ],
             magnitude_quantile=1,
-            change_directions=["increase", "decrease"],
+            change_directions="both",
             delta_std_ratio=0,
         )
         self.season_metadata = self.season_inc_trend_change_points[0]
@@ -542,7 +542,7 @@ class VectorizedCUSUMDetectorTest(TestCase):
         ).detector()
         self.dec_change_points_int_window = CUSUMDetector(
             TimeSeriesData(df[["decrease", "time"]])
-        ).detector(change_directions=["decrease"], interest_window=(35, 55))
+        ).detector(change_directions="decrease", interest_window=(35, 55))
 
         timeseries = TimeSeriesData(df)
         change_points_vectorized_ = VectorizedCUSUMDetector(timeseries).detector_()
