@@ -278,7 +278,7 @@ class SeasonalityHandler:
     SeasonalityHandler is a class that do timeseries STL decomposition for detecors
     Attributes:
         data: TimeSeriesData that need to be decomposed
-        seasonal_period: str, default value is 'daily'. Other possible values: 'hourly', 'weekly', 'biweekly', 'monthly', 'yearly'
+        seasonal_period: str, default value is 'daily'. Other possible values: 'hourly', 'weekly', 'biweekly', 'monthly', 'yearly' or integer which represent amoutn of seconds
 
     >>> # Example usage:
     >>> from kats.utils.simulator import Simulator
@@ -290,18 +290,18 @@ class SeasonalityHandler:
     """
 
     PERIOD_MAP: Dict[str, int] = {
-        "hourly": 1,
-        "daily": 24,
-        "weekly": 7 * 24,
-        "biweekly": 14 * 24,
-        "monthly": 30 * 24,
-        "yearly": 365 * 24,
+        "hourly": 1 * 60 * 60,
+        "daily": 24 * 60 * 60,
+        "weekly": 7 * 24 * 60 * 60,
+        "biweekly": 14 * 24 * 60 * 60,
+        "monthly": 30 * 24 * 60 * 60,
+        "yearly": 365 * 24 * 60 * 60,
     }
 
     def __init__(
         self,
         data: TimeSeriesData,
-        seasonal_period: str = "daily",
+        seasonal_period: Union[str, int] = "daily",
         ignore_irregular_freq: bool = False,
         **kwargs: Any,
     ) -> None:
@@ -312,11 +312,18 @@ class SeasonalityHandler:
 
         self.data = data
 
-        if seasonal_period not in SeasonalityHandler.PERIOD_MAP:
-            msg = "Invalid seasonal_period, possible values are 'hourly', 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
+        if isinstance(seasonal_period, str):
+            if seasonal_period not in SeasonalityHandler.PERIOD_MAP:
+                msg = "Invalid seasonal_period str value, possible values are integer or 'hourly', 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
+                logging.error(msg)
+                raise ParameterError(msg)
+            self.seasonal_period: int = SeasonalityHandler.PERIOD_MAP[seasonal_period]
+        elif type(seasonal_period) is int:
+            self.seasonal_period: int = seasonal_period
+        else:
+            msg = "Invalid seasonal_period type, possible values are integer or 'hourly', 'daily', 'weekly', 'biweekly', 'monthly', and 'yearly'"
             logging.error(msg)
             raise ParameterError(msg)
-        self.seasonal_period: int = SeasonalityHandler.PERIOD_MAP[seasonal_period]
 
         self.low_pass_jump_factor: float = kwargs.get("lpj_factor", 0.15)
         self.trend_jump_factor: float = kwargs.get("tj_factor", 0.15)
@@ -360,7 +367,7 @@ class SeasonalityHandler:
             raise DataIrregularGranularityError(IRREGULAR_GRANULARITY_ERROR)
 
         self.period: int = min(
-            int(self.seasonal_period * 60 * 60 / self.frequency.total_seconds()),
+            int(self.seasonal_period / self.frequency.total_seconds()),
             len(self.data) // 2,
         )
 

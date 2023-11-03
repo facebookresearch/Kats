@@ -56,12 +56,6 @@ from kats.utils.decomposition import SeasonalityHandler
 NORMAL_TOLERENCE = 1  # number of window
 CHANGEPOINT_RETENTION: int = 7 * 24 * 60 * 60  # in seconds
 MAX_CHANGEPOINT = 10
-SEASON_PERIOD_FREQ_MAP: Dict[str, int] = {
-    "daily": 1,
-    "weekly": 7,
-    "monthly": 30,
-    "yearly": 365,
-}
 
 _log: logging.Logger = logging.getLogger("cusum_model")
 
@@ -197,7 +191,7 @@ class CUSUMDetectorModel(DetectorModel):
         ] = CUSUMDefaultArgs.change_directions,
         score_func: Union[str, CusumScoreFunction] = DEFAULT_SCORE_FUNCTION,
         remove_seasonality: bool = CUSUMDefaultArgs.remove_seasonality,
-        season_period_freq: str = "daily",
+        season_period_freq: Union[str, int] = "daily",
         vectorized: Optional[bool] = None,
         adapted_pre_mean: Optional[bool] = None,
     ) -> None:
@@ -229,7 +223,7 @@ class CUSUMDetectorModel(DetectorModel):
             else:
                 self.remove_seasonality: bool = remove_seasonality
 
-            self.season_period_freq: str = previous_model.get(
+            self.season_period_freq: Union[str, int] = previous_model.get(
                 "season_period_freq", "daily"
             )
 

@@ -12,7 +12,7 @@ import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers, load_data
 from kats.detectors.residual_translation import KDEResidualTranslator
-from kats.utils.decomposition import TimeSeriesDecomposition
+from kats.utils.decomposition import SeasonalityHandler, TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
 from scipy.stats import ks_2samp
 from statsmodels.tsa.seasonal import seasonal_decompose, STL
@@ -292,6 +292,17 @@ class DecompositionTest(TestCase):
         m.decomposer()
 
         m.plot()
+
+    def test_seasnality_handler(self) -> None:
+        sh_data = SeasonalityHandler(
+            data=self.ts_data_daily, seasonal_period=24 * 60 * 60
+        )
+        historical_data = sh_data.remove_seasonality()
+        self.assertNotEqual(self.ts_data_daily, historical_data)
+
+        sh_data = SeasonalityHandler(data=self.ts_data_daily, seasonal_period="daily")
+        historical_data = sh_data.remove_seasonality()
+        self.assertNotEqual(self.ts_data_daily, historical_data)
 
     def test_multiplicative_assert(self) -> None:
         data_new = self.ts_data.to_dataframe().copy()
