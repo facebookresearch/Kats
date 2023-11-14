@@ -38,6 +38,7 @@ from ax.core.objective import Objective
 from ax.core.outcome_constraint import OutcomeConstraint
 from ax.core.trial import BaseTrial
 from ax.global_stopping.strategies.improvement import ImprovementGlobalStoppingStrategy
+from ax.modelbridge.base import ModelBridge
 from ax.modelbridge.discrete import DiscreteModelBridge
 from ax.modelbridge.dispatch_utils import choose_generation_strategy
 from ax.modelbridge.registry import Models
@@ -54,7 +55,7 @@ MAX_NUM_PROCESSES = 150
 def compute_search_cardinality(params_space: List[Dict[str, Any]]) -> float:
     """compute cardinality of search space params"""
     # check if search space is infinite
-    is_infinite = any([param["type"] == "range" for param in params_space])
+    is_infinite = any(param["type"] == "range" for param in params_space)
     if is_infinite:
         return math.inf
     else:
@@ -927,8 +928,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
 
     """
 
-    # pyre-fixme[11]: Annotation `BOTORCH` is not defined as a type.
-    _bayes_opt_model: Optional[Models.BOTORCH] = None
+    _bayes_opt_model: Optional[ModelBridge] = None
 
     def __init__(
         self,
@@ -1020,7 +1020,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             )
             return
         assert evaluation_function
-        self._bayes_opt_model = Models.BOTORCH(
+        self._bayes_opt_model = Models.BOTORCH_MODULAR(
             experiment=self._exp,
             data=self._trial_data,
         )
