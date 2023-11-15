@@ -5,6 +5,7 @@
 
 import random
 from datetime import timedelta
+from typing import Union
 from unittest import TestCase
 
 import numpy as np
@@ -17,6 +18,7 @@ from kats.detectors.prophet_detector import (
     ProphetScoreFunction,
     ProphetTrendDetectorModel,
     SeasonalityTypes,
+    to_seasonality,
 )
 from kats.utils.simulator import Simulator
 from parameterized.parameterized import parameterized
@@ -872,3 +874,21 @@ class TestProphetTrendDetectorModel(TestCase):
         self.assertEqual(
             response_wo_historical_data.scores.value.shape, hist_ts.value.shape
         )
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    @parameterized.expand(
+        [
+            ("day", SeasonalityTypes.DAY),
+            ("week", SeasonalityTypes.WEEK),
+            ("weekend", SeasonalityTypes.WEEKEND),
+            ("year", SeasonalityTypes.YEAR),
+            (SeasonalityTypes.DAY, SeasonalityTypes.DAY),
+            (SeasonalityTypes.WEEK, SeasonalityTypes.WEEK),
+            (SeasonalityTypes.WEEKEND, SeasonalityTypes.WEEKEND),
+            (SeasonalityTypes.YEAR, SeasonalityTypes.YEAR),
+        ]
+    )
+    def test_to_seasonality(
+        self, actual: Union[str, SeasonalityTypes], expected: SeasonalityTypes
+    ) -> None:
+        self.assertEqual(to_seasonality(actual), expected)

@@ -138,10 +138,27 @@ class SeasonalityTypes(Enum):
 EMPTY_LIST: List[SeasonalityTypes] = []
 
 
+def to_seasonality(seasonality: Union[str, SeasonalityTypes]) -> SeasonalityTypes:
+    if isinstance(seasonality, str):
+        try:
+            return SeasonalityTypes[seasonality.upper()]
+        except KeyError:
+            raise ValueError(
+                f"Invalid seasonality type: {seasonality}. Valid types are: {list(SeasonalityTypes)}"
+            )
+    elif isinstance(seasonality, SeasonalityTypes):
+        return seasonality
+    else:
+        raise ValueError(
+            f"Expected string or SeasonalityTypes, got {type(seasonality)} instead"
+        )
+
+
 def seasonalities_to_dict(
     seasonalities: Union[
         SeasonalityTypes,
         List[SeasonalityTypes],
+        List[str],
         Dict[SeasonalityTypes, Union[bool, str]],
     ]
 ) -> Dict[SeasonalityTypes, Union[bool, str]]:
@@ -149,7 +166,9 @@ def seasonalities_to_dict(
     if isinstance(seasonalities, SeasonalityTypes):
         seasonalities = {seasonalities: True}
     elif isinstance(seasonalities, list):
-        seasonalities = {seasonality: True for seasonality in seasonalities}
+        seasonalities = {
+            to_seasonality(seasonality): True for seasonality in seasonalities
+        }
     elif seasonalities is None:
         seasonalities = {}
     return seasonalities
@@ -253,6 +272,7 @@ class ProphetDetectorModel(DetectorModel):
             Union[
                 SeasonalityTypes,
                 List[SeasonalityTypes],
+                List[str],
                 Dict[SeasonalityTypes, Union[bool, str]],
             ]
         ] = EMPTY_LIST,
