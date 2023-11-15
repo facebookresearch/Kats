@@ -9,6 +9,7 @@ as a Detector Model.
 """
 
 import logging
+from contextlib import ExitStack
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
@@ -34,6 +35,43 @@ PROPHET_VALUE_COLUMN = "y"
 PROPHET_YHAT_COLUMN = "yhat"
 PROPHET_YHAT_LOWER_COLUMN = "yhat_lower"
 PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
+import os
+import sys
+
+NOT_SUPPRESS_PROPHET_FIT_LOGS_VAR_NAME = "NOT_SUPPRESS_PROPHET_FIT_LOGS"
+# this is a bug in prophet which was discussed in open source thread
+# issues was also suggested
+# details https://github.com/facebook/prophet/issues/223#issuecomment-326455744
+class SilentStdoutStderr(object):
+    """
+    Logger manager to temporarily silence stdout and stderr. Should be using
+    """
+
+    # pyre-fixme typing
+    stdout, stderr = sys.__stdout__.fileno(), sys.__stderr__.fileno()  # type: ignore
+
+    def __enter__(self) -> None:
+
+        # pyre-fixme typing # type: ignore
+        self.devnull = os.open(os.devnull, os.O_RDWR)
+        # pyre-fixme typing
+        self.orig_stdout, self.orig_stderr = os.dup(self.stdout), os.dup(self.stderr)  # type: ignore
+        # flushing everythoing before rerouting not to miss previous output
+        print(flush=True)
+        # point stdout, stderr to /dev/null
+        os.dup2(self.devnull, self.stdout)
+        os.dup2(self.devnull, self.stderr)
+
+    def __exit__(self, *_) -> None:  # type: ignore
+        # flushing everything not to pring after rerouting
+        print(flush=True)
+        # restore stdout, stderr back
+        os.dup2(self.orig_stdout, self.stdout)  # pyre-fixme
+        os.dup2(self.orig_stderr, self.stderr)  # pyre-fixme
+        # close all file descriptors
+        for file in [self.devnull, self.orig_stdout, self.orig_stderr]:  # pyre-fixme
+            os.close(file)
+
 
 # Previously assumed Prophet CI width was computed based on sample stddev,
 # where uncertainty_samples was num of samples. Also previously mistakenly
@@ -416,7 +454,10 @@ class ProphetDetectorModel(DetectorModel):
         )
         for seasonality in additional_seasonalities:
             model.add_seasonality(**seasonality)
-        self.model = model.fit(data_df)
+        with ExitStack() as stack:
+            if not os.environ.get(NOT_SUPPRESS_PROPHET_FIT_LOGS_VAR_NAME, False):
+                stack.enter_context(SilentStdoutStderr())
+            self.model = model.fit(data_df)
 
     def predict(
         self,
@@ -506,7 +547,10 @@ class ProphetDetectorModel(DetectorModel):
         model = Prophet(
             interval_width=outlier_ci_threshold, uncertainty_samples=uncertainty_samples
         )
-        model_pass1 = model.fit(ts_df)
+        with ExitStack() as stack:
+            if not os.environ.get(NOT_SUPPRESS_PROPHET_FIT_LOGS_VAR_NAME, False):
+                stack.enter_context(SilentStdoutStderr())
+            model_pass1 = model.fit(ts_df)
 
         forecast = predict(model_pass1, ts_dates_df, vectorize)
 
@@ -571,7 +615,10 @@ class ProphetTrendDetectorModel(DetectorModel):
             changepoint_prior_scale=self.changepoint_prior_scale,
         )
         ts_p = pd.DataFrame({"ds": data.time.values, "y": data.value.values})
-        model = model.fit(ts_p)
+        with ExitStack() as stack:
+            if not os.environ.get(NOT_SUPPRESS_PROPHET_FIT_LOGS_VAR_NAME, False):
+                stack.enter_context(SilentStdoutStderr())
+            model = model.fit(ts_p)
         self.model = model
 
         output_ts = self._zeros_ts(ts_p)
