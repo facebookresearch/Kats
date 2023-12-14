@@ -5,10 +5,13 @@
 
 from unittest import TestCase
 
+import pandas as pd
+
 from kats.detectors.utils import (
     get_interval_len,
     get_list_intersection,
     merge_interval_list,
+    mult_list_to_series,
 )
 
 
@@ -48,3 +51,12 @@ class TestIntervalIntesection(TestCase):
         self.assertEqual(
             merge_interval_list(self.intervalist4), [(0.0, 10.0), (20.0, 90.0)]
         )
+
+    def test_mult_list_to_series(self) -> None:
+        df = pd.DataFrame(
+            {"time": [6, 20, 31, 32, 37, 39], "value": [1, 1, 1, 1, 1, 1]}
+        )
+        result_df = mult_list_to_series(self.intervalist2, df)
+        self.assertEqual(result_df["value"].sum(), 3)
+        self.assertEqual(result_df["value"].iloc[0], 1)
+        self.assertEqual(result_df["value"].iloc[1], 2)
