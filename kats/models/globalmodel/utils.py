@@ -1153,7 +1153,7 @@ class GMParam:
         validation_metric: Optional; A list of strings representing the names of the error metrics for validation. Default is None, which sets validation_metric as ['smape', 'sbias', 'exceed'].
         batch_size: Optional; A dictionary representing the batch size schedule, whose keys are the epoch numbers and the corresponding values are the batch sizes. Default is None, which sets batch_size as {0:2,3:5,4:15,5:50,6:150,7:500}.
         learning_rate: Optional; A dictionary representing the learning rate schedule, whose keys are epoch numbers and the corresponding values are the learning rates. Default is None, which sets learning_rate as {0: 1e-3, 2: 1e-3/3.}.
-        epoch_num: Optional; An integer representing the totoal number of epoches. Default is 8.
+        epoch_num: Optional; An integer representing the total number of epoches. Default is 8.
         epoch_size: Optional; An integer representing the batches per epoch. Default is 3000.
         init_seasonality: Optional; A list of two floats representing the lower and upper bounds for the initial seasonalities. Default is None, which sets init_seasonality as [0.1, 10.].
         init_smoothing_params: Optional; A list of two floats representing initial values for smoothing parameters, i.e., level smoothing parameter and seasonality smoothing parameter. Default is None, which sets init_smoothing_params as [0.4, 0.6].
