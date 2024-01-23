@@ -615,7 +615,7 @@ class AnomalyResponse:
         self._inplace_update_ts(self.scores, time, score)
         cb = self.confidence_band
         if cb is not None:
-            self._inplace_update_ts(cb.lower, time, ci_lower),
+            self._inplace_update_ts(cb.lower, time, ci_lower)
             self._inplace_update_ts(cb.upper, time, ci_upper)
 
         if self.predicted_ts is not None:
