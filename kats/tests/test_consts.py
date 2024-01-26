@@ -37,7 +37,6 @@ def load_data(file_name: str) -> pd.DataFrame:
     else:
         path = "kats/data/"
     data_object = pkgutil.get_data(ROOT, path + file_name)
-    # pyre-fixme[6]: For 1st param expected `bytes` but got `Optional[bytes]`.
     return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
