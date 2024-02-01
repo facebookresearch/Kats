@@ -3,7 +3,7 @@ deprecated>=1.2.12
 importlib_metadata; python_version < '3.8'
 holidays<=0.24
 matplotlib>=2.0.0
-numpy>=1.21,<1.22
+numpy>=1.22
 pandas>=1.0.4,<=1.3.5
 packaging<22
 python-dateutil>=2.8.0
@@ -11,7 +11,8 @@ scikit-learn>=0.24.2
 scipy>=1.10.0
 seaborn>=0.11.1
 setuptools-git>=1.2
-statsmodels==0.12.2
+statsmodels>=0.12.2
 lightgbm>=2.3.0
 numba>=0.55.0
+wheel
 typing-extensions; python_version < '3.8'
