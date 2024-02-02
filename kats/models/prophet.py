@@ -9,7 +9,7 @@ from typing import Any, cast, Dict, List, Optional, Tuple, Union
 import pandas as pd
 
 try:
-    from fbprophet import Prophet
+    from prophet import Prophet
 
     _no_prophet = False
 except ImportError:
