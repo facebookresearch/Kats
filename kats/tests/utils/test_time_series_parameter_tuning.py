@@ -421,7 +421,7 @@ class GridSearchTest(TestCase):
 
     def test_time_series_parameter_tuning_NeverGrad(self) -> None:
         random_state: RandomState = RandomState(seed=0)
-        #     # pyre-fixme[2]: Parameter must be annotated.
+        # pyre-fixme[2]: Parameter must be annotated.
         def prophet_evaluation_function(**kwargs) -> float:
             error: float = random_state.random()
             return error
@@ -486,6 +486,55 @@ class GridSearchTest(TestCase):
             method_options=ngOptions,
         )
 
+        time_series_parameter_tuner.generate_evaluate_new_parameter_values(
+            evaluation_function=prophet_evaluation_function, arm_count=1
+        )
+        parameter_values_with_scores = (
+            time_series_parameter_tuner.list_parameter_value_scores()
+        )
+        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
+
+        self.assertGreaterEqual(len(parameter_values_with_scores.index), 1)
+
+    def test_time_series_parameter_tuning_NeverGrad_fixed_necessary_param(self) -> None:
+        random_state: RandomState = RandomState(seed=0)
+        necessary_param_name: str = "nec_param"
+
+        # pyre-fixme[2]: Parameter must be annotated.
+        def prophet_evaluation_function(**kwargs) -> float:
+            self.assertTrue(necessary_param_name in kwargs)
+
+            error: float = random_state.random()
+            return error
+
+        prophet_small_grid = [
+            {
+                "name": "seasonality_prior_scale",
+                "type": "choice",
+                "value_type": "float",
+                "values": [0.01, 0.05, 1, 2, 4, 6, 10.0],
+            },
+            {
+                "name": necessary_param_name,
+                "type": "choice",
+                "values": [39],
+                "value_type": "int",
+                "is_ordered": True,
+            },
+        ]
+        ngOptions = tpt.NevergradOptions(objective_name="some_objective", budget=3)
+        time_series_parameter_tuner = tpt.SearchMethodFactory.create_search_method(
+            parameters=prophet_small_grid,  # for full search: ProphetModel.get_parameter_search_space(),
+            selected_search_method=SearchMethodEnum.NEVERGRAD,
+            evaluation_function=prophet_evaluation_function,
+            method_options=ngOptions,
+        )
+
+        parameter_values_with_scores = (
+            time_series_parameter_tuner.list_parameter_value_scores()
+        )
+
+        self.assertIsInstance(parameter_values_with_scores, pd.DataFrame)
         time_series_parameter_tuner.generate_evaluate_new_parameter_values(
             evaluation_function=prophet_evaluation_function, arm_count=1
         )

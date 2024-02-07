@@ -1252,7 +1252,8 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
             parameters, get_fixed=method_options.fixed_params_in_space
         )
         self.fixed_params: Optional[Dict[str, Any]] = None  # type: ignore
-        if method_options.fixed_params_in_space:
+        # if we didn't add parameters to the space we should add them to fixed parameters
+        if not method_options.fixed_params_in_space:
             self.fixed_params = get_fixed_param_from_ax(parameters)
         self.options: NevergradOptions = method_options
         num_workers: int = 1
