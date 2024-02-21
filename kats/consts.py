@@ -184,6 +184,7 @@ class TimeSeriesData:
         values (default "raise").
     - categorical_var: A list of column names of categorical variables that are not required to be numerical. Default is None.
     - drop_duplicate_time: A bool variable to indicate whether to drop the duplicate time stamps.
+    - cache_datetimes: A bool variable to indicate whether to use pandas cache to avoid recomputing datetime conversions
 
     Raises:
       ValueError: Invalid params passed when trying to create the
@@ -236,6 +237,7 @@ class TimeSeriesData:
         tz_nonexistent: str = "raise",
         categorical_var: Optional[List[str]] = None,
         drop_duplicate_time: bool = False,
+        cache_datetimes: bool = True,
     ) -> None:
         """Initializes :class:`TimeSeriesData` class with arguments provided."""
         self.time_col_name = time_col_name
@@ -272,6 +274,7 @@ class TimeSeriesData:
                     tz=tz,
                     tz_ambiguous=tz_ambiguous,
                     tz_nonexistent=tz_nonexistent,
+                    cache_datetimes=cache_datetimes,
                 )
                 if drop_duplicate_time:
                     # drop duplicate time stamps
@@ -564,6 +567,7 @@ class TimeSeriesData:
         tz: Optional[str] = None,
         tz_ambiguous: Union[str, np.ndarray] = "raise",
         tz_nonexistent: str = "raise",
+        cache_datetimes: bool = True,
     ) -> pd.core.series.Series:
         """Parses time format when initializing :class:`TimeSeriesData`."""
 
@@ -574,14 +578,19 @@ class TimeSeriesData:
                     if tz:
                         return (
                             pd.to_datetime(
-                                series.values, unit=unix_time_units, utc=True
+                                series.values,
+                                unit=unix_time_units,
+                                utc=True,
+                                cache=cache_datetimes,
                             )
                             .tz_convert(tz)
                             .to_series()
                             .reset_index(drop=True)
                         )
                     else:
-                        return pd.to_datetime(series, unit=unix_time_units)
+                        return pd.to_datetime(
+                            series, unit=unix_time_units, cache=cache_datetimes
+                        )
                 except ValueError:
                     msg = (
                         "Failed to parse time column "
@@ -595,7 +604,9 @@ class TimeSeriesData:
                 try:
                     if tz:
                         return (
-                            pd.to_datetime(series.values, format=date_format)
+                            pd.to_datetime(
+                                series.values, format=date_format, cache=cache_datetimes
+                            )
                             .tz_localize(
                                 tz, ambiguous=tz_ambiguous, nonexistent=tz_nonexistent
                             )
@@ -603,7 +614,9 @@ class TimeSeriesData:
                             .reset_index(drop=True)
                         )
                     else:
-                        return pd.to_datetime(series, format=date_format)
+                        return pd.to_datetime(
+                            series, format=date_format, cache=cache_datetimes
+                        )
                 except ValueError:
                     msg = (
                         "Failed to parse time column "
