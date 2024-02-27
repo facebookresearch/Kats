@@ -440,6 +440,7 @@ class TemporalHierarchicalModel:
         freq: Optional[str] = None,
         origin_fcst: bool = False,
         fcst_levels: Optional[List[int]] = None,
+        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
         last_timestamp: Optional[pd.Timestamp] = None,
     ) -> Dict[str, Dict[int, pd.DataFrame]]:
         """Generate reconciled forecasts (with time index).

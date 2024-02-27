@@ -79,6 +79,7 @@ def get_filters(isna_idx, seasonality) -> np.ndarray:
 def fill_missing_value_na(
     ts: TimeSeriesData,
     seasonality: int,
+    # pyre-fixme[11]: Annotation `Timedelta` is not defined as a type.
     freq: Optional[Union[str, pd.Timedelta]] = None,
 ) -> TimeSeriesData:
     """Padding holes in time series with NaNs, such that the timestamp difference between any two consecute timestamps is either zero or a multipler of seasonality.

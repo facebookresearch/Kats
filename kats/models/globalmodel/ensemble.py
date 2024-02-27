@@ -258,6 +258,7 @@ class GMEnsemble:
         fcsts: List[np.ndarray],
         steps: int,
         raw: bool,
+        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
         first_timestamp: Optional[pd.Timestamp] = None,
         col_names: Optional[List[str]] = None,
     ) -> Tuple[Any, Any]:

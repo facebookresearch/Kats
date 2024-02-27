@@ -298,7 +298,11 @@ class ABInterval(IntervalAnomaly):
     """
 
     def __init__(
-        self, interval_type: ABIntervalType, start: pd.Timestamp, end: pd.Timestamp
+        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
+        self,
+        interval_type: ABIntervalType,
+        start: pd.Timestamp,
+        end: pd.Timestamp,
     ) -> None:
         super().__init__(start=start, end=end)
         self.interval_type: ABIntervalType = interval_type
@@ -1309,6 +1313,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
         def get_values(values: pd.Series, interval: ABInterval) -> pd.Series:
             assert interval.end_idx is not None
             end_idx = interval.end_idx
+            # pyre-fixme[7]: Expected `Series` but got `Union[DataFrame, Series]`.
             return pd.concat(
                 [
                     pd.Series(values[interval.start_idx]),
@@ -1556,6 +1561,7 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
         # Convert value_a / value_b, consider difference of logs.
         difference = np.log(np.maximum(value_b, _EPS))
         difference -= np.log(np.maximum(value_a, _EPS))
+        # pyre-fixme[58]: `+` is not supported for operand types `int` and `Series`.
         difference_mean = difference - np.log(1 + effect_size)
         # Apply a delta method for the variance of the log by scaling
         # by a g'(𝜽) ** 2 term. In the case of g = log, g'(𝜽) = 1 / 𝜽.
@@ -1697,7 +1703,9 @@ class TwoSampleProportionIntervalDetectorModel(TwoSampleIntervalDetectorModel):
         References:
             https://en.wikipedia.org/wiki/Binomial_distribution#Normal_approximation
         """
+        # pyre-fixme[58]: `-` is not supported for operand types `int` and `Series`.
         _variance_a = value_a * (1 - value_a) / sample_count_a
+        # pyre-fixme[58]: `-` is not supported for operand types `int` and `Series`.
         _variance_b = value_b * (1 - value_b) / sample_count_b
         return _variance_a, _variance_b
 

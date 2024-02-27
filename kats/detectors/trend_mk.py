@@ -67,6 +67,7 @@ class MKChangePoint(TimeSeriesChangePoint):
 
     def __init__(
         self,
+        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
         start_time: pd.Timestamp,
         end_time: pd.Timestamp,
         confidence: float,
@@ -439,7 +440,6 @@ class MKDetector(Detector):
             ts_smoothed = self._smoothing(ts_deseas)  # smoothing
             # append MK statistics to MK_statistics dataframe
             MK_statistics = MK_statistics.append(
-                # pyre-ignore[6]: Expected `Union[Dict[Union[int, str], typing.Any], L...
                 self.runDetector(ts=ts_smoothed),
                 ignore_index=True,
             )
@@ -456,7 +456,6 @@ class MKDetector(Detector):
                 ts_tmp = ts_smoothed.loc[:t, :]
                 # append MK statistics to MK_statistics dataframe
                 MK_statistics = MK_statistics.append(
-                    # pyre-ignore[6]: Expected `Union[Dict[Union[int, str], typing.Any...
                     self.runDetector(ts=ts_tmp),
                     ignore_index=True,
                 )

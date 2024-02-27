@@ -714,7 +714,11 @@ class KatsEnsemble(Model):
         """
 
         if use_zero:
+            # pyre-fixme[6]: For 2nd argument expected `DataFrame` but got
+            #  `Optional[DataFrame]`.
             fcsts["fcst_lower"] = fcsts["fcst_lower"].fillna(0)
+            # pyre-fixme[6]: For 2nd argument expected `DataFrame` but got
+            #  `Optional[DataFrame]`.
             fcsts["fcst_upper"] = fcsts["fcst_upper"].fillna(0)
         else:
             fcsts["fcst_lower"] = fcsts["fcst_lower"].replace(0, np.nan)

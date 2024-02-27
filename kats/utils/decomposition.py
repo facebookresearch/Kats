@@ -43,6 +43,7 @@ class TimeSeriesDecomposition:
         method: `STL decompostion` or `seasonal_decompose`
     """
 
+    # pyre-fixme[11]: Annotation `Timedelta` is not defined as a type.
     freq: Optional[Union[str, pd.Timedelta]] = None
     results: Optional[Dict[str, TimeSeriesData]] = None
     decomposition: str
@@ -129,8 +130,6 @@ class TimeSeriesDecomposition:
         if any(original.isna()):
             original.interpolate(method="linear", limit_direction="both", inplace=True)
 
-        # pyre-ignore[7]: Expected `DataFrame` but got
-        #  `Union[pd.core.frame.DataFrame, pd.core.series.Series]`.
         return original
 
     def _get_period(self) -> Optional[int]:
@@ -339,6 +338,7 @@ class SeasonalityHandler:
                     self.data.time.diff().value_counts().sort_values(ascending=False)
                 )
                 if freq_counts.iloc[0] >= int(len(self.data)) * 0.5 - 1:
+                    # pyre-fixme[4]: Attribute must be annotated.
                     self.frequency = freq_counts.index[0]
                 else:
                     _log.debug(f"freq_counts: {freq_counts}")

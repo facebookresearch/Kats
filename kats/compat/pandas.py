@@ -147,7 +147,6 @@ def assert_series_equal(
         and hasattr(left.index, "freq")
         and hasattr(right.index, "freq")
     ):
-        # pyre-fixme[16]: `Index` has no attribute `freq`.
         assert left.index.freq == right.index.freq, (left.index.freq, right.index.freq)
     if (
         check_flags

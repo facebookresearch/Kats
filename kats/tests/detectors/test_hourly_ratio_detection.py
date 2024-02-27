@@ -47,6 +47,7 @@ class HourlyRatioDectorTest(TestCase):
         df = pd.DataFrame(values, columns=["value"])
         df["time"] = time
         if drop:
+            # pyre-fixme[22]: The cast is redundant.
             df = cast(pd.DataFrame, df.sample(frac=frac, replace=False))
         return TimeSeriesData(df)
 

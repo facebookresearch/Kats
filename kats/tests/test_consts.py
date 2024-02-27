@@ -50,6 +50,8 @@ EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME, dtype=float)
 EMPTY_VALUE_SERIES = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
 EMPTY_VALUE_SERIES_NO_NAME = pd.Series([], dtype=float)
 EMPTY_TIME_DATETIME_INDEX = pd.DatetimeIndex(pd.Series([], dtype=object))
+# pyre-fixme[9]: EMPTY_DF_WITH_COLS has type `DataFrame`; used as `Union[DataFrame,
+#  Series]`.
 EMPTY_DF_WITH_COLS: pd.DataFrame = pd.concat(
     [EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1
 )
@@ -864,6 +866,7 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         # without base value, interpolate won't work, will return all NaN
         # this is because start time is not from "**:00:00" or "**:30:00" type.
         self.assertEqual(
+            # pyre-fixme[16]: Optional type has no attribute `value`.
             ts0.interpolate(freq=frequency).to_dataframe().fillna(0).value.sum(),
             0,
         )
@@ -1039,6 +1042,7 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         self.assertEqual(ts_local.is_timezone_aware(), False)
         ts_local.set_timezone(tz="US/Eastern")
         self.assertEqual(ts_local.is_timezone_aware(), True)
+        # pyre-fixme[16]: `DatetimeIndex` has no attribute `tzinfo`.
         self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Eastern")
 
         ts_local = self.ts_multi_str_date
@@ -1063,6 +1067,7 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
 
     def test_convert_timezone(self) -> None:
         ts_local = self.ts_univar_PST_tz
+        # pyre-fixme[16]: `DatetimeIndex` has no attribute `tzinfo`.
         self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Pacific")
         ts_local.convert_timezone(tz="US/Eastern")
         self.assertEqual(str(pd.DatetimeIndex(ts_local.time).tzinfo), "US/Eastern")

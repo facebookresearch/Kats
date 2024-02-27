@@ -172,7 +172,6 @@ class MetaDetectHptSelect:
         # check: are all hyper parameters valid for the given algorithm
         for idx, hp in data_y.iterrows():
             try:
-                # pyre-fixme[6]
                 MetaDetectHptSelect._init_detection_model(detector_model, hp.to_dict())
             except Exception as e:
                 raise KatsDetectorHPTIllegalHyperParameter(

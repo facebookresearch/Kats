@@ -215,7 +215,11 @@ class LSTMModelTest(TestCase):
             steps=steps_2,
             freq=freq,
         ).reset_index(drop=True)
+        # pyre-fixme[6]: For 1st argument expected `DataFrame` but got
+        #  `Optional[DataFrame]`.
         assert_frame_equal(res_1, truth_1)
+        # pyre-fixme[6]: For 1st argument expected `DataFrame` but got
+        #  `Optional[DataFrame]`.
         assert_frame_equal(res_2, truth_2)
 
     # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.

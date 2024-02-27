@@ -43,6 +43,7 @@ class HourlyRatioDetector(Detector):
     def __init__(
         self,
         data: TimeSeriesData,
+        # pyre-fixme[11]: Annotation `Timedelta` is not defined as a type.
         freq: Union[str, pd.Timedelta, None] = None,
         aggregate: Optional[str] = None,
     ) -> None:
@@ -61,6 +62,7 @@ class HourlyRatioDetector(Detector):
         self._ratiodf: Optional[pd.DataFrame] = None
         self.incomplete_dates: Optional[List[TimeSeriesChangePoint]] = None
         self.anomaly_dates: Optional[List[TimeSeriesChangePoint]] = None
+        # pyre-fixme[4]: Attribute must be annotated.
         self.freq = freq
         self.aggregate = aggregate
         self._valid_frequency()

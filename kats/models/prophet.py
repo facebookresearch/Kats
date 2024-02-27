@@ -239,6 +239,7 @@ class ProphetModel(Model[ProphetParams]):
         freq: a string or a `pd.Timedelta` object representing the frequency of time series. If `ProphetModel` object is not fitted, then `freq` is None.
     """
 
+    # pyre-fixme[11]: Annotation `Timedelta` is not defined as a type.
     freq: Union[None, str, pd.Timedelta] = None
     model: Optional[Prophet] = None
 

@@ -354,6 +354,7 @@ class CUSUMDetectorModel(DetectorModel):
     def _fit_vec_row(
         self,
         vec_data_row: TimeSeriesData,
+        # pyre-fixme[11]: Annotation `Timedelta` is not defined as a type.
         scan_window: Union[int, pd.Timedelta],
         changepoints: List[CUSUMChangePoint],  # len = 1 or 0
         time_adjust: pd.Timedelta,
@@ -780,7 +781,6 @@ class CUSUMDetectorModel(DetectorModel):
             ss_detect = VectorizedCUSUMDetectorModel(
                 scan_window=self.scan_window,
                 historical_window=self.historical_window,
-                # pyre-ignore
                 step_window=step_window.total_seconds(),
                 threshold=threshold,
                 delta_std_ratio=delta_std_ratio,

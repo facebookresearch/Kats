@@ -59,7 +59,9 @@ class OutlierDetector(Detector):
         self.iqr_mult = iqr_mult
 
     def __clean_ts__(
-        self, original: Union[pd.Series, pd.DataFrame]
+        self,
+        original: Union[pd.Series, pd.DataFrame]
+        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
     ) -> Tuple[List[int], List[float], List[pd.Timestamp]]:
         """
         Performs detection for a single metric. First decomposes the time series
@@ -184,7 +186,6 @@ class MultivariateAnomalyDetector(Detector):
         params.validate_params()
         self.params = params
 
-        # pyre-fixme
         time_diff = data.time.sort_values().diff().dropna()
         if len(time_diff.unique()) == 1:  # check constant frequenccy
             freq = time_diff.unique()[0].astype("int")

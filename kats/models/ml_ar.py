@@ -457,6 +457,7 @@ class MLARModel:
     def _valid_and_fillna(
         self,
         data: Union[Dict[str, TimeSeriesData], List[TimeSeriesData]],
+        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
     ) -> Tuple[Dict[str, pd.DataFrame], Set[pd.Timestamp]]:
         """This is a function to validate dataset before training and prediction
             For both input as :class:`kats.consts.TimeSeriesData` or :class:`kats.consts.TimeSeriesData`
@@ -573,6 +574,7 @@ class MLARModel:
                     )
                 )
 
+                # pyre-fixme[22]: The cast is redundant.
                 emb_ts_curr_cov = cast(
                     pd.DataFrame, emb_ts_curr_cov.add_prefix(f"{curr_cov}_")
                 )
@@ -847,6 +849,7 @@ class MLARModel:
                 )
             )
 
+            # pyre-fixme[22]: The cast is redundant.
             emb_ts_curr_cov = cast(
                 pd.DataFrame, emb_ts_curr_cov.add_prefix(f"Fut_Cov_{curr_cov}_")
             )
@@ -1370,6 +1373,8 @@ class MLARModel:
                         curr_series
                     ].combine_first(fcr[curr_series])
                     forecast_result[curr_series].reset_index(inplace=True, drop=False)
+                    # pyre-fixme[6]: For 2nd argument expected `DataFrame` but got
+                    #  `Optional[DataFrame]`.
                     forecast_result[curr_series] = forecast_result[
                         curr_series
                     ].drop_duplicates()

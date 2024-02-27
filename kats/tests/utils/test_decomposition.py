@@ -373,6 +373,7 @@ class DecompositionTest(TestCase):
         )
 
         # check if decomposition does what it intends to do
+        # pyre-fixme[16]: Optional type has no attribute `value`.
         stl = STL(dense_dates_df.reset_index().value, period=2)
         true_results = stl.fit()
         self.assertTrue(
@@ -471,6 +472,7 @@ class DecompositionTest(TestCase):
         )
 
         # check if decomposition does what it intends to do
+        # pyre-fixme[16]: Optional type has no attribute `value`.
         stl = STL(sparse_dates_df.reset_index().value, period=2)
         true_results = stl.fit()
         self.assertTrue(

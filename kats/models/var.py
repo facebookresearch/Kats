@@ -236,6 +236,7 @@ class VARModel(Model[VARParams]):
             raise ValueError("VARModel does not support the ax parameter.")
         dates = self.dates
         assert dates is not None
+        # pyre-fixme[16]: `DatetimeIndex` has no attribute `to_pydatetime`.
         fcst_dates = dates.to_pydatetime()
         logging.info("Generating chart for forecast result from VAR model.")
 

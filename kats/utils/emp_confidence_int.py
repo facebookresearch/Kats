@@ -303,6 +303,7 @@ class EmpConfidenceInt:
             fig = plt.gcf()
 
         ax.plot(pd.to_datetime(self.data.time), self.data.value, linecolor)
+        # pyre-fixme[16]: `DatetimeIndex` has no attribute `to_pydatetime`.
         fcst_dates = dates.to_pydatetime()
         ax.plot(fcst_dates, df.fcst, ls="-", c=fcstcolor)
 

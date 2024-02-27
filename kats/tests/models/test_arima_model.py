@@ -192,14 +192,22 @@ class ARIMAModelTest(TestCase):
         res_2 = m.predict(steps=steps_2, include_history=include_history)
         if include_history:
             assert_frame_equal(
+                # pyre-fixme[6]: For 1st argument expected `DataFrame` but got
+                #  `Optional[DataFrame]`.
                 res_1.reset_index(drop=True),
+                # pyre-fixme[6]: For 2nd argument expected `DataFrame` but got
+                #  `Optional[DataFrame]`.
                 truth_1.reset_index(drop=True),
                 check_exact=False,
                 check_less_precise=True,
                 rtol=0.001,
             )
             assert_frame_equal(
+                # pyre-fixme[6]: For 1st argument expected `DataFrame` but got
+                #  `Optional[DataFrame]`.
                 res_2.reset_index(drop=True),
+                # pyre-fixme[6]: For 2nd argument expected `DataFrame` but got
+                #  `Optional[DataFrame]`.
                 truth_2.reset_index(drop=True),
                 check_exact=False,
                 check_less_precise=True,

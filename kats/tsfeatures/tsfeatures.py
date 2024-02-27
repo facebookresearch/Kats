@@ -2002,17 +2002,21 @@ class TsFeatures:
         try:
             n = len(ts)
             index = ts.time_to_index()
+            # pyre-fixme[16]: `DatetimeIndex` has no attribute `dayofweek`.
             dow = index.dayofweek
 
             if extra_args is not None and extra_args.get("time_years", default_status):
+                # pyre-fixme[16]: `DatetimeIndex` has no attribute `year`.
                 time_features["time_years"] = index.year.nunique()
 
             if extra_args is not None and extra_args.get("time_months", default_status):
+                # pyre-fixme[16]: `DatetimeIndex` has no attribute `strftime`.
                 time_features["time_months"] = index.strftime("%Y-%m").nunique()
 
             if extra_args is not None and extra_args.get(
                 "time_monthsofyear", default_status
             ):
+                # pyre-fixme[16]: `DatetimeIndex` has no attribute `month`.
                 time_features["time_monthsofyear"] = index.month.nunique()
 
             if extra_args is not None and extra_args.get("time_weeks", default_status):
@@ -2021,6 +2025,7 @@ class TsFeatures:
             if extra_args is not None and extra_args.get(
                 "time_weeksofyear", default_status
             ):
+                # pyre-fixme[16]: `DatetimeIndex` has no attribute `weekofyear`.
                 time_features["time_weeksofyear"] = index.weekofyear.nunique()
 
             if extra_args is not None and extra_args.get("time_days", default_status):
@@ -2029,6 +2034,7 @@ class TsFeatures:
             if extra_args is not None and extra_args.get(
                 "time_daysofyear", default_status
             ):
+                # pyre-fixme[16]: `DatetimeIndex` has no attribute `dayofyear`.
                 time_features["time_daysofyear"] = index.dayofyear.nunique()
 
             if extra_args is not None and extra_args.get(

@@ -316,9 +316,11 @@ def BBANDS(df, n: int, column: str = "y") -> pd.DataFrame:
     close = df[column]
     MA = pd.Series(close.rolling(n).mean(), copy=False)
     MSD = pd.Series(close.rolling(n).std(), copy=False)
+    # pyre-fixme[58]: `*` is not supported for operand types `int` and `Series`.
     b1 = 4 * MSD / MA
     B1 = pd.Series(b1, name="BollingerBand1_" + str(n), copy=False)
     df = df.join(B1)
+    # pyre-fixme[58]: `*` is not supported for operand types `int` and `Series`.
     b2 = (close - MA + 2 * MSD) / (4 * MSD)
     B2 = pd.Series(b2, name="BollingerBand2_" + str(n), copy=False)
     df = df.join(B2)

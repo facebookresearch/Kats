@@ -219,7 +219,6 @@ class MetaLearnModelSelect:
         ]
         if figsize is None:
             figsize = (12, 6)
-        # pyre-fixme[29]: `CachedAccessor` is not a function.
         return combined.plot(kind="bar", figsize=figsize, ax=ax)
 
     def get_corr_mtx(self) -> pd.DataFrame:

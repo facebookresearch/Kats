@@ -206,7 +206,11 @@ class SARIMAModelTest(TestCase):
         ).reset_index(
             drop=True,
         )
+        # pyre-fixme[6]: For 2nd argument expected `DataFrame` but got
+        #  `Optional[DataFrame]`.
         assert_frame_equal(truth_1, res_1, rtol=0.01)
+        # pyre-fixme[6]: For 2nd argument expected `DataFrame` but got
+        #  `Optional[DataFrame]`.
         assert_frame_equal(truth_2, res_2, rtol=0.01)
 
     def test_exog(self) -> None:
@@ -238,6 +242,8 @@ class SARIMAModelTest(TestCase):
         )
 
         # Compare against truth
+        # pyre-fixme[6]: For 2nd argument expected `DataFrame` but got
+        #  `Optional[DataFrame]`.
         assert_frame_equal(EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1, res, rtol=0.01)
 
         # Should raise a ValueError if exogenous variables aren't used to predict

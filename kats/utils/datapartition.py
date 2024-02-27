@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 
+# pyre-fixme[5]: Global expression must be annotated.
 Timestamp = Union[str, pd.Timestamp, datetime]
 DataPartition = Union[
     TimeSeriesData, List[TimeSeriesData], Dict[Union[str, int], TimeSeriesData]
@@ -251,6 +252,7 @@ class SimpleTimestampDataPartition(DataPartitionBase):
 
     def __init__(
         self,
+        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
         train_end: Timestamp,
         test_start: Timestamp,
         train_start: Optional[Timestamp] = None,
@@ -266,6 +268,7 @@ class SimpleTimestampDataPartition(DataPartitionBase):
             train_start, train_end, test_start, test_end
         )
 
+        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
         self.train_start: pd.Timestamp = train_start
         self.train_end: pd.Timestamp = train_end
         self.test_start: pd.Timestamp = test_start

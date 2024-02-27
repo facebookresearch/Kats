@@ -84,8 +84,6 @@ class SimpleBackTesterTest(unittest.TestCase):
         DATA = load_air_passengers(return_ts=False)
         cls.TSData = load_air_passengers()
         cls.train_data = cls.TSData[: len(cls.TSData) - TIMESTEPS]
-        # pyre-fixme[6]: For 1st param expected `Optional[DataFrame]` but got
-        #  `Union[DataFrame, Series]`.
         cls.test_data = TimeSeriesData(DATA.tail(TIMESTEPS))
 
     def prophet_predict_side_effect(self, *args: Any, **kwargs: Any) -> pd.DataFrame:
@@ -644,8 +642,6 @@ class FixedWindowBackTesterTest(unittest.TestCase):
 
         # Creating folds
         cls.train_data = cls.TSData[: len(cls.TSData) - (TIMESTEPS * 2)]
-        # pyre-fixme[6]: For 1st param expected `Optional[DataFrame]` but got
-        #  `Union[DataFrame, Series]`.
         cls.test_data = TimeSeriesData(DATA.tail(TIMESTEPS))
 
     def prophet_predict_side_effect(self, *args: Any, **kwargs: Any) -> pd.DataFrame:

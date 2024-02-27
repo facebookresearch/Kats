@@ -1063,6 +1063,7 @@ class TestCallVectorizedCUSUM(TestCase):
         )
         anom1 = d1.fit_predict(data=self.ts[20:], historical_data=self.ts[:20])
 
+        # pyre-fixme[16]: `bool` has no attribute `sum`.
         self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
         self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
         self.assertEqual(
@@ -1100,6 +1101,7 @@ class TestCallVectorizedCUSUM(TestCase):
             data=self.ts_tz_aware[20:], historical_data=self.ts_tz_aware[:20]
         )
 
+        # pyre-fixme[16]: `bool` has no attribute `sum`.
         self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
         self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
         self.assertEqual(
@@ -1137,6 +1139,7 @@ class TestCallVectorizedCUSUM(TestCase):
             data=self.ts_irregular[20:], historical_data=self.ts_irregular[:20]
         )
 
+        # pyre-fixme[16]: `bool` has no attribute `sum`.
         self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
         self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
         self.assertEqual(
@@ -1171,6 +1174,7 @@ class TestCallVectorizedCUSUM(TestCase):
         )
         anom1 = d1.fit_predict(data=self.ts[20:], historical_data=self.ts[:20])
 
+        # pyre-fixme[16]: `bool` has no attribute `sum`.
         self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 90)
         self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
         self.assertEqual(
@@ -1202,6 +1206,7 @@ class TestCallVectorizedCUSUM(TestCase):
         )
         anom1 = d1.fit_predict(self.ts)
 
+        # pyre-fixme[16]: `bool` has no attribute `sum`.
         self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), 110)
         self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
         self.assertEqual(

@@ -544,8 +544,6 @@ class TestProphetDetector(TestCase):
         )
         self.assertAlmostEqual(
             z_score_response.scores.value[5],
-            # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
-            #  SupportsAbs[SupportsRound[object]]]` but got `float`.
             actual_z_score,
             places=5,
         )
@@ -569,8 +567,6 @@ class TestProphetDetector(TestCase):
         legacy_z_score_response = legacy_z_score_model.fit_predict(ts[90:], ts[:90])
         self.assertAlmostEqual(
             legacy_z_score_response.scores.value[5],
-            # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
-            #  SupportsAbs[SupportsRound[object]]]` but got `float`.
             actual_z_score,
             places=5,
         )
@@ -585,8 +581,6 @@ class TestProphetDetector(TestCase):
         legacy_z_score_response = legacy_z_score_model.fit_predict(ts[90:], ts[:90])
         self.assertNotAlmostEqual(
             legacy_z_score_response.scores.value[5],
-            # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
-            #  SupportsAbs[SupportsRound[object]]]` but got `float`.
             actual_z_score,
             places=5,
         )
@@ -618,8 +612,6 @@ class TestProphetDetector(TestCase):
             # pyre-ignore[16]: Optional type has no attribute `lower`.
             response.confidence_band.lower.value[5],
         )
-        # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
-        #  SupportsAbs[SupportsRound[object]]]` but got `float`.
         self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=5)
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
@@ -649,8 +641,6 @@ class TestProphetDetector(TestCase):
             # pyre-ignore[16]: Optional type has no attribute `lower`.
             response.confidence_band.lower.value[5],
         )
-        # pyre-fixme[6]: For 2nd param expected `SupportsRSub[Variable[_T],
-        #  SupportsAbs[SupportsRound[object]]]` but got `float`.
         self.assertAlmostEqual(response.scores.value[5], actual_z_score, places=5)
 
     def test_heteroskedastic_noise_signal(self) -> None:
