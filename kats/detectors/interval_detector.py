@@ -298,9 +298,9 @@ class ABInterval(IntervalAnomaly):
     """
 
     def __init__(
-        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
         self,
         interval_type: ABIntervalType,
+        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
         start: pd.Timestamp,
         end: pd.Timestamp,
     ) -> None:
