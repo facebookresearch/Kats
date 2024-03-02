@@ -3,6 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-strict
+
 """
 MetaDetectHptSelect is a meta learner that predict best hyper parameters of chosen detection algorithm given a time series features
 before predicting, user needs to train the model:

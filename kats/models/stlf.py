@@ -3,6 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-strict
+
 """STLF forecasting model
 
 This model starts from decomposing the time series data with STL decomposition

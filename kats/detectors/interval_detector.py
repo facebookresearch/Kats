@@ -3,6 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-strict
+
 """
 Conducts an AB test across two concurrent time series. This would be useful
 when an experiment is ran between two versions that are logged over time, and there is an

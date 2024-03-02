@@ -3,6 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-strict
+
 """A module for computing the meta-data of time series.
 
 This module contains the class for computing the meta-data of time series. The meta-data of a time series is consists of three parts: 1) time series features;

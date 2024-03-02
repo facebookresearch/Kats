@@ -3,6 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+# pyre-strict
+
 """CUSUMDetectorModel is a wraper of CUSUMDetector to detect multiple change points
 
 Typical usage example:
