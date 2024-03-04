@@ -727,7 +727,7 @@ class FixedWindowBackTesterTest(unittest.TestCase):
             (50, 50, 110, "Invalid window percentage"),
         ]
 
-        for (train_p, test_p, window_p, expected_msg) in forbidden_init_params:
+        for train_p, test_p, window_p, expected_msg in forbidden_init_params:
 
             # Create backtester with forbidden initialization parameters
             with self.assertRaises(ValueError) as e:
@@ -1048,7 +1048,7 @@ class CrossValidationTest(unittest.TestCase):
             (50, 50, -10, "Invalid number of folds"),
         ]
 
-        for (train_p, test_p, num_folds, expected_msg) in forbidden_init_params:
+        for train_p, test_p, num_folds, expected_msg in forbidden_init_params:
 
             # Create cross validation object with forbidden initialization parameters
             with self.assertRaises(ValueError) as e:

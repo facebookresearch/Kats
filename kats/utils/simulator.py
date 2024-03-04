@@ -207,7 +207,6 @@ class Simulator:
         magnitude: float = 1.0,
         multiply: bool = False,
     ) -> Simulator:
-
         """Add noise to the generated time series for STL-based simulator.
 
         Noise type is normal - noise will be generated from iid normal distribution;

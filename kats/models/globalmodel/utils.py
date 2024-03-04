@@ -73,7 +73,7 @@ def get_filters(isna_idx, seasonality) -> np.ndarray:
         else:
             i += 1
     filters = np.array([True] * n)
-    for (i, j) in flips:
+    for i, j in flips:
         filters[i:j] = False
     return filters
 
@@ -188,9 +188,11 @@ def split(
         split_data = [
             (
                 {t: train_TSs[t] for t in keys[~index[i]]},
-                {t: valid_TSs[t] for t in keys[~index[i]]}
-                if valid_TSs is not None
-                else None,
+                (
+                    {t: valid_TSs[t] for t in keys[~index[i]]}
+                    if valid_TSs is not None
+                    else None
+                ),
             )
             for i in range(splits)
         ]
@@ -198,9 +200,11 @@ def split(
         split_data = [
             (
                 {t: train_TSs[t] for t in keys[index[i]]},
-                {t: valid_TSs[t] for t in keys[index[i]]}
-                if valid_TSs is not None
-                else None,
+                (
+                    {t: valid_TSs[t] for t in keys[index[i]]}
+                    if valid_TSs is not None
+                    else None
+                ),
             )
             for i in range(splits)
         ]

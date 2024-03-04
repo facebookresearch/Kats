@@ -263,12 +263,12 @@ class GMBatch:
         if params.model_type == "rnn" and params.seasonality > 1:
             init_seasonality = self._get_seasonality(train_x, params.seasonality)
             # bound initial seasonalities
-            init_seasonality[
-                init_seasonality < params.init_seasonality[0]
-            ] = params.init_seasonality[0]
-            init_seasonality[
-                init_seasonality > params.init_seasonality[1]
-            ] = params.init_seasonality[1]
+            init_seasonality[init_seasonality < params.init_seasonality[0]] = (
+                params.init_seasonality[0]
+            )
+            init_seasonality[init_seasonality > params.init_seasonality[1]] = (
+                params.init_seasonality[1]
+            )
             # pyre-fixme[4]: Attribute must be annotated.
             self.init_seasonality = torch.tensor(init_seasonality, dtype=tdtype)
         else:
@@ -451,7 +451,6 @@ class GMBatch:
         Optional[np.ndarray],
         Optional[np.ndarray],
     ]:
-
         """
 
         Helper function for transforming TS to arrays, including truncating/padding values,

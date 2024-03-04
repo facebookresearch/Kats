@@ -24,6 +24,7 @@ with warnings.catch_warnings():
 # from numpy.typing import ArrayLike
 ArrayLike = Union[np.ndarray, Sequence[float]]
 
+
 # Type aliases
 #
 # Most metrics have the shape:
@@ -47,13 +48,13 @@ class ArrayMetric(Protocol):
         y_true: ArrayLike,
         y_pred: ArrayLike,
         sample_weight: Optional[ArrayLike] = ...,
-    ) -> np.ndarray:
-        ...  # pragma: no cover
+    ) -> np.ndarray: ...  # pragma: no cover
 
 
 class Metric(Protocol):
-    def __call__(self, y_true: ArrayLike, y_pred: ArrayLike) -> float:
-        ...  # pragma: no cover
+    def __call__(
+        self, y_true: ArrayLike, y_pred: ArrayLike
+    ) -> float: ...  # pragma: no cover
 
 
 class WeightedMetric(Protocol):
@@ -62,8 +63,7 @@ class WeightedMetric(Protocol):
         y_true: ArrayLike,
         y_pred: ArrayLike,
         sample_weight: Optional[ArrayLike] = ...,
-    ) -> float:
-        ...  # pragma: no cover
+    ) -> float: ...  # pragma: no cover
 
 
 class MultiOutputMetric(Protocol):
@@ -73,8 +73,7 @@ class MultiOutputMetric(Protocol):
         y_pred: ArrayLike,
         sample_weight: Optional[ArrayLike] = ...,
         multioutput: Union[str, ArrayLike] = ...,
-    ) -> float:
-        ...  # pragma: no cover
+    ) -> float: ...  # pragma: no cover
 
 
 class ThresholdMetric(Protocol):
@@ -83,8 +82,7 @@ class ThresholdMetric(Protocol):
         y_true: ArrayLike,
         y_pred: ArrayLike,
         threshold: float,
-    ) -> float:
-        ...  # pragma: no cover
+    ) -> float: ...  # pragma: no cover
 
 
 class MultiThresholdMetric(Protocol):
@@ -93,8 +91,7 @@ class MultiThresholdMetric(Protocol):
         y_true: ArrayLike,
         y_pred: ArrayLike,
         threshold: ArrayLike,
-    ) -> np.ndarray:
-        ...  # pragma: no cover
+    ) -> np.ndarray: ...  # pragma: no cover
 
 
 KatsMetric = Union[

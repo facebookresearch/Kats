@@ -545,9 +545,7 @@ class GMModel:
         for i, idx in enumerate(ids):
 
             df = pd.DataFrame(
-                fcst[i].transpose()[
-                    :steps,
-                ],
+                fcst[i].transpose()[:steps,],
                 columns=cols,
             )
             df["time"] = pd.date_range(
@@ -651,12 +649,12 @@ class GMModel:
         info = {
             "gmparam_string": self.params.to_string(),
             "state_dict": self.rnn.state_dict() if self.rnn is not None else None,
-            "encoder_state_dict": self.encoder.state_dict()
-            if self.encoder is not None
-            else None,
-            "decoder_state_dict": self.decoder.state_dict()
-            if self.decoder is not None
-            else None,
+            "encoder_state_dict": (
+                self.encoder.state_dict() if self.encoder is not None else None
+            ),
+            "decoder_state_dict": (
+                self.decoder.state_dict() if self.decoder is not None else None
+            ),
         }
         with open(file_name, "wb") as f:
             joblib.dump(info, f)
@@ -1099,7 +1097,11 @@ class GMModel:
                 cur_step + 1
             )
 
-            (x_t, anchor_level, x_lt,) = self._process_s2s(
+            (
+                x_t,
+                anchor_level,
+                x_lt,
+            ) = self._process_s2s(
                 prev_idx, cur_idx, batch.x, x_lt, period, params.input_window
             )
 

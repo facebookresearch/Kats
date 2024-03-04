@@ -1224,10 +1224,12 @@ class VectorizedCUSUMDetector(CUSUMDetector):
                 if not list(change_meta_["changepoint"]):
                     continue
                 change_meta = {
-                    k: change_meta_[k][col_idx]
-                    if isinstance(change_meta_[k], np.ndarray)
-                    or isinstance(change_meta_[k], list)
-                    else change_meta_[k]
+                    k: (
+                        change_meta_[k][col_idx]
+                        if isinstance(change_meta_[k], np.ndarray)
+                        or isinstance(change_meta_[k], list)
+                        else change_meta_[k]
+                    )
                     for k in change_meta_
                 }
                 change_meta["llr"] = llr = self._get_llr(

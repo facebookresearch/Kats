@@ -70,9 +70,11 @@ class SynthMetadataReader:
                     .map(lambda kv: kv[a][0])
                     .map(
                         lambda kv: {
-                            k: v
-                            if k not in self.PARAMS_TO_SCALE_DOWN
-                            else v / SynthMetadataReader.NUM_SECS_IN_DAY
+                            k: (
+                                v
+                                if k not in self.PARAMS_TO_SCALE_DOWN
+                                else v / SynthMetadataReader.NUM_SECS_IN_DAY
+                            )
                             for k, v in kv.items()
                         }
                     )

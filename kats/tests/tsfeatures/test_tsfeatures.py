@@ -180,7 +180,7 @@ class TSfeaturesTest(TestCase):
             "firstzero_ac": 4.0,
             # holt_params
             "holt_alpha": 0.0,
-            "holt_beta": 0.0
+            "holt_beta": 0.0,
             # hw_params
             # cusum_detector
             # robust_stat_detector

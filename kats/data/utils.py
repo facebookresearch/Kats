@@ -51,13 +51,11 @@ def load_data(file_name: str, reset_columns: bool = False) -> pd.DataFrame:
 
 
 @overload
-def load_air_passengers(return_ts: Literal[True]) -> TimeSeriesData:
-    ...
+def load_air_passengers(return_ts: Literal[True]) -> TimeSeriesData: ...
 
 
 @overload
-def load_air_passengers(return_ts: Literal[False] = ...) -> pd.DataFrame:
-    ...
+def load_air_passengers(return_ts: Literal[False] = ...) -> pd.DataFrame: ...
 
 
 def load_air_passengers(return_ts: bool = True) -> Union[pd.DataFrame, TimeSeriesData]:

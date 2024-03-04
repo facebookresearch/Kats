@@ -1276,9 +1276,11 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
             )
 
             cps = [
-                sorted(x, key=lambda x: x.start_time)[0]
-                if x and alert_set_on_mask[i]
-                else None
+                (
+                    sorted(x, key=lambda x: x.start_time)[0]
+                    if x and alert_set_on_mask[i]
+                    else None
+                )
                 for i, x in enumerate(changepoints)
             ]
 

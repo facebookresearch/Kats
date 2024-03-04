@@ -76,8 +76,9 @@ class BacktesterResult:
 
 
 class Forecaster(Protocol):
-    def __call__(self, train: DataPartition, test: DataPartition) -> pd.DataFrame:
-        ...  # pragma: no cover
+    def __call__(
+        self, train: DataPartition, test: DataPartition
+    ) -> pd.DataFrame: ...  # pragma: no cover
 
     """
     Function of fitting a forecasting model with `train` and evaluate the fitted model on `test`.
@@ -86,8 +87,9 @@ class Forecaster(Protocol):
 
 
 class Scorer(Protocol):
-    def __call__(self, result: pd.DataFrame) -> Dict[str, float]:
-        ...  # pragma: no cover
+    def __call__(
+        self, result: pd.DataFrame
+    ) -> Dict[str, float]: ...  # pragma: no cover
 
     """Function for calculating evaluation metrics based on `result`.
     """
@@ -122,6 +124,7 @@ def _get_scorer(
             except Exception as e:
                 msg = f"Unsupported error function {error} with error message {e}."
                 _log_error(msg)
+
         # define scorer function
         # pyre-fixme Incompatible return type [7]: Expected `Optional[typing.Callable[[DataFrame], Dict[str, float]]]` but got `Union[Metric, MultiOutputMetric, WeightedMetric]`.
         def calc_error(result: pd.DataFrame) -> Dict[str, float]:

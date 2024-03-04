@@ -934,9 +934,9 @@ class MLARModel:
                 num_rows_dat = norm_in_data[target_var].shape[0]
                 num_cols_dat = norm_in_data[target_var].shape[1]
 
-                full_mat[
-                    tv_idx : (tv_idx + num_rows_dat), 0:num_cols_dat
-                ] = norm_in_data[target_var]
+                full_mat[tv_idx : (tv_idx + num_rows_dat), 0:num_cols_dat] = (
+                    norm_in_data[target_var]
+                )
 
                 full_mat[
                     tv_idx : (tv_idx + num_rows_dat),

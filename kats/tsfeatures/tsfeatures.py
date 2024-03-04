@@ -2122,7 +2122,10 @@ class TsCalenderFeatures:
 
     def get_features(
         self, data: Union[TimeSeriesData, pd.Series], raw: bool = False
-    ) -> Union[pd.DataFrame, np.ndarray,]:
+    ) -> Union[
+        pd.DataFrame,
+        np.ndarray,
+    ]:
 
         if isinstance(data, TimeSeriesData):
             timestamps = data.time.dt

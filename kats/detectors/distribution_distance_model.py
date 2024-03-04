@@ -260,10 +260,12 @@ class DistributionDistanceModel(DetectorModel):
             window=str(self.window_size_sec) + "s",
             closed="both",
         ).agg(
-            lambda rows: rows[0]
-            if (rows.index[-1] - rows.index[0]).total_seconds()
-            > 0.9 * self.window_size_sec  # tolerance
-            else np.nan
+            lambda rows: (
+                rows[0]
+                if (rows.index[-1] - rows.index[0]).total_seconds()
+                > 0.9 * self.window_size_sec  # tolerance
+                else np.nan
+            )
         )
 
         # exclude the beginning part of NANs

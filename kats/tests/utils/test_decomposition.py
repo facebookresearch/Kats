@@ -434,9 +434,11 @@ class DecompositionTest(TestCase):
         # dates are sparse, there are some gaps between dates
         sparse_dates_df = dense_dates_ts.to_dataframe().copy()
         sparse_dates_df["time"] = sparse_dates_df["time"].map(
-            lambda x: x + pd.Timedelta(365, "D")
-            if (x >= pd.Timestamp(2021, 1, 2)) & (x < pd.Timestamp(2021, 1, 3))
-            else x
+            lambda x: (
+                x + pd.Timedelta(365, "D")
+                if (x >= pd.Timestamp(2021, 1, 2)) & (x < pd.Timestamp(2021, 1, 3))
+                else x
+            )
         )
         sparse_dates_ts = TimeSeriesData(sparse_dates_df)
 

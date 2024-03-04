@@ -481,7 +481,7 @@ class TimeSeriesParameterTuning(ABC):
         self,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         evaluation_function: Callable,
-        arm_count: int = -1  # -1 means
+        arm_count: int = -1,  # -1 means
         # create all arms (i.e. all combinations of parameter values)
     ) -> None:
         """A place holder method for users that are still using it.
@@ -894,7 +894,9 @@ class BayesMethodOptions(SearchMethodOptions):
     window_global_stop_size: int = 3
     experiment: Optional[Experiment] = None
     timeout_hours: Optional[int] = None  # timeout in hours for optimization
-    improvement_bar: float = 0.02  # imporvement step for gloabl stop strategy, imporvement bar default value sets for f_score func
+    improvement_bar: float = (
+        0.02  # imporvement step for gloabl stop strategy, imporvement bar default value sets for f_score func
+    )
     max_initialization_trials: int = 5
     seed: Optional[int] = None
 
@@ -1106,9 +1108,11 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             search_space=self._exp.search_space,
             max_parallelism_cap=min(
                 cpu_count(),
-                options.multiprocessing
-                if options.multiprocessing > 0
-                else options.max_trials,
+                (
+                    options.multiprocessing
+                    if options.multiprocessing > 0
+                    else options.max_trials
+                ),
             ),
             # use_batch_trials option somehow on parallel run limits initial number ob trials to 1 ¯\_(ツ)_/¯
             # use_batch_trials=bool(self.multiprocessing),

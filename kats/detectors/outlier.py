@@ -62,7 +62,7 @@ class OutlierDetector(Detector):
 
     def __clean_ts__(
         self,
-        original: Union[pd.Series, pd.DataFrame]
+        original: Union[pd.Series, pd.DataFrame],
         # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
     ) -> Tuple[List[int], List[float], List[pd.Timestamp]]:
         """

@@ -41,6 +41,8 @@ import os
 import sys
 
 NOT_SUPPRESS_PROPHET_FIT_LOGS_VAR_NAME = "NOT_SUPPRESS_PROPHET_FIT_LOGS"
+
+
 # this is a bug in prophet which was discussed in open source thread
 # issues was also suggested
 # details https://github.com/facebook/prophet/issues/223#issuecomment-326455744

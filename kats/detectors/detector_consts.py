@@ -260,10 +260,12 @@ class PercentageChange:
         if self.num_series > 1:
             return np.array(
                 [
-                    False
-                    if cast(np.ndarray, self.upper)[i] > 1.0
-                    and cast(np.ndarray, self.lower)[i] < 1
-                    else True
+                    (
+                        False
+                        if cast(np.ndarray, self.upper)[i] > 1.0
+                        and cast(np.ndarray, self.lower)[i] < 1
+                        else True
+                    )
                     for i in range(self.current.num_series)
                 ]
             )
@@ -649,11 +651,13 @@ class AnomalyResponse:
 
         return AnomalyResponse(
             scores=self.scores[-N:],
-            confidence_band=None
-            if cb is None
-            else ConfidenceBand(
-                upper=cb.upper[-N:],
-                lower=cb.lower[-N:],
+            confidence_band=(
+                None
+                if cb is None
+                else ConfidenceBand(
+                    upper=cb.upper[-N:],
+                    lower=cb.lower[-N:],
+                )
             ),
             predicted_ts=None if pts is None else pts[-N:],
             anomaly_magnitude_ts=self.anomaly_magnitude_ts[-N:],

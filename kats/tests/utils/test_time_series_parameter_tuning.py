@@ -349,6 +349,7 @@ class GridSearchTest(TestCase):
 
     def test_time_series_parameter_tuning_prophet_bayes_opt_scheduler(self) -> None:
         random_state: RandomState = RandomState(seed=0)
+
         #     # pyre-fixme[2]: Parameter must be annotated.
         def prophet_evaluation_function(params) -> Tuple[float, float]:
             error: float = random_state.random()
@@ -423,6 +424,7 @@ class GridSearchTest(TestCase):
 
     def test_time_series_parameter_tuning_NeverGrad(self) -> None:
         random_state: RandomState = RandomState(seed=0)
+
         # pyre-fixme[2]: Parameter must be annotated.
         def prophet_evaluation_function(**kwargs) -> float:
             error: float = random_state.random()
@@ -549,6 +551,7 @@ class GridSearchTest(TestCase):
 
     def test_time_series_parameter_tuning_NeverGrad_multi(self) -> None:
         random_state: RandomState = RandomState(seed=0)
+
         #     # pyre-fixme[2]: Parameter must be annotated.
         def prophet_evaluation_function(**kwargs) -> float:
             error: float = random_state.random()

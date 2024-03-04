@@ -747,7 +747,7 @@ class KatsEnsemble(Model):
         data: TimeSeriesData,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         model_func: Callable,
-        model_param: Params
+        model_param: Params,
         # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
     ) -> Model:
         """Private method to fit individual model

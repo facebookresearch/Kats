@@ -922,7 +922,6 @@ class StatSigDetectorModel(DetectorModel):
 
 
 class MultiStatSigDetectorModel(StatSigDetectorModel):
-
     """
     MultiStatSigDetectorModel is a multivariate version of the StatSigDetector.  It applies a univariate
     t-test to each of the components of the multivariate time series to see if the means between the control

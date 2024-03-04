@@ -195,7 +195,6 @@ class STDGlobalModel:
     def _predict_seasonality(
         self, steps: int, tsd_model: Union[ProphetModel, np.ndarray]
     ) -> np.ndarray:
-
         """Predict the future seasonality.
 
         Args:

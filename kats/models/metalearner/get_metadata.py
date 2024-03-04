@@ -220,7 +220,7 @@ class GetMetaData:
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         single_model: Callable,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
-        single_params: Callable
+        single_params: Callable,
         # pyre-fixme[24]: Generic type `dict` expects 2 type parameters, use
         #  `typing.Dict` to avoid runtime subscripting errors.
     ) -> Tuple[Dict, float]:
