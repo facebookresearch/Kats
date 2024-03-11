@@ -676,6 +676,39 @@ class TestProphetDetector(TestCase):
             response.scores.value[13 * 24], response.scores.value[16 * 24]
         )
 
+    def test_heteroskedastic_noise_signal_with_holidays(self) -> None:
+        """Tests the z-score strategy on signals with heteroskedastic noise
+
+        This test creates synthetic data with heteroskedastic noise. Then, it adds
+        anomalies of identical magnitudes to segments with different noise. Finally, it
+        verifies that anomalies in low-noise segments have higher z-scores than those
+        in high-noise segments. This occurs because low noise segments will have lower
+        standard deviations, which result in higher z-scores.
+        With call ProphetDetectorMopdel without weekend seasonaluty this taest fails
+        """
+        ts = self.create_ts(length=100 * 24, signal_to_noise_ratio=0.05, freq="1h")
+
+        # add heteroskedastic noise to the data
+
+        ts.value *= (
+            (ts.time - pd.to_datetime("2020-01-01")) % timedelta(days=7)
+            > timedelta(days=3.5)
+        ) * np.random.rand(100 * 24) * 2.5 + 0.5
+
+        ts.value[93 * 24] += 100
+        ts.value[96 * 24] += 100
+
+        model = ProphetDetectorModel(
+            score_func="z_score",
+            seasonalities={SeasonalityTypes.WEEKEND: True},
+            countries_holidays=["US", "UK"],
+        )
+        response = model.fit_predict(ts[80 * 24 :], ts[: 80 * 24])
+
+        self.assertGreater(
+            response.scores.value[13 * 24], response.scores.value[16 * 24]
+        )
+
     def test_weekend_seasonality_noise_signal(self) -> None:
         """Tests the accuracy with heteroskedastic series and noise
 

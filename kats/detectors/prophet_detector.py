@@ -177,9 +177,6 @@ class SeasonalityTypes(Enum):
     WEEKEND = 3
 
 
-EMPTY_LIST: List[SeasonalityTypes] = []
-
-
 def to_seasonality(seasonality: Union[str, SeasonalityTypes]) -> SeasonalityTypes:
     if isinstance(seasonality, str):
         try:
@@ -317,7 +314,8 @@ class ProphetDetectorModel(DetectorModel):
                 List[str],
                 Dict[SeasonalityTypes, Union[bool, str]],
             ]
-        ] = EMPTY_LIST,
+        ] = None,
+        countries_holidays: Optional[List[str]] = None,
     ) -> None:
         """
         Initializartion of Prophet
@@ -367,6 +365,9 @@ class ProphetDetectorModel(DetectorModel):
         if seasonalities is None:
             seasonalities = []
         self.seasonalities = seasonalities_to_dict(seasonalities)
+        if countries_holidays is None:
+            countries_holidays = []
+        self.countries_holidays: List[str] = countries_holidays
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -456,6 +457,8 @@ class ProphetDetectorModel(DetectorModel):
             yearly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.YEAR],
             weekly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.WEEK],
         )
+        for country in self.countries_holidays:
+            model.add_country_holidays(country)
         for seasonality in additional_seasonalities:
             model.add_seasonality(**seasonality)
         with ExitStack() as stack:
