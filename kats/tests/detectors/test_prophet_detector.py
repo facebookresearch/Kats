@@ -25,13 +25,15 @@ from kats.detectors.prophet_detector import (
 from kats.utils.simulator import Simulator
 from parameterized.parameterized import parameterized
 
+START_DATE_TEST_DATA = "2018-01-01"
+
 
 class TestProphetDetector(TestCase):
     def create_random_ts(
         self, seed: int, length: int, magnitude: float, slope_factor: float
     ) -> TimeSeriesData:
         np.random.seed(seed)
-        sim = Simulator(n=length, freq="1D", start=pd.to_datetime("2020-01-01"))
+        sim = Simulator(n=length, freq="1D", start=pd.to_datetime(START_DATE_TEST_DATA))
 
         sim.add_trend(magnitude=magnitude * np.random.rand() * slope_factor)
         sim.add_seasonality(
@@ -51,7 +53,7 @@ class TestProphetDetector(TestCase):
         freq: str = "1D",
     ) -> TimeSeriesData:
         np.random.seed(seed)
-        sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
+        sim = Simulator(n=length, freq=freq, start=pd.to_datetime(START_DATE_TEST_DATA))
 
         sim.add_seasonality(magnitude, period=timedelta(days=7))
         sim.add_noise(magnitude=signal_to_noise_ratio * magnitude)
@@ -68,7 +70,7 @@ class TestProphetDetector(TestCase):
     ) -> TimeSeriesData:
         np.random.seed(seed)
 
-        sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
+        sim = Simulator(n=length, freq=freq, start=pd.to_datetime(START_DATE_TEST_DATA))
         magnitude = (max_val - min_val) / 2
 
         sim.add_trend(-0.2 * magnitude)
@@ -153,7 +155,9 @@ class TestProphetDetector(TestCase):
         # start time and freq don't matter, since we only care about the values
         np.random.seed(seed)
 
-        anomaly_sim = Simulator(n=length, freq="1D", start=pd.to_datetime("2020-01-01"))
+        anomaly_sim = Simulator(
+            n=length, freq="1D", start=pd.to_datetime(START_DATE_TEST_DATA)
+        )
         anomaly_sim.add_seasonality(magnitude, period=timedelta(days=2 * length))
         # anomaly_sim.add_noise(magnitude=0.3 * magnitude * np.random.rand())
 
@@ -170,7 +174,7 @@ class TestProphetDetector(TestCase):
         self, ts: TimeSeriesData, length: int, freq: str, magnitude: float
     ) -> None:
         ts_df = ts.to_dataframe()
-        sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
+        sim = Simulator(n=length, freq=freq, start=pd.to_datetime(START_DATE_TEST_DATA))
         elevation = sim.trend_shift_sim(
             cp_arr=[0, 1],
             trend_arr=[0, 0, 0],
@@ -215,7 +219,7 @@ class TestProphetDetector(TestCase):
         event_relative_magnitude: float,
     ) -> TimeSeriesData:
         np.random.seed(seed)
-        sim = Simulator(n=length, freq=freq, start=pd.to_datetime("2020-01-01"))
+        sim = Simulator(n=length, freq=freq, start=pd.to_datetime(START_DATE_TEST_DATA))
 
         event_start = int(length * event_start_ratio)
         event_end = int(length * event_end_ratio)
@@ -653,14 +657,14 @@ class TestProphetDetector(TestCase):
         verifies that anomalies in low-noise segments have higher z-scores than those
         in high-noise segments. This occurs because low noise segments will have lower
         standard deviations, which result in higher z-scores.
-        With call ProphetDetectorMopdel without weekend seasonaluty this taest fails
+        With call ProphetDetectorModel without weekend seasonaluty this taest fails
         """
         ts = self.create_ts(length=100 * 24, signal_to_noise_ratio=0.05, freq="1h")
 
         # add heteroskedastic noise to the data
 
         ts.value *= (
-            (ts.time - pd.to_datetime("2020-01-01")) % timedelta(days=7)
+            (ts.time - pd.to_datetime(START_DATE_TEST_DATA)) % timedelta(days=7)
             > timedelta(days=3.5)
         ) * np.random.rand(100 * 24) * 2.5 + 0.5
 
@@ -684,6 +688,7 @@ class TestProphetDetector(TestCase):
         verifies that anomalies in low-noise segments have higher z-scores than those
         in high-noise segments. This occurs because low noise segments will have lower
         standard deviations, which result in higher z-scores.
+        We are addingh holiday, to check the param works
         With call ProphetDetectorMopdel without weekend seasonaluty this taest fails
         """
         ts = self.create_ts(length=100 * 24, signal_to_noise_ratio=0.05, freq="1h")
@@ -691,7 +696,7 @@ class TestProphetDetector(TestCase):
         # add heteroskedastic noise to the data
 
         ts.value *= (
-            (ts.time - pd.to_datetime("2020-01-01")) % timedelta(days=7)
+            (ts.time - pd.to_datetime(START_DATE_TEST_DATA)) % timedelta(days=7)
             > timedelta(days=3.5)
         ) * np.random.rand(100 * 24) * 2.5 + 0.5
 
@@ -702,6 +707,58 @@ class TestProphetDetector(TestCase):
             score_func="z_score",
             seasonalities={SeasonalityTypes.WEEKEND: True},
             countries_holidays=["US", "UK"],
+        )
+        response = model.fit_predict(ts[80 * 24 :], ts[: 80 * 24])
+
+        self.assertGreater(
+            response.scores.value[13 * 24], response.scores.value[16 * 24]
+        )
+
+    def test_heteroskedastic_noise_signal_with_specific_holidays(self) -> None:
+        """Tests the z-score strategy on signals with heteroskedastic noise
+
+        This test creates synthetic data with heteroskedastic noise. Then, it adds
+        anomalies of identical magnitudes to segments with different noise. Finally, it
+        verifies that anomalies in low-noise segments have higher z-scores than those
+        in high-noise segments. This occurs because low noise segments will have lower
+        standard deviations, which result in higher z-scores.
+        We also adding value for the first day abnormakl, which shouldn;'t affects outcome as it holiday
+        With call ProphetDetectorModel without weekend seasonaluty this taest fails
+        """
+        ts = self.create_ts(length=100 * 24, signal_to_noise_ratio=0.05, freq="1h")
+
+        # add heteroskedastic noise to the data
+        playoffs = [
+            START_DATE_TEST_DATA,
+            (pd.to_datetime(START_DATE_TEST_DATA) + pd.Timedelta(days=4)).strftime(
+                "%Y-%m-%d"
+            ),
+        ]
+        ts.value *= (
+            (ts.time - pd.to_datetime(START_DATE_TEST_DATA)) % timedelta(days=7)
+            > timedelta(days=3.5)
+        ) * np.random.rand(100 * 24) * 2.5 + 0.5
+        ts.value[0] += 1000
+        ts.value[93 * 24] += 100
+        ts.value[96 * 24] += 100
+
+        model = ProphetDetectorModel(
+            score_func="z_score",
+            seasonalities={SeasonalityTypes.WEEKEND: True},
+            countries_holidays=["US", "UK"],
+            holidays_list=playoffs,
+        )
+        response = model.fit_predict(ts[80 * 24 :], ts[: 80 * 24])
+
+        self.assertGreater(
+            response.scores.value[13 * 24], response.scores.value[16 * 24]
+        )
+
+        model = ProphetDetectorModel(
+            score_func="z_score",
+            seasonalities={SeasonalityTypes.WEEKEND: True},
+            countries_holidays=["US", "UK"],
+            holidays_list={"ds": playoffs, "holiday": ["playoff"] * len(playoffs)},
         )
         response = model.fit_predict(ts[80 * 24 :], ts[: 80 * 24])
 

@@ -37,6 +37,8 @@ PROPHET_VALUE_COLUMN = "y"
 PROPHET_YHAT_COLUMN = "yhat"
 PROPHET_YHAT_LOWER_COLUMN = "yhat_lower"
 PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
+HOLIDAY_NAMES_COLUMN_NAME = "holiday"
+HOLIDAY_DATES_COLUMN_NAME = "ds"
 import os
 import sys
 
@@ -175,6 +177,9 @@ class SeasonalityTypes(Enum):
     WEEK = 1
     YEAR = 2
     WEEKEND = 3
+
+
+USER_HOLIDAY_NAME = "user_provided_holiday"
 
 
 def to_seasonality(seasonality: Union[str, SeasonalityTypes]) -> SeasonalityTypes:
@@ -316,6 +321,7 @@ class ProphetDetectorModel(DetectorModel):
             ]
         ] = None,
         countries_holidays: Optional[List[str]] = None,
+        holidays_list: Optional[Union[List[str], Dict[str, List[str]]]] = None,
     ) -> None:
         """
         Initializartion of Prophet
@@ -333,6 +339,8 @@ class ProphetDetectorModel(DetectorModel):
             If argument  SeasonalityTypes, List[SeasonalityTypes], than mentioned seasonilities will be used in Prophet. If argument Dict[SeasonalityTypes, bool] - each seasonality can be setted directly (True - means used it, False - not to use, 'auto' according to Prophet.).
             SeasonalityTypes enum values: DAY, WEEK , YEAR, WEEKEND
             Daily, Weekly, Yearly seasonlities used  as "auto" by default.
+        countries_holidays: Optional[List[str]]: List of countries for which holidays should be added to the model.
+        holidays_list:  Optional[Union[List[str], Dict[str, List[str]]]] : List of holiday dates to be added to the model. like ["2022-01-01","2022-03-31"], or dict of list if we have diffreent holidays patterns for example  {"ds":["2022-01-01","2022-03-31"], "holidays":["playoff","superbowl"]}
         """
 
         if serialized_model:
@@ -368,6 +376,7 @@ class ProphetDetectorModel(DetectorModel):
         if countries_holidays is None:
             countries_holidays = []
         self.countries_holidays: List[str] = countries_holidays
+        self.holidays_list = holidays_list
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -449,6 +458,26 @@ class ProphetDetectorModel(DetectorModel):
         additional_seasonalities = []
         if self.seasonalities_to_fit[SeasonalityTypes.WEEKEND]:
             additional_seasonalities = prophet_weekend_masks(data_df)
+        holidays = self.holidays_list
+        if holidays is not None and len(holidays) > 0:
+            if isinstance(holidays, List):
+                if isinstance(holidays[0], str):
+                    holidays = {
+                        HOLIDAY_DATES_COLUMN_NAME: self.holidays_list,
+                        HOLIDAY_NAMES_COLUMN_NAME: ["holiday"] * len(holidays),
+                    }
+                else:
+                    raise ValueError(
+                        "holidays_list should be a list of str or dict of list of str"
+                    )
+            if not isinstance(holidays, Dict):
+                raise ValueError(
+                    "holidays_list should be a list of str or dict of list of str"
+                )
+            # we use default lower and upper bound for holidays
+
+            holidays = pd.DataFrame(holidays)
+
         # No incremental training. Create a model and train from scratch
         model = Prophet(
             interval_width=self.scoring_confidence_interval,
@@ -456,6 +485,7 @@ class ProphetDetectorModel(DetectorModel):
             daily_seasonality=self.seasonalities_to_fit[SeasonalityTypes.DAY],
             yearly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.YEAR],
             weekly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.WEEK],
+            holidays=holidays,
         )
         for country in self.countries_holidays:
             model.add_country_holidays(country)
