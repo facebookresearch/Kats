@@ -17,6 +17,8 @@ from kats.detectors.robust_stat_detection import (
     RobustStatChangePoint,
     RobustStatDetector,
 )
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 from sklearn.datasets import make_spd_matrix
 

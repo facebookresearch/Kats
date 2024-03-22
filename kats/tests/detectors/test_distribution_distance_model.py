@@ -20,6 +20,8 @@ from kats.consts import (
     TimeSeriesData,
 )
 from kats.detectors.distribution_distance_model import DistributionDistanceModel
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

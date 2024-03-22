@@ -18,6 +18,8 @@ from kats.detectors.cusum_detection import (
     MultiCUSUMDetector,
     VectorizedCUSUMDetector,
 )
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 from scipy.stats import chi2  # @manual
 from sklearn.datasets import make_spd_matrix

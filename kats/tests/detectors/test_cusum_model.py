@@ -23,6 +23,8 @@ from kats.detectors.cusum_model import (
     CusumScoreFunction,
     VectorizedCUSUMDetectorModel,
 )
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

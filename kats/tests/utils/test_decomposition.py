@@ -17,6 +17,8 @@ from kats.detectors.residual_translation import KDEResidualTranslator
 from kats.utils.decomposition import SeasonalityHandler, TimeSeriesDecomposition
 from kats.utils.simulator import Simulator
 from scipy.stats import ks_2samp
+
+# pyre-fixme[21]: Could not find name `STL` in `statsmodels.tsa.seasonal`.
 from statsmodels.tsa.seasonal import seasonal_decompose, STL
 
 

@@ -26,6 +26,8 @@ from kats.detectors.interval_detector import (
     TwoSampleRealValuedIntervalDetectorModel,
     TwoSampleSchema,
 )
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 from scipy.stats import norm
 

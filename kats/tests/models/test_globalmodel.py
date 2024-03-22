@@ -38,6 +38,8 @@ from kats.models.globalmodel.utils import (
     S2Cell,
     split,
 )
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

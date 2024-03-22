@@ -21,6 +21,8 @@ from kats.models import (
 )
 from kats.models.stlf import STLFModel, STLFParams
 from kats.utils.simulator import Simulator
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

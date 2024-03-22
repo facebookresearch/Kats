@@ -11,6 +11,7 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+# pyre-fixme[21]: Could not find name `Timestamp` in `pandas`.
 from pandas import Timestamp
 
 AIR_FCST_LINEAR_95 = pd.DataFrame(

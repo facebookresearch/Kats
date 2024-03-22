@@ -27,6 +27,8 @@ from kats.detectors.stat_sig_detector import (
 )
 from kats.utils.decomposition import SeasonalityHandler
 from kats.utils.simulator import Simulator
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

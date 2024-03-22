@@ -53,6 +53,8 @@ from kats.consts import IntervalAnomaly, TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from matplotlib import pyplot as plt
+
+# pyre-fixme[21]: Could not find module `numpy.linalg`.
 from numpy.linalg import matrix_power
 from scipy.linalg import toeplitz
 from scipy.stats import beta, binom, mvn, norm

@@ -32,6 +32,8 @@ from scipy import stats
 from scipy.linalg import toeplitz
 from scipy.signal import periodogram  # @manual
 from statsmodels.stats.diagnostic import het_arch
+
+# pyre-fixme[21]: Could not find name `STL` in `statsmodels.tsa.seasonal`.
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.stattools import acf, kpss, pacf
 

@@ -26,6 +26,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from kats.consts import _log_error, Params, TimeSeriesData
+
+# pyre-fixme[21]: Could not find module `numpy.linalg`.
 from numpy.linalg import inv
 from scipy.linalg import block_diag
 

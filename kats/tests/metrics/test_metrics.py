@@ -9,8 +9,12 @@ from typing import List, Optional, Union
 from unittest import TestCase
 
 import numpy as np
+
+# pyre-fixme[21]: Could not find module `numpy.testing`.
 import numpy.testing as npt
 from kats.metrics import metrics
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

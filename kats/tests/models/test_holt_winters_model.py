@@ -19,6 +19,8 @@ from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_HW_1,  # first param combination results
     AIR_FCST_HW_2,
 )
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])

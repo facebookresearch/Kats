@@ -18,6 +18,8 @@ from kats.tsfeatures.tsfeatures import TsCalenderFeatures, TsFourierFeatures
 from kats.utils.parameter_tuning_utils import (
     get_default_lightgbm_parameter_search_space,
 )
+
+# pyre-fixme[21]: Could not find module `numpy.random`.
 from numpy.random import RandomState
 
 try:

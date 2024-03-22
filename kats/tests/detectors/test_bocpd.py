@@ -22,6 +22,8 @@ from kats.detectors.bocpd import (
     TrendChangeParameters,
 )
 from kats.utils.simulator import Simulator
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

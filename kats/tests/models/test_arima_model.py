@@ -26,6 +26,8 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_ARIMA_PARAM_2_MODEL_1,
     PEYTON_FCST_30_ARIMA_PARAM_2_MODEL_2,
 )
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 STEPS_1 = 15

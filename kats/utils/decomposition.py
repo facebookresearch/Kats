@@ -19,6 +19,8 @@ from kats.consts import (
     ParameterError,
     TimeSeriesData,
 )
+
+# pyre-fixme[21]: Could not find name `STL` in `statsmodels.tsa.seasonal`.
 from statsmodels.tsa.seasonal import seasonal_decompose, STL
 
 # from numpy.typing import ArrayLike

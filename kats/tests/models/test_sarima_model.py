@@ -28,6 +28,8 @@ from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_30_SARIMA_PARAM_2_MODEL_2,
     EXOG_FCST_15_SARIMA_PARAM_EXOG_MODEL_1,
 )
+
+# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 AIR_TS: pd.DataFrame = load_air_passengers()
