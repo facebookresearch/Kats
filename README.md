@@ -153,6 +153,8 @@ year = {2022}
 
 ## Changelog
 
+test function
+
 ### Version 0.2.0
 * Forecasting
     * Added global model, a neural network forecasting model
