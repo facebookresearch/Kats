@@ -1310,7 +1310,7 @@ class TsFeatures:
         if extra_args is not None and extra_args.get("firstzero_ac", default_status):
             j = 0
             while j < len(AC) - 1:
-                if AC[j] > 0 > AC[j + 1]:
+                if AC[j] > 0 and AC[j + 1] < 0:
                     break
                 else:
                     j += 1
