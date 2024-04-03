@@ -23,7 +23,6 @@ from kats.tests.models.test_models_dummy_data import (
     NONSEASONAL_INPUT,
 )
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

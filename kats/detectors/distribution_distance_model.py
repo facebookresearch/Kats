@@ -27,7 +27,6 @@ from scipy.spatial import distance
 
 # Supported metrics for calculating distance
 # details: https://github.com/scipy/scipy/blob/v1.10.1/scipy/spatial/distance.py#L1947
-# pyre-fixme[21]: Could not find module `scipy.spatial.distance`.
 from scipy.spatial.distance import _METRICS_NAMES as SUPPORTED_DISTANCE_METRICS
 
 

@@ -20,7 +20,6 @@ from kats.models.arima import ARIMAModel
 from kats.models.prophet import ProphetModel
 from kats.utils.time_series_parameter_tuning import compute_search_cardinality
 
-# pyre-fixme[21]: Could not find module `numpy.random`.
 from numpy.random import RandomState
 
 

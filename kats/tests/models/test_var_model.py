@@ -15,7 +15,6 @@ from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.models.var import VARModel, VARParams
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

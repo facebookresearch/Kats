@@ -13,7 +13,6 @@ import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.models.ml_ar import MLARModel, MLARParams
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 single_univariate_ts = [

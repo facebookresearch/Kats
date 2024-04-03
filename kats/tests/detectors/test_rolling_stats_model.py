@@ -20,7 +20,6 @@ from kats.consts import (
 )
 from kats.detectors.rolling_stats_model import RollingStatsModel
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

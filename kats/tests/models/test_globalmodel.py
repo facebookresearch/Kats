@@ -39,7 +39,6 @@ from kats.models.globalmodel.utils import (
     split,
 )
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

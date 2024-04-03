@@ -29,7 +29,6 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_THETA_SM_12,
 )
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

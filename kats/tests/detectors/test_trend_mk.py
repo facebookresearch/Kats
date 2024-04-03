@@ -12,7 +12,6 @@ import pandas as pd
 from kats.detectors.trend_mk import MKDetector
 from kats.tests.detectors.utils import gen_no_trend_data_ndim, gen_trend_data_ndim
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

@@ -24,7 +24,6 @@ from kats.detectors.prophet_detector import (
 )
 from kats.utils.simulator import Simulator
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 START_DATE_TEST_DATA = "2018-01-01"

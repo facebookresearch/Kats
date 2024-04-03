@@ -11,7 +11,6 @@ from unittest import TestCase
 from kats.metrics import metadata
 from kats.metrics.metadata import inspect, MetricMetadata
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 

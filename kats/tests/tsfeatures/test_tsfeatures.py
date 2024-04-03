@@ -26,7 +26,6 @@ from kats.tsfeatures.tsfeatures import (
     TsFourierFeatures,
 )
 
-# pyre-fixme[21]: Could not find module `parameterized.parameterized`.
 from parameterized.parameterized import parameterized
 
 SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
