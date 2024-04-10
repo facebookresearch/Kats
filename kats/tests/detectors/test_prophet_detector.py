@@ -707,7 +707,7 @@ class TestProphetDetector(TestCase):
         model = ProphetDetectorModel(
             score_func="z_score",
             seasonalities={SeasonalityTypes.WEEKEND: True},
-            countries_holidays=["US", "UK"],
+            country_holidays="US",
         )
         response = model.fit_predict(ts[80 * 24 :], ts[: 80 * 24])
 
@@ -746,7 +746,7 @@ class TestProphetDetector(TestCase):
         model = ProphetDetectorModel(
             score_func="z_score",
             seasonalities={SeasonalityTypes.WEEKEND: True},
-            countries_holidays=["US", "UK"],
+            country_holidays="US",
             holidays_list=playoffs,
         )
         response = model.fit_predict(ts[80 * 24 :], ts[: 80 * 24])
@@ -758,7 +758,7 @@ class TestProphetDetector(TestCase):
         model = ProphetDetectorModel(
             score_func="z_score",
             seasonalities={SeasonalityTypes.WEEKEND: True},
-            countries_holidays=["US", "UK"],
+            country_holidays="UK",
             holidays_list={"ds": playoffs, "holiday": ["playoff"] * len(playoffs)},
         )
         response = model.fit_predict(ts[80 * 24 :], ts[: 80 * 24])

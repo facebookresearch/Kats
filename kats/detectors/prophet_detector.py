@@ -320,7 +320,7 @@ class ProphetDetectorModel(DetectorModel):
                 Dict[SeasonalityTypes, Union[bool, str]],
             ]
         ] = None,
-        countries_holidays: Optional[List[str]] = None,
+        country_holidays: Optional[str] = None,
         holidays_list: Optional[Union[List[str], Dict[str, List[str]]]] = None,
     ) -> None:
         """
@@ -339,7 +339,7 @@ class ProphetDetectorModel(DetectorModel):
             If argument  SeasonalityTypes, List[SeasonalityTypes], than mentioned seasonilities will be used in Prophet. If argument Dict[SeasonalityTypes, bool] - each seasonality can be setted directly (True - means used it, False - not to use, 'auto' according to Prophet.).
             SeasonalityTypes enum values: DAY, WEEK , YEAR, WEEKEND
             Daily, Weekly, Yearly seasonlities used  as "auto" by default.
-        countries_holidays: Optional[List[str]]: List of countries for which holidays should be added to the model.
+        country_holidays: Optional[str]: Country for which holidays should be added to the model.
         holidays_list:  Optional[Union[List[str], Dict[str, List[str]]]] : List of holiday dates to be added to the model. like ["2022-01-01","2022-03-31"], or dict of list if we have diffreent holidays patterns for example  {"ds":["2022-01-01","2022-03-31"], "holidays":["playoff","superbowl"]}
         """
 
@@ -373,9 +373,7 @@ class ProphetDetectorModel(DetectorModel):
         if seasonalities is None:
             seasonalities = []
         self.seasonalities = seasonalities_to_dict(seasonalities)
-        if countries_holidays is None:
-            countries_holidays = []
-        self.countries_holidays: List[str] = countries_holidays
+        self.country_holidays: Optional[str] = country_holidays
         self.holidays_list = holidays_list
 
     def serialize(self) -> bytes:
@@ -487,8 +485,8 @@ class ProphetDetectorModel(DetectorModel):
             weekly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.WEEK],
             holidays=holidays,
         )
-        for country in self.countries_holidays:
-            model.add_country_holidays(country)
+        if self.country_holidays is not None:
+            model.add_country_holidays(self.country_holidays)
         for seasonality in additional_seasonalities:
             model.add_seasonality(**seasonality)
         with ExitStack() as stack:
