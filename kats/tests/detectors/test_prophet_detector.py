@@ -16,6 +16,7 @@ from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.detectors.prophet_detector import (
+    get_holiday_dates,
     ProphetDetectorModel,
     ProphetScoreFunction,
     ProphetTrendDetectorModel,
@@ -767,6 +768,66 @@ class TestProphetDetector(TestCase):
             response.scores.value[13 * 24], response.scores.value[16 * 24]
         )
 
+    def test_heteroskedastic_noise_signal_with_specific_holidays_mulitplier(
+        self,
+    ) -> None:
+        """Tests the z-score strategy on signals with heteroskedastic noise
+
+        This test creates synthetic data with heteroskedastic noise. Then, it adds
+        anomalies of identical magnitudes to segments with different noise.
+        We also adding value for the first day abnormakl, which shouldn;'t affects outcome as it holiday and holiday multiplier.
+        And we check, that multiplier is using during holiday and using in other cases.
+        With call ProphetDetectorModel without weekend seasonaluty this taest fails
+        """
+        ts = self.create_ts(length=100 * 24, signal_to_noise_ratio=0.05, freq="1h")
+
+        # add heteroskedastic noise to the data
+        playoffs = [
+            START_DATE_TEST_DATA,
+            (pd.to_datetime(START_DATE_TEST_DATA) + pd.Timedelta(days=94)).strftime(
+                "%Y-%m-%d"
+            ),
+        ]
+        holiday_in_predict: str = playoffs[1]
+        ts.value *= (
+            (ts.time - pd.to_datetime(START_DATE_TEST_DATA)) % timedelta(days=7)
+            > timedelta(days=3.5)
+        ) * np.random.rand(100 * 24) * 2.5 + 0.5
+        ts.value[0] += 1000
+        ts.value[93 * 24] += 100
+        ts.value[96 * 24] += 100
+
+        model = ProphetDetectorModel(
+            score_func="z_score",
+            seasonalities={SeasonalityTypes.WEEKEND: True},
+            country_holidays="US",
+            holidays_list=playoffs,
+            holiday_multiplier=0,
+        )
+        response = model.fit_predict(ts[80 * 24 :], ts[: 80 * 24])
+        value_to_check: float = response.scores.value.iloc[
+            response.scores.time[
+                response.scores.time == pd.to_datetime(holiday_in_predict + " 01:00:00")
+            ].index[0]
+        ]
+        self.assertEqual(value_to_check, 0)
+        value_to_check = response.scores.value.iloc[
+            response.scores.time[
+                response.scores.time == pd.to_datetime(holiday_in_predict + " 23:00:00")
+            ].index[0]
+        ]
+
+        self.assertEqual(value_to_check, 0)
+        value_to_check = response.scores.value.iloc[
+            response.scores.time[
+                response.scores.time
+                == pd.to_datetime(holiday_in_predict + " 01:00:00")
+                + pd.Timedelta(days=1)
+            ].index[0]
+        ]
+
+        self.assertNotEqual(value_to_check, 0)
+
     def test_weekend_seasonality_noise_signal(self) -> None:
         """Tests the accuracy with heteroskedastic series and noise
 
@@ -975,3 +1036,41 @@ class TestProphetTrendDetectorModel(TestCase):
         self, actual: Union[str, SeasonalityTypes], expected: SeasonalityTypes
     ) -> None:
         self.assertEqual(to_seasonality(actual), expected)
+
+
+class TestGetHolidayDates(TestCase):
+    def test_no_args(self) -> None:
+        result = get_holiday_dates()
+        self.assertTrue(result.empty)
+
+    def test_only_holidays(self) -> None:
+        holidays = pd.DataFrame(
+            {"ds": pd.date_range(start="1/1/2020", end="1/10/2020")}
+        )
+        result = get_holiday_dates(holidays=holidays, dates=holidays["ds"])
+        pd.testing.assert_series_equal(
+            result,
+            pd.to_datetime(pd.Series(holidays["ds"].dt.date, name=None))
+            .sort_values(ignore_index=True)
+            .rename(
+                None
+            ),  # if name setting to None on pd.Series constructor it doesn't really change a name!
+        )
+
+    def test_only_country_holidays(self) -> None:
+        dates = pd.Series(pd.date_range(start="1/1/2020", end="12/31/2020"))
+        result = get_holiday_dates(country_holidays="US", dates=dates)
+        self.assertFalse(result.empty)
+        self.assertTrue((result.dt.year == 2020).all())
+
+    def test_holidays_and_country_holidays(self) -> None:
+        holidays = pd.DataFrame(
+            {"ds": pd.date_range(start="1/1/2020", end="1/10/2020")}
+        )
+        dates = pd.Series(pd.date_range(start="1/1/2020", end="12/31/2020"))
+        result = get_holiday_dates(
+            holidays=holidays, country_holidays="US", dates=dates
+        )
+        self.assertFalse(result.empty)
+        self.assertTrue((result.dt.year == 2020).all())
+        self.assertGreater(len(result), len(holidays))

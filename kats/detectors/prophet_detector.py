@@ -18,7 +18,9 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 from fbprophet import Prophet
+from fbprophet.make_holidays import make_holidays_df
 from fbprophet.serialize import model_from_json, model_to_json
+
 from kats.consts import (
     DataError,
     DataInsufficientError,
@@ -278,6 +280,28 @@ def prophet_weekend_masks(
     return additional_seasonalities
 
 
+def get_holiday_dates(
+    holidays: Optional[pd.DataFrame] = None,
+    country_holidays: Optional[str] = None,
+    dates: Optional[pd.Series] = None,
+) -> pd.Series:
+    if dates is None:
+        return pd.Series()
+    year_list = list({x.year for x in dates})
+    all_holidays = pd.DataFrame()
+    if holidays is not None:
+        all_holidays = holidays.copy()
+    if country_holidays is not None:
+        country_holidays_df = make_holidays_df(
+            year_list=year_list, country=country_holidays
+        )
+        all_holidays = pd.concat((all_holidays, country_holidays_df), sort=False)
+    all_holidays = pd.to_datetime(
+        pd.Series(list({x.date() for x in pd.to_datetime(all_holidays.ds)}))
+    ).sort_values(ignore_index=True)
+    return all_holidays
+
+
 class ProphetDetectorModel(DetectorModel):
     """Prophet based anomaly detection model.
 
@@ -322,6 +346,7 @@ class ProphetDetectorModel(DetectorModel):
         ] = None,
         country_holidays: Optional[str] = None,
         holidays_list: Optional[Union[List[str], Dict[str, List[str]]]] = None,
+        holiday_multiplier: Optional[float] = None,
     ) -> None:
         """
         Initializartion of Prophet
@@ -341,6 +366,7 @@ class ProphetDetectorModel(DetectorModel):
             Daily, Weekly, Yearly seasonlities used  as "auto" by default.
         country_holidays: Optional[str]: Country for which holidays should be added to the model.
         holidays_list:  Optional[Union[List[str], Dict[str, List[str]]]] : List of holiday dates to be added to the model. like ["2022-01-01","2022-03-31"], or dict of list if we have diffreent holidays patterns for example  {"ds":["2022-01-01","2022-03-31"], "holidays":["playoff","superbowl"]}
+        holiday_multiplier: Optional[float], multiplier for holidays anomaly scores.
         """
 
         if serialized_model:
@@ -375,6 +401,8 @@ class ProphetDetectorModel(DetectorModel):
         self.seasonalities = seasonalities_to_dict(seasonalities)
         self.country_holidays: Optional[str] = country_holidays
         self.holidays_list = holidays_list
+        self.holiday_multiplier = holiday_multiplier
+        self.holidays: Optional[pd.DataFrame] = None  # type: ignore
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -456,25 +484,25 @@ class ProphetDetectorModel(DetectorModel):
         additional_seasonalities = []
         if self.seasonalities_to_fit[SeasonalityTypes.WEEKEND]:
             additional_seasonalities = prophet_weekend_masks(data_df)
-        holidays = self.holidays_list
-        if holidays is not None and len(holidays) > 0:
-            if isinstance(holidays, List):
-                if isinstance(holidays[0], str):
-                    holidays = {
+        if self.holidays_list is not None and len(self.holidays_list) > 0:
+            if isinstance(self.holidays_list, List):
+                if isinstance(self.holidays_list[0], str):
+                    self.holidays_list = {
                         HOLIDAY_DATES_COLUMN_NAME: self.holidays_list,
-                        HOLIDAY_NAMES_COLUMN_NAME: ["holiday"] * len(holidays),
+                        HOLIDAY_NAMES_COLUMN_NAME: ["holiday"]
+                        * len(self.holidays_list),
                     }
                 else:
                     raise ValueError(
                         "holidays_list should be a list of str or dict of list of str"
                     )
-            if not isinstance(holidays, Dict):
+            if not isinstance(self.holidays_list, Dict):
                 raise ValueError(
                     "holidays_list should be a list of str or dict of list of str"
                 )
             # we use default lower and upper bound for holidays
 
-            holidays = pd.DataFrame(holidays)
+            self.holidays = pd.DataFrame(self.holidays_list)
 
         # No incremental training. Create a model and train from scratch
         model = Prophet(
@@ -483,7 +511,7 @@ class ProphetDetectorModel(DetectorModel):
             daily_seasonality=self.seasonalities_to_fit[SeasonalityTypes.DAY],
             yearly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.YEAR],
             weekly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.WEEK],
-            holidays=holidays,
+            holidays=self.holidays,
         )
         if self.country_holidays is not None:
             model.add_country_holidays(self.country_holidays)
@@ -546,17 +574,35 @@ class ProphetDetectorModel(DetectorModel):
                     time=data.time, value=predict_df[PROPHET_YHAT_LOWER_COLUMN]
                 ),
             )
+        anomaly_value: Union[pd.Series, pd.DataFrame] = SCORE_FUNC_DICT[
+            self.score_func.value
+        ](
+            data=data,
+            predict_df=predict_df,
+            ci_threshold=model.interval_width,
+            use_legacy_z_score=self.use_legacy_z_score,
+        )
+
+        scores: TimeSeriesData = TimeSeriesData(time=data.time, value=anomaly_value)
+
+        # If holidays are provided, we multiply the anomaly score by the holiday multiplier
+        if self.holiday_multiplier is not None:
+            holidays_df: Optional[pd.Series] = get_holiday_dates(
+                self.holidays, self.country_holidays, data.time
+            )
+            if holidays_df is not None:
+                scores_ts = pd.Series(list(scores.value), index=data.time)
+                scores_ts.loc[
+                    scores_ts.index.floor("d").isin(holidays_df)
+                ] *= self.holiday_multiplier
+                scores = TimeSeriesData(
+                    time=pd.Series(scores_ts.index), value=scores_ts
+                )
+            else:
+                logging.warning("Holiday multiplier is set but no holidays are found.")
 
         response = AnomalyResponse(
-            scores=TimeSeriesData(
-                time=data.time,
-                value=SCORE_FUNC_DICT[self.score_func.value](
-                    data=data,
-                    predict_df=predict_df,
-                    ci_threshold=model.interval_width,
-                    use_legacy_z_score=self.use_legacy_z_score,
-                ),
-            ),
+            scores=scores,
             confidence_band=confidence_band,
             predicted_ts=predicted_ts,
             anomaly_magnitude_ts=zeros_ts,
