@@ -513,7 +513,7 @@ class ProphetDetectorModel(DetectorModel):
             weekly_seasonality=self.seasonalities_to_fit[SeasonalityTypes.WEEK],
             holidays=self.holidays,
         )
-        if self.country_holidays is not None:
+        if self.country_holidays:
             model.add_country_holidays(self.country_holidays)
         for seasonality in additional_seasonalities:
             model.add_seasonality(**seasonality)
@@ -586,7 +586,10 @@ class ProphetDetectorModel(DetectorModel):
         scores: TimeSeriesData = TimeSeriesData(time=data.time, value=anomaly_value)
 
         # If holidays are provided, we multiply the anomaly score by the holiday multiplier
-        if self.holiday_multiplier is not None:
+        if (
+            self.holiday_multiplier is not None
+            and round(self.holiday_multiplier, 10) != 1.0
+        ):
             holidays_df: Optional[pd.Series] = get_holiday_dates(
                 self.holidays, self.country_holidays, data.time
             )
