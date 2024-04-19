@@ -291,7 +291,7 @@ def get_holiday_dates(
     all_holidays = pd.DataFrame()
     if holidays is not None:
         all_holidays = holidays.copy()
-    if country_holidays is not None:
+    if country_holidays:
         country_holidays_df = make_holidays_df(
             year_list=year_list, country=country_holidays
         )
