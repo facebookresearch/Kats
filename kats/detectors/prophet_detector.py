@@ -590,8 +590,12 @@ class ProphetDetectorModel(DetectorModel):
             self.holiday_multiplier is not None
             and round(self.holiday_multiplier, 10) != 1.0
         ):
+            # convert the list of custom holidays into a df
+            custom_holidays = (
+                pd.DataFrame(self.holidays_list) if self.holidays_list else None
+            )
             holidays_df: Optional[pd.Series] = get_holiday_dates(
-                self.holidays, self.country_holidays, data.time
+                custom_holidays, self.country_holidays, data.time
             )
             if holidays_df is not None:
                 scores_ts = pd.Series(list(scores.value), index=data.time)
