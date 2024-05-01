@@ -1104,7 +1104,6 @@ class MLARModel:
             "random_state": self.params.random_state,
             "verbose": self.params.verbose,
         }
-        # pyre-fixme
         regr = gbm.LGBMRegressor(
             objective=self.params.objective,
             **lgb_params,

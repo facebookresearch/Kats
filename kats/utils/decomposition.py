@@ -186,6 +186,7 @@ class TimeSeriesDecomposition:
             data = np.log(original)
             post_transform = np.exp
 
+        # pyre-fixme[16]: Module `seasonal` has no attribute `STL`.
         result = STL(
             data,
             period=period,

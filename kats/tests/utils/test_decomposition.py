@@ -392,6 +392,7 @@ class DecompositionTest(TestCase):
                 == decomp["trend"].to_dataframe()["trend"].values
             ).all()
         )
+        # pyre-fixme[16]: Module `seasonal` has no attribute `STL`.
         stl = STL(dense_dates_df.reset_index().value, period=144, robust=True)
         true_results = stl.fit()
         self.assertTrue(
@@ -493,6 +494,7 @@ class DecompositionTest(TestCase):
                 == decomp["trend"].to_dataframe()["trend"].values
             ).all()
         )
+        # pyre-fixme[16]: Module `seasonal` has no attribute `STL`.
         stl = STL(sparse_dates_df.reset_index().value, period=144, robust=True)
         true_results = stl.fit()
         self.assertTrue(

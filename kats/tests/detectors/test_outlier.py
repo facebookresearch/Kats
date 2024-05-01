@@ -151,7 +151,6 @@ class MultivariateVARDetectorTest(TestCase):
             model_type=MultivariateAnomalyDetectorType.BAYESIAN_VAR,
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["d_var"],
@@ -169,7 +168,6 @@ class MultivariateVARDetectorTest(TestCase):
             + ["overall_anomaly_score", "p_value"],
         )
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["d_var"],
@@ -183,7 +181,6 @@ class MultivariateVARDetectorTest(TestCase):
         d.detector()
         d.plot()
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["d_var"],
@@ -199,7 +196,6 @@ class MultivariateVARDetectorTest(TestCase):
         anomalies = d.get_anomaly_timepoints(alpha)
         d.get_anomalous_metrics(anomalies[0], top_k=3)
 
-    # pyre-ignore Undefined attribute [16]: Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["TSData_multi2"],

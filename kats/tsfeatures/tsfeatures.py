@@ -747,6 +747,7 @@ class TsFeatures:
         stl_features = {}
 
         # STL decomposition
+        # pyre-fixme[16]: Module `seasonal` has no attribute `STL`.
         res = STL(x, period=period).fit()
 
         # strength of trend
@@ -1928,6 +1929,7 @@ class TsFeatures:
                 _period = int(np.min(detected["seasonalities"]))
             else:
                 _period = 7
+            # pyre-fixme[16]: Module `seasonal` has no attribute `STL`.
             res = STL(ts.value.values, period=_period).fit()
 
             if extra_args is not None and extra_args.get(

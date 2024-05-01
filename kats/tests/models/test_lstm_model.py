@@ -101,7 +101,6 @@ TEST_DATA = {
 
 
 class LSTMModelTest(TestCase):
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [
@@ -224,7 +223,6 @@ class LSTMModelTest(TestCase):
         #  `Optional[DataFrame]`.
         assert_frame_equal(res_2, truth_2)
 
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [

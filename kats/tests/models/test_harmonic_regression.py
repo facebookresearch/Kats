@@ -36,7 +36,6 @@ TEST_DATA = {
 
 
 class testHarmonicRegression(TestCase):
-    # pyre-fixme[16]: Module `parameterized.parameterized` has no attribute `expand`.
     @parameterized.expand(
         [
             [

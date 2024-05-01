@@ -53,7 +53,6 @@ class HourlyRatioDectorTest(TestCase):
             df = cast(pd.DataFrame, df.sample(frac=frac, replace=False))
         return TimeSeriesData(df)
 
-    # pyre-ignore[16] Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [  # name, freq, aggregate
             ["valid_hourly_ts", "H", None],
@@ -69,7 +68,6 @@ class HourlyRatioDectorTest(TestCase):
         hr.detector()
         hr.plot()
 
-    # pyre-ignore[16] Module parameterized.parameterized has no attribute expand.
     @parameterized.expand(
         [
             ["invalid_daily_ts"],
