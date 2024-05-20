@@ -394,6 +394,29 @@ class UnivariatePercentageChangeTest(TestCase):
             current=current_int_2, previous=previous_int
         )
 
+        # Sparse data
+        control_start, control_end = list(
+            pd.date_range(start="2024-05-01 00:00:00", freq="30s", periods=2)
+        )
+        control_interval = ChangePointInterval(
+            control_start.to_pydatetime(), control_end.to_pydatetime()
+        )
+        control_interval.data = TimeSeriesData(
+            time=pd.Series([control_start]), value=pd.Series([0])
+        )
+        test_start, test_end = list(
+            pd.date_range(start="2024-05-01 00:00:30", freq="30s", periods=2)
+        )
+        test_interval = ChangePointInterval(
+            test_start.to_pydatetime(), test_end.to_pydatetime()
+        )
+        test_interval.data = TimeSeriesData(
+            time=pd.Series([test_start]), value=pd.Series([0])
+        )
+        self.perc_change_4 = PercentageChange(
+            current=test_interval, previous=control_interval
+        )
+
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
     #  `parameterized.parameterized.parameterized.expand([["perc_change_1", True],
     #  ["perc_change_2", False]])`.
@@ -432,6 +455,11 @@ class UnivariatePercentageChangeTest(TestCase):
 
     def test_perc_change(self) -> None:
         self.assertEqual(self.perc_change_1.perc_change, (self.ratio_val_1 - 1) * 100)
+
+    def test_degenerate(self) -> None:
+        self.assertTrue(np.isnan(self.perc_change_4.score))
+        self.assertTrue(np.isnan(self.perc_change_4.ci_lower))
+        self.assertTrue(np.isnan(self.perc_change_4.ci_upper))
 
     # TODO delta method tests
 

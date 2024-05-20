@@ -1190,3 +1190,54 @@ class TestStatsigDetectorModelIrregularGranularityError(TestCase):
             IRREGULAR_GRANULARITY_ERROR,
         ):
             _ = model.fit_predict(data=self.data_ts)
+
+
+class TestStatsigDetectorSparseData(TestCase):
+    def test_sparse_test_range(self) -> None:
+        np.random.seed(100)
+        ts_time = list(pd.date_range(start="2018-01-06 00:00:00", freq="s", periods=30))
+        # There is a gap of 20 seconds, which is > `n_control + n_test`.
+        # Subsequent test data comes once every every period which is > `n_test`.
+        ts_time += list(
+            pd.date_range(start="2018-01-06 00:00:50", freq="10s", periods=(2))
+        )
+        ts_val = np.random.normal(0, 5, 32)
+        data_ts = TimeSeriesData(time=pd.Series(ts_time), value=pd.Series(ts_val))
+        model = StatSigDetectorModel(
+            n_control=10,
+            n_test=5,
+            time_unit="sec",
+        )
+        anom = model.fit_predict(data=data_ts)
+        test_range = anom.scores.value.iloc[-2:].to_list()
+        for test_value in test_range:
+            self.assertTrue(np.isnan(test_value))
+
+    def test_sparse_then_dense_test_range(self) -> None:
+        np.random.seed(100)
+        ts_time = list(pd.date_range(start="2018-01-06 00:00:00", freq="s", periods=30))
+        # There is a gap of 20 seconds, which is > `n_control + n_test`.
+        # Initial test data comes once every every period which is > `n_test`.
+        # After that, we again have frequent test data.
+        ts_time += list(
+            pd.date_range(start="2018-01-06 00:00:50", freq="10s", periods=(2))
+        )
+        ts_time += list(
+            pd.date_range(start="2018-01-06 00:01:01", freq="s", periods=(8))
+        )
+        ts_val = np.random.normal(0, 5, 40)
+        data_ts = TimeSeriesData(time=pd.Series(ts_time), value=pd.Series(ts_val))
+
+        model = StatSigDetectorModel(
+            n_control=10,
+            n_test=5,
+            time_unit="sec",
+        )
+        anom = model.fit_predict(data=data_ts)
+        test_range = anom.scores.value.iloc[-10:].to_list()
+        for i in range(2):
+            self.assertTrue(np.isnan(test_range[i]))
+        # Predictions later recover
+        for i in range(2, 10):
+            self.assertFalse(np.isnan(test_range[i]))
+            self.assertFalse(np.isinf(test_range[i]))

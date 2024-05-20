@@ -351,7 +351,9 @@ class PercentageChange:
         n_1 = len(self.previous)
         n_2 = len(self.current)
 
-        if n_1 == 0 or n_2 == 0:
+        # Require both populations to be nonempty, and their sum larger than 2, because the
+        # t-test has (n_1 + n_2 - 2) degrees of freedom.
+        if n_1 == 0 or n_2 == 0 or (n_1 == n_2 == 1):
             return 0.0
 
         # pyre-ignore[58]: * is not supported for operand types int and Union[float, np.ndarray].
@@ -389,11 +391,12 @@ class PercentageChange:
         n_1 = len(self.previous)
         n_2 = len(self.current)
 
-        # if both control and test have one value
-        # then using a t test does not make any sense
-        if n_1 == 1 and n_2 == 1:
-            self._t_score = np.inf
+        # if both control and test have one value, then using a t test does not make any sense
+        # Return nan, which is the same as scipy's ttest_ind
+        if n_1 == n_2 == 1:
+            self._t_score = np.nan
             self._p_value = 0.0
+            return
 
         # when sample size is 1, scipy's t test gives nan,
         # hence we separately handle this case
