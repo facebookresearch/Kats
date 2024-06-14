@@ -634,12 +634,18 @@ class MetaLearnHPT:
                 LOGGER.info(f"Early stopping! Stop at epoch {epoch + 1}.")
                 break
 
-    def pred(self, source_ts: TimeSeriesData, ts_scale: bool = True) -> pd.DataFrame:
+    def pred(
+        self,
+        source_ts: TimeSeriesData,
+        ts_scale: bool = True,
+        **tsfeatures_kwargs: Any,
+    ) -> pd.DataFrame:
         """Predict hyper-parameters for a new time series data.
 
         Args:
             source_ts: :class:`kats.consts.TimeSeriesData` object representing the time series for which to generate hyper-parameters
             ts_scale: A boolean to specify whether or not to rescale time series data (i.e., divide its value by its maximum value) before calculating its features. Default is True.
+            **tsfeatures_kwargs: keyword arguments for TsFeatures.
 
         Returns:
             A `pandas.DataFrame` object storing the recommended hyper-parameters.
@@ -659,7 +665,7 @@ class MetaLearnHPT:
             LOGGER.info(msg)
 
         self.model.eval()
-        new_feature = TsFeatures().transform(ts)
+        new_feature = TsFeatures(**tsfeatures_kwargs).transform(ts)
         # pyre-fixme[16]: `List` has no attribute `values`.
         new_feature_vector = np.asarray(list(new_feature.values()))
 

@@ -383,7 +383,11 @@ class MetaLearnModelSelect:
             raise ValueError(msg)
 
     def pred(
-        self, source_ts: TimeSeriesData, ts_scale: bool = True, n_top: int = 1
+        self,
+        source_ts: TimeSeriesData,
+        ts_scale: bool = True,
+        n_top: int = 1,
+        **tsfeatures_kwargs: Any,
     ) -> Union[str, List[str]]:
         """Predict the best forecasting model for a new time series data.
 
@@ -391,6 +395,7 @@ class MetaLearnModelSelect:
             source_ts: :class:`kats.consts.TimeSeriesData` object representing the new time series data.
             ts_scale: Optional; A boolean to specify whether or not to rescale time series data (i.e., normalizing it with its maximum vlaue) before calculating features. Default is True.
             n_top: Optional; A integer for the number of top model names to return. Default is 1.
+            **tsfeatures_kwargs: keyword arguments for TsFeatures.
 
         Returns:
             A string or a list of strings of the names of forecasting models.
@@ -408,7 +413,7 @@ class MetaLearnModelSelect:
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
             logging.info(msg)
 
-        new_features = TsFeatures().transform(ts)
+        new_features = TsFeatures(**tsfeatures_kwargs).transform(ts)
         # pyre-fixme[16]: `List` has no attribute `values`.
         new_features_vector = np.asarray(list(new_features.values()))
         if np.any(np.isnan(new_features_vector)):
@@ -467,7 +472,11 @@ class MetaLearnModelSelect:
         return pvalue
 
     def pred_fuzzy(
-        self, source_ts: TimeSeriesData, ts_scale: bool = True, sig_level: float = 0.2
+        self,
+        source_ts: TimeSeriesData,
+        ts_scale: bool = True,
+        sig_level: float = 0.2,
+        **tsfeatures_kwargs: Any,
     ) -> Dict[str, Any]:
         """Predict a forecasting model for a new time series data using fuzzy method.
 
@@ -479,6 +488,7 @@ class MetaLearnModelSelect:
             ts_scale: Optional; A boolean to specify whether or not to rescale time series data (i.e., normalizing it with its maximum vlaue) before calculating features. Default is True.
             sig_level: Optional; A float representing the significance level for bootstrap test. If pvalue>=sig_level, then we deem there is no difference between the best and the second best model.
                        Default is 0.2.
+            **tsfeatures_kwargs: keyword arguments for TsFeatures.
 
         Returns:
             A dictionary of prediction results, including forecasting models, their probability of being th best forecasting models and the pvalues of bootstrap tests.
@@ -489,7 +499,7 @@ class MetaLearnModelSelect:
             # scale time series to make ts features more stable
             ts.value /= ts.value.max()
         # pyre-fixme[16]: `List` has no attribute `values`.
-        test = np.asarray(list(TsFeatures().transform(ts).values()))
+        test = np.asarray(list(TsFeatures(**tsfeatures_kwargs).transform(ts).values()))
         test[np.isnan(test)] = 0.0
         if self.scale:
             test = (test - self.x_mean) / self.x_std

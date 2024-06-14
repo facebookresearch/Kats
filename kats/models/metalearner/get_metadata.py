@@ -298,18 +298,21 @@ class GetMetaData:
 
     def get_meta_data(
         self,
-        **kwargs: Any,
+        **tsfeatures_kwargs: Any,
     ) -> GetMetaDataVal:
         """Get meta data, as well as search method and type of error metric
 
         Meta data includes time series features, best hyper-params for each candidate models, and best model.
+
+        Args:
+            tsfeatures_kwargs: keyword arguments for TsFeatures.
 
         Returns:
             A dictionary storing the best hyper-parameters and the errors for each candidate model, the features of the time series data, the hyper-parameter searching method,
             the error metric used for model evaluation and the corresponding best model.
         """
 
-        features_dict = TsFeatures(**kwargs).transform(self.data)
+        features_dict = TsFeatures(**tsfeatures_kwargs).transform(self.data)
 
         # feature contains nan, pass
         # pyre-fixme[16]: `List` has no attribute `values`.

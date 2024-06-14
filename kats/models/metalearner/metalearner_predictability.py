@@ -263,12 +263,18 @@ class MetaLearnPredictability:
         self._clf_threshold = clf_threshold
         return ans
 
-    def pred(self, source_ts: TimeSeriesData, ts_rescale: bool = True) -> bool:
+    def pred(
+        self,
+        source_ts: TimeSeriesData,
+        ts_rescale: bool = True,
+        **tsfeatures_kwargs: Any,
+    ) -> bool:
         """Predict whether a time series is predicable or not.
 
         Args:
             source_ts: :class:`kats.consts.TimeSeriesData` object representing the new time series data.
             ts_scale: Optional; A boolean to specify whether or not to rescale time series data (i.e., normalizing it with its maximum vlaue) before calculating features. Default is True.
+            **tsfeatures_kwargs: keyword arguments for TsFeatures.
 
         Returns:
             A boolean representing whether the time series is predictable or not.
@@ -283,7 +289,7 @@ class MetaLearnPredictability:
             ts.value /= ts.value.max()
             msg = "Successful scaled! Each value of TS has been divided by the max value of TS."
             logging.info(msg)
-        features = TsFeatures().transform(ts)
+        features = TsFeatures(**tsfeatures_kwargs).transform(ts)
         # pyre-fixme[16]: `List` has no attribute `values`.
         x = np.array(list(features.values()))
         if np.sum(np.isnan(x)) > 0:
