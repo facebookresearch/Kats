@@ -83,7 +83,7 @@ class ExponentialSmoothing(holtwinters.ExponentialSmoothing):
                 )
             if initialization_method != "missing":
                 logging.warning(
-                    "ExponentialSmoothing parameter 'initialization_method' not supported by statsmodels"
+                    f"ExponentialSmoothing parameter 'initialization_method' not supported by statsmodels, detected {version.version}"
                 )
             if initial_level is not None:
                 logging.warning(
@@ -102,21 +102,21 @@ class ExponentialSmoothing(holtwinters.ExponentialSmoothing):
                     "ExponentialSmoothing parameter 'seasonal_periods' not supported by statsmodels"
                 )
             super().__init__(
-                endog,
-                trend,
-                damped_trend,
-                seasonal,
-                seasonal_periods,
-                dates,
-                freq,
-                missing,
+                endog=endog,
+                trend=trend,
+                damped_trend=damped_trend,
+                seasonal=seasonal,
+                seasonal_periods=seasonal_periods,
+                dates=dates,
+                freq=freq,
+                missing=missing,
             )
         else:
             super().__init__(
-                endog,
-                trend,
-                damped_trend,
-                seasonal,
+                endog=endog,
+                trend=trend,
+                damped_trend=damped_trend,
+                seasonal=seasonal,
                 seasonal_periods=seasonal_periods,
                 initialization_method=initialization_method,
                 initial_level=initial_level,

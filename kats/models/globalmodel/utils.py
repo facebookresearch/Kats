@@ -11,6 +11,7 @@ from typing import Any, cast, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import torch
+from kats.compat.compat import Version
 from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
 from numba import jit
@@ -20,6 +21,8 @@ from torch.nn.modules.loss import _Loss
 all_validation_metric_name = ["smape", "sbias", "exceed"]
 
 import pandas as pd
+
+PANDAS_VERSION = Version("pandas")
 
 """
 A module for utility functions of global models, including:
@@ -999,14 +1002,22 @@ class GMFeature:
         ans = np.zeros(n * m)
         pdt = pd.to_datetime(time[:, -1])
         indices = []
-        # compute day of week indices
-        indices.append(pdt.dayofweek.values + offset)
-        # compute bi-week indices
-        indices.append((pdt.weekofyear.values - 1) // 2 + 7 + offset)
+        if PANDAS_VERSION < "2.0.3":
+            # compute day of week indices
+            indices.append(pdt.dayofweek.values + offset)
+
+            # compute bi-week indices
+            indices.append((pdt.weekofyear.values - 1) // 2 + 7 + offset)
+        else:
+            # compute day of week indices
+            indices.append(pdt.isocalendar().day.values + offset)
+            # compute bi-week indices
+            indices.append((pdt.isocalendar().week.values - 1) // 2 + 7 + offset)
+
         # compute day of month indices
         indices.append(pdt.day.values + 6 + 27 + offset)
         indices = np.concatenate(indices)
-        ans[indices] = 1.0
+        ans[indices.astype(int)] = 1.0
         return torch.tensor(ans.reshape(n, -1), dtype=torch.get_default_dtype())
 
     @staticmethod

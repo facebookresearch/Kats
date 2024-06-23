@@ -13,9 +13,11 @@ except ImportError:
     # Python < 3.8
     import importlib_metadata as metadata
 
+import logging
 from typing import Any, Callable, Type, Union
 
 import packaging
+import statsmodels
 
 from packaging import version as pv
 
@@ -60,6 +62,11 @@ class Version:
             self.version: VERSION_TYPE = version
 
     def _parse(self, version: str) -> Union[pv.Version, pv.LegacyVersion]:
+        if version == "statsmodels":
+            return pv.Version(
+                statsmodels.__version__
+            )  # TODO: importlib.metadata.version is spuriously returning 0.0.0 as statsmodels version, breaking compat
+
         try:
             version = metadata.version(version)
         except metadata.PackageNotFoundError:

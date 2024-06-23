@@ -10,6 +10,7 @@ import os
 from functools import partial
 from typing import Dict, List, Union
 from unittest import mock, TestCase
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
@@ -38,8 +39,44 @@ from kats.models.globalmodel.utils import (
     S2Cell,
     split,
 )
+from kats.tsfeatures.tsfeatures import TsFeatures
 
 from parameterized.parameterized import parameterized
+
+
+def _MOCK_GET_TSFEATURES(
+    x: np.ndarray,
+    time: np.ndarray,
+) -> torch.Tensor:
+    """
+    Mocks the private method of GMFeature so that a reduced set of features is computed and the test stops timing out
+    """
+    features = []
+
+    for i in range(len(x)):
+        features.append(
+            np.log(
+                np.abs(
+                    list(
+                        # pyre-fixme[16]: `List` has no attribute `values`.
+                        TsFeatures(selected_features=["length", "mean"])
+                        .transform(
+                            TimeSeriesData(
+                                pd.DataFrame(
+                                    {"time": time[i], "value": x[i]}, copy=False
+                                ).dropna()  # NaNs would mess-up tsfeatures
+                            )
+                        )
+                        .values()
+                    )
+                )
+            )
+        )
+    features = torch.tensor(features)
+    # filter out NaN and inf
+    features[torch.isnan(features)] = 0.0
+    features[torch.isinf(features)] = 0.0
+    return features
 
 
 def get_ts(
@@ -428,9 +465,12 @@ class PinballLossTest(TestCase):
 
 
 class GMFeatureTest(TestCase):
-    def test_gmfeature(self) -> None:
+    @patch("kats.models.globalmodel.utils.GMFeature._get_tsfeatures")
+    def test_gmfeature(self, _get_ts_features_mock: MagicMock) -> None:
         x = np.row_stack([np.abs(ts.value.values[:10]) for ts in TSs])
         time = np.row_stack([ts.time.values[:10] for ts in TSs])
+
+        _get_ts_features_mock.return_value = _MOCK_GET_TSFEATURES(x, time)
 
         gmfs = [
             GMFeature(feature_type="tsfeatures"),
