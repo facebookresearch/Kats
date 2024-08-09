@@ -1228,7 +1228,9 @@ class MLARModel:
                 # fill rest of the data with forecasts
                 if new_data_is_forecast:
                     in_window.update(
-                        fc_wide[fc_wide.index <= fc_origin], overwrite=False
+                        # pyre-fixme[61]: `fc_wide` is undefined, or not always defined.
+                        fc_wide[fc_wide.index <= fc_origin],
+                        overwrite=False,
                     )
                 else:
                     # in case the new_data is actually earlier than the training data, we need to remove any data

@@ -433,6 +433,7 @@ class SeasonalityHandler:
                 trend_jump=max(int((self.period + 1) * self.trend_jump_factor), 1),
             )
             assert self.decomp is not None
+            # pyre-fixme[16]: `Optional` has no attribute `__setitem__`.
             self.decomp[str(i)] = decomposer.decomposer()
 
     def remove_seasonality(self) -> TimeSeriesData:

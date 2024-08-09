@@ -552,6 +552,7 @@ class GMModel:
                 first_time[i], freq=self.params.freq, periods=steps
             )
             if "actual" in fcst_store:
+                # pyre-fixme[61]: `actual` is undefined, or not always defined.
                 df["actual"] = actual[i]
             ans[idx] = df
         return ans

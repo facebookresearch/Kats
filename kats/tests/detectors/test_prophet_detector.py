@@ -132,6 +132,7 @@ class TestProphetDetector(TestCase):
                 ts.extend(sim.stl_sim() + trend)
             rest_days_weekend = 2
             if i >= weeks:
+                # pyre-fixme[61]: `rest_days` is undefined, or not always defined.
                 rest_days_weekend = rest_days - rest_days_weekday
                 if rest_days_weekend == 0:
                     break

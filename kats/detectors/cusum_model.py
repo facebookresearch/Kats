@@ -348,8 +348,10 @@ class CUSUMDetectorModel(DetectorModel):
             check_decrease = 0 if decrease else np.inf
 
         return (
+            # pyre-fixme[61]: `check_decrease` is undefined, or not always defined.
             self.pre_mean - check_decrease * self.pre_std
             <= cur_mean
+            # pyre-fixme[61]: `check_increase` is undefined, or not always defined.
             <= self.pre_mean + check_increase * self.pre_std
         )
 

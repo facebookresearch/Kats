@@ -926,12 +926,14 @@ def sample_linear_predictive_trend_vectorize(
 
         # sample change points
         changepoint_ts_new = 1 + np.random.rand(sample_size, max_possion_num) * (T - 1)
+        # pyre-fixme[16]: `int` has no attribute `sort`.
         changepoint_ts_new.sort(axis=1)
 
         # create mask for deltas -> to mute some deltas based on number of change points
         mask = np.random.uniform(
             0, max_possion_num, max_possion_num * sample_size
         ).reshape(sample_size, -1)
+        # pyre-fixme[61]: `possion_sample` is undefined, or not always defined.
         mask = mask < possion_sample[:, None]
 
         # Sample deltas

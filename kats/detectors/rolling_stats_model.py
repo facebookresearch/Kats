@@ -166,6 +166,9 @@ def calculate_iqr_median_deviation(
         numerator, m, out=np.zeros_like(numerator), where=m != 0
     )
 
+    # pyre-fixme[16]: `int` has no attribute `__getitem__`.
+    # pyre-fixme[6]: For 1st argument expected `pyre_extensions.ReadOnly[Sized]` but
+    #  got `int`.
     return result[0] if len(result) == 1 else result
 
 

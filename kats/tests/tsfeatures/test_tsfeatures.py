@@ -534,6 +534,7 @@ class TSfeaturesTest(TestCase):
                     ],
                 }
             )
+        # pyre-fixme[61]: `df` is undefined, or not always defined.
         df["value"] = df["value"].astype(dtype=pd.Int64Dtype())
         # pyre-fixme[61]: `df` may not be initialized here.
         ts = TimeSeriesData(df)
