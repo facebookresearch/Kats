@@ -22,6 +22,7 @@ rolling windows.
 For more information, check out the Kats tutorial notebook on backtesting!
 """
 
+import copy
 import logging
 import multiprocessing as mp
 from abc import ABC, abstractmethod
@@ -584,9 +585,10 @@ class BackTesterParent(ABC):
             raise ValueError("Not enough testing data")
 
         logging.info("Training model")
-        train_model = self.model_class(data=training_data, params=self.params)
+        train_model = self.model_class(
+            data=copy.deepcopy(training_data), params=self.params
+        )
         train_model.fit()
-
         logging.info("Making forecast prediction")
         fcst = train_model.predict(
             steps=testing_data.value.size + self.offset, freq=self.freq
@@ -613,16 +615,23 @@ class BackTesterParent(ABC):
                 self._create_model(train_split, test_split)
         else:
             pool = mp.Pool(processes=num_splits)
-            futures = [
-                pool.apply_async(self._create_model, args=(train_split, test_split))
-                for train_split, test_split in zip(training_splits, testing_splits)
-            ]
             self.results = results = []
-            for fut in futures:
-                result = fut.get()
-                assert result is not None
-                results.append(result)
-            pool.close()
+            try:
+                futures = [
+                    pool.apply_async(self._create_model, args=(train_split, test_split))
+                    for train_split, test_split in zip(training_splits, testing_splits)
+                ]
+                for fut in futures:
+                    result = fut.get()
+                    assert result is not None
+                    results.append(result)
+            except Exception as e:
+                logging.exception("Error during parallel model evaluation")
+                logging.exception(e)
+                raise e
+            finally:
+                pool.close()
+                pool.join()
 
     def run_backtest(self) -> None:
         """Executes backtest."""
