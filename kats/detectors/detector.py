@@ -16,6 +16,7 @@ from typing import Any, Dict, Generic, Optional, Sequence, Tuple, Type, TypeVar,
 try:
     import plotly.graph_objs as go
 
+    # pyre-fixme[5]: Global expression must be annotated.
     Figure = go.Figure
 except ImportError:
     Figure = object
@@ -124,6 +125,7 @@ class Detector(ABC):
         ts_out = TimeSeriesData(df_final)
         return ts_out
 
+    # pyre-fixme[11]: Annotation `Figure` is not defined as a type.
     def plot(self, **kwargs: Any) -> Union[plt.Axes, Sequence[plt.Axes], Figure]:
         raise NotImplementedError()
 

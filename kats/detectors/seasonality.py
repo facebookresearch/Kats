@@ -34,6 +34,7 @@ import pandas as pd
 try:
     import plotly.graph_objs as go
 
+    # pyre-fixme[5]: Global expression must be annotated.
     Figure = go.Figure
 except ImportError:
     Figure = object
@@ -236,6 +237,7 @@ class FFTDetector(Detector):
         title: str = "FFT",
         mad_threshold: float = 6.0,
         **kwargs: Any,
+        # pyre-fixme[11]: Annotation `Figure` is not defined as a type.
     ) -> Figure:
         """Plots an FFT plot as a plotly figure
 
