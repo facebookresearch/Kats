@@ -19,6 +19,7 @@ except ImportError:
     Prophet = Dict[str, Any]  # for Pyre
 
 import numpy as np
+import numpy.typing as npt
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import get_default_prophet_parameter_search_space
@@ -534,7 +535,7 @@ def predict_uncertainty(
 
 def _sample_predictive_trend_vectorized(
     prophet_model: Prophet, df: pd.DataFrame, n_samples: int, iteration: int = 0
-) -> np.ndarray:
+) -> npt.NDArray:
     """Sample draws of the future trend values. Vectorized version of sample_predictive_trend().
 
     Args:
@@ -580,7 +581,7 @@ def _sample_trend_uncertainty(
     n_samples: int,
     df: pd.DataFrame,
     iteration: int = 0,
-) -> np.ndarray:
+) -> npt.NDArray:
     """Sample draws of future trend changes, vectorizing as much as possible.
 
     Args:
@@ -650,7 +651,7 @@ def _sample_trend_uncertainty(
 
 def _make_trend_shift_matrix(
     mean_delta: float, likelihood: float, future_length: float, n_samples: int
-) -> np.ndarray:
+) -> npt.NDArray:
     """
     Creates a matrix of random trend shifts based on historical likelihood and size of shifts.
     Can be used for either linear or logistic trend shifts.
@@ -717,8 +718,8 @@ def sample_model_vectorized(
     df: pd.DataFrame,
     seasonal_features: pd.DataFrame,
     iteration: int,
-    s_a: np.ndarray,
-    s_m: np.ndarray,
+    s_a: npt.NDArray,
+    s_m: npt.NDArray,
     n_samples: int,
 ) -> Dict[str, np.ndarray]:
     """Simulate observations from the extrapolated generative model. Vectorized version of sample_model().
@@ -800,8 +801,8 @@ def sample_posterior_predictive(
 
 
 def _make_historical_mat_time(
-    deltas: np.ndarray,
-    changepoints_t: np.ndarray,
+    deltas: npt.NDArray,
+    changepoints_t: npt.NDArray,
     n_row: int,
     single_diff: float,
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -820,15 +821,15 @@ def _make_historical_mat_time(
 
 def _logistic_uncertainty(
     prophet_model: Prophet,
-    mat: np.ndarray,
-    deltas: np.ndarray,
+    mat: npt.NDArray,
+    deltas: npt.NDArray,
     k: float,
     m: float,
-    cap: np.ndarray,
-    t_time: np.ndarray,
+    cap: npt.NDArray,
+    t_time: npt.NDArray,
     n_length: int,
     single_diff: float,
-) -> np.ndarray:
+) -> npt.NDArray:
     """Vectorizes prophet's logistic uncertainty by creating a matrix of future possible trends.
     Args:
         mat: A `np.array` for trend shift matrix returned by _make_trend_shift_matrix()
@@ -842,7 +843,7 @@ def _logistic_uncertainty(
         A `np.array` with shape (n_samples, n_length), representing the width of the uncertainty interval (standardized, not on the same scale as the actual data values) around 0.`
     """
 
-    def _ffill(arr: np.ndarray) -> np.ndarray:
+    def _ffill(arr: npt.NDArray) -> npt.NDArray:
         mask = arr == 0
         idx = np.where(~mask, np.arange(mask.shape[1]), 0)
         np.maximum.accumulate(idx, axis=1, out=idx)
@@ -876,8 +877,8 @@ def _logistic_uncertainty(
 
 
 def _piecewise_linear_vectorize(
-    t: np.ndarray, deltas: np.ndarray, k: float, m: float, changepoint_ts: np.ndarray
-) -> np.ndarray:
+    t: npt.NDArray, deltas: npt.NDArray, k: float, m: float, changepoint_ts: npt.NDArray
+) -> npt.NDArray:
     """
     Vectorize piecewise linear function.
     """
@@ -889,7 +890,7 @@ def _piecewise_linear_vectorize(
 
 def sample_linear_predictive_trend_vectorize(
     prophet_model: Prophet, df: pd.DataFrame, sample_size: int, iteration: int
-) -> np.ndarray:
+) -> npt.NDArray:
     """
     Vectorize funtion for generating trend sample when `growth` = 'linear'.
 

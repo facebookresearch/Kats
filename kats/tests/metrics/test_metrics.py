@@ -11,6 +11,7 @@ from unittest import TestCase
 import numpy as np
 
 import numpy.testing as npt
+import numpy.typing as np_typing
 from kats.metrics import metrics
 
 from parameterized.parameterized import parameterized
@@ -726,7 +727,7 @@ class MetricsTest(TestCase):
     def test_mult_coverage(
         self,
         _name: str,
-        expected: np.ndarray,
+        expected: np_typing.NDArray,
         y_true: List[float],
         y_lower: List[float],
         y_upper: List[float],
@@ -772,7 +773,7 @@ class MetricsTest(TestCase):
     def test_mult_interval_score(
         self,
         _name: str,
-        expected: np.ndarray,
+        expected: np_typing.NDArray,
         y_true: List[float],
         y_lower: List[float],
         y_upper: List[float],

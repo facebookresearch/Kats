@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import joblib
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -512,7 +513,7 @@ class GMModel:
         # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         fcst_store: Dict[Any, List[np.ndarray]],
         steps: int,
-        first_time: np.ndarray,
+        first_time: npt.NDArray,
     ) -> Dict[Any, pd.DataFrame]:
         """
         Helper function for transforming raw forecast data into pd.DataFrame.

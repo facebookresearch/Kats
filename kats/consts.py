@@ -31,6 +31,7 @@ from typing import Any, cast, Dict, List, Optional, Tuple, Union
 import dateutil
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.compat.pandas import assert_frame_equal, assert_series_equal
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
@@ -812,7 +813,7 @@ class TimeSeriesData:
         # pyre-fixme[7]: Expected `DataFrame` but got `Optional[DataFrame]`.
         return output_df
 
-    def to_array(self) -> np.ndarray:
+    def to_array(self) -> npt.NDArray:
         """Converts the :class:`TimeSeriesData` object to a `numpy.ndarray`.
 
         Returns:

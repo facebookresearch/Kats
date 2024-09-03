@@ -12,6 +12,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, Optional, Set, Union
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import (
     DataError,
@@ -55,7 +56,7 @@ STR_TO_STATS_SCORE_FUNC: Dict[str, RollStatsFunction] = {
 }
 
 
-def calculate_iqr(data_list: np.ndarray, **kwargs: Any) -> Union[float, np.ndarray]:
+def calculate_iqr(data_list: npt.NDArray, **kwargs: Any) -> Union[float, np.ndarray]:
     """
     Calculate IQR = Q3 - Q1
     """
@@ -66,7 +67,7 @@ def calculate_iqr(data_list: np.ndarray, **kwargs: Any) -> Union[float, np.ndarr
 
 
 def calculate_z_scores(
-    data_list: np.ndarray, **kwargs: Any
+    data_list: npt.NDArray, **kwargs: Any
 ) -> Union[float, np.ndarray]:
     """
     Calculate the z-score of the last data point in data_list.
@@ -84,7 +85,7 @@ def calculate_z_scores(
     return result[0] if len(result) == 1 else result
 
 
-def calculate_mad(data_list: np.ndarray, **kwargs: Any) -> Union[float, np.ndarray]:
+def calculate_mad(data_list: npt.NDArray, **kwargs: Any) -> Union[float, np.ndarray]:
     """
     Calculate MAD: the mean (average) distance between each data
     value and the mean of the data set.
@@ -97,7 +98,7 @@ def calculate_mad(data_list: np.ndarray, **kwargs: Any) -> Union[float, np.ndarr
 
 
 def calculate_modified_z_scores_mad(
-    data_list: np.ndarray, **kwargs: Any
+    data_list: npt.NDArray, **kwargs: Any
 ) -> Union[float, np.ndarray]:
     """
     Calculate Modified z-score: (x-median)/MAD.
@@ -116,7 +117,7 @@ def calculate_modified_z_scores_mad(
 
 
 def calculate_modified_z_scores_iqr(
-    data_list: np.ndarray, **kwargs: Any
+    data_list: npt.NDArray, **kwargs: Any
 ) -> Union[float, np.ndarray]:
     """
     Calculate Modified z-score (iqr version): (x-median)/IQR
@@ -135,7 +136,7 @@ def calculate_modified_z_scores_iqr(
 
 
 def calculate_iqr_median_deviation(
-    data_list: np.ndarray, **kwargs: Any
+    data_list: npt.NDArray, **kwargs: Any
 ) -> Union[float, np.ndarray]:
     """
     Calculate IQR based median-deviation scores.
@@ -287,7 +288,7 @@ class RollingStatsModel(DetectorModel):
         """
         return str.encode(json.dumps(self.__dict__))
 
-    def _point_based_vectorized_data(self, data: np.ndarray) -> np.ndarray:
+    def _point_based_vectorized_data(self, data: npt.NDArray) -> npt.NDArray:
         """
         For Z-scores and its variants,
         reshape the input data to shape (-1, self.rolling_window + 1)

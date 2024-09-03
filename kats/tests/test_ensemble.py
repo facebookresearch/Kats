@@ -12,6 +12,7 @@ from typing import Any, Dict
 from unittest import TestCase
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers, load_data
@@ -61,7 +62,7 @@ def get_fake_preds(
 
 
 # pyre-fixme[24]: Generic type `Model` expects 1 type parameter.
-def get_predict_model(m: Model, model_name: str, steps: int, freq: str) -> np.ndarray:
+def get_predict_model(m: Model, model_name: str, steps: int, freq: str) -> npt.NDArray:
     """Get model prediction based on model_name."""
     if model_name == "BaseEnsemble":
         # pyre-fixme[16]: `Model` has no attribute `_predict_all`.

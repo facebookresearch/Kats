@@ -47,6 +47,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
@@ -338,7 +339,7 @@ class CUSUMDetector(Detector):
             raise ValueError(msg)
 
     def _get_change_point(
-        self, ts: np.ndarray, max_iter: int, start_point: int, change_direction: str
+        self, ts: npt.NDArray, max_iter: int, start_point: int, change_direction: str
     ) -> CUSUMChangePointVal:
         """
         Find change point in the timeseries.
@@ -420,7 +421,7 @@ class CUSUMDetector(Detector):
 
     def _get_llr(
         self,
-        ts: np.ndarray,
+        ts: npt.NDArray,
         mu0: float,
         mu1: float,
         changepoint: int,
@@ -447,7 +448,7 @@ class CUSUMDetector(Detector):
         return llr
 
     def _log_llr(
-        self, x: np.ndarray, mu0: float, sigma0: float, mu1: float, sigma1: float
+        self, x: npt.NDArray, mu0: float, sigma0: float, mu1: float, sigma1: float
     ) -> float:
         """Helper function to calculate log likelihood ratio.
 
@@ -470,7 +471,7 @@ class CUSUMDetector(Detector):
             + 0.5 * (((x - mu1) / sigma1) ** 2 - ((x - mu0) / sigma0) ** 2)
         )
 
-    def _magnitude_compare(self, ts: np.ndarray) -> float:
+    def _magnitude_compare(self, ts: npt.NDArray) -> float:
         """
         Compare daily magnitude to avoid daily seasonality false positives.
         """
@@ -503,7 +504,7 @@ class CUSUMDetector(Detector):
 
         return comparable_mag / days
 
-    def _get_time_series_magnitude(self, ts: np.ndarray) -> float:
+    def _get_time_series_magnitude(self, ts: npt.NDArray) -> float:
         """
         Calculate the magnitude of a time series.
         """
@@ -808,7 +809,7 @@ class MultiCUSUMDetector(CUSUMDetector):
     #  inconsistently.
     def _get_llr(
         self,
-        ts: np.ndarray,
+        ts: npt.NDArray,
         mu0: float,
         mu1: float,
         changepoint: int,
@@ -838,7 +839,7 @@ class MultiCUSUMDetector(CUSUMDetector):
 
     def _log_llr_multi(
         self,
-        x: np.ndarray,
+        x: npt.NDArray,
         mu0: Union[float, np.ndarray],
         sigma0: Union[float, np.ndarray],
         mu1: Union[float, np.ndarray],
@@ -862,7 +863,7 @@ class MultiCUSUMDetector(CUSUMDetector):
 
     def _get_change_point(
         self,
-        ts: np.ndarray,
+        ts: npt.NDArray,
         max_iter: int,
         start_point: int,
         change_direction: str = "increase",
@@ -1293,7 +1294,7 @@ class VectorizedCUSUMDetector(CUSUMDetector):
 
     def _get_change_point_multiple_ts(
         self,
-        ts: np.ndarray,
+        ts: npt.NDArray,
         max_iter: int,
         change_direction: str,
         start_point: Optional[int] = None,

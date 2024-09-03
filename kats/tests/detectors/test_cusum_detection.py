@@ -10,6 +10,7 @@ from typing import List, Optional
 from unittest import TestCase
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.detectors.cusum_detection import (
@@ -248,7 +249,7 @@ class CUSUMDetectorTest(TestCase):
         total_cycles: int,
         noise_std: float = 1.0,
         harmonics: Optional[float] = None,
-    ) -> np.ndarray:
+    ) -> npt.NDArray:
         duration = periodicity * total_cycles
         assert duration == int(duration)
         duration = int(duration)

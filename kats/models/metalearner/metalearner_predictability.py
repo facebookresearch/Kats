@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import joblib
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.tsfeatures.tsfeatures import TsFeatures
@@ -303,7 +304,7 @@ class MetaLearnPredictability:
 
     def pred_by_feature(
         self, source_x: Union[np.ndarray, List[np.ndarray], pd.DataFrame]
-    ) -> np.ndarray:
+    ) -> npt.NDArray:
         """Predict whether a list of time series are predicable or not given their time series features.
         Args:
             source_x: the time series features of the time series that one wants to predict, can be a np.ndarray, a list of np.ndarray or a pd.DataFrame.

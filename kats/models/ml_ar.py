@@ -11,6 +11,7 @@ from typing import Any, cast, Dict, List, Optional, Set, Tuple, Union
 
 import lightgbm as gbm  # @manual
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.metrics.metrics import smape
@@ -35,7 +36,7 @@ except ImportError:
 
 
 # @njit
-def find_first_missing_number(nums: np.ndarray) -> int:
+def find_first_missing_number(nums: npt.NDArray) -> int:
     missing_numbers = np.sort(np.setdiff1d(np.arange(1, len(nums) + 2), nums))
 
     if len(missing_numbers) == 0:
@@ -121,7 +122,7 @@ def categorical_encode(
 
 
 @jit
-def embed(series: np.ndarray, lags: int, horizon: int, max_lags: int) -> np.ndarray:
+def embed(series: npt.NDArray, lags: int, horizon: int, max_lags: int) -> npt.NDArray:
 
     result = np.full(
         shape=(series.size - max_lags + 1, lags + horizon), fill_value=np.nan
@@ -400,11 +401,11 @@ class MLARModel:
         # pyre-fixme
         self.model = None
         self.train_data: pd.DataFrame = pd.DataFrame([])
-        self.train_data_in: np.ndarray = np.array([])
+        self.train_data_in: npt.NDArray = np.array([])
         self.forecast_data: pd.DataFrame = pd.DataFrame([])
-        self.forecast_data_in: np.ndarray = np.array([])
+        self.forecast_data_in: npt.NDArray = np.array([])
 
-        self.full_mat: np.ndarray = np.array([])
+        self.full_mat: npt.NDArray = np.array([])
 
         self.num_hist_reg = 0
 
@@ -1072,7 +1073,7 @@ class MLARModel:
 
     def _train(
         self,
-        in_data: np.ndarray,
+        in_data: npt.NDArray,
         meta_and_out_data: pd.DataFrame,
     ) -> None:
         """Train session with (x, y) matrix input and output sMAPE in logging

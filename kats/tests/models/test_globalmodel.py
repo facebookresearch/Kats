@@ -13,6 +13,7 @@ from unittest import mock, TestCase
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import torch
 from kats.consts import TimeSeriesData
@@ -45,8 +46,8 @@ from parameterized.parameterized import parameterized
 
 
 def _MOCK_GET_TSFEATURES(
-    x: np.ndarray,
-    time: np.ndarray,
+    x: npt.NDArray,
+    time: npt.NDArray,
 ) -> torch.Tensor:
     """
     Mocks the private method of GMFeature so that a reduced set of features is computed and the test stops timing out

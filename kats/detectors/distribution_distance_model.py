@@ -11,6 +11,7 @@ import logging
 from typing import Any, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import (
     DataError,
@@ -33,7 +34,7 @@ from scipy.spatial.distance import _METRICS_NAMES as SUPPORTED_DISTANCE_METRICS
 _log: logging.Logger = logging.getLogger("distribution_distance_model")
 
 
-def _merge_percentile(l1: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def _merge_percentile(l1: npt.NDArray) -> Tuple[np.ndarray, np.ndarray]:
     """
     handle equal percentile:
     [-2.5, -1.3, -1.3, 1.2, 1.2] -> [-2.5, -1.3, 1.2] with prob [0.2, 0.4, 0.4]
@@ -51,7 +52,7 @@ def _merge_percentile(l1: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
 
 def _percentile_to_prob(
-    l1: np.ndarray, l2: np.ndarray
+    l1: npt.NDArray, l2: npt.NDArray
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     convert decile to probability distribution: ([3,4,5,6,7], [1,2,3,4,5])

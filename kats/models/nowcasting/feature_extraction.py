@@ -18,6 +18,7 @@ The features are rolling, i.e. they are the times series as well.
 from typing import Dict, Optional
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 
@@ -170,7 +171,7 @@ def MACD(
     return df
 
     # pyre-fixme[3]: Return type must be annotated.
-    def _ewma(arr: np.ndarray, span: int, min_periods: int):
+    def _ewma(arr: npt.NDArray, span: int, min_periods: int):
         """
         Exponentialy weighted moving average specified by a decay ``window``
         to provide better adjustments for small windows via:
@@ -178,7 +179,7 @@ def MACD(
                    (1 + (1-a) + (1-a)^2 + ... + (1-a)^n).
 
         Args:
-        arr : np.ndarray; A single dimenisional numpy array.
+        arr : npt.NDArray; A single dimenisional numpy array.
         span : int; The decay window, or 'span'.
         min_periods: int; Minimum amount of data points we'd like to include in the output.
 
@@ -206,7 +207,7 @@ def MACD(
 
     # pyre-fixme[3]: Return type must be annotated.
     def _get_nowcasting_np(
-        x: np.ndarray,
+        x: npt.NDArray,
         window: int = 5,
         n_fast: int = 12,
         n_slow: int = 21,

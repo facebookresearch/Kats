@@ -13,6 +13,7 @@ from typing import cast, List, Optional, Tuple, Union
 
 import attr
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesData
 from scipy.stats import norm, t, ttest_ind  # @manual
@@ -450,8 +451,8 @@ class PercentageChange:
         self._t_score = np.zeros(num_series)
         # We are using a two-sided test here, so we take inverse_tcdf(self._p_value / 2) with df = len(self.current) + len(self.previous) - 2
 
-        _t_score: np.ndarray = self._t_score
-        _p_value: np.ndarray = cast(np.ndarray, self._p_value)
+        _t_score: npt.NDArray = self._t_score
+        _p_value: npt.NDArray = cast(np.ndarray, self._p_value)
         for i in range(self.current.num_series):
             if t_value_start[i] < 0:
                 _t_score[i] = t.ppf(_p_value[i] / 2, self._get_df())

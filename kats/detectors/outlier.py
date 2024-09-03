@@ -22,6 +22,7 @@ from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import Params, TimeSeriesData, TimeSeriesIterator
 from kats.detectors.detector import Detector
@@ -221,7 +222,7 @@ class MultivariateAnomalyDetector(Detector):
         )
         return df_clean
 
-    def _is_pos_def(self, mat: np.ndarray) -> bool:
+    def _is_pos_def(self, mat: npt.NDArray) -> bool:
         """
         Check if matrix is positive definite.
 

@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 try:
@@ -248,7 +249,7 @@ class MKDetector(Detector):
 
         return x, c
 
-    def _drop_missing_values(self, x: np.ndarray) -> Tuple[np.ndarray, int]:
+    def _drop_missing_values(self, x: npt.NDArray) -> Tuple[np.ndarray, int]:
         """Drop the missing values in x."""
 
         if x.ndim == 1:  # univariate case with 1-dim array/ shape(n,)

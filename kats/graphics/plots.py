@@ -10,6 +10,7 @@
 from typing import List
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 try:
@@ -25,7 +26,7 @@ except ImportError:
 
 def plot_scatter_with_confints(
     val: List[float],
-    confint: np.ndarray,
+    confint: npt.NDArray,
     title: str,
     # pyre-fixme[11]: Annotation `Figure` is not defined as a type.
 ) -> Figure:
@@ -138,7 +139,7 @@ def make_fourier_plot(
 
 
 def plot_fitted_harmonics(
-    times: pd.Series, original_values: pd.Series, fitted_values: np.ndarray
+    times: pd.Series, original_values: pd.Series, fitted_values: npt.NDArray
 ) -> Figure:
     """Plots a scatter plot of the fitted harmonics
     Parameters

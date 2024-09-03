@@ -13,6 +13,7 @@ import unittest.mock as mock
 from typing import Any, cast, Dict, List, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
@@ -54,7 +55,7 @@ CV_NUM_FOLDS = 3  # Number of folds for cross validation
 
 
 def compute_errors(
-    train: np.ndarray, pred: np.ndarray, truth: np.ndarray
+    train: npt.NDArray, pred: npt.NDArray, truth: npt.NDArray
 ) -> Dict[str, float]:
     true_errors = {}
     for error in ALL_ERRORS:
@@ -65,9 +66,9 @@ def compute_errors(
 
 
 def compute_errors_list(
-    train: np.ndarray,
-    pred: np.ndarray,
-    truth: np.ndarray,
+    train: npt.NDArray,
+    pred: npt.NDArray,
+    truth: npt.NDArray,
     true_errors: Dict[str, List[float]],
 ) -> None:
     for error in ALL_ERRORS:

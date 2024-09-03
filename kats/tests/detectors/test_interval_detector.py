@@ -11,6 +11,7 @@ from typing import List, Tuple, Type, Union
 from unittest import TestCase
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 from kats.consts import TimeSeriesData
@@ -37,7 +38,7 @@ _Z_SCORE: float = 1.6448536269514722
 _P_VALUE: float = 0.05
 
 
-def _dp_solve(p: float, n: int, m: int) -> np.ndarray:
+def _dp_solve(p: float, n: int, m: int) -> npt.NDArray:
     """dp solution used to validate `probability_of_at_least_one_m_run_in_n_trials`."""
     a = np.zeros(n)
     p_m = p**m

@@ -13,6 +13,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from ax.modelbridge.registry import Models, SearchSpace
 from ax.service.utils.instantiation import InstantiationBase
@@ -85,7 +86,7 @@ base_models = {
 
 t1 = TimeSeriesData(METALEARNING_TEST_T1)
 t2 = TimeSeriesData(METALEARNING_TEST_T2)
-feature: np.ndarray = np.array(METALEARNING_TEST_FEATURES)
+feature: npt.NDArray = np.array(METALEARNING_TEST_FEATURES)
 num_features: int = feature.shape[1]
 feature_names: List[str] = list(METALEARNING_TEST_T1_FEATURES.keys())
 

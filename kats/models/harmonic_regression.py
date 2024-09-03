@@ -13,6 +13,7 @@ from typing import Any, Callable, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
@@ -134,7 +135,7 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
     @staticmethod
     def fourier_series(
         dates: pd.Series, period: float, series_order: int
-    ) -> np.ndarray:
+    ) -> npt.NDArray:
         """Provides Fourier series components with the specified frequency
         and order. The starting time is always the epoch.
         Parameters
@@ -161,7 +162,7 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
 
     @staticmethod
     def make_harm_eval(
-        harmonics: np.ndarray,
+        harmonics: npt.NDArray,
     ) -> Callable[..., np.ndarray]:
         """Defines evaluation function for the optimizer
         Parameters
@@ -172,7 +173,7 @@ class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
         The evaluation function for the optimizer
         """
 
-        def harm_eval(step: np.ndarray, *params: Real) -> np.ndarray:
+        def harm_eval(step: npt.NDArray, *params: Real) -> npt.NDArray:
             params_ = np.array(params)
             mul = np.multiply(harmonics[step.astype(int)], params_)
             return np.sum(mul, axis=1)

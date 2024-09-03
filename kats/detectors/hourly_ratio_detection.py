@@ -11,6 +11,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
@@ -155,9 +156,9 @@ class HourlyRatioDetector(Detector):
 
     def _mahalanobis_test(
         self,
-        obs: np.ndarray,
-        median: np.ndarray,
-        cov: np.ndarray,
+        obs: npt.NDArray,
+        median: npt.NDArray,
+        cov: npt.NDArray,
         alpha: float = 0.01,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """mahalanobis test function.

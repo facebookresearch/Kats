@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
 from kats.consts import TimeSeriesData
@@ -428,7 +429,7 @@ class MetaLearnModelSelect:
         self,
         source_x: Union[np.ndarray, List[np.ndarray], pd.DataFrame],
         n_top: int = 1,
-    ) -> np.ndarray:
+    ) -> npt.NDArray:
         """Predict the best forecasting models given a list/dataframe of time series features
         Args:
             source_x: the time series features of the time series that one wants to predict, can be a np.ndarray, a list of np.ndarray or a pd.DataFrame.
@@ -460,7 +461,7 @@ class MetaLearnModelSelect:
         classes = np.array(self.clf.classes_)
         return classes[order][:, :n_top]
 
-    def _bootstrap(self, data: np.ndarray, rep: int = 200) -> float:
+    def _bootstrap(self, data: npt.NDArray, rep: int = 200) -> float:
         """Helper function for bootstrap test and returns the pvalue."""
 
         diff = data[:, 0] - data[:, 1]

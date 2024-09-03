@@ -8,6 +8,7 @@
 from typing import Any, cast, Dict, Optional, Union
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 
@@ -60,7 +61,7 @@ _DAYTIME_MAP = {
 }
 
 
-def _map(index: Union[np.ndarray, pd.Int64Index], map: Dict[int, int]) -> np.ndarray:
+def _map(index: Union[np.ndarray, pd.Int64Index], map: Dict[int, int]) -> npt.NDArray:
     """Map values to other values efficiently.
 
     Args:

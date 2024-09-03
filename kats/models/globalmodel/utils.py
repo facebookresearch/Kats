@@ -10,6 +10,7 @@ import logging
 from typing import Any, cast, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
+import numpy.typing as npt
 import torch
 from kats.compat.compat import Version
 from kats.consts import TimeSeriesData
@@ -49,7 +50,7 @@ all_possible_gmfeatures = [
 
 @jit
 # pyre-fixme[2]: Parameter must be annotated.
-def get_filters(isna_idx, seasonality) -> np.ndarray:
+def get_filters(isna_idx, seasonality) -> npt.NDArray:
     """Helper function for adding NaNs to time series.
 
     Args:
@@ -924,8 +925,8 @@ class GMFeature:
 
     @staticmethod
     def _get_tsfeatures(
-        x: np.ndarray,
-        time: np.ndarray,
+        x: npt.NDArray,
+        time: npt.NDArray,
     ) -> torch.Tensor:
         """
         private method to get Kats tsfeatures
@@ -960,8 +961,8 @@ class GMFeature:
 
     @staticmethod
     def _get_date_feature(
-        x: np.ndarray,
-        time: np.ndarray,
+        x: npt.NDArray,
+        time: npt.NDArray,
     ) -> torch.Tensor:
         """Private method to get simple date features
 
@@ -992,8 +993,8 @@ class GMFeature:
 
     @staticmethod
     def _get_last_date_feature(
-        x: np.ndarray,
-        time: np.ndarray,
+        x: npt.NDArray,
+        time: npt.NDArray,
     ) -> torch.Tensor:
         """Compute date features for the last timestamp."""
         n = len(time)
@@ -1022,8 +1023,8 @@ class GMFeature:
 
     @staticmethod
     def _get_last_hour_feature(
-        x: np.ndarray,
-        time: np.ndarray,
+        x: npt.NDArray,
+        time: npt.NDArray,
     ) -> torch.Tensor:
         """
         Compute hour features for the last timestamp.
@@ -1037,8 +1038,8 @@ class GMFeature:
 
     @staticmethod
     def _get_last_month_feature(
-        x: np.ndarray,
-        time: np.ndarray,
+        x: npt.NDArray,
+        time: npt.NDArray,
     ) -> torch.Tensor:
         """
         Compute month features for the last timestamp.
@@ -1052,16 +1053,16 @@ class GMFeature:
     @staticmethod
     # pyre-fixme[3]: Return type must be annotated.
     def _get_ts2vec(
-        x: np.ndarray,
-        time: np.ndarray,
+        x: npt.NDArray,
+        time: npt.NDArray,
     ):
         # TODO after ts2vec model lands
         pass
 
     @staticmethod
     def _get_last_hour_minute_feature(
-        x: np.ndarray,
-        time: np.ndarray,
+        x: npt.NDArray,
+        time: npt.NDArray,
     ) -> torch.Tensor:
         """
         Compute minute features for the last timestamp.
@@ -1075,8 +1076,8 @@ class GMFeature:
 
     def get_base_features(
         self,
-        x: np.ndarray,
-        time: np.ndarray,
+        x: npt.NDArray,
+        time: npt.NDArray,
     ) -> Optional[Tensor]:
         """Compute selected base features, i.e., the features to be computed only once for each time series.
 
@@ -1103,8 +1104,8 @@ class GMFeature:
 
     def get_on_the_fly_features(
         self,
-        x: np.ndarray,
-        time: np.ndarray,
+        x: npt.NDArray,
+        time: npt.NDArray,
     ) -> Optional[Tensor]:
         """Compute selected on-the-fly features, i.e., the features to be computed when stepping through RNN.
 

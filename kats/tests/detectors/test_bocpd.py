@@ -12,6 +12,7 @@ from typing import Sequence
 from unittest import TestCase
 
 import numpy as np
+import numpy.typing as npt
 from kats.consts import TimeSeriesData
 from kats.detectors.bocpd import (
     BOCPDChangePoint,
@@ -201,7 +202,7 @@ class BOCPDTest(TestCase):
         )
 
     def assert_changepoints_exist(
-        self, ts: TimeSeriesData, cp_arr: np.ndarray, cps: Sequence[BOCPDChangePoint]
+        self, ts: TimeSeriesData, cp_arr: npt.NDArray, cps: Sequence[BOCPDChangePoint]
     ) -> None:
         # check if the change points were detected
         # TODO: this check only tests that all changepoints we find should be there
