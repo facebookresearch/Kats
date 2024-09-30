@@ -721,7 +721,7 @@ def sample_model_vectorized(
     s_a: npt.NDArray,
     s_m: npt.NDArray,
     n_samples: int,
-) -> Dict[str, np.ndarray]:
+) -> Dict[str, npt.NDArray]:
     """Simulate observations from the extrapolated generative model. Vectorized version of sample_model().
 
     Returns:
@@ -746,7 +746,7 @@ def sample_model_vectorized(
 
 def sample_posterior_predictive(
     prophet_model: Prophet, df: pd.DataFrame, vectorized: bool
-) -> Dict[str, np.ndarray]:
+) -> Dict[str, npt.NDArray]:
     """Generate posterior samples of a trained Prophet model.
 
     Args:
@@ -805,7 +805,7 @@ def _make_historical_mat_time(
     changepoints_t: npt.NDArray,
     n_row: int,
     single_diff: float,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[npt.NDArray, npt.NDArray]:
     """
     Creates a matrix of slope-deltas where these changes occured in training data according to the trained prophet obj
     """

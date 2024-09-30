@@ -230,7 +230,7 @@ class TrendChangeParameters(BOCPDModelParameters):
             debug.
     """
 
-    mu_prior: Optional[np.ndarray] = None
+    mu_prior: Optional[npt.NDArray] = None
     num_likelihood_samples: int = 100
     num_points_prior: int = _MIN_POINTS
     readjust_sigma_prior: bool = False
@@ -641,7 +641,7 @@ class BOCPDetector(Detector):
 
         return dict(change_points_per_ts)
 
-    def get_change_prob(self) -> Dict[str, np.ndarray]:
+    def get_change_prob(self) -> Dict[str, npt.NDArray]:
         """Returns the probability of being a changepoint.
 
         Args:
@@ -658,7 +658,7 @@ class BOCPDetector(Detector):
             raise ValueError("detector needs to be run before getting prob")
         return self.change_prob
 
-    def get_run_length_matrix(self) -> Dict[str, np.ndarray]:
+    def get_run_length_matrix(self) -> Dict[str, npt.NDArray]:
         """Returns the entire run-time posterior.
         Args:
             None.
@@ -724,11 +724,11 @@ class _BayesOnlineChangePoint(Detector):
         maximum values diagonally.
     """
 
-    rt_posterior: Optional[np.ndarray] = None
-    pred_mean_arr: Optional[np.ndarray] = None
-    pred_std_arr: Optional[np.ndarray] = None
-    next_pred_prob: Optional[np.ndarray] = None
-    threshold: Optional[np.ndarray] = None
+    rt_posterior: Optional[npt.NDArray] = None
+    pred_mean_arr: Optional[npt.NDArray] = None
+    pred_std_arr: Optional[npt.NDArray] = None
+    next_pred_prob: Optional[npt.NDArray] = None
+    threshold: Optional[npt.NDArray] = None
     posterior_predictive: npt.NDArray
     T: int
     P: int
@@ -778,8 +778,8 @@ class _BayesOnlineChangePoint(Detector):
     def detector(
         self,
         model: Union[SupportedModelType, "_PredictiveModel"],
-        threshold: Union[float, np.ndarray] = 0.5,
-        changepoint_prior: Union[float, np.ndarray] = 0.01,
+        threshold: Union[float, npt.NDArray] = 0.5,
+        changepoint_prior: Union[float, npt.NDArray] = 0.01,
     ) -> Dict[str, Any]:
         """Runs the actual BOCPD detection algorithm.
 
@@ -953,7 +953,7 @@ class _BayesOnlineChangePoint(Detector):
 
     def plot(
         self,
-        threshold: Optional[Union[float, np.ndarray]] = None,
+        threshold: Optional[Union[float, npt.NDArray]] = None,
         lag: Optional[int] = None,
         ts_names: Optional[List[str]] = None,
         **kwargs: Any,
@@ -1421,7 +1421,7 @@ class _BayesianLinReg(_PredictiveModel):
         parameters: Specifying all the priors.
     """
 
-    mu_prior: Optional[np.ndarray] = None
+    mu_prior: Optional[npt.NDArray] = None
     prior_regression_numpoints: Optional[int] = None
 
     def __init__(
@@ -1444,8 +1444,8 @@ class _BayesianLinReg(_PredictiveModel):
             f"sigma prior adjustment {readjust_sigma_prior}, "
             f"and plot prior regression {plot_regression_prior}"
         )
-        self._x: Optional[np.ndarray] = None
-        self._y: Optional[np.ndarray] = None
+        self._x: Optional[npt.NDArray] = None
+        self._y: Optional[npt.NDArray] = None
         self.t = 0
 
         # Random numbers I tried out to make the sigma_squared values really large
@@ -1453,7 +1453,7 @@ class _BayesianLinReg(_PredictiveModel):
         self.b_0 = 200.0  # TODO
 
         self.all_time: npt.NDArray = np.array(range(data.time.shape[0]))
-        self.all_vals: Union[pd.DataFrame, pd.Series, np.ndarray] = data.value
+        self.all_vals: Union[pd.DataFrame, pd.Series, npt.NDArray] = data.value
 
         self.lambda_prior: npt.NDArray = np.multiply(2e-7, np.identity(2))
 
@@ -1530,7 +1530,7 @@ class _BayesianLinReg(_PredictiveModel):
     @staticmethod
     def _plot_regression(
         x: npt.NDArray,
-        y: Union[np.ndarray, pd.DataFrame, pd.Series],
+        y: Union[npt.NDArray, pd.DataFrame, pd.Series],
         intercept: float,
         slope: float,
     ) -> None:
@@ -1557,7 +1557,7 @@ class _BayesianLinReg(_PredictiveModel):
         a_n: float,
         b_n: float,
         num_samples: int,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[npt.NDArray, npt.NDArray]:
 
         # this is to make sure the results are consistent
         # and tests don't break randomly
@@ -1580,7 +1580,7 @@ class _BayesianLinReg(_PredictiveModel):
     @staticmethod
     def _compute_bayesian_likelihood(
         beta: npt.NDArray, sigma_squared: npt.NDArray, x: npt.NDArray, val: float
-    ) -> Tuple[float, np.ndarray]:
+    ) -> Tuple[float, npt.NDArray]:
         prediction = np.matmul(beta, x)
         bayesian_likelihoods = norm.pdf(
             val, loc=prediction, scale=np.sqrt(sigma_squared)
@@ -1597,7 +1597,7 @@ class _BayesianLinReg(_PredictiveModel):
         x: npt.NDArray,
         val: float,
         num_samples: int,
-    ) -> Tuple[float, np.ndarray, np.ndarray]:
+    ) -> Tuple[float, npt.NDArray, npt.NDArray]:
         (
             all_sample_betas,
             sample_sigma_squared,

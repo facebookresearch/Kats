@@ -36,6 +36,7 @@ BASE_MODELS = {
 import logging
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 
@@ -58,8 +59,8 @@ class BaseTHModel:
         level: int,
         model_name: Optional[str] = None,
         model_params: Optional[object] = None,
-        residuals: Optional[np.ndarray] = None,
-        fcsts: Optional[np.ndarray] = None,
+        residuals: Optional[npt.NDArray] = None,
+        fcsts: Optional[npt.NDArray] = None,
     ) -> None:
 
         if not isinstance(level, int) or level < 1:

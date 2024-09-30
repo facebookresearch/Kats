@@ -303,7 +303,7 @@ class MetaLearnPredictability:
         return ans
 
     def pred_by_feature(
-        self, source_x: Union[np.ndarray, List[np.ndarray], pd.DataFrame]
+        self, source_x: Union[npt.NDArray, List[npt.NDArray], pd.DataFrame]
     ) -> npt.NDArray:
         """Predict whether a list of time series are predicable or not given their time series features.
         Args:

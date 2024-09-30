@@ -698,7 +698,7 @@ class TsFeatures:
     # @jit(forceobj=True)
     def get_statistics(
         x: npt.NDArray,
-        dict_features: Optional[Dict[str, Callable[[np.ndarray], float]]] = None,
+        dict_features: Optional[Dict[str, Callable[[npt.NDArray], float]]] = None,
         extra_args: Optional[Dict[str, bool]] = None,
         default_status: bool = True,
     ) -> Dict[str, float]:
@@ -2139,7 +2139,7 @@ class TsCalenderFeatures:
         self, data: Union[TimeSeriesData, pd.Series], raw: bool = False
     ) -> Union[
         pd.DataFrame,
-        np.ndarray,
+        npt.NDArray,
     ]:
 
         if isinstance(data, TimeSeriesData):
@@ -2211,7 +2211,7 @@ class TsFourierFeatures:
 
     def get_features(
         self, data: Union[TimeSeriesData, pd.Series], raw: bool = False
-    ) -> Union[np.ndarray, pd.DataFrame]:
+    ) -> Union[npt.NDArray, pd.DataFrame]:
 
         if isinstance(data, TimeSeriesData):
             data = np.array(data.time.astype("int") // 10**9)

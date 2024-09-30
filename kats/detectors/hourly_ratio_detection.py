@@ -160,7 +160,7 @@ class HourlyRatioDetector(Detector):
         median: npt.NDArray,
         cov: npt.NDArray,
         alpha: float = 0.01,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[npt.NDArray, npt.NDArray]:
         """mahalanobis test function.
 
         Args:

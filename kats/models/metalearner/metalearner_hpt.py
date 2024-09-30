@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -692,7 +693,7 @@ class MetaLearnHPT:
         return res
 
     def pred_by_feature(
-        self, source_x: Union[np.ndarray, List[np.ndarray], pd.DataFrame]
+        self, source_x: Union[npt.NDArray, List[npt.NDArray], pd.DataFrame]
     ) -> List[Dict[str, Any]]:
         """Predict hyper-parameters for time series features.
 

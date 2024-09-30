@@ -168,7 +168,7 @@ class ensemble_predict_interval:
 
         self.multiprocessing: bool = multiprocessing
 
-    def _get_error_matrix_single(self, idx: int) -> Tuple[int, np.ndarray]:
+    def _get_error_matrix_single(self, idx: int) -> Tuple[int, npt.NDArray]:
         """
         Calculate error vector for each block
         """
@@ -225,7 +225,7 @@ class ensemble_predict_interval:
 
     def _projection_single(
         self, idx: int, step: int = 30, rolling_based: bool = False
-    ) -> Tuple[int, np.ndarray]:
+    ) -> Tuple[int, npt.NDArray]:
         """
         Get forecasting for future steps for one chain.
         """

@@ -80,7 +80,7 @@ class GMDataLoader:
         self,
         # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         dataset: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]],
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[npt.NDArray, npt.NDArray]:
         if len(dataset) < 1:
             msg = "Input dataset should be non-empty."
             logging.error(msg)
@@ -446,11 +446,11 @@ class GMBatch:
         reduced_length: int,
         reduced_valid_length: int,
     ) -> Tuple[
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        Optional[np.ndarray],
-        Optional[np.ndarray],
+        npt.NDArray,
+        npt.NDArray,
+        npt.NDArray,
+        Optional[npt.NDArray],
+        Optional[npt.NDArray],
     ]:
         """
 

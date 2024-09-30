@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import torch
 
@@ -128,7 +129,7 @@ class NeuralProphetParams(Params):
               Each regressor is a dictionary with required key "names"and optional keys "regularization" and "normalize".
     """
 
-    changepoints: Optional[Union[List[str], List[np.datetime64], np.ndarray]]
+    changepoints: Optional[Union[List[str], List[np.datetime64], npt.NDArray]]
     n_changepoints: int
     changepoints_range: float
     trend_reg: float
@@ -164,7 +165,7 @@ class NeuralProphetParams(Params):
         # import np.typing as npt
         # replace 'np.ndarray' by npt.NDArray['np.datetime64']
         changepoints: Optional[
-            Union[List[str], List[np.datetime64], np.ndarray]
+            Union[List[str], List[np.datetime64], npt.NDArray]
         ] = None,
         n_changepoints: int = 10,
         changepoints_range: float = 0.9,

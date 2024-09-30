@@ -29,6 +29,7 @@ from copy import copy
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models import (
@@ -168,9 +169,9 @@ class STLFModel(Model[STLFParams]):
     ] = None
     freq: Optional[str] = None
     alpha: Optional[float] = None
-    y_fcst: Optional[Union[np.ndarray, pd.Series, pd.DataFrame]] = None
-    fcst_lower: Optional[Union[np.ndarray, pd.Series, pd.DataFrame]] = None
-    fcst_upper: Optional[Union[np.ndarray, pd.Series, pd.DataFrame]] = None
+    y_fcst: Optional[Union[npt.NDArray, pd.Series, pd.DataFrame]] = None
+    fcst_lower: Optional[Union[npt.NDArray, pd.Series, pd.DataFrame]] = None
+    fcst_upper: Optional[Union[npt.NDArray, pd.Series, pd.DataFrame]] = None
     dates: Optional[pd.DatetimeIndex] = None
     fcst_df: Optional[pd.DataFrame] = None
     deseasonal_operator: Callable(Union[_operator.truediv, _operator.sub])[
@@ -185,7 +186,7 @@ class STLFModel(Model[STLFParams]):
             Union[pd.Series, pd.DataFrame],
             Union[pd.Series, pd.DataFrame],
         ],
-        Union[np.ndarray, pd.Series, pd.DataFrame],
+        Union[npt.NDArray, pd.Series, pd.DataFrame],
     ]
 
     def __init__(self, data: TimeSeriesData, params: STLFParams) -> None:

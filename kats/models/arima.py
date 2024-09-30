@@ -25,6 +25,7 @@ import logging
 from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
@@ -51,7 +52,7 @@ class ARIMAParams(Params):
     p: int
     d: int
     q: int
-    exog: Optional[np.ndarray] = None
+    exog: Optional[npt.NDArray] = None
     dates: Optional[pd.DatetimeIndex] = None
     freq: Optional[str] = None
 
@@ -88,10 +89,10 @@ class ARIMAModel(Model[ARIMAParams]):
     model: Optional[ARIMAResults] = None
     include_history: bool = False
     fcst_df: Optional[pd.DataFrame] = None
-    y_fcst: Optional[np.ndarray] = None
-    y_fcst_lower: Optional[np.ndarray] = None
-    y_fcst_upper: Optional[np.ndarray] = None
-    start_params: Optional[np.ndarray] = None
+    y_fcst: Optional[npt.NDArray] = None
+    y_fcst_lower: Optional[npt.NDArray] = None
+    y_fcst_upper: Optional[npt.NDArray] = None
+    start_params: Optional[npt.NDArray] = None
     transparams: bool = False
     method: Optional[str] = None
     trend: Optional[str] = None
@@ -99,7 +100,7 @@ class ARIMAModel(Model[ARIMAParams]):
     maxiter: Optional[int] = None
     full_output: bool = False
     disp: Optional[int] = None
-    callback: Optional[Callable[[np.ndarray], None]] = None
+    callback: Optional[Callable[[npt.NDArray], None]] = None
     start_ar_lags: Optional[int] = None
     dates: Optional[pd.DatetimeIndex] = None
 
@@ -116,7 +117,7 @@ class ARIMAModel(Model[ARIMAParams]):
 
     def fit(
         self,
-        start_params: Optional[np.ndarray] = None,
+        start_params: Optional[npt.NDArray] = None,
         transparams: bool = True,
         method: str = "css-mle",
         trend: str = "c",
@@ -124,7 +125,7 @@ class ARIMAModel(Model[ARIMAParams]):
         maxiter: int = 500,
         full_output: bool = True,
         disp: int = 5,
-        callback: Optional[Callable[[np.ndarray], None]] = None,
+        callback: Optional[Callable[[npt.NDArray], None]] = None,
         start_ar_lags: Optional[int] = None,
         **kwargs: Any,
     ) -> None:

@@ -171,8 +171,8 @@ class MultivariateAnomalyDetector(Detector):
         model_type: The type of multivariate anomaly detector (currently 'BAYESIAN_VAR' and 'VAR' options available)
     """
 
-    resid: Optional[np.ndarray] = None
-    sigma_u: Optional[np.ndarray] = None
+    resid: Optional[npt.NDArray] = None
+    sigma_u: Optional[npt.NDArray] = None
     anomaly_score_df: Optional[pd.DataFrame] = None
 
     def __init__(

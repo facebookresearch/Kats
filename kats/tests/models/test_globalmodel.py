@@ -103,7 +103,7 @@ def _gm_mock_predict_func(
     len_quantile: int,
     raw: bool = True,
     test_batch_size: int = 500,
-) -> Dict[int, List[np.ndarray]]:
+) -> Dict[int, List[npt.NDArray]]:
     """
     Helper function for building predict method for mock GMModel.
     """

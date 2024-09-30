@@ -13,6 +13,7 @@ from unittest import mock, TestCase
 import kats.utils.emp_confidence_int  # noqa
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.compat.pandas import assert_frame_equal
 from kats.consts import Params, TimeSeriesData
@@ -119,7 +120,7 @@ _FROZEN_DATA = pd.DataFrame(
 # backtester.run_backtest()
 # _RAW_ERRORS = backtester.raw_errors
 # fmt: off
-_RAW_ERRORS: List[np.ndarray] = [
+_RAW_ERRORS: List[npt.NDArray] = [
     np.array([
         1.33793031e01, 1.56117160e00, -3.43035881e-02, 1.59373281e01,
         1.00730540e01, 3.66296231e01, 4.33868022e01, 3.67005869e01,

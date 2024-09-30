@@ -18,6 +18,7 @@ from typing import List, Optional, Tuple, Type
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.utils.backtesters import BackTesterRollingWindow
@@ -53,8 +54,8 @@ class EmpConfidenceInt:
 
     freq: Optional[str] = None
     dates: Optional[pd.DatetimeIndex] = None
-    predicted: Optional[np.ndarray] = None
-    coefs: Optional[np.ndarray] = None
+    predicted: Optional[npt.NDArray] = None
+    coefs: Optional[npt.NDArray] = None
     df: Optional[pd.DataFrame] = None
     SE: Optional[pd.DataFrame] = None
 

@@ -49,6 +49,7 @@ except ImportError:  # pragma: no cover
 
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import _log_error, Params, TimeSeriesData
 from kats.metrics.metrics import core_metric, CoreMetric
@@ -401,11 +402,11 @@ class BackTesterParent(ABC):
     params: Params
     multi: bool
     offset: int
-    results: List[Tuple[np.ndarray, np.ndarray, "Model[Params]", np.ndarray]]
+    results: List[Tuple[npt.NDArray, npt.NDArray, "Model[Params]", npt.NDArray]]
     errors: Dict[str, float]
     size: int
     freq: Optional[str]
-    raw_errors: List[np.ndarray]
+    raw_errors: List[npt.NDArray]
 
     def __init__(
         self,
@@ -518,7 +519,7 @@ class BackTesterParent(ABC):
         self,
         training_data_indices: Tuple[int, int],
         testing_data_indices: Tuple[int, int],
-    ) -> Optional[Tuple[np.ndarray, np.ndarray, "Model[Params]", np.ndarray]]:
+    ) -> Optional[Tuple[npt.NDArray, npt.NDArray, "Model[Params]", npt.NDArray]]:
         """
         Trains model, evaluates it, and stores results in results list.
         """
@@ -1227,10 +1228,10 @@ class CrossValidation:
     """
 
     size: int
-    results: List[Tuple[np.ndarray, np.ndarray, "Model[Params]", np.ndarray]]
+    results: List[Tuple[npt.NDArray, npt.NDArray, "Model[Params]", npt.NDArray]]
     num_folds: int
     errors: Dict[str, float]
-    raw_errors: List[np.ndarray]
+    raw_errors: List[npt.NDArray]
     _backtester: BackTesterParent
 
     def __init__(

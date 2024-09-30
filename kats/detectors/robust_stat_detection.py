@@ -10,6 +10,7 @@ from typing import Any, Optional, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesChangePoint, TimeSeriesData
 from kats.detectors.detector import Detector
@@ -48,7 +49,7 @@ class RobustStatDetector(Detector):
             )
             logging.error(msg)
             raise ValueError(msg)
-        self.zscore: Optional[np.ndarray] = None
+        self.zscore: Optional[npt.NDArray] = None
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(

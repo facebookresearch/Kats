@@ -511,7 +511,7 @@ class GMModel:
         # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         ids: List[Any],
         # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
-        fcst_store: Dict[Any, List[np.ndarray]],
+        fcst_store: Dict[Any, List[npt.NDArray]],
         steps: int,
         first_time: npt.NDArray,
     ) -> Dict[Any, pd.DataFrame]:
@@ -568,7 +568,7 @@ class GMModel:
         steps: int,
         test_batch_size: int = 500,
         raw: bool = False,
-    ) -> Dict[Any, Union[pd.DataFrame, List[np.ndarray]]]:
+    ) -> Dict[Any, Union[pd.DataFrame, List[npt.NDArray]]]:
         """Generate forecasts for target time series.
 
         Args:

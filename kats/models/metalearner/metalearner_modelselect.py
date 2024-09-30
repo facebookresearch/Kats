@@ -427,7 +427,7 @@ class MetaLearnModelSelect:
 
     def pred_by_feature(
         self,
-        source_x: Union[np.ndarray, List[np.ndarray], pd.DataFrame],
+        source_x: Union[npt.NDArray, List[npt.NDArray], pd.DataFrame],
         n_top: int = 1,
     ) -> npt.NDArray:
         """Predict the best forecasting models given a list/dataframe of time series features

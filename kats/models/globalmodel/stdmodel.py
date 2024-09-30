@@ -136,7 +136,7 @@ class STDGlobalModel:
 
     def _decompose(
         self, ts: TimeSeriesData
-    ) -> Tuple[Union[ProphetModel, np.ndarray], Dict[str, TimeSeriesData]]:
+    ) -> Tuple[Union[ProphetModel, npt.NDArray], Dict[str, TimeSeriesData]]:
         """Decompose time series into trend, seasonality."""
         if self.decomposition_model == "prophet":
             if self.decomposition_params is None:
@@ -182,7 +182,7 @@ class STDGlobalModel:
 
     def _deseasonal(
         self, ts: TimeSeriesData
-    ) -> Tuple[Union[ProphetModel, np.ndarray], TimeSeriesData]:
+    ) -> Tuple[Union[ProphetModel, npt.NDArray], TimeSeriesData]:
         tsd_model, tsd_res = self._decompose(ts)
         if self.fit_trend:
             return tsd_model, tsd_res["trend"]
@@ -194,7 +194,7 @@ class STDGlobalModel:
             return tsd_model, new_ts
 
     def _predict_seasonality(
-        self, steps: int, tsd_model: Union[ProphetModel, np.ndarray]
+        self, steps: int, tsd_model: Union[ProphetModel, npt.NDArray]
     ) -> npt.NDArray:
         """Predict the future seasonality.
 
@@ -226,7 +226,7 @@ class STDGlobalModel:
 
     def _prepare_ts(
         self, tag: Union[str, int], ts: TimeSeriesData, steps: int
-    ) -> Tuple[Union[str, int], TimeSeriesData, np.ndarray]:
+    ) -> Tuple[Union[str, int], TimeSeriesData, npt.NDArray]:
         """Prepare time series into seasonality and non-seasonal part."""
         tsd_model, new_ts = self._deseasonal(ts)
         new_seasonal = self._predict_seasonality(steps, tsd_model)

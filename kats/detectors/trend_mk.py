@@ -221,7 +221,7 @@ class MKDetector(Detector):
 
         return smoothed_ts
 
-    def _preprocessing(self, ts: pd.DataFrame) -> Tuple[np.ndarray, int]:
+    def _preprocessing(self, ts: pd.DataFrame) -> Tuple[npt.NDArray, int]:
         """Check and convert the dataframe ts to an numpy array.
 
         Args:
@@ -249,7 +249,7 @@ class MKDetector(Detector):
 
         return x, c
 
-    def _drop_missing_values(self, x: npt.NDArray) -> Tuple[np.ndarray, int]:
+    def _drop_missing_values(self, x: npt.NDArray) -> Tuple[npt.NDArray, int]:
         """Drop the missing values in x."""
 
         if x.ndim == 1:  # univariate case with 1-dim array/ shape(n,)

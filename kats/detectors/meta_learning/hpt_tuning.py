@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Type, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.detectors.detector import DetectorModel
@@ -303,7 +304,7 @@ class MetaDetectHptSelect:
         return self.get_hpt_from_features(features_array)
 
     def get_hpt_from_features(
-        self, source_x: Union[np.ndarray, List[np.ndarray], pd.DataFrame]
+        self, source_x: Union[npt.NDArray, List[npt.NDArray], pd.DataFrame]
     ) -> pd.DataFrame:
         assert self._meta_hpt_model is not None
 

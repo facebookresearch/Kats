@@ -15,6 +15,7 @@ else:
     from typing_extensions import Protocol
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import TimeSeriesData
 
@@ -29,8 +30,8 @@ class Step(Protocol):
 
     def fit(
         self,
-        x: Union[pd.DataFrame, np.ndarray],
-        y: Optional[Union[pd.Series, np.ndarray]],
+        x: Union[pd.DataFrame, npt.NDArray],
+        y: Optional[Union[pd.Series, npt.NDArray]],
         **kwargs: Any,
     ) -> List[TimeSeriesData]: ...
 
@@ -54,7 +55,7 @@ class Pipeline:
     remove: bool = False
     useFeatures: bool = False
     extra_fitting_params: Optional[Dict[str, Any]] = None
-    y: Optional[Union[np.ndarray, pd.Series]] = None
+    y: Optional[Union[npt.NDArray, pd.Series]] = None
 
     def __init__(self, steps: List[PipelineStep]) -> None:
         """
@@ -201,7 +202,7 @@ class Pipeline:
         self,
         step: Step,
         data: List[TimeSeriesData],
-        y: Optional[Union[pd.Series, np.ndarray]],
+        y: Optional[Union[pd.Series, npt.NDArray]],
     ) -> List[TimeSeriesData]:
         """
         Internal function for fitting sklearn model on a tabular data with features

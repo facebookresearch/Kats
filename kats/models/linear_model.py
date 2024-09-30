@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import statsmodels.api as sm
 from kats.consts import Params, TimeSeriesData
@@ -74,10 +75,10 @@ class LinearModel(Model[LinearModelParams]):
         self._X_future: Optional[List[int]] = None
         self.past_length: int = len(data.time)
         self.dates: Optional[pd.DatetimeIndex] = None
-        self.y_fcst: Optional[Union[pd.Series, np.ndarray]] = None
-        self.sdev: Optional[Union[np.ndarray, float]] = None
-        self.y_fcst_lower: Optional[Union[pd.Series, np.ndarray, float]] = None
-        self.y_fcst_upper: Optional[Union[pd.Series, np.ndarray, float]] = None
+        self.y_fcst: Optional[Union[pd.Series, npt.NDArray]] = None
+        self.sdev: Optional[Union[npt.NDArray, float]] = None
+        self.y_fcst_lower: Optional[Union[pd.Series, npt.NDArray, float]] = None
+        self.y_fcst_upper: Optional[Union[pd.Series, npt.NDArray, float]] = None
 
     def fit(self) -> None:
         """fit Linear Model."""

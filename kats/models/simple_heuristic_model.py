@@ -71,12 +71,12 @@ class SimpleHeuristicModel(Model[SimpleHeuristicModelParams]):
         params: the parameter class defined with `SimpleHeuristicModelParams`
     """
 
-    model: Callable[[np.ndarray], np.ndarray]
+    model: Callable[[npt.NDArray], npt.NDArray]
     include_history: bool = False
     dates: Optional[pd.DatetimeIndex] = None
-    y_fcst: Optional[np.ndarray] = None
-    y_fcst_lower: Optional[np.ndarray] = None
-    y_fcst_upper: Optional[np.ndarray] = None
+    y_fcst: Optional[npt.NDArray] = None
+    y_fcst_lower: Optional[npt.NDArray] = None
+    y_fcst_upper: Optional[npt.NDArray] = None
     fcst_df: pd.DataFrame = pd.DataFrame(data=None)
     freq: Optional[str] = None
 

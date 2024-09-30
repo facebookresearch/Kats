@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import joblib
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import torch
 from kats.consts import TimeSeriesData
@@ -257,7 +258,7 @@ class GMEnsemble:
         self,
         # pyre-fixme[2]: Parameter annotation cannot be `Any`.
         idx: Any,
-        fcsts: List[np.ndarray],
+        fcsts: List[npt.NDArray],
         steps: int,
         raw: bool,
         # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
@@ -295,7 +296,7 @@ class GMEnsemble:
         steps: int,
         test_batch_size: int = 500,
         raw: bool = False,
-    ) -> Dict[Any, Union[pd.DataFrame, List[np.ndarray]]]:
+    ) -> Dict[Any, Union[pd.DataFrame, List[npt.NDArray]]]:
         """Generate forecasts for the target time series.
 
         Args:

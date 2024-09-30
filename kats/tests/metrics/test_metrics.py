@@ -19,7 +19,9 @@ from parameterized.parameterized import parameterized
 
 class MetricsTest(TestCase):
     def validate(
-        self, expected: Union[float, np.ndarray], result: Union[float, np.ndarray]
+        self,
+        expected: Union[float, np_typing.NDArray],
+        result: Union[float, np_typing.NDArray],
     ) -> None:
         if isinstance(expected, float):
             self.assertTrue(isinstance(result, float))

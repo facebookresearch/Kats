@@ -191,10 +191,10 @@ class PercentageChange:
         min_perc_change: float, minimum percentage change, for a non zero score. Score will be clipped to zero if the absolute value of the percentage chenge is less than this value
     """
 
-    upper: Optional[Union[float, np.ndarray]]
-    lower: Optional[Union[float, np.ndarray]]
-    _t_score: Optional[Union[float, np.ndarray]]
-    _p_value: Optional[Union[float, np.ndarray]]
+    upper: Optional[Union[float, npt.NDArray]]
+    lower: Optional[Union[float, npt.NDArray]]
+    _t_score: Optional[Union[float, npt.NDArray]]
+    _p_value: Optional[Union[float, npt.NDArray]]
     num_series: int
 
     def __init__(
@@ -225,7 +225,7 @@ class PercentageChange:
         self.min_perc_change = min_perc_change
 
     @property
-    def ratio_estimate(self) -> Union[float, np.ndarray]:
+    def ratio_estimate(self) -> Union[float, npt.NDArray]:
         # pyre-ignore[6]: Expected float for 1st positional only parameter to call float.__truediv__ but got Union[float, np.ndarray].
         return self.current.mean_val / self.previous.mean_val
 
@@ -300,11 +300,11 @@ class PercentageChange:
         return cast(float, self._p_value)
 
     @property
-    def mean_previous(self) -> Union[float, np.ndarray]:
+    def mean_previous(self) -> Union[float, npt.NDArray]:
         return self.previous.mean_val
 
     @property
-    def mean_difference(self) -> Union[float, np.ndarray]:
+    def mean_difference(self) -> Union[float, npt.NDArray]:
         # pyre-ignore[6]: Expected `float` for 1st param but got `Union[float,
         #  np.ndarray]`.
         _mean_diff = self.current.mean_val - self.previous.mean_val

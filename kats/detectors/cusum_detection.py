@@ -165,9 +165,9 @@ class CUSUMChangePoint(TimeSeriesChangePoint):
         confidence: float,
         direction: str,
         cp_index: int,
-        mu0: Union[float, np.ndarray],
-        mu1: Union[float, np.ndarray],
-        delta: Union[float, np.ndarray],
+        mu0: Union[float, npt.NDArray],
+        mu1: Union[float, npt.NDArray],
+        delta: Union[float, npt.NDArray],
         llr_int: float,
         llr: float,
         regression_detected: bool,
@@ -197,15 +197,15 @@ class CUSUMChangePoint(TimeSeriesChangePoint):
         return self._cp_index
 
     @property
-    def mu0(self) -> Union[float, np.ndarray]:
+    def mu0(self) -> Union[float, npt.NDArray]:
         return self._mu0
 
     @property
-    def mu1(self) -> Union[float, np.ndarray]:
+    def mu1(self) -> Union[float, npt.NDArray]:
         return self._mu1
 
     @property
-    def delta(self) -> Union[float, np.ndarray]:
+    def delta(self) -> Union[float, npt.NDArray]:
         return self._delta
 
     @property
@@ -840,10 +840,10 @@ class MultiCUSUMDetector(CUSUMDetector):
     def _log_llr_multi(
         self,
         x: npt.NDArray,
-        mu0: Union[float, np.ndarray],
-        sigma0: Union[float, np.ndarray],
-        mu1: Union[float, np.ndarray],
-        sigma1: Union[float, np.ndarray],
+        mu0: Union[float, npt.NDArray],
+        sigma0: Union[float, npt.NDArray],
+        mu1: Union[float, npt.NDArray],
+        sigma1: Union[float, npt.NDArray],
     ) -> float:
         try:
             sigma0_inverse = np.linalg.inv(sigma0)

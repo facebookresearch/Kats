@@ -19,7 +19,7 @@ version: compat.Version = compat.Version("sklearn")
 def mean_squared_error(
     y_true: npt.NDArray,
     y_pred: npt.NDArray,
-    sample_weight: Optional[np.ndarray] = None,
+    sample_weight: Optional[npt.NDArray] = None,
     multioutput: str = "uniform_average",
     squared: bool = True,
 ) -> float:
@@ -36,7 +36,7 @@ def mean_squared_error(
 def mean_squared_log_error(
     y_true: npt.NDArray,
     y_pred: npt.NDArray,
-    sample_weight: Optional[np.ndarray] = None,
+    sample_weight: Optional[npt.NDArray] = None,
     multioutput: str = "uniform_average",
     squared: bool = True,
 ) -> float:

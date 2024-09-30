@@ -20,6 +20,7 @@ from copy import copy
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
@@ -66,13 +67,13 @@ class ThetaModel(Model[ThetaParams]):
     decomp: Optional[Dict[str, TimeSeriesData]] = None
     ses_model: Optional[HoltWintersResults] = None
     drift: Optional[float] = None
-    fitted_values: Optional[np.ndarray] = None
-    residuals: Optional[np.ndarray] = None
+    fitted_values: Optional[npt.NDArray] = None
+    residuals: Optional[npt.NDArray] = None
     fcst_df: Optional[pd.DataFrame] = None
     dates: Optional[pd.DatetimeIndex] = None
-    y_fcst: Optional[np.ndarray] = None
-    y_fcst_lower: Optional[np.ndarray] = None
-    y_fcst_upper: Optional[np.ndarray] = None
+    y_fcst: Optional[npt.NDArray] = None
+    y_fcst_lower: Optional[npt.NDArray] = None
+    y_fcst_upper: Optional[npt.NDArray] = None
     freq: Optional[str] = None
     alpha: Optional[float] = None
     include_history: bool = False

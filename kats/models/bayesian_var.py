@@ -81,9 +81,9 @@ class BayesianVAR(m.Model[BayesianVARParams]):
         params: the parameter class defined with `BayesianVARParams`
     """
 
-    sigma_ols: Optional[np.ndarray] = None
-    v_posterior: Optional[np.ndarray] = None
-    mu_posterior: Optional[np.ndarray] = None
+    sigma_ols: Optional[npt.NDArray] = None
+    v_posterior: Optional[npt.NDArray] = None
+    mu_posterior: Optional[npt.NDArray] = None
     resid: Optional[pd.DataFrame] = None
     forecast: Optional[Dict[str, TimeSeriesData]] = None
     forecast_max_time: Optional[datetime] = None
@@ -102,7 +102,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
     N: int
     num_mu_coefficients: int
     fitted: bool = False
-    forecast_vals: Optional[List[np.ndarray]] = None
+    forecast_vals: Optional[List[npt.NDArray]] = None
 
     def __init__(self, data: TimeSeriesData, params: BayesianVARParams) -> None:
         if data.is_univariate():
@@ -150,7 +150,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
     @staticmethod
     def _convert_timeseries_np(
         timeseries: TimeSeriesData,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[npt.NDArray, npt.NDArray]:
         data_df = timeseries.to_dataframe()
         Y = data_df.drop(columns=[timeseries.time_col_name]).to_numpy().T
         X = np.expand_dims(pd.RangeIndex(0, len(timeseries)), axis=0)

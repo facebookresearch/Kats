@@ -56,7 +56,7 @@ STR_TO_STATS_SCORE_FUNC: Dict[str, RollStatsFunction] = {
 }
 
 
-def calculate_iqr(data_list: npt.NDArray, **kwargs: Any) -> Union[float, np.ndarray]:
+def calculate_iqr(data_list: npt.NDArray, **kwargs: Any) -> Union[float, npt.NDArray]:
     """
     Calculate IQR = Q3 - Q1
     """
@@ -68,7 +68,7 @@ def calculate_iqr(data_list: npt.NDArray, **kwargs: Any) -> Union[float, np.ndar
 
 def calculate_z_scores(
     data_list: npt.NDArray, **kwargs: Any
-) -> Union[float, np.ndarray]:
+) -> Union[float, npt.NDArray]:
     """
     Calculate the z-score of the last data point in data_list.
     Or calculate the z-score of the last data point in each row of the data_list.
@@ -85,7 +85,7 @@ def calculate_z_scores(
     return result[0] if len(result) == 1 else result
 
 
-def calculate_mad(data_list: npt.NDArray, **kwargs: Any) -> Union[float, np.ndarray]:
+def calculate_mad(data_list: npt.NDArray, **kwargs: Any) -> Union[float, npt.NDArray]:
     """
     Calculate MAD: the mean (average) distance between each data
     value and the mean of the data set.
@@ -99,7 +99,7 @@ def calculate_mad(data_list: npt.NDArray, **kwargs: Any) -> Union[float, np.ndar
 
 def calculate_modified_z_scores_mad(
     data_list: npt.NDArray, **kwargs: Any
-) -> Union[float, np.ndarray]:
+) -> Union[float, npt.NDArray]:
     """
     Calculate Modified z-score: (x-median)/MAD.
     x: the last point of data_list.
@@ -118,7 +118,7 @@ def calculate_modified_z_scores_mad(
 
 def calculate_modified_z_scores_iqr(
     data_list: npt.NDArray, **kwargs: Any
-) -> Union[float, np.ndarray]:
+) -> Union[float, npt.NDArray]:
     """
     Calculate Modified z-score (iqr version): (x-median)/IQR
     x: the last point of data_list.
@@ -137,7 +137,7 @@ def calculate_modified_z_scores_iqr(
 
 def calculate_iqr_median_deviation(
     data_list: npt.NDArray, **kwargs: Any
-) -> Union[float, np.ndarray]:
+) -> Union[float, npt.NDArray]:
     """
     Calculate IQR based median-deviation scores.
 

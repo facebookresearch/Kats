@@ -553,7 +553,7 @@ class MLARModel:
 
     def _embed_regressor(
         self, data: pd.DataFrame
-    ) -> Tuple[List[np.ndarray], List[str]]:
+    ) -> Tuple[List[npt.NDArray], List[str]]:
         """
         Embedding external regressors.
 
@@ -598,7 +598,7 @@ class MLARModel:
 
     def _embed_categorical(
         self, data: pd.DataFrame, cat_labels: Dict[str, pd.CategoricalDtype]
-    ) -> Tuple[np.ndarray, List[str]]:
+    ) -> Tuple[npt.NDArray, List[str]]:
         cat_encoded_data = pd.DataFrame()
         if self.params.categoricals:
 
@@ -626,7 +626,7 @@ class MLARModel:
         lags: int,
         target_vars: Union[List[str], str],
         cat_labels: Dict[str, pd.CategoricalDtype],
-    ) -> Tuple[Dict[str, np.ndarray], Dict[str, pd.DataFrame], List[str]]:
+    ) -> Tuple[Dict[str, npt.NDArray], Dict[str, pd.DataFrame], List[str]]:
 
         data = series_data.loc[: series_data[target_vars].last_valid_index()]
 
@@ -874,13 +874,13 @@ class MLARModel:
 
     def _merge_past_and_future_reg(
         self,
-        norm_in_data: Dict[str, np.ndarray],
+        norm_in_data: Dict[str, npt.NDArray],
         norm_out_data: Dict[str, pd.DataFrame],
         horizons: List[int],
         cal_feat: pd.DataFrame,
         emb_fut_cov: pd.DataFrame,
         gen_meta_data: bool = True,
-    ) -> Tuple[np.ndarray, pd.DataFrame, List[str]]:
+    ) -> Tuple[npt.NDArray, pd.DataFrame, List[str]]:
 
         offset = pd.tseries.frequencies.to_offset(self.params.freq)
         num_cols = self.num_hist_reg + cal_feat.shape[1] + emb_fut_cov.shape[1] + 1

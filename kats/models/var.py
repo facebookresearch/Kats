@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
@@ -81,8 +82,8 @@ class VARModel(Model[VARParams]):
 
     model: Optional[VARResults] = None
     k_ar: Optional[int] = None
-    sigma_u: Optional[np.ndarray] = None
-    resid: Optional[np.ndarray] = None
+    sigma_u: Optional[npt.NDArray] = None
+    resid: Optional[npt.NDArray] = None
     freq: Optional[str] = None
     alpha: Optional[float] = None
     dates: Optional[pd.DatetimeIndex] = None

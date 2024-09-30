@@ -904,8 +904,8 @@ class IntervalDetectorModel(DetectorModel, ABC):
     def _mvn_mvnun(
         lower: npt.NDArray,
         upper: npt.NDArray,
-        mean: Optional[np.ndarray] = None,
-        cov: Union[int, np.ndarray] = 1,
+        mean: Optional[npt.NDArray] = None,
+        cov: Union[int, npt.NDArray] = 1,
         allow_singular: bool = False,
         maxpts: Optional[int] = None,
         abseps: float = 1e-6,
@@ -1031,7 +1031,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
 
     @staticmethod
     def _w(
-        m: int, p: float, test_type: TestType, cov: Optional[np.ndarray] = None
+        m: int, p: float, test_type: TestType, cov: Optional[npt.NDArray] = None
     ) -> npt.NDArray:
         if cov is None:
             return IntervalDetectorModel._w_independent(m=m, p=p)
@@ -1048,7 +1048,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
         n: int,
         m: int,
         test_type: TestType = TestType.ONE_SIDED_UPPER,
-        cov: Optional[np.ndarray] = None,
+        cov: Optional[npt.NDArray] = None,
     ) -> float:
         """P(at least 1 run of m consecutive rejections) in a vectorized formulation.
 
@@ -1203,7 +1203,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
             )
 
     @staticmethod
-    def _get_true_run_indices(x: npt.NDArray) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_true_run_indices(x: npt.NDArray) -> Tuple[npt.NDArray, npt.NDArray]:
         """Helper function that finds consecutive runs of `True` values.
 
         Example:

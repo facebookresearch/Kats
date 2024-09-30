@@ -239,7 +239,7 @@ class TimeSeriesData:
         use_unix_time: bool = False,
         unix_time_units: str = "ns",
         tz: Optional[str] = None,
-        tz_ambiguous: Union[str, np.ndarray] = "raise",
+        tz_ambiguous: Union[str, npt.NDArray] = "raise",
         tz_nonexistent: str = "raise",
         categorical_var: Optional[List[str]] = None,
         drop_duplicate_time: bool = False,
@@ -574,7 +574,7 @@ class TimeSeriesData:
         use_unix_time: Optional[bool],
         unix_time_units: Optional[str],
         tz: Optional[str] = None,
-        tz_ambiguous: Union[str, np.ndarray] = "raise",
+        tz_ambiguous: Union[str, npt.NDArray] = "raise",
         tz_nonexistent: str = "raise",
         cache_datetimes: bool = True,
     ) -> pd.core.series.Series:
@@ -1092,7 +1092,7 @@ class TimeSeriesData:
     def set_timezone(
         self,
         tz: str,
-        tz_ambiguous: Union[str, np.ndarray] = "raise",
+        tz_ambiguous: Union[str, npt.NDArray] = "raise",
         tz_nonexistent: str = "raise",
         sort_by_time: bool = True,
     ) -> None:

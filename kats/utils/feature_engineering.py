@@ -61,7 +61,7 @@ _DAYTIME_MAP = {
 }
 
 
-def _map(index: Union[np.ndarray, pd.Int64Index], map: Dict[int, int]) -> npt.NDArray:
+def _map(index: Union[npt.NDArray, pd.Int64Index], map: Dict[int, int]) -> npt.NDArray:
     """Map values to other values efficiently.
 
     Args:

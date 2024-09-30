@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -120,9 +121,9 @@ class LSTMModel(Model[LSTMParams]):
     model: Optional[LSTMForecast] = None
     freq: Optional[str] = None
     dates: Optional[pd.DatetimeIndex] = None
-    y_fcst: Optional[np.ndarray] = None
-    y_fcst_lower: Optional[np.ndarray] = None
-    y_fcst_upper: Optional[np.ndarray] = None
+    y_fcst: Optional[npt.NDArray] = None
+    y_fcst_lower: Optional[npt.NDArray] = None
+    y_fcst_upper: Optional[npt.NDArray] = None
     fcst_df: Optional[pd.DataFrame] = None
 
     def __init__(self, data: TimeSeriesData, params: LSTMParams) -> None:
