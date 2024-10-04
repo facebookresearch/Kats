@@ -223,7 +223,7 @@ class BocpdTrendDetectorModel(DetectorModel):
         )
 
         level_arr = fit1.level
-        trend_arr = fit1.slope
+        trend_arr = fit1.trend
         fit_arr = [x + y for x, y in zip(level_arr, trend_arr)]
         fit_diff = np.diff(fit_arr)
         fit_diff = np.concatenate(([fit_diff[0]], fit_diff))

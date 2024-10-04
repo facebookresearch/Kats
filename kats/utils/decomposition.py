@@ -188,7 +188,7 @@ class TimeSeriesDecomposition:
 
         # pyre-fixme[16]: Module `seasonal` has no attribute `STL`.
         result = STL(
-            data,
+            data.squeeze(),
             period=period,
             seasonal=self.seasonal,
             trend=self.trend,

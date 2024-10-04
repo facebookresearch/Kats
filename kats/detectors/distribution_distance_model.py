@@ -285,7 +285,7 @@ class DistributionDistanceModel(DetectorModel):
                     total_data_df_group0.loc[start_time_index:],
                     total_data_df.loc[start_time_index:],
                 ],
-                1,
+                axis=1,
                 copy=False,
             )
             scores = total_df.apply(self._js_div_func, axis=1)

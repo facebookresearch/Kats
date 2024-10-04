@@ -442,8 +442,8 @@ class MKDetector(Detector):
             ts_deseas = self._remove_seasonality(ts, freq=self.freq)
             ts_smoothed = self._smoothing(ts_deseas)  # smoothing
             # append MK statistics to MK_statistics dataframe
-            MK_statistics = MK_statistics.append(
-                self.runDetector(ts=ts_smoothed),
+            MK_statistics = pd.concat(
+                [MK_statistics, pd.DataFrame([self.runDetector(ts=ts_smoothed)])],
                 ignore_index=True,
             )
 
@@ -458,8 +458,8 @@ class MKDetector(Detector):
                 # look back window_size day for trend detection
                 ts_tmp = ts_smoothed.loc[:t, :]
                 # append MK statistics to MK_statistics dataframe
-                MK_statistics = MK_statistics.append(
-                    self.runDetector(ts=ts_tmp),
+                MK_statistics = pd.concat(
+                    [MK_statistics, pd.DataFrame([self.runDetector(ts=ts_tmp)])],
                     ignore_index=True,
                 )
 

@@ -577,12 +577,14 @@ class AnomalyResponse:
     def _update_ts_slice(
         self, ts: TimeSeriesData, time: datetime, value: Union[float, ArrayLike]
     ) -> TimeSeriesData:
-        time = ts.time.iloc[1:].append(pd.Series(time, copy=False))
-        time.reset_index(drop=True, inplace=True)
+        time_df = pd.concat([ts.time.iloc[1:], pd.Series(time, copy=False)])
+        time_df.reset_index(drop=True, inplace=True)
         if self.num_series == 1:
-            value = ts.value.iloc[1:].append(pd.Series(value, copy=False))
-            value.reset_index(drop=True, inplace=True)
-            return TimeSeriesData(time=time, value=value)
+            value_df = pd.concat([ts.value.iloc[1:], pd.Series(value, copy=False)])
+            value_df.reset_index(drop=True, inplace=True)
+            # pyre-fixme[6]: For 1st argument expected `Union[None, DatetimeIndex,
+            #  Series]` but got `DataFrame`.
+            return TimeSeriesData(time=time_df, value=value_df)
         else:
             if isinstance(value, float):
                 raise ValueError(
@@ -590,14 +592,14 @@ class AnomalyResponse:
                 )
             value_dict = {}
             for i, value_col in enumerate(self.key_mapping):
-                value_dict[value_col] = (
-                    ts.value[value_col].iloc[1:].append(pd.Series(value[i], copy=False))
+                value_dict[value_col] = pd.concat(
+                    [ts.value[value_col].iloc[1:], pd.Series(value[i], copy=False)]
                 )
                 value_dict[value_col].reset_index(drop=True, inplace=True)
             return TimeSeriesData(
                 pd.DataFrame(
                     {
-                        **{"time": time},
+                        **{"time": time_df},
                         **{
                             value_col: value_dict[value_col]
                             for value_col in self.key_mapping

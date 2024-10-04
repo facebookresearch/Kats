@@ -45,7 +45,7 @@ def generate_multi_ts_data(
 
     multi_ts_df = pd.DataFrame(multi_ts_val)
     multi_ts_df.columns = ["val_" + str(i) for i in range(10)]
-    multi_ts_df = pd.concat([pd.Series(ts_time, name="time"), multi_ts_df], 1)
+    multi_ts_df = pd.concat([pd.Series(ts_time, name="time"), multi_ts_df], axis=1)
     # pyre-fixme[6]: For 1st argument expected `Optional[DataFrame]` but got
     #  `Union[DataFrame, Series]`.
     ts = TimeSeriesData(multi_ts_df)
@@ -134,7 +134,7 @@ def generate_irregular_granularity_data(
         start="2020-01-01", freq=str(granularities_sec) + "s", periods=length
     )[np.random.choice(list(range(length)), n, replace=False)]
 
-    multi_ts_df = pd.concat([pd.Series(ts_time, name="time"), multi_ts_df], 1)
+    multi_ts_df = pd.concat([pd.Series(ts_time, name="time"), multi_ts_df], axis=1)
     # pyre-fixme[6]: For 1st argument expected `Optional[DataFrame]` but got
     #  `Union[DataFrame, Series]`.
     ts = TimeSeriesData(multi_ts_df)

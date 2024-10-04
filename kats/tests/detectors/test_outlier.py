@@ -131,7 +131,9 @@ class MultivariateVARDetectorTest(TestCase):
     def setUp(self) -> None:
         DATA_multi = load_data("multivariate_anomaly_simulated_data.csv")
         self.TSData_multi = TimeSeriesData(DATA_multi)
-        DATA_multi2 = pd.concat([DATA_multi.iloc[:10, :], DATA_multi.iloc[12:, :]], 0)
+        DATA_multi2 = pd.concat(
+            [DATA_multi.iloc[:10, :], DATA_multi.iloc[12:, :]], axis=0
+        )
         self.TSData_multi2 = TimeSeriesData(DATA_multi2)
         DATA_multi3 = pd.merge(
             DATA_multi, DATA_multi, how="inner", on="time", suffixes=("_1", "_2")

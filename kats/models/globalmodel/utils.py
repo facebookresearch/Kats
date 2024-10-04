@@ -1686,8 +1686,13 @@ def pad_ts(ts: TimeSeriesData, n: int, freq: pd.Timedelta) -> TimeSeriesData:
     val_col = [col for col in df.columns if col != time_col][0]
     pad_val = df[val_col].values[df[val_col].first_valid_index()]
     # add the padding value
-    df = df.append(
-        {time_col: df[time_col].iloc[0] - n * freq, val_col: pad_val},
+    df = pd.concat(
+        [
+            df,
+            pd.DataFrame(
+                [{time_col: df[time_col].iloc[0] - n * freq, val_col: pad_val}]
+            ),
+        ],
         ignore_index=True,
     )
     return TimeSeriesData(df)

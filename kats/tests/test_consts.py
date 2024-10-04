@@ -1170,15 +1170,15 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
         transformed_df_date.ds = transformed_df_date.ds.apply(
             lambda x: x + relativedelta(years=NUM_YEARS_OFFSET)
         )
-        transformed_df_date_concat = self.AIR_DF.append(
-            transformed_df_date, ignore_index=True
+        transformed_df_date_concat = pd.concat(
+            [self.AIR_DF, transformed_df_date], ignore_index=True
         )
         transformed_df_date_double = self.AIR_DF_DATETIME.copy(deep=True)
         transformed_df_date_double.ds = transformed_df_date.ds.apply(
             lambda x: x + relativedelta(years=NUM_YEARS_OFFSET * 2)
         )
-        transformed_df_date_concat_double = self.AIR_DF.append(
-            transformed_df_date_double, ignore_index=True
+        transformed_df_date_concat_double = pd.concat(
+            [self.AIR_DF, transformed_df_date_double], ignore_index=True
         )
         # DataFrames with value offset
         transformed_df_value = self.AIR_DF.copy(deep=True)
@@ -1195,21 +1195,21 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
         transformed_df_date_multi[VALUE_COL_NAME + "_1"] = (
             transformed_df_date_multi.y * 2
         )
-        transformed_df_date_concat_multi = self.MULTIVAR_AIR_DF.append(
-            transformed_df_date_multi, ignore_index=True
+        transformed_df_date_concat_multi = pd.concat(
+            [self.MULTIVAR_AIR_DF, transformed_df_date_multi], ignore_index=True
         )
-        transformed_df_date_concat_mixed = self.MULTIVAR_AIR_DF_DATETIME.append(
-            transformed_df_date
+        transformed_df_date_concat_mixed = pd.concat(
+            [self.MULTIVAR_AIR_DF_DATETIME, transformed_df_date]
         )
         transformed_df_date_double_multi = transformed_df_date_double.copy(deep=True)
         transformed_df_date_double_multi[VALUE_COL_NAME + "_1"] = (
             transformed_df_date_double_multi.y * 2
         )
-        transformed_df_date_concat_double_multi = self.MULTIVAR_AIR_DF.append(
-            transformed_df_date_double_multi, ignore_index=True
+        transformed_df_date_concat_double_multi = pd.concat(
+            [self.MULTIVAR_AIR_DF, transformed_df_date_double_multi], ignore_index=True
         )
-        transformed_df_date_concat_double_mixed = self.MULTIVAR_AIR_DF_DATETIME.append(
-            transformed_df_date_double
+        transformed_df_date_concat_double_mixed = pd.concat(
+            [self.MULTIVAR_AIR_DF_DATETIME, transformed_df_date_double]
         )
         # DataFrame with value offset (multivariate)
         transformed_df_value_none_multi = self.MULTIVAR_AIR_DF.copy(deep=True)
