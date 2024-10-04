@@ -24,6 +24,7 @@ from kats.models.metalearner.get_metadata import GetMetaData
 from kats.models.metalearner.metalearner_hpt import MetaLearnHPT
 from kats.models.metalearner.metalearner_modelselect import MetaLearnModelSelect
 from kats.models.metalearner.metalearner_predictability import MetaLearnPredictability
+from kats.models.neuralprophet import NeuralProphetModel, NeuralProphetParams
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.models.sarima import SARIMAModel, SARIMAParams
 from kats.models.stlf import STLFModel, STLFParams
@@ -76,6 +77,7 @@ base_models = {
     "arima": ARIMAModel,
     "holtwinters": HoltWintersModel,
     "sarima": SARIMAModel,
+    "neuralprophet": NeuralProphetModel,
     "prophet": ProphetModel,
     "stlf": STLFModel,
     "theta": ThetaModel,
@@ -158,12 +160,14 @@ METALEARNING_METADATA_BY_MODEL = {
         "sarima",
         "theta",
         "stlf",
+        "neuralprophet",
         "prophet",
     ]
 }
 
 candidate_models = {
     "holtwinters": HoltWintersModel,
+    "neuralprophet": NeuralProphetModel,
     "prophet": ProphetModel,
     "theta": ThetaModel,
     "stlf": STLFModel,
@@ -172,6 +176,7 @@ candidate_models = {
 
 candidate_params = {
     "holtwinters": HoltWintersParams,
+    "neuralprophet": NeuralProphetParams,
     "prophet": ProphetParams,
     "theta": ThetaParams,
     "stlf": STLFParams,
@@ -450,6 +455,7 @@ class MetaLearnHPTTest(TestCase):
             feature3.copy(),
         )
         for model in [
+            "neuralprophet",
             "prophet",
             "arima",
             "sarima",

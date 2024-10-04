@@ -22,9 +22,15 @@ class TestMinimal(unittest.TestCase):
     def test_minimal_install(self) -> None:
         try:
             from kats.detectors import prophet_detector
-            from kats.models import lstm
+            from kats.models import lstm, neuralprophet
 
-            self.assertFalse((lstm is not None and prophet_detector is not None))
+            self.assertFalse(
+                (
+                    lstm is not None
+                    and neuralprophet is not None
+                    and prophet_detector is not None
+                )
+            )
         except ImportError:
             self.assertTrue(True)
 
