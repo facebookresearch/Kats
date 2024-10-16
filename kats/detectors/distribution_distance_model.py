@@ -259,6 +259,7 @@ class DistributionDistanceModel(DetectorModel):
 
         total_data_df_group0 = total_data_df.rolling(
             window=str(self.window_size_sec) + "s",
+            # TODO(PythonSciMigration): migrate closed="both" -> inclusive="both"
             closed="both",
         ).agg(
             lambda rows: (
