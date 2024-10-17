@@ -26,7 +26,7 @@ import datetime
 import logging
 from collections.abc import Iterable
 from enum import auto, Enum, unique
-from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, cast, Dict, List, Literal, Optional, Tuple, Union
 
 import dateutil
 import matplotlib.pyplot as plt
@@ -38,6 +38,13 @@ from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_
 from pandas.tseries.frequencies import to_offset
 
 FigSize = Tuple[int, int]
+INTERPOLATION_METHOD_TYPE = (
+    Literal["higher"]
+    | Literal["linear"]
+    | Literal["lower"]
+    | Literal["midpoint"]
+    | Literal["nearest"]
+)
 
 
 # Constants
@@ -946,6 +953,7 @@ class TimeSeriesData:
         self,
         freq: Optional[Union[str, pd.Timedelta]] = None,
         base: int = 0,
+        origin: pd.Timestamp | str = "start_day",
         method: str = "linear",
         remove_duplicate_time: bool = False,
         **kwargs: Any,
@@ -968,6 +976,12 @@ class TimeSeriesData:
             See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.resample.html
             Note that base will be deprecated since version 1.1.0.
             The new arguments that you should use are ‘offset’ or ‘origin’.
+          origin: base argument for resample().
+            See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.resample.html
+            Origin "start_day" is chosen for backward compatibility with `base=0`.
+            When non-default `base` is detected, `origin` will be set to "start".
+            Future versions of Kats will deprecate `base` and use `origin` instead,
+            defaulting to "start".
           method: A string representing the method to impute the missing time
             and data. See the above options (default "linear").
           remove_duplicate_index: A boolean to auto-remove any duplicate time
@@ -978,7 +992,6 @@ class TimeSeriesData:
         Returns:
             A new :class:`TimeSeriesData` object with interpolated data.
         """
-
         if not freq:
             freq = self.infer_freq_robust()
 
@@ -1002,6 +1015,10 @@ class TimeSeriesData:
         if remove_duplicate_time:
             df = df[~df.index.duplicated()]
 
+        if pd.__version__ >= "1.1":
+            origin = origin if base == 0 else "start"
+            return self._interpolate_new(df, freq, origin, method, **kwargs)
+
         if method == "linear":
             df = df.resample(rule=freq, base=base).interpolate(method="linear")
 
@@ -1011,7 +1028,37 @@ class TimeSeriesData:
         elif method == "bfill":
             df = df.resample(rule=freq, base=base).bfill()
         else:
-            df = df.resample(rule=freq, base=base).interpolate(method=method, **kwargs)
+            df = df.resample(rule=freq, base=base).interpolate(
+                method=cast(INTERPOLATION_METHOD_TYPE, method), **kwargs
+            )
+
+        df = df.reset_index().rename(columns={"index": self.time_col_name})
+        return TimeSeriesData(df, time_col_name=self.time_col_name)
+
+    def _interpolate_new(
+        self,
+        df: pd.DataFrame,
+        freq: Optional[Union[str, pd.Timedelta]],
+        origin: pd.Timestamp | str,
+        method: str,
+        **kwargs: Any,
+    ) -> TimeSeriesData:
+        if method == "linear":
+            # pyre-ignore
+            df = df.resample(rule=freq, origin=origin).interpolate(method="linear")
+
+        elif method == "ffill":
+            # pyre-ignore
+            df = df.resample(rule=freq, origin=origin).ffill()
+
+        elif method == "bfill":
+            # pyre-ignore
+            df = df.resample(rule=freq, origin=origin).bfill()
+        else:
+            # pyre-ignore
+            df = df.resample(rule=freq, origin=origin).interpolate(
+                method=cast(INTERPOLATION_METHOD_TYPE, method), **kwargs
+            )
 
         df = df.reset_index().rename(columns={"index": self.time_col_name})
         return TimeSeriesData(df, time_col_name=self.time_col_name)

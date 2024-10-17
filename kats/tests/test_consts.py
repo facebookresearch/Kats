@@ -865,15 +865,17 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         # calculate frequency first
         frequency = str(int(ts0.infer_freq_robust().total_seconds())) + "s"
 
-        # without base value, interpolate won't work, will return all NaN
+        # Without base value, interpolate won't work, will return all NaN
         # this is because start time is not from "**:00:00" or "**:30:00" type.
+        # This is equivalent to origin="start_day"
         self.assertEqual(
             # pyre-fixme[16]: Optional type has no attribute `value`.
             ts0.interpolate(freq=frequency).to_dataframe().fillna(0).value.sum(),
             0,
         )
-        # with base value, will start from "**:59:59" ("**:00:00" - 1 sec)
+        # With base value, will start from "**:59:59" ("**:00:00" - 1 sec)
         # or "**:29:59" ("**:30:00" -1 sec).
+        # Here we default to origin="start" instead of origin="start_day", which works.
         self.assertEqual(
             ts0.interpolate(freq=frequency, base=-1).to_dataframe().isna().value.sum(),
             0,
