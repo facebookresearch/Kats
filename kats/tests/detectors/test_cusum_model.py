@@ -1158,6 +1158,105 @@ class TestCallVectorizedCUSUM(TestCase):
             (d.vectorized_trans_flag, d1.vectorized_trans_flag), (False, False)
         )
 
+    def test_vectorized_small_prediction_data_cases(self) -> None:
+        """
+        Test cases when the prediction data is one chank of scan window
+        we still have to return some results
+
+        Calculation to get one chank. Basically we need scan window 2 times more then frequency to get step window equal to frequence, which lead one chank prediction
+        step_window = scan_window/2 = 172800/2 = 86400
+        n_hist_win_pts = historical_window/freq = 604800/86400 = 7
+        multi_ts_len = (historical_window+step_window)/freq = (604800+86400)/86400 = 8
+        n_step_win_pts =  multi_ts_len - n_hist_win_pts = 1
+        so we are predicting for 1 point by the end of this calulation
+        """
+
+        ts = {
+            "1725353999": 167,
+            "1725440399": 77,
+            "1725526799": 144,
+            "1725613199": 123,
+            "1725699599": 142,
+            "1725785999": 132,
+            "1725872399": 287,
+            "1725958799": 213,
+            "1726045199": 91,
+            "1726131599": 312,
+            "1726217999": 196,
+            "1726304399": 80,
+            "1726390799": 217,
+            "1726477199": 210,
+            "1726563599": 297,
+            "1726649999": 120,
+            "1726736399": 294,
+            "1726822799": 93,
+            "1726909199": 304,
+            "1726995599": 355,
+            "1727081999": 83,
+            "1727168399": 151,
+            "1727254799": 137,
+            "1727341199": 289,
+            "1727427599": 80,
+            "1727513999": 79,
+            "1727600399": 191,
+        }
+        scanWindow = 172800
+        historyWindow = 604800
+        hist_data = TimeSeriesData()
+        data = TimeSeriesData(
+            time=pd.to_datetime(list(ts.keys()), unit="s"),
+            value=pd.Series(list(ts.values())),
+        )
+
+        d = CUSUMDetectorModel(
+            scan_window=scanWindow,
+            historical_window=historyWindow,
+            remove_seasonality=True,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=False,
+        )
+
+        anom = d.fit_predict(data=data, historical_data=hist_data)
+        d1 = CUSUMDetectorModel(
+            scan_window=scanWindow,
+            historical_window=historyWindow,
+            remove_seasonality=True,
+            score_func=CusumScoreFunction.z_score,
+            vectorized=True,
+        )
+
+        anom1 = d1.fit_predict(data=data, historical_data=hist_data)
+
+        self.assertEqual(
+            (d.vectorized_trans_flag, d1.vectorized_trans_flag), (False, True)
+        )
+        # pyre-fixme[16]: `bool` has no attribute `sum`.
+        self.assertEqual((anom1.scores.time == anom.scores.time).sum(0), len(ts))
+        self.assertEqual(np.round(anom1.scores.value - anom.scores.value, 5).sum(0), 0)
+        self.assertEqual(
+            np.round(
+                anom1.anomaly_magnitude_ts.value - anom.anomaly_magnitude_ts.value, 5
+            ).sum(0),
+            0,
+        )
+        # We still have problem with empty data, here the test to show.
+
+        # d2 = CUSUMDetectorModel(
+        #     scan_window=3600 * 24 * 8,
+        #     historical_window=3600 * 24 * 10,
+        #     remove_seasonality=True,
+        #     score_func=CusumScoreFunction.z_score,
+        #     vectorized=True,
+        # )
+
+        # anom2 = d2.fit_predict(
+        #     data=TimeSeriesData(
+        #         time=pd.DatetimeIndex([]), value=pd.Series([], name=self.ts.value.name)
+        #     ),
+        #     historical_data=self.ts,
+        # )
+        # self.assertTrue(len(anom2.scores) == 0)
+
     def test_vectorized_true_seasonality_true_results(self) -> None:
         d = CUSUMDetectorModel(
             scan_window=3600 * 24 * 8,

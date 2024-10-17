@@ -852,6 +852,7 @@ class CUSUMDetectorModel(DetectorModel):
                 predict_results.score,
                 predict_results.absolute_change,
                 historical_data.value.name,
+                freq_historical=frequency,
             )
             score_tsd.extend(
                 score_tsd_vec,
@@ -984,16 +985,28 @@ class CUSUMDetectorModel(DetectorModel):
         scores: TimeSeriesData,
         magnitude_ts: TimeSeriesData,
         name: str,
+        freq_historical: Optional[pd.Timedelta] = None,
     ) -> Tuple[TimeSeriesData, TimeSeriesData]:
         anom_scores_val_array = np.asarray(scores.value)
         anom_mag_val_array = np.asarray(magnitude_ts.value)
-        freq = scores.time[1] - scores.time[0]
-        time_need = pd.date_range(
-            start=scores.time.iloc[0],
-            end=None,
-            periods=anom_scores_val_array.shape[0] * anom_scores_val_array.shape[1],
-            freq=freq,
-        )
+
+        if len(scores.time) == 0:
+            # empty time range
+            time_need = pd.date_range(start=0, end=0, periods=0)
+        else:
+            freq = freq_historical
+            if len(scores.time) > 1:
+                freq = scores.time[1] - scores.time[0]
+            elif freq == None:
+                assert ValueError(
+                    "CUSUM prediction error, get not enough data to infer frequency"
+                )
+            time_need = pd.date_range(
+                start=scores.time.iloc[0],
+                end=None,
+                periods=anom_scores_val_array.shape[0] * anom_scores_val_array.shape[1],
+                freq=freq,
+            )
 
         anom_scores_val_1d = pd.Series(
             anom_scores_val_array.T.reshape([-1]),
