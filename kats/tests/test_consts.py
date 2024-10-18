@@ -48,10 +48,9 @@ VALUE_COL_NAME = "y"
 MULTIVAR_VALUE_DF_COLS: List[str] = [VALUE_COL_NAME, VALUE_COL_NAME + "_1"]
 
 EMPTY_DF = pd.DataFrame()
-EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME, dtype=float)
+EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME, dtype="datetime64[ns]")
 EMPTY_VALUE_SERIES = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
 EMPTY_VALUE_SERIES_NO_NAME = pd.Series([], dtype=float)
-EMPTY_TIME_DATETIME_INDEX = pd.DatetimeIndex(pd.Series([], dtype=object))
 # pyre-fixme[9]: EMPTY_DF_WITH_COLS has type `DataFrame`; used as `Union[DataFrame,
 #  Series]`.
 EMPTY_DF_WITH_COLS: pd.DataFrame = pd.concat(

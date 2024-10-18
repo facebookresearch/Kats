@@ -267,7 +267,7 @@ class TimeSeriesData:
                 raise _log_error(msg)
             # If empty DataFrame is passed then create an empty object
             if df.empty:
-                self._time = pd.Series([], name=time_col_name, dtype=float)
+                self._time = pd.Series([], name=time_col_name, dtype="datetime64[ns]")
                 self._value = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
                 logging.info("Initializing empty TimeSeriesData object")
             # Otherwise initialize TimeSeriesData from DataFrame
@@ -321,7 +321,7 @@ class TimeSeriesData:
             if isinstance(time, pd.DatetimeIndex):
                 self._time = pd.Series(time, copy=False)
             else:
-                self._time = cast(pd.Series, time.reset_index(drop=True))
+                self._time = time.reset_index(drop=True)
             self._value = value.reset_index(drop=True)
             self._set_univariate_values_to_series()
             # Set time col name
@@ -338,12 +338,14 @@ class TimeSeriesData:
             # Checking for emptiness
             if self.time.empty and self.value.empty:
                 logging.warning("Initializing empty TimeSeriesData object")
-                self.time = pd.Series([], name=time_col_name)
+                self.time = pd.Series([], name=time_col_name, dtype="datetime64[ns]")
                 if isinstance(value, pd.DataFrame):
-                    self.value = pd.Series([], name=DEFAULT_VALUE_NAME)
+                    self.value = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
                 else:
                     self.value = pd.Series(
-                        [], name=value.name if value.name else DEFAULT_VALUE_NAME
+                        [],
+                        name=value.name if value.name else DEFAULT_VALUE_NAME,
+                        dtype=float,
                     )
             # Raise exception if only one of time and value is empty
             elif self.time.empty or self.value.empty:
@@ -351,18 +353,15 @@ class TimeSeriesData:
                 raise _log_error(msg)
             # If time values are passed then standardizing format
             else:
-                self.time = cast(
-                    pd.Series,
-                    self._set_time_format(
-                        self.time,
-                        date_format=date_format,
-                        use_unix_time=use_unix_time,
-                        unix_time_units=unix_time_units,
-                        tz=tz,
-                        tz_ambiguous=tz_ambiguous,
-                        tz_nonexistent=tz_nonexistent,
-                    ).reset_index(drop=True),
-                )
+                self.time = self._set_time_format(
+                    self.time,
+                    date_format=date_format,
+                    use_unix_time=use_unix_time,
+                    unix_time_units=unix_time_units,
+                    tz=tz,
+                    tz_ambiguous=tz_ambiguous,
+                    tz_nonexistent=tz_nonexistent,
+                ).reset_index(drop=True)
 
             # Validate that time & value have equal lengths
             self.validate_data(validate_frequency=False, validate_dimension=True)
@@ -379,8 +378,8 @@ class TimeSeriesData:
 
         # If None is passed
         elif not time and not value:
-            self._time = pd.Series([], name=time_col_name)
-            self._value = pd.Series([], name=DEFAULT_VALUE_NAME)
+            self._time = pd.Series([], name=time_col_name, dtype="datetime64[ns]")
+            self._value = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
             logging.info("Initializing empty TimeSeriesData object")
 
         # Error if only one of time or value is None
