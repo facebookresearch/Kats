@@ -111,8 +111,6 @@ class TSfeaturesTest(TestCase):
 
         self.assertEqual(expected.keys(), features.keys())
         for k, v in expected.items():
-            if k in ["firstmin_ac", "firstzero_ac"]:
-                continue
             if isinstance(v, float):
                 if np.isnan(v):
                     self.assertTrue(np.isnan(features[k]), msg=f"{k} differ")
@@ -179,8 +177,8 @@ class TSfeaturesTest(TestCase):
             "seas_acf1": -0.1483,
             "seas_pacf1": -0.0064,
             # special_ac
-            "firstmin_ac": 2.0,
-            "firstzero_ac": 4.0,
+            "firstmin_ac": 4,
+            "firstzero_ac": 4,
             # holt_params
             "holt_alpha": 0.0,
             "holt_beta": 0.0,
@@ -202,84 +200,84 @@ class TSfeaturesTest(TestCase):
         for feature_vector in feature_list:
             self.assertDictAlmostEqual(expected, feature_vector)
 
-    # def test_tsfeatures(self) -> None:
-    #     feature_vector = _univariate_features(TsFeatures().transform(self.TSData))
+    def test_tsfeatures(self) -> None:
+        feature_vector = _univariate_features(TsFeatures().transform(self.TSData))
 
-    #     feature_vector_round = {
-    #         key: round(feature_vector[key], 6) for key in feature_vector
-    #     }
+        feature_vector_round = {
+            key: round(feature_vector[key], 6) for key in feature_vector
+        }
 
-    #     # test there is no nan in feature vector
-    #     self.assertEqual(
-    #         np.isnan(np.asarray(list(feature_vector.values()))).any(),
-    #         False,
-    #     )
+        # test there is no nan in feature vector
+        self.assertEqual(
+            np.isnan(np.asarray(list(feature_vector.values()))).any(),
+            False,
+        )
 
-    #     # test there are 40 features in the feature vector now
-    #     self.assertEqual(
-    #         len(np.asarray(list(feature_vector.values()))) == 40,
-    #         True,
-    #     )
+        # test there are 40 features in the feature vector now
+        self.assertEqual(
+            len(np.asarray(list(feature_vector.values()))) == 40,
+            True,
+        )
 
-    #     # test feature vector value
-    #     rounded_truth = {
-    #         "length": 144,
-    #         "mean": 280.298611,
-    #         "var": 14291.973331,
-    #         "entropy": 0.428737,
-    #         "lumpiness": 3041164.562906,
-    #         "stability": 12303.627267,
-    #         "flat_spots": 2,
-    #         "hurst": -0.080233,
-    #         "std1st_der": 27.206288,
-    #         "crossing_points": 7,
-    #         "binarize_mean": 0.444444,
-    #         "unitroot_kpss": 0.128475,
-    #         "heterogeneity": 126.064506,
-    #         "histogram_mode": 155.8,
-    #         "linearity": 0.853638,
-    #         "trend_strength": 0.9681,
-    #         "seasonality_strength": 0.440863,
-    #         "spikiness": 33.502886,
-    #         "peak": 6,
-    #         "trough": 3,
-    #         "level_shift_idx": 118,
-    #         "level_shift_size": 15.6,
-    #         "y_acf1": 0.948047,
-    #         "y_acf5": 3.392072,
-    #         "diff1y_acf1": 0.302855,
-    #         "diff1y_acf5": 0.259459,
-    #         "diff2y_acf1": -0.191006,
-    #         "diff2y_acf5": 0.134207,
-    #         "y_pacf5": 1.003288,
-    #         "diff1y_pacf5": 0.219412,
-    #         "diff2y_pacf5": 0.26101,
-    #         "seas_acf1": 0.662904,
-    #         "seas_pacf1": 0.15617,
-    #         "firstmin_ac": 8,
-    #         "firstzero_ac": 52,
-    #         "holt_alpha": 1.0,
-    #         "holt_beta": 0.0,
-    #         "hw_alpha": 0.842106,
-    #         "hw_beta": 0.052631,
-    #         "hw_gamma": 0.157901,
-    #     }
-    #     if statsmodels.version >= "0.12":
-    #         rounded_truth["trend_strength"] = 0.93833
-    #         rounded_truth["seasonality_strength"] = 0.329934
-    #         rounded_truth["spikiness"] = 111.697325
-    #         feature_vector_round["holt_alpha"] = np.round(
-    #             feature_vector_round["holt_alpha"], 1
-    #         )
-    #         feature_vector_round["holt_beta"] = np.round(
-    #             feature_vector_round["holt_beta"], 1
-    #         )
-    #         rounded_truth["holt_alpha"] = 1.0
-    #         rounded_truth["holt_beta"] = 0.0
-    #         rounded_truth["hw_alpha"] = 1.0
-    #         rounded_truth["hw_beta"] = 0.0
-    #         rounded_truth["hw_gamma"] = 0.0
-    #     self.assertEqual(feature_vector_round, rounded_truth)
+        # test feature vector value
+        rounded_truth = {
+            "length": 144,
+            "mean": 280.298611,
+            "var": 14291.973331,
+            "entropy": 0.428737,
+            "lumpiness": 3041164.562906,
+            "stability": 12303.627267,
+            "flat_spots": 2,
+            "hurst": -0.080233,
+            "std1st_der": 27.206288,
+            "crossing_points": 7,
+            "binarize_mean": 0.444444,
+            "unitroot_kpss": 0.128475,
+            "heterogeneity": 126.064506,
+            "histogram_mode": 155.8,
+            "linearity": 0.853638,
+            "trend_strength": 0.9681,
+            "seasonality_strength": 0.440863,
+            "spikiness": 33.502886,
+            "peak": 6,
+            "trough": 3,
+            "level_shift_idx": 118,
+            "level_shift_size": 15.6,
+            "y_acf1": 0.948047,
+            "y_acf5": 3.392072,
+            "diff1y_acf1": 0.302855,
+            "diff1y_acf5": 0.259459,
+            "diff2y_acf1": -0.191006,
+            "diff2y_acf5": 0.134207,
+            "y_pacf5": 1.003288,
+            "diff1y_pacf5": 0.219412,
+            "diff2y_pacf5": 0.26101,
+            "seas_acf1": 0.662904,
+            "seas_pacf1": 0.15617,
+            "firstmin_ac": 8,
+            "firstzero_ac": 52,
+            "holt_alpha": 1.0,
+            "holt_beta": 0.0,
+            "hw_alpha": 0.842106,
+            "hw_beta": 0.052631,
+            "hw_gamma": 0.157901,
+        }
+        if statsmodels.version >= "0.12":
+            rounded_truth["trend_strength"] = 0.93833
+            rounded_truth["seasonality_strength"] = 0.329934
+            rounded_truth["spikiness"] = 111.697325
+            feature_vector_round["holt_alpha"] = np.round(
+                feature_vector_round["holt_alpha"], 1
+            )
+            feature_vector_round["holt_beta"] = np.round(
+                feature_vector_round["holt_beta"], 1
+            )
+            rounded_truth["holt_alpha"] = 1.0
+            rounded_truth["holt_beta"] = 0.0
+            rounded_truth["hw_alpha"] = 1.0
+            rounded_truth["hw_beta"] = 0.0
+            rounded_truth["hw_gamma"] = 0.0
+        self.assertEqual(feature_vector_round, rounded_truth)
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(
@@ -603,7 +601,7 @@ class TSfeaturesTest(TestCase):
             "diff2y_pacf5": 4.427552,
             "seas_acf1": -0.148278,
             "seas_pacf1": -0.006386,
-            "firstmin_ac": 2,
+            "firstmin_ac": 4,
             "firstzero_ac": 4,
             "holt_alpha": 1.014757e-09,
             "holt_beta": 0.0,
