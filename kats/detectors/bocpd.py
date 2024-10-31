@@ -733,6 +733,7 @@ class _BayesOnlineChangePoint(Detector):
     T: int
     P: int
     data_values: npt.NDArray
+    # pyre-fixme[24]: Generic type `slice` expects 3 type parameters.
     _ts_slice: Union[int, slice]
     _ts_names: Sequence[str]
     _posterior_shape: Tuple[int, int, int]
@@ -755,6 +756,7 @@ class _BayesOnlineChangePoint(Detector):
         # the same calculation throughout with fewer additional checks
         # for univariate and bivariate data.
         if not data.is_univariate():
+            # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
             self._ts_slice = slice(None)
             self.P = data.value.shape[1]  # Number of time series
             self._ts_names = list(self.data.value.columns)

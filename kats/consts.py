@@ -534,7 +534,9 @@ class TimeSeriesData:
         return len(self.value)
 
     def __getitem__(
-        self, sliced: Union[str, Iterable, builtins.slice]
+        # pyre-fixme[24]: Generic type `slice` expects 3 type parameters.
+        self,
+        sliced: Union[str, Iterable, builtins.slice],
     ) -> TimeSeriesData:
         if isinstance(sliced, str) or (
             isinstance(sliced, Iterable) and all(isinstance(s, str) for s in sliced)
