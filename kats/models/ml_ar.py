@@ -1091,23 +1091,21 @@ class MLARModel:
         self.train_data_in = in_data[train_index, :]
         self.train_data = meta_and_out_data.loc[train_index]
         normalized_train_y = meta_and_out_data["output"].loc[train_index]
-        lgb_params = {
-            "n_jobs": self.params.n_jobs,
-            "max_depth": self.params.max_depth,
-            "min_data_in_leaf": self.params.min_data_in_leaf,
-            "num_leaves": self.params.num_leaves,
-            "subsample": self.params.subsample,
-            "n_estimators": self.params.n_estimators,
-            "learning_rate": self.params.learning_rate,
-            "colsample_bytree": self.params.colsample_bytree,
-            "boosting_type": self.params.boosting_type,
-            "alpha": self.params.alpha,
-            "random_state": self.params.random_state,
-            "verbose": self.params.verbose,
-        }
+
         regr = gbm.LGBMRegressor(
             objective=self.params.objective,
-            **lgb_params,
+            n_jobs=self.params.n_jobs,
+            max_depth=self.params.max_depth,
+            min_data_in_leaf=self.params.min_data_in_leaf,
+            num_leaves=self.params.num_leaves,
+            subsample=self.params.subsample,
+            n_estimators=self.params.n_estimators,
+            learning_rate=self.params.learning_rate,
+            colsample_bytree=self.params.colsample_bytree,
+            boosting_type=self.params.boosting_type,
+            alpha=self.params.alpha,
+            random_state=self.params.random_state,
+            verbose=self.params.verbose,
         )
 
         train_rows = self.train_data_in.shape[0]
