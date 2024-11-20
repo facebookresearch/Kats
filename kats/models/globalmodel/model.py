@@ -1126,6 +1126,7 @@ class GMModel:
 
             if training_mode or is_valid:
 
+                # pyre-fixme[29]: `Union[Module, Tensor]` is not a function.
                 encoder.prepare_decoder(decoder)
                 encoder_step = (
                     batch.training_encoder_step_num
