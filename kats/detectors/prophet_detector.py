@@ -59,7 +59,6 @@ class SilentStdoutStderr(object):
     stdout, stderr = sys.__stdout__.fileno(), sys.__stderr__.fileno()  # type: ignore
 
     def __enter__(self) -> None:
-
         # pyre-fixme typing # type: ignore
         self.devnull = os.open(os.devnull, os.O_RDWR)
         # pyre-fixme typing
@@ -206,9 +205,8 @@ def seasonalities_to_dict(
         List[SeasonalityTypes],
         List[str],
         Dict[SeasonalityTypes, Union[bool, str]],
-    ]
+    ],
 ) -> Dict[SeasonalityTypes, Union[bool, str]]:
-
     if isinstance(seasonalities, SeasonalityTypes):
         seasonalities = {seasonalities: True}
     elif isinstance(seasonalities, list):
@@ -599,9 +597,9 @@ class ProphetDetectorModel(DetectorModel):
             )
             if holidays_df is not None:
                 scores_ts = pd.Series(list(scores.value), index=data.time)
-                scores_ts.loc[
-                    scores_ts.index.floor("d").isin(holidays_df)
-                ] *= self.holiday_multiplier
+                scores_ts.loc[scores_ts.index.floor("d").isin(holidays_df)] *= (
+                    self.holiday_multiplier
+                )
                 scores = TimeSeriesData(
                     time=pd.Series(scores_ts.index), value=scores_ts
                 )

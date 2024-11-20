@@ -227,7 +227,6 @@ class MetaLearnHPT:
             default_model_params = DefaultModelParams()
 
             if default_model is not None:
-
                 if (categorical_idx is not None) or (numerical_idx is not None):
                     msg = """
                          Default model cannot accept customized categorical_idx or customized numerical_idx! Please set
@@ -440,7 +439,9 @@ class MetaLearnHPT:
         print("Multi-task neural network structure:")
         print(self.model)
 
-    def _prepare_data(self, val_size: float) -> Tuple[
+    def _prepare_data(
+        self, val_size: float
+    ) -> Tuple[
         torch.FloatTensor,
         Optional[torch.LongTensor],
         Optional[torch.FloatTensor],

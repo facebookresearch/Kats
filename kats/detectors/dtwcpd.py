@@ -112,7 +112,6 @@ class DTWCPDDetector(Detector):
         min_value: float = 1e-9,  # Controls when a value is considered to be zero
         match_against_same_time_series: bool = False,  # Whether to allow historical matches in the same time series.
     ) -> None:
-
         self.data = data
         self.sliding_window_size = sliding_window_size
         self.MIN_TS_VALUE = min_value
@@ -263,7 +262,6 @@ class DTWCPDDetector(Detector):
         # TODO: vectorize
         LB_sum = 0.0
         for ind, i in enumerate(s1):
-
             # Rolling min/max
             lower_bound = min(s2[(ind - w if ind - w >= 0 else 0) : (ind + w)])
             upper_bound = max(s2[(ind - w if ind - w >= 0 else 0) : (ind + w)])

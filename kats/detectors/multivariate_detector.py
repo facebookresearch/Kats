@@ -9,6 +9,7 @@
 """
 This module implements the multivariate Outlier Detection algorithm as a Detector Model.
 """
+
 import json
 from typing import Any, Optional
 

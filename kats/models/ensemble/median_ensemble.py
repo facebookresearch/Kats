@@ -59,8 +59,9 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
         """
 
         logging.debug(
-            "Call predict() with parameters. "
-            "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
+            "Call predict() with parameters. " "steps:{steps}, kwargs:{kwargs}".format(
+                steps=steps, kwargs=kwargs
+            )
         )
         # Keep freq in the parameters passed to _predict_all()
         self.freq = freq = kwargs.get("freq", "D")

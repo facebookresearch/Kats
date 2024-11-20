@@ -5,7 +5,7 @@
 
 # pyre-strict
 
-""" Collection of methods that return default search spaces for their relevant models.
+"""Collection of methods that return default search spaces for their relevant models.
 
 This module has a collection of functions. Each function is dedicated for a model. It
 returns default search space for hyperparameter tuning that pertains to the model.
@@ -16,7 +16,6 @@ They are called by hyperparemeter tuning module, time_series_parameter_tuning.py
   SearchMethodFactory.create_search_method(get_default_prophet_parameter_search_space(), ...)
   SearchMethodFactory.create_search_method(get_default_arnet_parameter_search_space(), ...)
 """
-
 
 from typing import Any, Dict, List
 

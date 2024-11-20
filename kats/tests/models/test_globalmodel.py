@@ -725,7 +725,6 @@ class AdjustedPinballLossTest(TestCase):
 
 class GMModelTest(TestCase):
     def test_model(self) -> None:
-
         GMParam_collects = [
             # RNN GM
             GMParam(
@@ -1118,7 +1117,6 @@ class STDGlobalModelTest(TestCase):
 
 class GMBackTesterExpandingWindowTest(TestCase):
     def test_GMBTEW(self) -> None:
-
         gmparam = GMParam(
             input_window=10, fcst_window=7, seasonality=6, fcst_step_num=2, freq="D"
         )

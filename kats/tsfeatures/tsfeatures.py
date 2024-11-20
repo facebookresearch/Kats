@@ -2141,7 +2141,6 @@ class TsCalenderFeatures:
         pd.DataFrame,
         npt.NDArray,
     ]:
-
         if isinstance(data, TimeSeriesData):
             timestamps = data.time.dt
         else:
@@ -2212,7 +2211,6 @@ class TsFourierFeatures:
     def get_features(
         self, data: Union[TimeSeriesData, pd.Series], raw: bool = False
     ) -> Union[npt.NDArray, pd.DataFrame]:
-
         if isinstance(data, TimeSeriesData):
             data = np.array(data.time.astype("int") // 10**9)
         else:
@@ -2248,7 +2246,6 @@ class TsFourierFeatures:
             p, r = period[i], order[i]
             val = 2.0 * np.pi * data / p
             for j in range(1, r + 1):
-
                 tmp = val * j
                 res[:, col] = np.sin(tmp)
                 res[:, col + 1] = np.cos(tmp)

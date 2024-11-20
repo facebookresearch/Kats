@@ -5,8 +5,7 @@
 
 # pyre-strict
 
-"""This module contains the class TemporalHierarchicalModel class.
-"""
+"""This module contains the class TemporalHierarchicalModel class."""
 
 import logging
 from math import gcd
@@ -68,7 +67,6 @@ class TemporalHierarchicalModel:
     res_matrix: Optional[npt.NDArray] = None
 
     def __init__(self, data: TimeSeriesData, baseModels: List[BaseTHModel]) -> None:
-
         if not data.is_univariate():
             msg = f"Only univariate time series supported, but got {type(data.value)}."
             raise _log_error(msg)

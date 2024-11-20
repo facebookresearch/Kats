@@ -69,7 +69,6 @@ class GMBackTester:
         earliest_timestamp: Union[str, pd.Timestamp, None] = None,
         max_core: Optional[int] = None,
     ) -> None:
-
         if not isinstance(gmparam, GMParam):
             msg = f"gmparam should be GMParam object but receives {type(gmparam)}."
             logging.error(msg)

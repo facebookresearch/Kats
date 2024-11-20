@@ -177,7 +177,6 @@ class ProphetModelTest(TestCase):
             self.assertEqual(exp_val, actual_defaults[param], msg)
 
     def test_invalid_params(self) -> None:
-
         self.assertRaises(ValueError, ProphetParams, growth="logistic")
         self.assertRaises(
             ValueError,

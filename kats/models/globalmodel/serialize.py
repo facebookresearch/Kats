@@ -77,7 +77,6 @@ def global_model_to_json(gme: Union[GMModel, GMEnsemble]) -> str:
 
 
 def load_global_model_from_json(json_str: str) -> Union[GMModel, GMEnsemble]:
-
     param_dict = json.loads(json_str)
 
     # string for GMEnsemble

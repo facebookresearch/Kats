@@ -10,6 +10,7 @@
 
 Simple Heuristic model is a model that applies simple rules like mean or percentiles on historical data to get prediction.
 """
+
 import logging
 from typing import Any, Callable, Optional
 
@@ -136,8 +137,9 @@ class SimpleHeuristicModel(Model[SimpleHeuristicModelParams]):
     def fit(self) -> None:
         "fit Simple Heuristic Model."
         logging.debug(
-            "Call fit() with parameters: "
-            "method:{method}".format(method=self.params.method)
+            "Call fit() with parameters: " "method:{method}".format(
+                method=self.params.method
+            )
         )
 
         if self.params.method == "last":

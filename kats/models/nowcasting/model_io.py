@@ -35,7 +35,6 @@ class SimplePickleSerializer:
         """
 
         if obj is None:
-
             return b""
         return pickle.dumps(obj)
 

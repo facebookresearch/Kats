@@ -125,7 +125,6 @@ class TestSimpleTimestampDataPartition(TestCase):
 
 
 class TestRollingOriginDataParition(TestCase):
-
     # pyre-fixme
     @parameterized.expand(
         [

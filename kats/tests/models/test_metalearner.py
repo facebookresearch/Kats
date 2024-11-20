@@ -249,7 +249,6 @@ class testMetaLearner(TestCase):
 
 class MetaLearnModelSelectTest(TestCase):
     def test_initialize(self) -> None:
-
         self.assertRaises(ValueError, MetaLearnModelSelect, [])
 
         self.assertRaises(ValueError, MetaLearnModelSelect, [{}] * 40)

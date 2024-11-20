@@ -420,9 +420,7 @@ class DecompositionTest(TestCase):
             (
                 true_results.trend.values
                 == decomp3["trend"].to_dataframe()["trend"].values
-            )[
-                1:-1
-            ].all()  # at the beginning and end NaNs
+            )[1:-1].all()  # at the beginning and end NaNs
         )
 
     def test_10_minutes_level_sparse_data(self) -> None:
@@ -522,9 +520,7 @@ class DecompositionTest(TestCase):
             (
                 true_results.trend.values
                 == decomp3["trend"].to_dataframe()["trend"].values
-            )[
-                1:-1
-            ].all()  # at the beginning and end NaNs
+            )[1:-1].all()  # at the beginning and end NaNs
         )
 
 
@@ -680,7 +676,6 @@ class SimulatorTest(TestCase):
         self.assertEqual(len(ts3), 450)
 
     def test_level_shift_mvn_indep(self) -> None:
-
         sim = Simulator(n=450, start="2018-01-01")
         ts = sim.level_shift_multivariate_indep_sim()
         self.assertEqual(len(ts), 450)

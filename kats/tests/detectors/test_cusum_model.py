@@ -905,7 +905,6 @@ class TestVectorizedCUSUMDetectorModel(TestCase):
             (CusumScoreFunction.change, False),
             (CusumScoreFunction.z_score, False),
         ]:
-
             detector = VectorizedCUSUMDetectorModel(
                 scan_window=3600 * 24 * 10,
                 historical_window=3600 * 24 * 30,
@@ -962,7 +961,6 @@ class TestVectorizedCUSUMDetectorModel(TestCase):
             CusumScoreFunction.percentage_change,
             CusumScoreFunction.z_score,
         ]:
-
             detector = VectorizedCUSUMDetectorModel(
                 scan_window=3600 * 24 * 10,
                 historical_window=3600 * 24 * 30,

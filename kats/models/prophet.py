@@ -600,7 +600,6 @@ def _sample_trend_uncertainty(
         # there is no trend uncertainty in historic trends
         uncertainties = np.zeros((n_samples, len(df)))
     else:
-
         future_df = df.loc[df["t"] > 1]
         n_length = len(future_df)
         hist_len = len(df) - n_length
@@ -924,7 +923,6 @@ def sample_linear_predictive_trend_vectorize(
         max_possion_num = 0
 
     if max_possion_num > 0:
-
         # sample change points
         changepoint_ts_new = 1 + np.random.rand(sample_size, max_possion_num) * (T - 1)
         # pyre-fixme[16]: `int` has no attribute `sort`.

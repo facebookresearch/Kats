@@ -101,7 +101,6 @@ class StatSigDetectorModel(DetectorModel):
         anomaly_scores_only: bool = False,
         min_perc_change: float = 0.0,
     ) -> None:
-
         if serialized_model:
             model_dict = json.loads(serialized_model)
             self.n_test: int = model_dict["n_test"]
@@ -999,7 +998,6 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         use_corrected_scores: bool = False,
         min_perc_change: float = 0.0,
     ) -> None:
-
         StatSigDetectorModel.__init__(
             self,
             n_control=n_control,
@@ -1180,7 +1178,6 @@ class MultiStatSigDetectorModel(StatSigDetectorModel):
         return self.response.get_last_n(self.last_N)
 
     def _init_response(self, data: TimeSeriesData) -> None:
-
         zeros_df = pd.DataFrame(
             {
                 **{"time": data.time},

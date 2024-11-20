@@ -767,7 +767,6 @@ class AdjustedPinballLoss(_Loss):
         reduction: str = "mean",
         input_log: bool = True,
     ) -> None:
-
         super(AdjustedPinballLoss, self).__init__(
             size_average=None, reduce=None, reduction=reduction
         )
@@ -1224,7 +1223,6 @@ class GMParam:
         jit: bool = False,
         gmname: Optional[str] = None,
     ) -> None:
-
         self._valid_freq(freq)
 
         self.model_type: str = self._valid_model_type(model_type)
@@ -1519,7 +1517,6 @@ class GMParam:
 
     # pyre-fixme[2]: Parameter must be annotated.
     def _valid_gmfeature(self, gmfeature, input_window) -> None:
-
         if gmfeature is None:
             self.gmfeature = None
             return

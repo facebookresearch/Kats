@@ -56,7 +56,6 @@ class DTWCPDTest(TestCase):
         self.assertEqual(cps, expected_result)
 
     def test_no_spike_in_zero_data_yields_no_cp(self) -> None:
-
         N = 200
         df = pd.DataFrame(
             {

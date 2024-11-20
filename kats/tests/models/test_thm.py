@@ -33,7 +33,6 @@ bm5 = BaseTHModel(level=5, fcsts=np.random.randn(5), residuals=np.random.randn(l
 
 class testBaseTHModel(TestCase):
     def test_initialization(self) -> None:
-
         BaseTHModel(2, model_name="prophet", model_params=prophet.ProphetParams())
         BaseTHModel(1, residuals=np.random.randn(4), fcsts=np.random.randn(4))
 

@@ -861,7 +861,6 @@ class CUSUMDetectorModel(DetectorModel):
             change_tsd.extend(change_tsd_vec, validate=False)
 
         else:
-
             for start_time in pd.date_range(
                 anomaly_start_time,
                 min(

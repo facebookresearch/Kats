@@ -55,7 +55,6 @@ class GMModel:
 
     # pyre-fixme[3]: Return type must be annotated.
     def __init__(self, params: GMParam):
-
         if not isinstance(params, GMParam):
             msg = f"params should be a GMParam object but receives {type(params)}."
             logging.error(msg)
@@ -321,7 +320,6 @@ class GMModel:
         x_t = xi_t / anchor_level
 
         if period > 1:
-
             input_season = torch.cat(seasonality[idx - input_window : idx], dim=1)
             x_t = x_t / input_season
 
@@ -544,7 +542,6 @@ class GMModel:
             actual = np.column_stack(fcst_store["actual"])[:, :steps]
 
         for i, idx in enumerate(ids):
-
             df = pd.DataFrame(
                 fcst[i].transpose()[:steps,],
                 columns=cols,
@@ -607,7 +604,6 @@ class GMModel:
         self._set_nn_status("test")
         fcst_collects = {}
         for i in range(m):
-
             self._reset_nn_states()
 
             ids = dl.get_batch(batch_size)
@@ -1083,7 +1079,6 @@ class GMModel:
         prev_idx = 0
 
         while cur_step < total_step_num:
-
             cur_idx = batch.indices[cur_step]
             is_valid = cur_idx >= first_valid_idx
 
@@ -1125,7 +1120,6 @@ class GMModel:
             self._valid_tensor(tmp_encode, "encoder_output")
 
             if training_mode or is_valid:
-
                 # pyre-fixme[29]: `Union[Module, Tensor]` is not a function.
                 encoder.prepare_decoder(decoder)
                 encoder_step = (

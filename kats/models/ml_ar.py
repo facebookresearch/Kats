@@ -123,7 +123,6 @@ def categorical_encode(
 
 @jit
 def embed(series: npt.NDArray, lags: int, horizon: int, max_lags: int) -> npt.NDArray:
-
     result = np.full(
         shape=(series.size - max_lags + 1, lags + horizon), fill_value=np.nan
     )
@@ -416,7 +415,6 @@ class MLARModel:
         self.keys: Dict[Union[Tuple[str, str], str], str] = {}
 
     def _infer_freq(self, data: pd.Series, freq: Optional[str]) -> str:
-
         if freq is None:
             freq = pd.infer_freq(data)
             if freq is None:
@@ -496,7 +494,6 @@ class MLARModel:
         offset = pd.tseries.frequencies.to_offset(self.params.freq)
 
         for k in keys:
-
             curr_series_data = self._check_single_ts(data[k])
 
             data_dict[k] = curr_series_data
@@ -514,7 +511,6 @@ class MLARModel:
         feature_names: Optional[List[str]],
         norm_window_size: int,
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-
         if feature_names is None:
             in_data = emb_ts
         else:
@@ -565,7 +561,6 @@ class MLARModel:
         cov_hist_data = []
         cov_hist_data_cols = []
         if self.params.cov_history_input_windows:
-
             for curr_cov in self.params.cov_history_input_windows.keys():
                 curr_cov_lags = self.params.cov_history_input_windows[curr_cov]
 
@@ -601,7 +596,6 @@ class MLARModel:
     ) -> Tuple[npt.NDArray, List[str]]:
         cat_encoded_data = pd.DataFrame()
         if self.params.categoricals:
-
             cat_data = pd.DataFrame()
             for curr_cat in self.params.categoricals:
                 cat_data[curr_cat] = data[curr_cat].astype(cat_labels[curr_cat])
@@ -627,7 +621,6 @@ class MLARModel:
         target_vars: Union[List[str], str],
         cat_labels: Dict[str, pd.CategoricalDtype],
     ) -> Tuple[Dict[str, npt.NDArray], Dict[str, pd.DataFrame], List[str]]:
-
         data = series_data.loc[: series_data[target_vars].last_valid_index()]
 
         lag_names = self.params.lag_names
@@ -653,7 +646,6 @@ class MLARModel:
         all_col_names = []
 
         for i, target_var in enumerate(target_vars):
-
             # Embed the target var
             emb_ts = pd.DataFrame(
                 embed(data[target_var].values, lags, horizon, max_lags)
@@ -676,7 +668,6 @@ class MLARModel:
             # Calculate summary stats over the windows
 
             if self.params.use_sum_stats:
-
                 norm_window_stats["min"] = norm_in_data.min(axis=1)
                 norm_window_stats["max"] = norm_in_data.max(axis=1)
                 norm_window_stats["mean"] = norm_in_data.mean(axis=1)
@@ -785,7 +776,6 @@ class MLARModel:
         timestamps: Set[pd.Timestamp],
         calendar_features: Union[None, str, List[str]],
     ) -> pd.DataFrame:
-
         ts = pd.Series(list(timestamps))
         # Compute calendar features
         if calendar_features is None:
@@ -815,7 +805,6 @@ class MLARModel:
                 self.params.fourier_features_offset,
             )
         if fperiod is not None and len(fperiod) > 0:
-
             fourier_features_df = TsFourierFeatures(
                 # pyre-fixme
                 fperiod,
@@ -881,7 +870,6 @@ class MLARModel:
         emb_fut_cov: pd.DataFrame,
         gen_meta_data: bool = True,
     ) -> Tuple[npt.NDArray, pd.DataFrame, List[str]]:
-
         offset = pd.tseries.frequencies.to_offset(self.params.freq)
         num_cols = self.num_hist_reg + cal_feat.shape[1] + emb_fut_cov.shape[1] + 1
         tv_idx = 0
@@ -897,9 +885,7 @@ class MLARModel:
         all_out_data_list = []
 
         for target_var in norm_out_data.keys():
-
             for curr_horizon in horizons:
-
                 target_timestamps = pd.DataFrame(
                     index=norm_out_data[target_var].index
                     # pyre-fixme
@@ -990,7 +976,6 @@ class MLARModel:
         fillna: Optional[float] = None,
         gen_meta_data: bool = True,
     ) -> Tuple[pd.DataFrame, List[str]]:
-
         all_in_data_list = []
         all_meta_data_list = []
 
@@ -1009,7 +994,6 @@ class MLARModel:
         )
 
         for curr_series_name in curr_all_series:
-
             # logging.info(f"Current time series to be preprocessed: {curr_series_name}")
 
             (
@@ -1056,7 +1040,6 @@ class MLARModel:
         return all_meta_data, all_col_names
 
     def _post_process(self) -> Dict[str, pd.DataFrame]:
-
         fc_groups = self.forecast_data.groupby("series_name")
 
         # we rename target_time and series_name to time and dummy, for compatibility with how the old version works
@@ -1166,7 +1149,6 @@ class MLARModel:
         new_data: Optional[Dict[Union[str, int], pd.DataFrame]] = None,
         new_data_is_forecast: bool = True,
     ) -> None:
-
         new_data_dict = {}
         offset = pd.tseries.frequencies.to_offset(self.params.freq)
 
@@ -1185,7 +1167,6 @@ class MLARModel:
 
                     # find the first gap in the horizon, and set fc_origin to the value before, so that we can fill the gap with forecasts
                     if fill_missing:
-
                         min_ts = np.min(fc_wide.index)
                         all_missing = pd.date_range(
                             min_ts,
@@ -1345,7 +1326,6 @@ class MLARModel:
         forecast_result = self._post_process()
 
         if steps is not None:
-
             horizons = np.array(self.params.horizon)
 
             if 1 not in horizons:

@@ -780,7 +780,6 @@ class MultiCUSUMDetector(CUSUMDetector):
         # multivariate detection. We keep using change_direction = "increase"
         # here to be consistent with the univariate detector.
         for change_direction in ["increase"]:
-
             change_meta = self._get_change_point(
                 ts,
                 max_iter=max_iter,
@@ -816,23 +815,25 @@ class MultiCUSUMDetector(CUSUMDetector):
         sigma0: Optional[float],
         sigma1: Optional[float],
     ) -> float:
-
         mu_tilde = np.mean(ts, axis=0)
         sigma_pooled = np.cov(ts, rowvar=False)
-        llr = -2 * (
-            self._log_llr_multi(
-                ts[: (changepoint + 1)],
-                mu_tilde,
-                sigma_pooled,
-                mu0,
-                sigma0,  # pyre-fixme
-            )
-            - self._log_llr_multi(
-                ts[(changepoint + 1) :],
-                mu_tilde,
-                sigma_pooled,
-                mu1,
-                sigma1,  # pyre-fixme
+        llr = (
+            -2
+            * (
+                self._log_llr_multi(
+                    ts[: (changepoint + 1)],
+                    mu_tilde,
+                    sigma_pooled,
+                    mu0,
+                    sigma0,  # pyre-fixme
+                )
+                - self._log_llr_multi(
+                    ts[(changepoint + 1) :],
+                    mu_tilde,
+                    sigma_pooled,
+                    mu1,
+                    sigma1,  # pyre-fixme
+                )
             )
         )
         return llr
@@ -868,7 +869,6 @@ class MultiCUSUMDetector(CUSUMDetector):
         start_point: int,
         change_direction: str = "increase",
     ) -> CUSUMChangePointVal:
-
         # locate the change point using cusum method
         changepoint_func = np.argmin
         n = 0

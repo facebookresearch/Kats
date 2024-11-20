@@ -373,7 +373,6 @@ class ExpandingWindowBackTesterTest(unittest.TestCase):
             expanding_steps,
             expected_msg,
         ) in forbidden_init_params:
-
             # Create backtester with forbidden initialization parameters
             with self.assertRaises(ValueError) as e:
                 BackTesterExpandingWindow(
@@ -729,7 +728,6 @@ class FixedWindowBackTesterTest(unittest.TestCase):
         ]
 
         for train_p, test_p, window_p, expected_msg in forbidden_init_params:
-
             # Create backtester with forbidden initialization parameters
             with self.assertRaises(ValueError) as e:
                 BackTesterFixedWindow(
@@ -1050,7 +1048,6 @@ class CrossValidationTest(unittest.TestCase):
         ]
 
         for train_p, test_p, num_folds, expected_msg in forbidden_init_params:
-
             # Create cross validation object with forbidden initialization parameters
             with self.assertRaises(ValueError) as e:
                 CrossValidation(

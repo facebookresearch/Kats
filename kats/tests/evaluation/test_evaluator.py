@@ -56,7 +56,7 @@ class EvaluatorTest(unittest.TestCase):
         # Duplicate
         self.evaluator.create_evaluation_run(run_name="duplicate_run")
         with self.assertRaises(ValueError):
-            self.evaluator.create_evaluation_run(run_name="duplicate_run"),
+            (self.evaluator.create_evaluation_run(run_name="duplicate_run"),)
 
     def test_delete_evaluation_run(self) -> None:
         self.evaluator.create_evaluation_run(run_name="delete_run")

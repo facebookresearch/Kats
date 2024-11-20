@@ -60,7 +60,6 @@ class GMEnsemble:
         multi: bool = False,
         max_core: Optional[int] = None,
     ) -> None:
-
         if not isinstance(gmparam, GMParam):
             msg = f"gmparam should be GMParam object but receives {type(gmparam)}."
             logging.error(msg)
@@ -210,7 +209,6 @@ class GMEnsemble:
         split_data = split(self.splits, self.overlap, train_TSs, valid_TSs)
         # multi processing
         if self.multi:
-
             t0 = time.time()
             rds = np.random.randint(1, int(10000 * self.model_num), self.model_num)
             model_params = [

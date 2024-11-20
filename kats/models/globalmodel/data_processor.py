@@ -207,7 +207,6 @@ class GMBatch:
         ] = None,
         mode: str = "train",
     ) -> None:
-
         if not isinstance(params, GMParam):
             msg = f"params should be a GMParam object but receives {type(params)}."
             logging.error(msg)

@@ -1201,7 +1201,6 @@ class _NormalKnownPrec(_PredictiveModel):
     _data_shape: Union[int, Tuple[int, int]]
 
     def __init__(self, data: TimeSeriesData, parameters: NormalKnownParameters) -> None:
-
         # \mu \sim N(\mu0, \frac{1}{\lambda0})
         # x \sim N(\mu,\frac{1}{\lambda})
 
@@ -1560,7 +1559,6 @@ class _BayesianLinReg(_PredictiveModel):
         b_n: float,
         num_samples: int,
     ) -> Tuple[npt.NDArray, npt.NDArray]:
-
         # this is to make sure the results are consistent
         # and tests don't break randomly
         seed_value = 100

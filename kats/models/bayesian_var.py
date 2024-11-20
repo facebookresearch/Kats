@@ -6,14 +6,14 @@
 # pyre-strict
 
 """
- Bayesian estimation of Vector Autoregressive Model using
- Minnesota prior on the coefficient matrix. This version is
- useful for regularization when they are too many coefficients
- to be estimated.
+Bayesian estimation of Vector Autoregressive Model using
+Minnesota prior on the coefficient matrix. This version is
+useful for regularization when they are too many coefficients
+to be estimated.
 
- Implementation inspired by the following two articles/papers:
-    https://www.mathworks.com/help/econ/normalbvarm.html#mw_4a1ab118-9ef3-4380-8c5a-12b848254117
-    http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf (page 5)
+Implementation inspired by the following two articles/papers:
+   https://www.mathworks.com/help/econ/normalbvarm.html#mw_4a1ab118-9ef3-4380-8c5a-12b848254117
+   http://apps.eui.eu/Personal/Canova/Articles/ch10.pdf (page 5)
 """
 
 import logging
@@ -208,11 +208,12 @@ class BayesianVAR(m.Model[BayesianVARParams]):
             ]  # shape: [m * (m * p + r + 1)] x 1
 
             assert (
-                num_mu,
-                num_mu,
-            ) == z_sum_term.shape, (
-                f"Expected {(num_mu, num_mu)}, got {z_sum_term.shape}"
-            )
+                (
+                    num_mu,
+                    num_mu,
+                )
+                == z_sum_term.shape
+            ), f"Expected {(num_mu, num_mu)}, got {z_sum_term.shape}"
             assert (
                 num_mu,
             ) == y_sum_term.shape, f"Expected {(num_mu,)}, got {y_sum_term.shape}"
@@ -258,11 +259,12 @@ class BayesianVAR(m.Model[BayesianVARParams]):
         Z_t = block_diag(*([z] * self.m))
 
         assert (
-            self.m,
-            self.num_mu_coefficients,
-        ) == Z_t.shape, (
-            f"Expected {(self.m, self.num_mu_coefficients)}, got {Z_t.shape}"
-        )
+            (
+                self.m,
+                self.num_mu_coefficients,
+            )
+            == Z_t.shape
+        ), f"Expected {(self.m, self.num_mu_coefficients)}, got {Z_t.shape}"
 
         return Z_t  # shape: m x [m * (m * p + m + 1)]
 

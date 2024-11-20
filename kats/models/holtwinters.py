@@ -115,7 +115,6 @@ class HoltWintersModel(Model[HoltWintersParams]):
     fcst_df: Optional[pd.DataFrame] = None
 
     def __init__(self, data: TimeSeriesData, params: HoltWintersParams) -> None:
-
         super().__init__(data, params)
         # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
@@ -160,8 +159,9 @@ class HoltWintersModel(Model[HoltWintersParams]):
             raise ValueError("Call fit() before predict().")
 
         logging.debug(
-            "Call predict() with parameters. "
-            "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
+            "Call predict() with parameters. " "steps:{steps}, kwargs:{kwargs}".format(
+                steps=steps, kwargs=kwargs
+            )
         )
         if "freq" not in kwargs:
             # pyre-fixme[16]: `Optional` has no attribute `time`.

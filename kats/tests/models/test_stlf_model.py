@@ -36,7 +36,6 @@ METHODS = ["theta", "prophet", "linear", "quadratic", "simple"]
 
 class testSTLFModel(TestCase):
     def setUp(self) -> None:
-
         sim = Simulator(
             n=3 * 144, freq="10T", start=pd.to_datetime("2021-01-01")
         )  # 3 days of data
@@ -153,7 +152,6 @@ class testSTLFModel(TestCase):
     def test_fit_forecast_decomposition_parameter(
         self, dataset: str, method: str, decomposition_method: str, steps: int = 5
     ) -> None:
-
         ts = self.TEST_DATA[dataset]["ts"]
         train, truth = ts[:-steps], ts[-steps:]
         params = STLFParams(
@@ -170,7 +168,6 @@ class testSTLFModel(TestCase):
         self.assertTrue(all(pred[:, 2] >= pred[:, 0]))  # check upper > lower bounds
 
     def test_fit_forecast_simple_model(self) -> None:
-
         steps = 7
 
         ts = self.TEST_DATA["daily"]["ts"]
@@ -193,7 +190,6 @@ class testSTLFModel(TestCase):
     def test_fit_forecast_minute(
         self, dataset: str, method: str, steps: int = 144
     ) -> None:
-
         ts = self.TEST_DATA[dataset]["ts"]
         params = STLFParams(m=144, method=method, decomposition="additive")
         train, truth = ts[:-steps], ts[-steps:]

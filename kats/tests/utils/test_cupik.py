@@ -20,7 +20,6 @@ class cupikTest(TestCase):
         self.TSData = load_air_passengers()
 
     def test_mkdetector(self) -> None:
-
         # We will be using 2 different scenarios to test if the results
         # are the same between a directly called MKDetector and one that
         # is called via CuPiK

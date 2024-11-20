@@ -121,14 +121,16 @@ class BOCPDTest(TestCase):
         # We should have 3 change points per time series (of which there are 3)
         # However, we have set different change point priors, so we lose 3
         # and we set different thresholds, so we lose the other 3.
-        self.multnorm_cps_changepointpriors_and_thresholds = self.multnorm_bocpd_model.detector(
-            model=BOCPDModelType.NORMAL_KNOWN_MODEL,
-            # pyre-fixme[6]: For 2nd param expected `float` but got `ndarray`.
-            changepoint_prior=np.array([0.01, 0.01, 1.0]),
-            # pyre-fixme[6]: For 3rd param expected `float` but got `ndarray`.
-            threshold=np.array([1.0, 0.5, 0.5]),
-            choose_priors=False,
-            agg_cp=False,
+        self.multnorm_cps_changepointpriors_and_thresholds = (
+            self.multnorm_bocpd_model.detector(
+                model=BOCPDModelType.NORMAL_KNOWN_MODEL,
+                # pyre-fixme[6]: For 2nd param expected `float` but got `ndarray`.
+                changepoint_prior=np.array([0.01, 0.01, 1.0]),
+                # pyre-fixme[6]: For 3rd param expected `float` but got `ndarray`.
+                threshold=np.array([1.0, 0.5, 0.5]),
+                choose_priors=False,
+                agg_cp=False,
+            )
         )
 
         # check if multivariate detection works in detecting all changepoints
@@ -235,7 +237,6 @@ class BOCPDTest(TestCase):
 
     # Test Normal #
     def test_normal_change_prob_len(self) -> None:
-
         change_prob_dict = self.normal_bocpd_model.get_change_prob()
         change_prob = list(change_prob_dict.values())[
             0
@@ -257,7 +258,6 @@ class BOCPDTest(TestCase):
     def test_normal_changepoints(
         self, _: str, choose_priors: bool, agg_cp: bool
     ) -> None:
-
         self.assert_changepoints_exist(
             self.normal_ts, self.normal_cp_arr, self.normal_cps
         )
@@ -293,7 +293,6 @@ class BOCPDTest(TestCase):
         self.multnorm_bocpd_model.plot(cps)
 
     def test_normal_multivariate_changeprob_length(self) -> None:
-
         change_prob_dict = self.multnorm_bocpd_model.get_change_prob()
         change_prob_val = change_prob_dict.values()
 
@@ -392,13 +391,11 @@ class BOCPDTest(TestCase):
         )
 
     def test_poisson_changepoints(self) -> None:
-
         self.assert_changepoints_exist(
             self.poisson_ts, self.poisson_cp_arr, self.poisson_cps
         )
 
     def test_time_col_name(self) -> None:
-
         df = self.normal_ts.to_dataframe()
         df.rename(columns={"time": "ds"}, inplace=True)
         ts = TimeSeriesData(df, time_col_name="ds")

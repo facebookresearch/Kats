@@ -36,8 +36,9 @@ class QuadraticModelParams(Params):
         super().__init__()
         self.alpha = alpha
         logging.debug(
-            "Initialized QuadraticModel parameters. "
-            "alpha:{alpha}".format(alpha=alpha)
+            "Initialized QuadraticModel parameters. " "alpha:{alpha}".format(
+                alpha=alpha
+            )
         )
 
     def validate_params(self) -> None:
@@ -84,8 +85,9 @@ class QuadraticModel(Model[QuadraticModelParams]):
     def fit(self) -> None:
         """fit Quadratic Model."""
         logging.debug(
-            "Call fit() with parameters: "
-            "alpha:{alpha}".format(alpha=self.params.alpha)
+            "Call fit() with parameters: " "alpha:{alpha}".format(
+                alpha=self.params.alpha
+            )
         )
 
         # pyre-fixme[16]: `Optional` has no attribute `time`.
@@ -121,8 +123,9 @@ class QuadraticModel(Model[QuadraticModelParams]):
         model = self.model
         assert model is not None
         logging.debug(
-            "Call predict() with parameters. "
-            "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
+            "Call predict() with parameters. " "steps:{steps}, kwargs:{kwargs}".format(
+                steps=steps, kwargs=kwargs
+            )
         )
         # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))

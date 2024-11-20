@@ -5,7 +5,7 @@
 
 # pyre-strict
 
-""" Module that has parameter tuning classes for time series models.
+"""Module that has parameter tuning classes for time series models.
 
 This module has a collection of classes. A subset of these classes are parameter tuning
 strategies with their abstract parent class. In addition, there are helper classes,
@@ -561,9 +561,7 @@ class TimeSeriesParameterTuning(ABC):
             # Deduplicate entries for which there are outcome constraints
             armscore_df = armscore_df.loc[
                 # pyre-ignore[16]: `None` has no attribute `index`.
-                armscore_df.astype(str)
-                .drop_duplicates()
-                .index
+                armscore_df.astype(str).drop_duplicates().index
             ]
             if legit_arms_only:
 
@@ -894,9 +892,7 @@ class BayesMethodOptions(SearchMethodOptions):
     window_global_stop_size: int = 3
     experiment: Optional[Experiment] = None
     timeout_hours: Optional[int] = None  # timeout in hours for optimization
-    improvement_bar: float = (
-        0.02  # imporvement step for gloabl stop strategy, imporvement bar default value sets for f_score func
-    )
+    improvement_bar: float = 0.02  # imporvement step for gloabl stop strategy, imporvement bar default value sets for f_score func
     max_initialization_trials: int = 5
     seed: Optional[int] = None
 
@@ -1205,10 +1201,10 @@ def get_nevergrad_param_from_ax(
     return ng.p.Instrumentation(**params_list)
 
 
-def get_fixed_param_from_ax(
-    ax_params: List[Dict[str, Any]]
-) -> Dict[str, Any]:  # type: ignore
-    params_list: Dict[str, Any] = {param["name"]: param["value"] for param in ax_params if param["type"] == "fixed"}  # type: ignore
+def get_fixed_param_from_ax(ax_params: List[Dict[str, Any]]) -> Dict[str, Any]:  # type: ignore
+    params_list: Dict[str, Any] = {
+        param["name"]: param["value"] for param in ax_params if param["type"] == "fixed"
+    }  # type: ignore
     return params_list
 
 

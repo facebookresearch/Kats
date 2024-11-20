@@ -83,8 +83,9 @@ class LinearModel(Model[LinearModelParams]):
     def fit(self) -> None:
         """fit Linear Model."""
         logging.debug(
-            "Call fit() with parameters: "
-            "alpha:{alpha}".format(alpha=self.params.alpha)
+            "Call fit() with parameters: " "alpha:{alpha}".format(
+                alpha=self.params.alpha
+            )
         )
 
         # prepare X and y for linear model
@@ -111,8 +112,9 @@ class LinearModel(Model[LinearModelParams]):
                 `time`, `fcst`, `fcst_lower`, and `fcst_upper`
         """
         logging.debug(
-            "Call predict() with parameters. "
-            "steps:{steps}, kwargs:{kwargs}".format(steps=steps, kwargs=kwargs)
+            "Call predict() with parameters. " "steps:{steps}, kwargs:{kwargs}".format(
+                steps=steps, kwargs=kwargs
+            )
         )
         # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))

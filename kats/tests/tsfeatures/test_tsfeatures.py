@@ -63,13 +63,13 @@ SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(
 
 
 def _univariate_features(
-    feats: Union[Dict[str, float], List[Dict[str, float]]]
+    feats: Union[Dict[str, float], List[Dict[str, float]]],
 ) -> Dict[str, float]:
     return cast(Dict[str, float], feats)
 
 
 def _multivariate_features(
-    feats: Union[Dict[str, float], List[Dict[str, float]]]
+    feats: Union[Dict[str, float], List[Dict[str, float]]],
 ) -> List[Dict[str, float]]:
     return cast(List[Dict[str, float]], feats)
 
@@ -774,7 +774,6 @@ class TestTsFourierFeatures(TestCase):
         fourier_order: Union[List[int], int],
         offset: Union[float, int],
     ) -> None:
-
         tff = TsFourierFeatures(fourier_period, fourier_order, offset)
         f1 = tff.get_features(ts)
         f2 = tff.get_features(ts.time)

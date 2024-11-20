@@ -12,6 +12,7 @@ model, we learn the weights for each individual model based on corresponding
 back testing results, i.e., model with better performance should have higher
 weight.
 """
+
 import logging
 import sys
 from multiprocessing import cpu_count, Pool

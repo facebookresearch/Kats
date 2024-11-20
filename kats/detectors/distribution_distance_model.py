@@ -87,7 +87,6 @@ def _percentile_to_prob(
 
         # if all values in l2 are lager than l1
         if n_idx_at2 == 0:
-
             # use distance from l2[0] to l2[j] as base
             j = 1
             while j < len(l2_merge) and l2_merge[j] == l2_merge[0]:

@@ -112,7 +112,7 @@ def _check_max_core(max_core: Optional[int]) -> int:
 
 
 def _get_scorer(
-    scorer: Union[str, List[str], CoreMetric]
+    scorer: Union[str, List[str], CoreMetric],
 ) -> Optional[Callable[[pd.DataFrame], Dict[str, float]]]:
     """Helper function for validating `scorer`."""
 
@@ -206,7 +206,6 @@ class GenericBacktester(ABC):
         max_core: Optional[int] = None,
         error_score: float = np.nan,
     ) -> None:
-
         self.datapartition: DataPartitionBase = datapartition
         # pyre-fixme
         self.scorer: Callable[[pd.DataFrame], Dict[str, float]] = _get_scorer(scorer)
@@ -255,7 +254,6 @@ class GenericBacktester(ABC):
     def _get_fold_errors(
         self, raw_fold_errors: List[Optional[Dict[str, float]]]
     ) -> Tuple[List[str], List[Dict[str, float]]]:
-
         valid_fold_errors = [t for t in raw_fold_errors if t is not None]
         # get error metric names
         if not valid_fold_errors:
@@ -275,7 +273,6 @@ class GenericBacktester(ABC):
     def _summarize(
         self, results: List[Tuple[pd.DataFrame, Dict[str, float]]]
     ) -> BacktesterResult:
-
         if not results:
             _log_error("Fail to get evaluation results!")
 

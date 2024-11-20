@@ -15,7 +15,6 @@ from parameterized.parameterized import parameterized
 
 
 class MetricsMetadataTest(TestCase):
-
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator...
     @parameterized.expand(
         [

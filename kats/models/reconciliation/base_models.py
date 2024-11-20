@@ -62,7 +62,6 @@ class BaseTHModel:
         residuals: Optional[npt.NDArray] = None,
         fcsts: Optional[npt.NDArray] = None,
     ) -> None:
-
         if not isinstance(level, int) or level < 1:
             msg = f"Level should be a positive integer but receive {level}."
             logging.error(msg)
@@ -102,7 +101,6 @@ class GetAggregateTS:
     """
 
     def __init__(self, data: TimeSeriesData) -> None:
-
         if not data.is_univariate():
             msg = f"Only support univariate time series, but get {type(data.value)}."
             logging.error(msg)

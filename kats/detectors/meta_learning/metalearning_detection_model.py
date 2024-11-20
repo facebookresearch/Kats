@@ -64,7 +64,6 @@ def metadata_detect_preprocessor(
     rawdata: pd.DataFrame,
     params_to_scale_down: Set[str] = PARAMS_TO_SCALE_DOWN,
 ) -> List[Dict[str, Any]]:
-
     rawdata["features"] = rawdata["features"].map(change_str_to_dict)
     rawdata["features"] = rawdata["features"].map(change_dtype)
     rawdata["hpt_res"] = rawdata["hpt_res"].map(change_str_to_dict)
