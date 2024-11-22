@@ -534,7 +534,6 @@ class TimeSeriesData:
         return len(self.value)
 
     def __getitem__(
-        # pyre-fixme[24]: Generic type `slice` expects 3 type parameters.
         self,
         # pyre-fixme[24]: Generic type `slice` expects 3 type parameters.
         sliced: Union[str, Iterable, builtins.slice],
