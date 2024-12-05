@@ -41,6 +41,7 @@ PROPHET_YHAT_LOWER_COLUMN = "yhat_lower"
 PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
 HOLIDAY_NAMES_COLUMN_NAME = "holiday"
 HOLIDAY_DATES_COLUMN_NAME = "ds"
+import copy
 import os
 import sys
 
@@ -562,7 +563,9 @@ class ProphetDetectorModel(DetectorModel):
 
         # If not using z-score, set confidence band equal to prediction
         if model.uncertainty_samples == 0:
-            confidence_band = ConfidenceBand(upper=predicted_ts, lower=predicted_ts)
+            confidence_band = ConfidenceBand(
+                upper=copy.deepcopy(predicted_ts), lower=copy.deepcopy(predicted_ts)
+            )
         else:
             confidence_band = ConfidenceBand(
                 upper=TimeSeriesData(
