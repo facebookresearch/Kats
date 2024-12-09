@@ -10,17 +10,20 @@ This module contains code to implement the Prophet algorithm
 as a Detector Model.
 """
 
+import json
 import logging
 from contextlib import ExitStack
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from fbprophet import Prophet
-from fbprophet.make_holidays import make_holidays_df
-from fbprophet.serialize import model_from_json, model_to_json
-
+from fbprophet import Prophet as FbProphet
+from fbprophet.make_holidays import make_holidays_df as make_holidays_df_0
+from fbprophet.serialize import (
+    model_from_json as model_from_json_0,
+    model_to_json as model_to_json_0,
+)
 from kats.consts import (
     DataError,
     DataInsufficientError,
@@ -32,7 +35,16 @@ from kats.consts import (
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from kats.models.prophet import predict
+from prophet import Prophet
+from prophet.make_holidays import make_holidays_df as make_holidays_df_1
+from prophet.serialize import (
+    model_from_json as model_from_json_1,
+    model_to_json as model_to_json_1,
+)
+from pyre_extensions import ParameterSpecification
 from scipy.stats import norm
+
+P = ParameterSpecification("P")
 
 PROPHET_TIME_COLUMN = "ds"
 PROPHET_VALUE_COLUMN = "y"
@@ -160,6 +172,35 @@ class ProphetScoreFunction(Enum):
     z_score = "z_score"
 
 
+class ProphetVersion(Enum):
+    fbprophet = "fbprophet"
+    prophet = "prophet"
+
+    def make_holidays_df(self, *args: P.args, **kwargs: P.kwargs) -> pd.DataFrame:
+        if self == ProphetVersion.fbprophet:
+            return make_holidays_df_0(*args, **kwargs)
+        else:
+            return make_holidays_df_1(*args, **kwargs)
+
+    def model_from_json(self, *args: P.args, **kwargs: P.kwargs) -> FbProphet | Prophet:
+        if self == ProphetVersion.fbprophet:
+            return model_from_json_0(*args, **kwargs)
+        else:
+            return model_from_json_1(*args, **kwargs)
+
+    def model_to_json(self, *args: P.args, **kwargs: P.kwargs) -> str:
+        if self == ProphetVersion.fbprophet:
+            return model_to_json_0(*args, **kwargs)
+        else:
+            return model_to_json_1(*args, **kwargs)
+
+    def create_prophet(self, *args: P.args, **kwargs: P.kwargs) -> FbProphet | Prophet:
+        if self == ProphetVersion.fbprophet:
+            return FbProphet(*args, **kwargs)
+        else:
+            return Prophet(*args, **kwargs)  # pyre-ignore
+
+
 SCORE_FUNC_DICT: Dict[str, Any] = {
     ProphetScoreFunction.deviation_from_predicted_val.value: deviation_from_predicted_val,
     ProphetScoreFunction.z_score.value: z_score,
@@ -283,6 +324,7 @@ def get_holiday_dates(
     holidays: Optional[pd.DataFrame] = None,
     country_holidays: Optional[str] = None,
     dates: Optional[pd.Series] = None,
+    prophet_version: ProphetVersion = ProphetVersion.prophet,
 ) -> pd.Series:
     if dates is None:
         return pd.Series()
@@ -291,7 +333,7 @@ def get_holiday_dates(
     if holidays is not None:
         all_holidays = holidays.copy()
     if country_holidays:
-        country_holidays_df = make_holidays_df(
+        country_holidays_df = prophet_version.make_holidays_df(
             year_list=year_list, country=country_holidays
         )
         all_holidays = pd.concat((all_holidays, country_holidays_df), sort=False)
@@ -299,6 +341,17 @@ def get_holiday_dates(
         pd.Series(list({x.date() for x in pd.to_datetime(all_holidays.ds)}))
     ).sort_values(ignore_index=True)
     return all_holidays
+
+
+def deserialize_model(
+    serialized_model: bytes,
+) -> Tuple[FbProphet | Prophet, ProphetVersion]:
+    model_json = json.loads(serialized_model)
+    if "__fbprophet_version" in model_json:
+        prophet_version = ProphetVersion.fbprophet
+    else:
+        prophet_version = ProphetVersion.prophet
+    return prophet_version.model_from_json(serialized_model), prophet_version
 
 
 class ProphetDetectorModel(DetectorModel):
@@ -320,7 +373,8 @@ class ProphetDetectorModel(DetectorModel):
 
     """
 
-    model: Optional[Prophet] = None
+    model: Optional[FbProphet | Prophet] = None
+    prophet_version: ProphetVersion = ProphetVersion.prophet
     seasonalities: Dict[SeasonalityTypes, Union[bool, str]] = {}
     seasonalities_to_fit: Dict[SeasonalityTypes, Union[bool, str]] = {}
 
@@ -369,7 +423,7 @@ class ProphetDetectorModel(DetectorModel):
         """
 
         if serialized_model:
-            self.model = model_from_json(serialized_model)
+            self.model, self.prophet_version = deserialize_model(serialized_model)
         else:
             self.model = None
 
@@ -411,7 +465,7 @@ class ProphetDetectorModel(DetectorModel):
         Returns:
             json containing information of the model.
         """
-        return str.encode(model_to_json(self.model))
+        return str.encode(self.prophet_version.model_to_json(self.model))
 
     def fit_predict(
         self,
@@ -475,6 +529,7 @@ class ProphetDetectorModel(DetectorModel):
                 self.outlier_threshold,
                 uncertainty_samples=self.outlier_removal_uncertainty_samples,
                 vectorize=self.vectorize,
+                prophet_version=self.prophet_version,
             )
         # seasonalities depends on current time series
         self.seasonalities_to_fit = seasonalities_processing(
@@ -504,7 +559,7 @@ class ProphetDetectorModel(DetectorModel):
             self.holidays = pd.DataFrame(self.holidays_list)
 
         # No incremental training. Create a model and train from scratch
-        model = Prophet(
+        model = self.prophet_version.create_prophet(
             interval_width=self.scoring_confidence_interval,
             uncertainty_samples=self.uncertainty_samples,
             daily_seasonality=self.seasonalities_to_fit[SeasonalityTypes.DAY],
@@ -596,7 +651,7 @@ class ProphetDetectorModel(DetectorModel):
                 pd.DataFrame(self.holidays_list) if self.holidays_list else None
             )
             holidays_df: Optional[pd.Series] = get_holiday_dates(
-                custom_holidays, self.country_holidays, data.time
+                custom_holidays, self.country_holidays, data.time, self.prophet_version
             )
             if holidays_df is not None:
                 scores_ts = pd.Series(list(scores.value), index=data.time)
@@ -624,6 +679,7 @@ class ProphetDetectorModel(DetectorModel):
         outlier_ci_threshold: float = 0.99,
         uncertainty_samples: float = OUTLIER_REMOVAL_UNCERTAINTY_SAMPLES,
         vectorize: bool = False,
+        prophet_version: ProphetVersion = ProphetVersion.prophet,
     ) -> pd.DataFrame:
         """
         Remove outliers from the time series by fitting a Prophet model to the time series
@@ -633,7 +689,7 @@ class ProphetDetectorModel(DetectorModel):
 
         ts_dates_df = pd.DataFrame({PROPHET_TIME_COLUMN: ts_df.iloc[:, 0]})
 
-        model = Prophet(
+        model = prophet_version.create_prophet(
             interval_width=outlier_ci_threshold, uncertainty_samples=uncertainty_samples
         )
         with ExitStack() as stack:
@@ -655,7 +711,8 @@ class ProphetDetectorModel(DetectorModel):
 class ProphetTrendDetectorModel(DetectorModel):
     """Prophet based trend detection model."""
 
-    model: Optional[Prophet] = None
+    model: Optional[FbProphet | Prophet] = None
+    prophet_version: ProphetVersion = ProphetVersion.prophet
 
     def __init__(
         self,
@@ -665,7 +722,7 @@ class ProphetTrendDetectorModel(DetectorModel):
         changepoint_prior_scale: float = 0.01,
     ) -> None:
         if serialized_model:
-            self.model = model_from_json(serialized_model)
+            self.model, self.prophet_version = deserialize_model(serialized_model)
         else:
             self.model = None
 
@@ -681,7 +738,7 @@ class ProphetTrendDetectorModel(DetectorModel):
         Returns:
             json containing information of the model.
         """
-        return str.encode(model_to_json(self.model))
+        return str.encode(self.prophet_version.model_to_json(self.model))
 
     def _zeros_ts(self, data: pd.DataFrame) -> TimeSeriesData:
         return TimeSeriesData(
@@ -698,7 +755,7 @@ class ProphetTrendDetectorModel(DetectorModel):
         historical_data: Optional[TimeSeriesData] = None,
         **kwargs: Any,
     ) -> AnomalyResponse:
-        model = Prophet(
+        model = self.prophet_version.create_prophet(
             changepoint_range=self.changepoint_range,
             weekly_seasonality=self.weekly_seasonality,
             changepoint_prior_scale=self.changepoint_prior_scale,

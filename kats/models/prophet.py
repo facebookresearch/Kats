@@ -11,12 +11,15 @@ from typing import Any, cast, Dict, List, Optional, Tuple, Union
 import pandas as pd
 
 try:
-    from fbprophet import Prophet
+    # Prophet is an optional dependency for kats.
+    from fbprophet import Prophet as FbProphet
+    from prophet import Prophet
 
     _no_prophet = False
 except ImportError:
     _no_prophet = True
     Prophet = Dict[str, Any]  # for Pyre
+    FbProphet = Dict[str, Any]  # for Pyre
 
 import numpy as np
 import numpy.typing as npt
@@ -309,9 +312,18 @@ class ProphetModel(Model[ProphetParams]):
     ) -> pd.DataFrame:
         non_future = future is None
         if future is None:
+            # Prophet removes nulls from the data. If we encounter nulls in the
+            # end of the time series, Prophet won't have that in its history and
+            # we won't generate enough steps.
+            count_trailing_nulls = 0
+            nulls = self.data.value.isnull()
+            while nulls.iloc[-1 - count_trailing_nulls]:
+                count_trailing_nulls += 1
             # pyre-fixme
             future = self.model.make_future_dataframe(
-                periods=steps, freq=self.freq, include_history=self.include_history
+                periods=steps + count_trailing_nulls,
+                freq=self.freq,
+                include_history=self.include_history,
             )
         if "ds" not in future.columns:
             msg = "`future` should be specified and `future` should contain a column named 'ds' representing the timestamps."
@@ -346,7 +358,9 @@ class ProphetModel(Model[ProphetParams]):
             else:
                 future = future[future.ds > self.data.time.max()]
 
-            reqd_length = steps + int(len(self.data) * self.include_history)
+            reqd_length = steps + int(
+                self.data.value.notnull().sum() * self.include_history
+            )
             if len(future) < reqd_length:
                 msg = f"Input `future` is not long enough to generate forecasts of {steps} steps."
                 _error_msg(msg)
@@ -503,7 +517,7 @@ class ProphetModel(Model[ProphetParams]):
 
 # From now on, the main logics are from github PR https://github.com/facebook/prophet/pull/2186 with some modifications.
 def predict_uncertainty(
-    prophet_model: Prophet, df: pd.DataFrame, vectorized: bool
+    prophet_model: Prophet | FbProphet, df: pd.DataFrame, vectorized: bool
 ) -> pd.DataFrame:
     """Prediction intervals for yhat and trend.
 
@@ -534,7 +548,10 @@ def predict_uncertainty(
 
 
 def _sample_predictive_trend_vectorized(
-    prophet_model: Prophet, df: pd.DataFrame, n_samples: int, iteration: int = 0
+    prophet_model: Prophet | FbProphet,
+    df: pd.DataFrame,
+    n_samples: int,
+    iteration: int = 0,
 ) -> npt.NDArray:
     """Sample draws of the future trend values. Vectorized version of sample_predictive_trend().
 
@@ -577,7 +594,7 @@ def _sample_predictive_trend_vectorized(
 
 
 def _sample_trend_uncertainty(
-    prophet_model: Prophet,
+    prophet_model: Prophet | FbProphet,
     n_samples: int,
     df: pd.DataFrame,
     iteration: int = 0,
@@ -666,7 +683,7 @@ def _make_trend_shift_matrix(
 
 
 def predict(
-    prophet_model: Prophet,
+    prophet_model: Prophet | FbProphet,
     df: Optional[pd.DataFrame] = None,
     vectorized: bool = False,
 ) -> pd.DataFrame:
@@ -713,7 +730,7 @@ def predict(
 
 
 def sample_model_vectorized(
-    prophet_model: Prophet,
+    prophet_model: Prophet | FbProphet,
     df: pd.DataFrame,
     seasonal_features: pd.DataFrame,
     iteration: int,
@@ -744,7 +761,7 @@ def sample_model_vectorized(
 
 
 def sample_posterior_predictive(
-    prophet_model: Prophet, df: pd.DataFrame, vectorized: bool
+    prophet_model: Prophet | FbProphet, df: pd.DataFrame, vectorized: bool
 ) -> Dict[str, npt.NDArray]:
     """Generate posterior samples of a trained Prophet model.
 
@@ -819,7 +836,7 @@ def _make_historical_mat_time(
 
 
 def _logistic_uncertainty(
-    prophet_model: Prophet,
+    prophet_model: Prophet | FbProphet,
     mat: npt.NDArray,
     deltas: npt.NDArray,
     k: float,
@@ -888,7 +905,10 @@ def _piecewise_linear_vectorize(
 
 
 def sample_linear_predictive_trend_vectorize(
-    prophet_model: Prophet, df: pd.DataFrame, sample_size: int, iteration: int
+    prophet_model: Prophet | FbProphet,
+    df: pd.DataFrame,
+    sample_size: int,
+    iteration: int,
 ) -> npt.NDArray:
     """
     Vectorize funtion for generating trend sample when `growth` = 'linear'.
