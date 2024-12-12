@@ -3,7 +3,7 @@ deprecated>=1.2.12
 importlib_metadata; python_version < '3.8'
 holidays<=0.57
 matplotlib>=2.0.0
-numpy>=1.21,<1.22
+numpy>=1.21
 pandas>=1.0.4,<=1.3.5
 packaging<22
 python-dateutil>=2.8.0
