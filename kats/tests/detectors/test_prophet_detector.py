@@ -13,17 +13,14 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from fbprophet import Prophet as FbProphet  # @manual
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.detectors.prophet_detector import (
-    deserialize_model,
     get_holiday_dates,
     ProphetDetectorModel,
     ProphetScoreFunction,
     ProphetTrendDetectorModel,
-    ProphetVersion,
     SeasonalityTypes,
     to_seasonality,
 )
@@ -960,67 +957,13 @@ class TestProphetDetector(TestCase):
             response2.scores.value[test_index], response1.scores.value[test_index]
         )
 
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
-    @parameterized.expand(
-        [
-            [FbProphet, ProphetVersion.fbprophet],
-            [Prophet, ProphetVersion.prophet],
-        ]
-    )
-    def test_deserialize_model(
-        self,
-        prophet_cls: Type[FbProphet | Prophet],
-        prophet_version: ProphetVersion,
-    ) -> None:
+    def test_serialized_prophet_version_key(self) -> None:
         ts = self.create_random_ts(0, 100, 10, 2)
-        ProphetDetectorModel.prophet_version = prophet_version
-        detector_model = ProphetDetectorModel()
-        detector_model.fit(ts[:90])
-        self.assertIsInstance(detector_model.model, prophet_cls)
-        serialized_model = detector_model.serialize()
-        deserialized_model, deserialized_prophet_version = deserialize_model(
-            serialized_model
-        )
-        self.assertEqual(deserialized_prophet_version, prophet_version)
-        self.assertIsInstance(deserialized_model, prophet_cls)
-        deserialized_detector_model = ProphetDetectorModel(
-            serialized_model=serialized_model
-        )
-        self.assertIsInstance(deserialized_detector_model.model, prophet_cls)
-        anomaly_response_original = detector_model.predict(ts[90:])
-        anomaly_response_deserialized = deserialized_detector_model.predict(ts[90:])
-        np.testing.assert_almost_equal(
-            anomaly_response_original.scores.value.to_numpy(),
-            anomaly_response_deserialized.scores.value.to_numpy(),
-        )
-        original_predicted_ts = anomaly_response_original.predicted_ts
-        assert original_predicted_ts is not None  # for pyre
-        deserialized_predicted_ts = anomaly_response_deserialized.predicted_ts
-        assert deserialized_predicted_ts is not None  # for pyre
-        np.testing.assert_almost_equal(
-            original_predicted_ts.value.to_numpy(),
-            deserialized_predicted_ts.value.to_numpy(),
-        )
-
-    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
-    @parameterized.expand(
-        [
-            [ProphetVersion.fbprophet, "__fbprophet_version"],
-            [ProphetVersion.prophet, "__prophet_version"],
-        ]
-    )
-    def test_serialized_prophet_version_key(
-        self,
-        prophet_version: ProphetVersion,
-        prophet_version_key: str,
-    ) -> None:
-        ts = self.create_random_ts(0, 100, 10, 2)
-        ProphetDetectorModel.prophet_version = prophet_version
         detector_model = ProphetDetectorModel()
         detector_model.fit(ts[:90])
         serialized_model = detector_model.serialize()
         model_json = json.loads(serialized_model)
-        self.assertIn(prophet_version_key, model_json)
+        self.assertIn("__prophet_version", model_json)
 
 
 class TestProphetTrendDetectorModel(TestCase):

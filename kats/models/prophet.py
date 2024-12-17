@@ -12,14 +12,12 @@ import pandas as pd
 
 try:
     # Prophet is an optional dependency for kats.
-    from fbprophet import Prophet as FbProphet
     from prophet import Prophet
 
     _no_prophet = False
 except ImportError:
     _no_prophet = True
     Prophet = Dict[str, Any]  # for Pyre
-    FbProphet = Dict[str, Any]  # for Pyre
 
 import numpy as np
 import numpy.typing as npt
@@ -138,7 +136,7 @@ class ProphetParams(Params):
         extra_regressors: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         if _no_prophet:
-            raise RuntimeError("requires fbprophet to be installed")
+            raise RuntimeError("requires prophet to be installed")
         super().__init__()
         self.growth = growth
         self.changepoints = changepoints
@@ -252,7 +250,7 @@ class ProphetModel(Model[ProphetParams]):
     def __init__(self, data: TimeSeriesData, params: ProphetParams) -> None:
         super().__init__(data, params)
         if _no_prophet:
-            raise RuntimeError("requires fbprophet to be installed")
+            raise RuntimeError("requires prophet to be installed")
         self.data: TimeSeriesData = data
         self._data_params_validation()
 
@@ -517,7 +515,7 @@ class ProphetModel(Model[ProphetParams]):
 
 # From now on, the main logics are from github PR https://github.com/facebook/prophet/pull/2186 with some modifications.
 def predict_uncertainty(
-    prophet_model: Prophet | FbProphet, df: pd.DataFrame, vectorized: bool
+    prophet_model: Prophet, df: pd.DataFrame, vectorized: bool
 ) -> pd.DataFrame:
     """Prediction intervals for yhat and trend.
 
@@ -548,7 +546,7 @@ def predict_uncertainty(
 
 
 def _sample_predictive_trend_vectorized(
-    prophet_model: Prophet | FbProphet,
+    prophet_model: Prophet,
     df: pd.DataFrame,
     n_samples: int,
     iteration: int = 0,
@@ -594,7 +592,7 @@ def _sample_predictive_trend_vectorized(
 
 
 def _sample_trend_uncertainty(
-    prophet_model: Prophet | FbProphet,
+    prophet_model: Prophet,
     n_samples: int,
     df: pd.DataFrame,
     iteration: int = 0,
@@ -683,7 +681,7 @@ def _make_trend_shift_matrix(
 
 
 def predict(
-    prophet_model: Prophet | FbProphet,
+    prophet_model: Prophet,
     df: Optional[pd.DataFrame] = None,
     vectorized: bool = False,
 ) -> pd.DataFrame:
@@ -730,7 +728,7 @@ def predict(
 
 
 def sample_model_vectorized(
-    prophet_model: Prophet | FbProphet,
+    prophet_model: Prophet,
     df: pd.DataFrame,
     seasonal_features: pd.DataFrame,
     iteration: int,
@@ -761,7 +759,7 @@ def sample_model_vectorized(
 
 
 def sample_posterior_predictive(
-    prophet_model: Prophet | FbProphet, df: pd.DataFrame, vectorized: bool
+    prophet_model: Prophet, df: pd.DataFrame, vectorized: bool
 ) -> Dict[str, npt.NDArray]:
     """Generate posterior samples of a trained Prophet model.
 
@@ -836,7 +834,7 @@ def _make_historical_mat_time(
 
 
 def _logistic_uncertainty(
-    prophet_model: Prophet | FbProphet,
+    prophet_model: Prophet,
     mat: npt.NDArray,
     deltas: npt.NDArray,
     k: float,
@@ -905,7 +903,7 @@ def _piecewise_linear_vectorize(
 
 
 def sample_linear_predictive_trend_vectorize(
-    prophet_model: Prophet | FbProphet,
+    prophet_model: Prophet,
     df: pd.DataFrame,
     sample_size: int,
     iteration: int,

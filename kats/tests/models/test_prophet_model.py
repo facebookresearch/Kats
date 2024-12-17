@@ -116,7 +116,7 @@ class ProphetModelTest(TestCase):
 
         cls.mock_imports = patch("builtins.__import__", side_effect=mock_prophet_import)
 
-    def test_fbprophet_not_installed(self) -> None:
+    def test_prophet_not_installed(self) -> None:
         # Unload prophet module so its imports can be mocked as necessary
         del sys.modules["kats.models.prophet"]
 
