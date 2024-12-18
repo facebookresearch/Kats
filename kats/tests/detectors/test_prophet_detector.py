@@ -494,6 +494,41 @@ class TestProphetDetector(TestCase):
             "Expected removing outliers when training model to lower prediction RMSE",
         )
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    @parameterized.expand([[0.01], [1.0], [1000000.0]])
+    def test_irregular_data_intervals(self, data_multiplier: float) -> None:
+        irregular_ts = TimeSeriesData(
+            time=pd.DatetimeIndex(
+                [
+                    pd.Timestamp("2024-12-02 15:00:00"),
+                    pd.Timestamp("2024-12-02 16:00:00"),
+                    pd.Timestamp("2024-12-02 17:00:00"),
+                    pd.Timestamp("2024-12-04 21:10:00"),
+                    pd.Timestamp("2024-12-04 21:30:00"),
+                    pd.Timestamp("2024-12-08 23:30:00"),
+                    pd.Timestamp("2024-12-09 00:10:00"),
+                    pd.Timestamp("2024-12-09 00:40:00"),
+                ]
+            ),
+            value=pd.Series(
+                [
+                    3.5,
+                    3.9,
+                    4.1,
+                    5.1,
+                    5.2,
+                    4.4,
+                    4.0,
+                    3.7,
+                ]
+            )
+            * data_multiplier,
+        )
+
+        model = ProphetDetectorModel(remove_outliers=True)
+        with self.assertRaises(ValueError):
+            model.fit(irregular_ts)
+
     def test_default_score_func(self) -> None:
         """Test that 'deviation_from_predicted_val' is used by default
 
