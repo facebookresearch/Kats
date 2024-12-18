@@ -526,8 +526,8 @@ class TestProphetDetector(TestCase):
         )
 
         model = ProphetDetectorModel(remove_outliers=True)
-        with self.assertRaises(ValueError):
-            model.fit(irregular_ts)
+        model.fit(irregular_ts)
+        # No ValueError raised
 
     def test_default_score_func(self) -> None:
         """Test that 'deviation_from_predicted_val' is used by default

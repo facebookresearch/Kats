@@ -473,12 +473,19 @@ class ProphetDetectorModel(DetectorModel):
         data_df = timeseries_to_prophet_df(total_data)
 
         if self.remove_outliers:
-            data_df = self._remove_outliers(
+            updated_data_df = self._remove_outliers(
                 data_df,
                 self.outlier_threshold,
                 uncertainty_samples=self.outlier_removal_uncertainty_samples,
                 vectorize=self.vectorize,
             )
+            if len(updated_data_df) < 2:
+                logging.warning(
+                    f"Outlier removal left {len(updated_data_df)} out of"
+                    f" {len(data_df)} data points. Reverting to use all data."
+                )
+            else:
+                data_df = updated_data_df
         # seasonalities depends on current time series
         self.seasonalities_to_fit = seasonalities_processing(
             data_df[PROPHET_TIME_COLUMN], self.seasonalities
