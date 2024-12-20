@@ -134,7 +134,9 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
         output_scores_df = self.model.anomaly_score_df
 
         assert output_scores_df is not None
-        output_scores_df = output_scores_df[output_scores_df.index >= data.time.min()]
+        output_scores_df = output_scores_df[
+            output_scores_df.index.to_series().ge(data.time.min())
+        ]
 
         zeros = np.zeros(shape=(data.time.shape[0], output_scores_df.shape[1]))
         padding = np.empty(

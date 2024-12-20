@@ -191,7 +191,7 @@ class MultivariateAnomalyDetector(Detector):
 
         time_diff = data.time.sort_values().diff().dropna()
         if len(time_diff.unique()) == 1:  # check constant frequenccy
-            freq = time_diff.unique()[0].astype("int")
+            freq = time_diff.unique().astype("int")[0]
             self.granularity_days: float = freq / (24 * 3600 * (10**9))
         else:
             raise RuntimeError(
@@ -342,7 +342,9 @@ class MultivariateAnomalyDetector(Detector):
             anomaly_scores_t = pd.DataFrame(
                 anomaly_scores_t, index=[fcstTime], copy=False
             )
-            anomaly_score_df = anomaly_score_df.append(anomaly_scores_t)
+            anomaly_score_df = pd.concat(
+                [anomaly_score_df, anomaly_scores_t], axis=0, ignore_index=False
+            )
 
         self.anomaly_score_df = anomaly_score_df
         return anomaly_score_df

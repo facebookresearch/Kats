@@ -973,7 +973,7 @@ class CUSUMDetectorModel(DetectorModel):
 
         multi_ts_val_df = pd.DataFrame(multi_ts_val).T
 
-        multi_ts_df = pd.concat([multi_ts_time_df, multi_ts_val_df], 1)
+        multi_ts_df = pd.concat([multi_ts_time_df, multi_ts_val_df], axis=1)
         df_names = ["val_" + str(i) for i in range(multi_ts_val_df.shape[1])]
         multi_ts_df.columns = ["time"] + df_names
 
