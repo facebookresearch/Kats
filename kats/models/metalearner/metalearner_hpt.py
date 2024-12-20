@@ -260,7 +260,7 @@ class MetaLearnHPT:
             )
             # pyre-fixme[4]: Attribute must be annotated.
             self._dim_output_num = (
-                self._target_num.shape[1] if self.numerical_idx else 0
+                self._target_num.shape[1] if self._target_num is not None else 0
             )
             self._get_target_cat()
             self._validate_data()

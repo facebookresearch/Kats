@@ -442,7 +442,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
                     [Y_curr, look_ahead_pred[:, np.newaxis]], axis=1
                 )
 
-            times += ahead_times
+            times += list(ahead_times)
 
         forecast_length = len(times)
 
