@@ -10,11 +10,13 @@ This module contains code to implement the Prophet algorithm
 as a Detector Model.
 """
 
-import json
+import copy
 import logging
+import os
+import sys
 from contextlib import ExitStack
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -36,7 +38,6 @@ from pyre_extensions import ParameterSpecification
 from scipy.stats import norm
 
 P = ParameterSpecification("P")
-
 PROPHET_TIME_COLUMN = "ds"
 PROPHET_VALUE_COLUMN = "y"
 PROPHET_YHAT_COLUMN = "yhat"
@@ -44,11 +45,10 @@ PROPHET_YHAT_LOWER_COLUMN = "yhat_lower"
 PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
 HOLIDAY_NAMES_COLUMN_NAME = "holiday"
 HOLIDAY_DATES_COLUMN_NAME = "ds"
-import copy
-import os
-import sys
-
 NOT_SUPPRESS_PROPHET_FIT_LOGS_VAR_NAME = "NOT_SUPPRESS_PROPHET_FIT_LOGS"
+# When less than 2 data points are left after outlier removal, Prophet will not
+# be able to fit the model.
+MIN_SAMPLES_REQUIRED_AFTER_OUTLIER_REMOVAL = 2
 
 
 # this is a bug in prophet which was discussed in open source thread
@@ -479,10 +479,11 @@ class ProphetDetectorModel(DetectorModel):
                 uncertainty_samples=self.outlier_removal_uncertainty_samples,
                 vectorize=self.vectorize,
             )
-            if len(updated_data_df) < 2:
+            if len(updated_data_df) < MIN_SAMPLES_REQUIRED_AFTER_OUTLIER_REMOVAL:
                 logging.warning(
-                    f"Outlier removal left {len(updated_data_df)} out of"
-                    f" {len(data_df)} data points. Reverting to use all data."
+                    f"Outlier removal left {len(updated_data_df)} which is"
+                    f" less than {MIN_SAMPLES_REQUIRED_AFTER_OUTLIER_REMOVAL}. Reverting"
+                    " to use all data."
                 )
             else:
                 data_df = updated_data_df
