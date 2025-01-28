@@ -567,6 +567,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
         interval_padding: int = 30,
         interval_units: str = "m",
         r_tol: float = 0.1,
+        mask_scores: bool = False,
         **kwargs: Any,
     ) -> AnomalyResponse:
         """Fit and predict on a Interval based AB test on time series data.
@@ -594,10 +595,11 @@ class IntervalDetectorModel(DetectorModel, ABC):
             r_tol: Relative tolerance used for automatic assignment to duration property.
                 If duration is `None`, then a value is automatically assigned such that
                 alpha is corrected to be no greater than alpha * (1 + r_tol).
+            mask_scores: If True the returned scores will be masked by applying them to the critical value
 
         Returns:
             The results of the Interval based AB test. Including:
-                - scores: Raw test statistic.
+                - scores: Raw test statistic, or mask of test statistic applied to critical value.
                 - predicted_ts: Boolean array of predictions that are formed from contiguous intervals.
                 - stat_sig: Statistical significance of `scores`.
                 - upper: Upper limit in the (1 - alpha) confidence interval.
@@ -657,10 +659,13 @@ class IntervalDetectorModel(DetectorModel, ABC):
         _stat_sig: pd.Series = self.test_result.stat_sig
         _upper: pd.Series = self.test_result.upper
         _lower: pd.Series = self.test_result.lower
+        scores = (
+            pd.Series(self._get_test_decision(ABIntervalType.REJECT))
+            if mask_scores
+            else self.test_result.test_statistic
+        )
         return AnomalyResponse(
-            scores=TimeSeriesData(
-                time=_data.time, value=self.test_result.test_statistic
-            ),
+            scores=TimeSeriesData(time=_data.time, value=scores),
             confidence_band=ConfidenceBand(
                 upper=TimeSeriesData(
                     time=_data.time,

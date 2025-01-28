@@ -7,7 +7,7 @@
 
 from datetime import datetime, timedelta
 from operator import attrgetter
-from typing import List, Tuple, Type, Union
+from typing import cast, List, Tuple, Type, Union
 from unittest import TestCase
 
 import numpy as np
@@ -16,6 +16,7 @@ import pandas as pd
 
 from kats.consts import TimeSeriesData
 from kats.detectors.interval_detector import (
+    ABInterval,
     ar_1,
     IntervalDetectorModel,
     OneSampleProportionIntervalDetectorModel,
@@ -400,6 +401,44 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
         assert np.isclose(_stat_sig_ts.value.iloc[10:15].values, 0.0).all()
         assert _predicted_ds.value.iloc[40:45].all()
         assert np.isclose(_stat_sig_ts.value.iloc[40:45].values, 0.0).all()
+
+    def test_mask_scores(self) -> None:
+        """
+        Test consecutively positive masked scores exceeding the given duration
+        count are equivalent to anomaly intervals
+        """
+        detector = TwoSampleProportionIntervalDetectorModel(
+            serialized_model=_SERIALIZED
+        )
+        duration = 5
+        detector.duration = duration
+
+        df = self.df.copy()
+        # not considered an anomaly. duration is not satisfied.
+        df.value_b.iloc[10 : 10 + duration - 1] = 1.0
+        # considered an anomaly.
+        df.value_b.iloc[40 : 40 + duration] = 1.0
+
+        anomaly_response = detector.fit_predict(TimeSeriesData(df), mask_scores=True)
+
+        anomaly_intervals = [
+            (interval.start_idx, interval.end_idx)
+            for interval in detector.anomaly_intervals
+        ]
+        reproduced_intervals = []
+        previous_score = False
+        start_index = -1
+        for i, score in enumerate(anomaly_response.scores.value):
+            if (
+                score is False
+                and previous_score is True
+                and i - start_index >= duration
+            ):
+                reproduced_intervals.append((start_index, i - 1))
+            elif score is True and previous_score is False:
+                start_index = i
+            previous_score = score
+        assert anomaly_intervals == reproduced_intervals
 
     def test_duration(self) -> None:
         """E2E test of the duration parameter."""
