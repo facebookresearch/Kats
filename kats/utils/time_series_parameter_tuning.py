@@ -40,10 +40,10 @@ from ax.core.objective import Objective
 from ax.core.outcome_constraint import OutcomeConstraint
 from ax.core.trial import BaseTrial
 from ax.global_stopping.strategies.improvement import ImprovementGlobalStoppingStrategy
-from ax.modelbridge.base import ModelBridge
-from ax.modelbridge.discrete import DiscreteModelBridge
+from ax.modelbridge.base import Adapter
+from ax.modelbridge.discrete import DiscreteAdapter
 from ax.modelbridge.dispatch_utils import choose_generation_strategy
-from ax.modelbridge.registry import Models
+from ax.modelbridge.registry import Generators
 from ax.runners.synthetic import SyntheticRunner
 from ax.service.scheduler import Scheduler, SchedulerOptions
 from ax.service.utils.instantiation import InstantiationBase
@@ -424,7 +424,7 @@ class TimeSeriesParameterTuning(ABC):
         self,
         # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
         evaluation_function: Callable,
-        generator_run: DiscreteModelBridge,
+        generator_run: DiscreteAdapter,
     ) -> None:
         """Creates a new batch trial then runs the lastest.
 
@@ -465,7 +465,7 @@ class TimeSeriesParameterTuning(ABC):
         )
 
         # pyre-fixme[6]: Expected `Optional[GeneratorRun]` for 1st param but got
-        #  `DiscreteModelBridge`.
+        #  `DiscreteAdapter`.
         self._exp.new_batch_trial(generator_run=generator_run)
         # We run the most recent batch trial as we only run candidate trials
         self._exp.trials[max(self._exp.trials)].run()
@@ -763,7 +763,7 @@ class GridSearch(TimeSeriesParameterTuning):
             multiprocessing,
         )
         # pyre-fixme[4]: Attribute must be annotated.
-        self._factorial = Models.FACTORIAL(
+        self._factorial = Generators.FACTORIAL(
             search_space=self.get_search_space(), check_cardinality=False
         )
         self.logger.info("A factorial model for arm generation is created.")
@@ -844,11 +844,11 @@ class RandomSearch(TimeSeriesParameterTuning):
         self.logger.info("Seed that is used in random search: {seed}".format(seed=seed))
         if random_strategy == SearchMethodEnum.RANDOM_SEARCH_UNIFORM:
             # pyre-fixme[4]: Attribute must be annotated.
-            self._random_strategy_model = Models.UNIFORM(
+            self._random_strategy_model = Generators.UNIFORM(
                 search_space=self.get_search_space(), deduplicate=True, seed=seed
             )
         elif random_strategy == SearchMethodEnum.RANDOM_SEARCH_SOBOL:
-            self._random_strategy_model = Models.SOBOL(
+            self._random_strategy_model = Generators.SOBOL(
                 search_space=self.get_search_space(), deduplicate=True, seed=seed
             )
         else:
@@ -928,7 +928,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
 
     """
 
-    _bayes_opt_model: Optional[ModelBridge] = None
+    _bayes_opt_model: Optional[Adapter] = None
 
     def __init__(
         self,
@@ -965,11 +965,11 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         self.logger.info("Seed that is used in random search: {seed}".format(seed=seed))
         if random_strategy == SearchMethodEnum.RANDOM_SEARCH_UNIFORM:
             # pyre-fixme[4]: Attribute must be annotated.
-            self._random_strategy_model = Models.UNIFORM(
+            self._random_strategy_model = Generators.UNIFORM(
                 search_space=self.get_search_space(), deduplicate=True, seed=seed
             )
         elif random_strategy == SearchMethodEnum.RANDOM_SEARCH_SOBOL:
-            self._random_strategy_model = Models.SOBOL(
+            self._random_strategy_model = Generators.SOBOL(
                 search_space=self.get_search_space(), deduplicate=True, seed=seed
             )
         else:
@@ -1020,14 +1020,14 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             )
             return
         assert evaluation_function
-        self._bayes_opt_model = Models.BOTORCH_MODULAR(
+        self._bayes_opt_model = Generators.BOTORCH_MODULAR(
             experiment=self._exp,
             data=self._trial_data,
         )
         model_run = self._bayes_opt_model.gen(n=arm_count)
         self.generator_run_for_search_method(
             evaluation_function=evaluation_function,
-            # pyre-fixme[6]: Expected `DiscreteModelBridge` for 2nd param but got
+            # pyre-fixme[6]: Expected `DiscreteAdapter` for 2nd param but got
             #  `GeneratorRun`.
             generator_run=model_run,
         )

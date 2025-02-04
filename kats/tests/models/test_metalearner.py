@@ -15,7 +15,7 @@ from unittest.mock import patch
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from ax.modelbridge.registry import Models, SearchSpace
+from ax.modelbridge.registry import Generators, SearchSpace
 from ax.service.utils.instantiation import InstantiationBase
 from kats.consts import TimeSeriesData
 from kats.models.arima import ARIMAModel
@@ -101,7 +101,7 @@ def generate_meta_data(n):
     res = np.abs(np.random.uniform(0, 1.0, n * m)).reshape(n, -1)
     features = np.random.randn(n * num_features).reshape(n, -1)
     generators = {
-        m: Models.UNIFORM(
+        m: Generators.UNIFORM(
             SearchSpace(
                 [InstantiationBase.parameter_from_json(item) for item in space]
             ),
@@ -136,7 +136,7 @@ def generate_meta_data_by_model(model, n, d=num_features):
     if model in base_models:
         model = base_models[model]
     space = model.get_parameter_search_space()
-    generator = Models.UNIFORM(
+    generator = Generators.UNIFORM(
         SearchSpace([InstantiationBase.parameter_from_json(item) for item in space]),
         deduplicate=False,
     )
