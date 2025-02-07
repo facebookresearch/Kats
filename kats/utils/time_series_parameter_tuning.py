@@ -39,10 +39,10 @@ from ax.core.metric import Metric, MetricFetchE, MetricFetchResult
 from ax.core.objective import Objective
 from ax.core.outcome_constraint import OutcomeConstraint
 from ax.core.trial import BaseTrial
+from ax.generation_strategy.dispatch_utils import choose_generation_strategy
 from ax.global_stopping.strategies.improvement import ImprovementGlobalStoppingStrategy
 from ax.modelbridge.base import Adapter
 from ax.modelbridge.discrete import DiscreteAdapter
-from ax.modelbridge.dispatch_utils import choose_generation_strategy
 from ax.modelbridge.registry import Generators
 from ax.runners.synthetic import SyntheticRunner
 from ax.service.scheduler import Scheduler, SchedulerOptions
