@@ -24,6 +24,7 @@ with warnings.catch_warnings():
     from statsmodels.distributions.empirical_distribution import ECDF
 
 # from numpy.typing import ArrayLike
+# pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
 ArrayLike = Union[np.ndarray, Sequence[float]]
 
 
@@ -637,6 +638,7 @@ def symmetric_bias(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     Returns:
         The the symmetric bias (sbias) value.
     """
+    # pyre-fixme[58]: `*` is not supported for operand types `int` and `floating[Any]`.
     return -2 * np.nanmean(
         _safe_divide(error(y_true, y_pred), np.abs(y_true) + np.abs(y_pred))
     )

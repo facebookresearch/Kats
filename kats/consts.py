@@ -326,6 +326,7 @@ class TimeSeriesData:
             self._set_univariate_values_to_series()
             # Set time col name
             if time.name:
+                # pyre-fixme[8]: Attribute has type `str`; used as `Hashable`.
                 self.time_col_name = time.name
             else:
                 self._time.rename(DEFAULT_TIME_NAME, inplace=True)
@@ -594,6 +595,7 @@ class TimeSeriesData:
                 try:
                     if tz:
                         return (
+                            # pyre-fixme[16]: `Timestamp` has no attribute `to_series`.
                             pd.to_datetime(
                                 series.values,
                                 unit=unix_time_units,
@@ -625,7 +627,13 @@ class TimeSeriesData:
                                 series.values, format=date_format, cache=cache_datetimes
                             )
                             .tz_localize(
-                                tz, ambiguous=tz_ambiguous, nonexistent=tz_nonexistent
+                                # pyre-fixme[6]: For 2nd argument expected `str` but
+                                #  got `Union[ndarray[Any, dtype[Any]], str]`.
+                                tz,
+                                # pyre-fixme[6]: For 2nd argument expected `str` but
+                                #  got `Union[ndarray[Any, dtype[Any]], str]`.
+                                ambiguous=tz_ambiguous,
+                                nonexistent=tz_nonexistent,
                             )
                             .to_series()
                             .reset_index(drop=True)
@@ -765,6 +773,7 @@ class TimeSeriesData:
           :class:`TimeSeriesData`.
         """
 
+        # pyre-fixme[6]: For 1st argument expected `None` but got `Optional[str]`.
         return pd.Timedelta(to_offset(pd.infer_freq(self.time_to_index())))
 
     def tz(
@@ -1148,6 +1157,12 @@ class TimeSeriesData:
             self.time = (
                 # pyre-ignore
                 pd.DatetimeIndex(self.time)
+                # pyre-fixme[6]: For 2nd argument expected `Union[Literal['NaT'],
+                #  Literal['infer'], Literal['raise'], ndarray[Any, dtype[Any]]]` but
+                #  got `Union[ndarray[Any, dtype[Any]], str]`.
+                # pyre-fixme[6]: For 3rd argument expected `Union[Literal['NaT'],
+                #  Literal['raise'], Literal['shift_backward'],
+                #  Literal['shift_forward'], timedelta]` but got `str`.
                 .tz_localize(tz, ambiguous=tz_ambiguous, nonexistent=tz_nonexistent)
                 .to_series()
                 .reset_index(drop=True)
@@ -1254,6 +1269,9 @@ class IntervalAnomaly:
 
     @property
     def second_len(self) -> int:
+        # pyre-fixme[7]: Expected `int` but got `floating[_64Bit]`.
+        # pyre-fixme[58]: `/` is not supported for operand types `Timedelta` and
+        #  `timedelta64`.
         return (self.end - self.start) / np.timedelta64(1, "s")
 
 

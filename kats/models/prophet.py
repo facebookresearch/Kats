@@ -744,6 +744,7 @@ def sample_model_vectorized(
     # Get the seasonality and regressor components, which are deterministic per iteration
     beta = prophet_model.params["beta"][iteration]
     Xb_a = (
+        # pyre-fixme[16]: `ndarray` has no attribute `values`.
         np.matmul(seasonal_features.values, beta * s_a.values) * prophet_model.y_scale
     )
     Xb_m = np.matmul(seasonal_features.values, beta * s_m.values)
@@ -808,9 +809,13 @@ def sample_posterior_predictive(
             ]
             for key in sim_values:
                 for sim in sims:
+                    # pyre-fixme[16]: `ndarray` has no attribute `values`.
                     sim_values[key].append(sim[key].values)
     for k, v in sim_values.items():
+        # pyre-fixme[6]: For 2nd argument expected `List[Any]` but got `ndarray[Any,
+        #  dtype[Any]]`.
         sim_values[k] = np.row_stack(v)
+    # pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
     return cast(Dict[str, np.ndarray], sim_values)
 
 
@@ -923,6 +928,7 @@ def sample_linear_predictive_trend_vectorize(
     m = prophet_model.params["m"][iteration]
     deltas = prophet_model.params["delta"][iteration]
     changepoints_t = prophet_model.changepoints_t
+    # pyre-fixme[6]: For 1st argument expected `Sequence[Union[_SupportsArray[dtype[A...
     changepoint_ts = np.row_stack([changepoints_t] * sample_size)
 
     deltas = np.row_stack([deltas] * sample_size)

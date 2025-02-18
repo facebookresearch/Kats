@@ -111,6 +111,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
 
         self.data = data
         self.time_freq = BayesianVAR._check_get_freq(data)
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.X, self.Y = BayesianVAR._convert_timeseries_np(data)
         assert (
             self.X.shape[1] == self.Y.shape[1]
@@ -201,8 +202,10 @@ class BayesianVAR(m.Model[BayesianVARParams]):
             )  # shape: m x [m * (m * p + r + 1)]
 
             z_sum_term = (
+                # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtyp...
                 Z_t.T @ inv(self.sigma_ols)
             ) @ Z_t  # shape: [m * (m * p + r + 1)] x [m * (m * p + r + 1)]
+            # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[Un...
             y_sum_term = (Z_t.T @ inv(self.sigma_ols)) @ self.Y[
                 :, t
             ]  # shape: [m * (m * p + r + 1)] x 1
@@ -317,6 +320,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
             return self.phi_0 * self.phi_2
         else:  # endogenous variable j
             assert lag is not None
+            # pyre-fixme[7]: Expected `float` but got `ndarray[Any, dtype[Any]]`.
             return self.phi_0 * (self.phi_1 / h(lag)) * (variance[j] / variance[i])
 
     def _construct_v_prior(self) -> npt.NDArray:

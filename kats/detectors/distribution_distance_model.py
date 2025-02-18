@@ -107,6 +107,8 @@ def _percentile_to_prob(
             n_distance_1_2 = l1_merge[i] - l2_merge[n_idx_at2 - 1]  # positive number
             n_start = l2_perc[n_idx_at2 - 1]
 
+        # pyre-fixme[58]: `+` is not supported for operand types `Union[ndarray[Any,
+        #  dtype[Any]], int]` and `float`.
         l_res_2[i] = n_start + n_perc * n_distance_1_2 / n_base_distance
         if l_res_2[i] < 0:
             l_res_2[i] = 0

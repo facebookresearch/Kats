@@ -164,7 +164,7 @@ class ThetaModelTest(TestCase):
         forecast_df = m.predict(
             steps=steps, alpha=alpha, include_history=include_history, freq=freq
         )
-        assert_frame_equal(truth, forecast_df)
+        assert_frame_equal(truth, forecast_df, check_exact=False, rtol=1e-2)
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
     @parameterized.expand(

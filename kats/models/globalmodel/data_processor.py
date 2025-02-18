@@ -279,7 +279,9 @@ class GMBatch:
         self.indices = train_indices + valid_indices
 
         if valid or (not self.training):
+            # pyre-fixme[6]: For 1st argument expected `Sequence[Union[_SupportsArray...
             x = np.column_stack([train_x, valid_x])
+            # pyre-fixme[6]: For 1st argument expected `Sequence[Union[_SupportsArray...
             time = np.column_stack([train_time, valid_time])
         else:
             x = train_x
@@ -502,12 +504,14 @@ class GMBatch:
             min_val = (
                 train_ts.min
                 if valid is None
+                # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtyp...
                 else np.min([train_ts.min, valid[idx].min])
             )
             if min_val <= 0:
                 max_val = (
                     train_ts.max
                     if valid is None
+                    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[...
                     else np.max([train_ts.max, valid[idx].max])
                 )
                 if min_val == max_val:  # receives a constant TS

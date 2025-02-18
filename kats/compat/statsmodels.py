@@ -13,6 +13,7 @@ import pandas as pd
 from kats.compat import compat
 from statsmodels.tsa import holtwinters
 
+# pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
 ArrayLike = Union[np.ndarray, Sequence[float]]
 # pyre-fixme[5]: Global expression must be annotated.
 Frequency = Union[int, str, pd.Timedelta]

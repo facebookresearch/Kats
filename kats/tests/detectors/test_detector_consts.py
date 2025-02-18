@@ -98,7 +98,10 @@ class UnivariateChangePointIntervalTest(TestCase):
     def test_start_end_date(self) -> None:
         # tests whether data is clipped property to start and end dates
         np.testing.assert_array_equal(
-            self.previous_values[0:9], self.previous_int_test.data
+            # pyre-fixme[6]: For 2nd argument expected `Union[_SupportsArray[dtype[An...
+            self.previous_values[0:9],
+            # pyre-fixme[6]: For 2nd argument expected `Union[_SupportsArray[dtype[An...
+            self.previous_int_test.data,
         )
 
     def test_interval_seq_length(self) -> None:

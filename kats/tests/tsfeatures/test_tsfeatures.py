@@ -197,6 +197,7 @@ class TSfeaturesTest(TestCase):
             expected["seasonality_strength"] = 0.410921
             expected["spikiness"] = 0.000661
             expected["holt_alpha"] = 1e-8
+
         for feature_vector in feature_list:
             self.assertDictAlmostEqual(expected, feature_vector)
 
@@ -754,7 +755,10 @@ class TestTsCalendarFeatures(TestCase):
         f1 = tcf.get_features(ts.time)
         f2 = tcf.get_features(ts)
         self.assertTrue(
-            f1.equals(f2), "Features computed from the same timestamps are not equal."
+            # pyre-fixme[16]: Item `ndarray` of `ndarray[Any, dtype[Any]] |
+            #  DataFrame` has no attribute `equals`.
+            f1.equals(f2),
+            "Features computed from the same timestamps are not equal.",
         )
 
 
@@ -784,11 +788,15 @@ class TestTsFourierFeatures(TestCase):
         )
         tff2 = TsFourierFeatures(fourier_period2, fourier_order, 1)
         f3 = tff2.get_features(ts)
+        # pyre-fixme[16]: Item `ndarray` of `ndarray[Any, dtype[Any]] | DataFrame`
+        #  has no attribute `values`.
         mdiff1 = np.max(np.abs(f1.values - f2.values))
         self.assertTrue(
             mdiff1 < 1e-5,
             f"Get different values when using the same timestamps, f1 = {f1} and f2 = {f2}.",
         )
+        # pyre-fixme[16]: Item `ndarray` of `ndarray[Any, dtype[Any]] | DataFrame`
+        #  has no attribute `values`.
         mdiff2 = np.max(np.abs(f1.values - f3.values))
         self.assertTrue(
             mdiff2 < 1e-5,

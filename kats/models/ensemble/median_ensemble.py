@@ -74,6 +74,8 @@ class MedianEnsembleModel(ensemble.BaseEnsemble):
             copy=False,
         )
         fcst_all.columns = cast(List[str], pred_dict.keys())
+        # pyre-fixme[8]: Attribute has type `Optional[DataFrame]`; used as
+        #  `Union[float, Series]`.
         self.fcst = fcst_all.median(axis=1)
 
         # create future dates

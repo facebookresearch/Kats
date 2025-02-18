@@ -541,6 +541,7 @@ class testNowcasting(TestCase):
     def test_MA_zero(self) -> None:
         for name, df in df_dict.items():
             ma_df = MA(df, 0)
+
             self.assertTrue(
                 all(np.isnan(ma_df["MA_0"])), f"test_MA_zero failed for {name}"
             )
@@ -791,7 +792,14 @@ class testNowcasting(TestCase):
             roc_df = ROC(df, 2)
             for actual_val, expected_val in zip(to_list(roc_df["ROC_2"]), expected):
                 self.assertAlmostEqual(
-                    actual_val, expected_val, 9, f"test_ROC_two failed for {name}"
+                    # pyre-fixme[6]: For 2nd argument expected `SupportsRSub[_T,
+                    #  SupportsAbs[SupportsRound[object]]]` but got `Optional[float]`.
+                    actual_val,
+                    # pyre-fixme[6]: For 2nd argument expected `SupportsRSub[_T,
+                    #  SupportsAbs[SupportsRound[object]]]` but got `Optional[float]`.
+                    expected_val,
+                    9,
+                    f"test_ROC_two failed for {name}",
                 )
 
     @unittest.skip(
@@ -904,7 +912,14 @@ class testNowcasting(TestCase):
             roc_df = ROC(df, 3)
             for actual_val, expected_val in zip(to_list(roc_df["ROC_3"]), expected):
                 self.assertAlmostEqual(
-                    actual_val, expected_val, 9, f"test_ROC_three failed for {name}"
+                    # pyre-fixme[6]: For 2nd argument expected `SupportsRSub[_T,
+                    #  SupportsAbs[SupportsRound[object]]]` but got `Optional[float]`.
+                    actual_val,
+                    # pyre-fixme[6]: For 2nd argument expected `SupportsRSub[_T,
+                    #  SupportsAbs[SupportsRound[object]]]` but got `Optional[float]`.
+                    expected_val,
+                    9,
+                    f"test_ROC_three failed for {name}",
                 )
 
     def test_ROC_exceed_index(self) -> None:

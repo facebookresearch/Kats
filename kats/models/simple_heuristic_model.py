@@ -93,9 +93,13 @@ class SimpleHeuristicModel(Model[SimpleHeuristicModelParams]):
             logging.error(msg)
             raise ValueError(msg)
 
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.model = self._calc_last
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.y_fcst = None
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.y_fcst_lower = None
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.y_fcst_upper = None
         self.fcst_df = pd.DataFrame(data=None)
 
@@ -194,12 +198,18 @@ class SimpleHeuristicModel(Model[SimpleHeuristicModelParams]):
         self.dates = dates[dates != last_date]
 
         if self.include_history:
+            # pyre-fixme[8]: Attribute has type `Optional[DatetimeIndex]`; used as
+            #  `ndarray[Any, dtype[Any]]`.
+            # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[An...
             self.dates = np.concatenate((pd.to_datetime(self.data.time), self.dates))
+            # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[An...
             self.y_fcst = np.concatenate((np.asarray(self.data.value), self.y_fcst))
             self.y_fcst_lower = np.concatenate(
+                # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtyp...
                 (np.asarray(self.data.value), self.y_fcst_lower)
             )
             self.y_fcst_upper = np.concatenate(
+                # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtyp...
                 (np.asarray(self.data.value), self.y_fcst_upper)
             )
 

@@ -429,6 +429,7 @@ class BackTesterParent(ABC):
         self.multi = multi
         self.offset = offset
 
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.results = []
         # Handling frequency
         if "freq" in kwargs:
@@ -437,6 +438,7 @@ class BackTesterParent(ABC):
             logging.info("Inferring frequency")
             self.freq = pd.infer_freq(self.data.time)
 
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.raw_errors = []
 
         methods = []
@@ -1271,8 +1273,10 @@ class CrossValidation:
             logging.error("self.size: {0}".format(self.size))
             raise ValueError("Passing an empty time series")
 
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.results = []
         self.errors = {}
+        # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.raw_errors = []
 
         if not constant_train_size:

@@ -153,6 +153,9 @@ class QuadraticModel(Model[QuadraticModelParams]):
         self.dates = dates[dates != last_date]
 
         if include_history:
+            # pyre-fixme[8]: Attribute has type `Optional[DatetimeIndex]`; used as
+            #  `ndarray[Any, dtype[Any]]`.
+            # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[An...
             self.dates = np.concatenate((pd.to_datetime(self.data.time), self.dates))
 
         self.fcst_df = fcst_df = pd.DataFrame(

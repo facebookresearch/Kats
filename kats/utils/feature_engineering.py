@@ -61,7 +61,7 @@ _DAYTIME_MAP = {
 }
 
 
-def _map(index: Union[npt.NDArray, pd.Int64Index], map: Dict[int, int]) -> npt.NDArray:
+def _map(index: Union[npt.NDArray, pd.Index], map: Dict[int, int]) -> npt.NDArray:
     """Map values to other values efficiently.
 
     Args:
@@ -71,7 +71,11 @@ def _map(index: Union[npt.NDArray, pd.Int64Index], map: Dict[int, int]) -> npt.N
     """
     # About 4x faster than .to_series().apply(lambda).
     # About 20x faster than to_series().replace().
-    values = index.to_numpy()
+    if isinstance(index, np.ndarray):
+        values = index
+    else:
+        values = index.to_numpy()
+
     result = values.copy()
     for k, v in map.items():
         result[values == k] = v
@@ -106,12 +110,11 @@ def date_features(s: pd.Series, result: Optional[pd.DataFrame] = None) -> pd.Dat
     # pyre-fixme[16]: `DatetimeIndex` has no attribute `quarter`.
     result["quarter"] = index.quarter
     result["season"] = _map(index.month, _SEASON_MAP)
-    # pyre-fixme[16]: `DatetimeIndex` has no attribute `weekofyear`.
-    result["weekofyear"] = index.weekofyear
+
+    result["weekofyear"] = index.isocalendar().week
     try:
         # Work around numpy Deprecation Warning about parsing timezones
         # by converting to UTC and removing the tz info.
-        # pyre-fixme[16]: `DatetimeIndex` has no attribute `tz_convert`.
         dates = index.tz_convert(None).to_numpy()
     except TypeError:
         # No timezone.

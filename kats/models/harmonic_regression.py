@@ -40,6 +40,7 @@ class HarmonicRegressionParams(Params):
             raise ValueError(msg)
 
 
+# pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
 class HarmonicRegressionModel(Model[Optional[np.ndarray]]):
     params: Optional[npt.NDArray] = None
     harms: Optional[npt.NDArray] = None

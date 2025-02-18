@@ -270,12 +270,20 @@ class CUSUMDetectorTest(TestCase):
                 cos_j = np.cos(lambda_p * j)
                 sin_j = np.sin(lambda_p * j)
                 gamma_jtp1[j - 1] = (
+                    # pyre-fixme[16]: Item `float` of `ndarray[Any, dtype[Any]] |
+                    #  float` has no attribute `__getitem__`.
                     gamma_jt[j - 1] * cos_j
+                    # pyre-fixme[16]: Item `float` of `ndarray[Any, dtype[Any]] |
+                    #  float` has no attribute `__getitem__`.
                     + gamma_star_jt[j - 1] * sin_j
                     + noise_std * np.random.randn()
                 )
                 gamma_star_jtp1[j - 1] = (
+                    # pyre-fixme[16]: Item `float` of `ndarray[Any, dtype[Any]] |
+                    #  float` has no attribute `__getitem__`.
                     -gamma_jt[j - 1] * sin_j
+                    # pyre-fixme[16]: Item `float` of `ndarray[Any, dtype[Any]] |
+                    #  float` has no attribute `__getitem__`.
                     + gamma_star_jt[j - 1] * cos_j
                     + noise_std * np.random.randn()
                 )

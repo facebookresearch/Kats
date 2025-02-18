@@ -508,6 +508,7 @@ class CUSUMDetector(Detector):
         """
         Calculate the magnitude of a time series.
         """
+        # pyre-fixme[28]: Unexpected keyword argument `interpolation`.
         magnitude = np.quantile(ts, self.magnitude_quantile, interpolation="nearest")
         return magnitude
 
@@ -856,6 +857,7 @@ class MultiCUSUMDetector(CUSUMDetector):
             _log.error(msg)
             raise ValueError(msg)
 
+        # pyre-fixme[6]: For 1st argument expected `Union[Sequence[Sequence[Sequence[...
         return len(x) / 2 * (log_det_sigma0 - log_det_sigma1) + np.sum(
             -np.matmul(np.matmul(x[i] - mu1, sigma1_inverse), (x[i] - mu1).T)
             + np.matmul(np.matmul(x[i] - mu0, sigma0_inverse), (x[i] - mu0).T)
@@ -945,7 +947,11 @@ class MultiCUSUMDetector(CUSUMDetector):
             llr_int=llr_int,
             p_value_int=pval_int,
             delta_int=delta_int,
+            # pyre-fixme[6]: For 10th argument expected `Optional[float]` but got
+            #  `ndarray[Any, dtype[Any]]`.
             sigma0=sigma0,
+            # pyre-fixme[6]: For 11th argument expected `Optional[float]` but got
+            #  `ndarray[Any, dtype[Any]]`.
             sigma1=sigma1,
         )
 

@@ -46,6 +46,7 @@ from kats.utils.backtesters import BackTesterSimple
 from kats.utils.decomposition import TimeSeriesDecomposition
 
 # from numpy.typing import ArrayLike
+# pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
 ArrayLike = Union[Sequence[float], np.ndarray]
 
 # models that can fit de_seasonal component

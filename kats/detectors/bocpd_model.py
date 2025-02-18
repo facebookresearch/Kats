@@ -218,6 +218,7 @@ class BocpdTrendDetectorModel(DetectorModel):
         exp_smooth = ExponentialSmoothing(
             endog=data_ts.value, trend="add", seasonal="add", seasonal_periods=m
         )
+        # pyre-fixme[28]: Unexpected keyword argument `smoothing_slope`.
         fit1 = exp_smooth.fit(
             smoothing_level=alpha, smoothing_slope=beta, smoothing_seasonal=gamma
         )

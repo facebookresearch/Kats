@@ -24,6 +24,7 @@ from kats.consts import (
 from statsmodels.tsa.seasonal import seasonal_decompose, STL
 
 # from numpy.typing import ArrayLike
+# pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
 ArrayLike = Union[np.ndarray, Sequence[float]]
 Figsize = Tuple[int, int]
 
@@ -215,6 +216,8 @@ class TimeSeriesDecomposition:
             tmp = pd.DataFrame(ts)
             if original.shape[1] > 1:
                 tmp.columns = original.columns
+            # pyre-fixme[6]: For 2nd argument expected `Union[None, DatetimeIndex,
+            #  Series]` but got `Index`.
             ret[name] = TimeSeriesData(value=tmp, time=original.index)
         return ret
 

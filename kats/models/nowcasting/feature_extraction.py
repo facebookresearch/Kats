@@ -71,20 +71,23 @@ def MA(df: pd.DataFrame, n: int, column: str = "y") -> pd.DataFrame:
 
     Args:
         df: a pandas dataframe.
-        n: an integer on how many steps looking back.
+        n: an integer on how many steps looking back, when n=0 an array of NaNs is returned.
         column: Optional. If column is provided, will calculate based on provided column
             otherwise the column named y will be the target.
 
     Returns:
         A dataframe with all the columns from input df, and the added column.
     """
-
     if column == "y":
-        MA = pd.Series(df[column].rolling(n).mean(), name="MA_" + str(n), copy=False)
+        colname = "MA_" + str(n)
     else:
-        MA = pd.Series(
-            df[column].rolling(n).mean(), name=column + "_MA_" + str(n), copy=False
-        )
+        colname = column + "_MA_" + str(n)
+
+    if n == 0:
+        MA = pd.Series(np.nan * np.empty(shape=(df.shape[0])), name=colname, copy=False)
+    else:
+        MA = pd.Series(df[column].rolling(n).mean(), name=colname, copy=False)
+
     df = df.join(MA)
     return df
 

@@ -128,6 +128,7 @@ class HoltWintersModel(Model[HoltWintersParams]):
         """Fit the model with the specified input parameters"""
 
         logging.debug("Call fit() with parameters:{kwargs}".format(kwargs=kwargs))
+        # pyre-fixme[28]: Unexpected keyword argument `damped`.
         holtwinters = HoltWinters(
             # pyre-fixme[16]: `Optional` has no attribute `value`.
             self.data.value,

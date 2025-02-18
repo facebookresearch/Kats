@@ -395,6 +395,8 @@ class CUSUMDetectorModel(DetectorModel):
                 self.pre_mean = vec_data_row.value[:scan_start_index].mean()
                 self.pre_std = vec_data_row.value[:scan_start_index].std(ddof=0)
 
+            # pyre-fixme[6]: For 1st argument expected `float` but got `Union[float,
+            #  Series]`.
             if self._if_normal(cur_mean, change_directions, delta_std_ratio):
                 self.number_of_normal_scan += 1
                 if self.number_of_normal_scan >= NORMAL_TOLERENCE:
@@ -482,6 +484,8 @@ class CUSUMDetectorModel(DetectorModel):
                 self.pre_mean = historical_data.value[:scan_start_index].mean()
                 self.pre_std = historical_data.value[:scan_start_index].std(ddof=0)
 
+            # pyre-fixme[6]: For 1st argument expected `float` but got `Union[float,
+            #  Series]`.
             if self._if_normal(cur_mean, change_directions, delta_std_ratio):
                 self.number_of_normal_scan += 1
                 if self.number_of_normal_scan >= NORMAL_TOLERENCE:
@@ -785,6 +789,8 @@ class CUSUMDetectorModel(DetectorModel):
             ss_detect = VectorizedCUSUMDetectorModel(
                 scan_window=self.scan_window,
                 historical_window=self.historical_window,
+                # pyre-fixme[6]: For 3rd argument expected `Optional[int]` but got
+                #  `float`.
                 step_window=step_window.total_seconds(),
                 threshold=threshold,
                 delta_std_ratio=delta_std_ratio,

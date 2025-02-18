@@ -54,8 +54,6 @@ from kats.consts import IntervalAnomaly, TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from matplotlib import pyplot as plt
-
-from numpy.linalg import matrix_power
 from scipy.linalg import toeplitz
 from scipy.stats import beta, binom, mvn, norm
 from scipy.stats._multivariate import _PSD, multivariate_normal_gen
@@ -275,8 +273,10 @@ class CriticalValue:
     @property
     def absolute_critical_value(self) -> pd.Series:
         if self.lower is not None:
+            # pyre-fixme[7]: Expected `Series` but got `ndarray[Any, dtype[Any]]`.
             return np.absolute(self.lower)
         elif self.upper is not None:
+            # pyre-fixme[7]: Expected `Series` but got `ndarray[Any, dtype[Any]]`.
             return np.absolute(self.upper)
         else:
             raise ValueError(
@@ -304,7 +304,6 @@ class ABInterval(IntervalAnomaly):
     def __init__(
         self,
         interval_type: ABIntervalType,
-        # pyre-fixme[11]: Annotation `Timestamp` is not defined as a type.
         start: pd.Timestamp,
         end: pd.Timestamp,
     ) -> None:
@@ -930,15 +929,20 @@ class IntervalDetectorModel(DetectorModel, ABC):
             abseps: Absolute error tolerance
             releps: Relative error tolerance
         """
-        # Follow preprocessing from:
-        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.multivariate_normal.html
+        dim = lower.shape[0]
+        if mean is None:
+            mean = np.zeros((dim, 1))
+
         _multivariate_normal_gen = multivariate_normal_gen()
-        # pyre-ignore
-        dim, mean, cov = _multivariate_normal_gen._process_parameters(None, mean, cov)
-        # pyre-ignore
+        # pyre-fixme[16]: `multivariate_normal_gen` has no attribute
+        #  `_process_quantiles`.
         lower = _multivariate_normal_gen._process_quantiles(lower, dim)
         upper = _multivariate_normal_gen._process_quantiles(upper, dim)
+        # TODO: this is deprecated, replace
+        # pyre-fixme[16]: Item `int` of `ndarray[Any, dtype[Any]] | int` has no
+        #  attribute `astype`.
         _PSD(cov, allow_singular=allow_singular)
+
         return mvn.mvnun(
             lower=lower,
             upper=upper,
@@ -1609,7 +1613,18 @@ class TwoSampleIntervalDetectorModel(IntervalDetectorModel, ABC):
                 f"Expected test_type to be of TestType. Found {self.test_type}"
             )
         return ABTestResult(
-            test_statistic=test_statistic, stat_sig=stat_sig, upper=upper, lower=lower
+            # pyre-fixme[6]: For 3rd argument expected `Series` but got
+            #  `Union[ndarray[Any, dtype[Any]], Series]`.
+            # pyre-fixme[6]: For 4th argument expected `Series` but got
+            #  `Union[ndarray[Any, dtype[Any]], Series]`.
+            test_statistic=test_statistic,
+            stat_sig=stat_sig,
+            # pyre-fixme[6]: For 3rd argument expected `Series` but got
+            #  `Union[ndarray[Any, dtype[Any]], Series]`.
+            upper=upper,
+            # pyre-fixme[6]: For 4th argument expected `Series` but got
+            #  `Union[ndarray[Any, dtype[Any]], Series]`.
+            lower=lower,
         )
 
     @abstractmethod

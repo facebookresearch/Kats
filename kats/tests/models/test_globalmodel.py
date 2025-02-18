@@ -793,6 +793,7 @@ class GMModelTest(TestCase):
         )
         # check whether forecasts contain NaNs.
         msg = "Forecasts contian NaNs."
+        # pyre-fixme[16]: `bool` has no attribute `values`.
         num_nan = np.sum([pd.isna(pred[k]).values.sum() for k in pred])
         self.assertEqual(num_nan, 0, msg)
 

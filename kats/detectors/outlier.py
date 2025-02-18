@@ -102,6 +102,8 @@ class OutlierDetector(Detector):
         )
         rem = result.resid
         detrend = original["y"] - result.trend
+        # pyre-fixme[58]: `-` is not supported for operand types `int` and
+        #  `floating[Any]`.
         strength = float(1 - np.nanvar(rem) / np.nanvar(detrend))
         if strength >= 0.6:
             original["y"] = original["y"] - result.seasonal
@@ -115,6 +117,8 @@ class OutlierDetector(Detector):
         outliers = resid[(resid > limits[1]) | (resid < limits[0])]
         outliers_index = list(outliers.index)
 
+        # pyre-fixme[7]: Expected `Tuple[List[int], List[float], List[Timestamp]]`
+        #  but got `Tuple[List[Any], List[Any], Index]`.
         return outliers_index, output_scores, output_time
 
     # pyre-fixme
@@ -220,6 +224,7 @@ class MultivariateAnomalyDetector(Detector):
         df_clean = df_clean.interpolate(
             method="linear", order=2, limit_direction="both"
         )
+        # pyre-fixme[7]: Expected `DataFrame` but got `Optional[DataFrame]`.
         return df_clean
 
     def _is_pos_def(self, mat: npt.NDArray) -> bool:
@@ -264,7 +269,9 @@ class MultivariateAnomalyDetector(Detector):
         lag_order = model.k_ar
         logging.info(f"Fitted VAR model of order {lag_order}")
         # model.resid and model.sigma_u set in model.fit(), cast from Optional[np.ndarray] to np.ndarray
+        # pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
         self.resid = cast(np.ndarray, model.resid)
+        # pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
         self.sigma_u = sigma_u = cast(np.ndarray, model.sigma_u)
         if ~(self._is_pos_def(sigma_u)):
             msg = f"Fitted Covariance matrix at time {t} is not positive definite"
@@ -300,6 +307,7 @@ class MultivariateAnomalyDetector(Detector):
         assert cov is not None and resid is not None
         residual_score = {}
         rt = pred_df["est"] - pred_df["actual"]
+        # pyre-fixme[16]: `ndarray` has no attribute `columns`.
         for col in cov.columns:
             residual_mean = resid[col].mean()
             residual_var = resid[col].var()
@@ -308,6 +316,7 @@ class MultivariateAnomalyDetector(Detector):
             )
 
         # overall anomaly score
+        # pyre-fixme[16]: `ndarray` has no attribute `values`.
         cov_inv = np.linalg.inv(cov.values)
         overall_anomaly_score = distance.mahalanobis(
             rt.values, resid.mean().values, cov_inv

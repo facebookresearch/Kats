@@ -15,6 +15,7 @@ from kats.consts import _log_error, Params, TimeSeriesData
 from kats.detectors.detector import DetectorModel
 from kats.models.model import Model
 
+# pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
 ArrayLike = Union[np.ndarray, Sequence[float], pd.Series]
 
 
@@ -77,6 +78,7 @@ class Evaluator(ABC):
         # Check preconditions
         self._check_if_valid_run_name(run_name=run_name)  # Check if valid run
         evaluator = self.runs[run_name]
+        # pyre-fixme[6]: For 1st argument expected `Union[Sequence[Sequence[Sequence[...
         if np.ndim(evaluator.preds) < 1:  # Check if predictions are a valid type
             msg = f"Invalid type: {type(labels)} for predictions. Must be an iterable object."
             raise _log_error(msg)

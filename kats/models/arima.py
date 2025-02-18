@@ -24,13 +24,20 @@ Kats development style.
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
 from kats.models.model import Model
 from kats.utils.parameter_tuning_utils import get_default_arima_parameter_search_space
-from statsmodels.tsa.arima_model import ARIMA, ARIMAResults
+from statsmodels.tsa.arima.model import ARIMA, ARIMAResults
+
+
+def _log_deprecation_warnings(**kwargs: Any) -> None:
+    for arg_name, arg_val in kwargs.items():
+        if arg_val is not None:
+            logging.warning(
+                f"ARIMA arg {arg_name} was deprecated in statsmodels 0.12.0 and no direct replacement exists, argument will be ignored and will throw an error in the next release."
+            )
 
 
 class ARIMAParams(Params):
@@ -56,18 +63,24 @@ class ARIMAParams(Params):
     dates: Optional[pd.DatetimeIndex] = None
     freq: Optional[str] = None
 
-    def __init__(self, p: int, d: int, q: int, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        p: int,
+        d: int,
+        q: int,
+        exog: Optional[npt.ArrayLike] = None,
+        dates: Optional[pd.DatetimeIndex] = None,
+        freq: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__()
         self.p = p
         self.d = d
         self.q = q
-        self.exog = kwargs.get("exog", None)
-        self.dates = kwargs.get("dates", None)
-        self.freq = kwargs.get("freq", None)
-        logging.debug(
-            "Initialized ARIMAParams with parameters. "
-            f"p:{p}, d:{d}, q:{q}, kwargs:{kwargs}"
-        )
+        # pyre-fixme[8]: Incompatible attribute type, Attribute `exog` declared in class `ARIMAParams` has type `Optional[ndarray[typing.Any, dtype[typing.Any]]]` but is used as type `Union[None, _SupportsArray[dtype[typing.Any]], _NestedSequence[_SupportsArray[dtype[typing.Any]]],...
+        self.exog = exog
+        self.dates = dates
+        self.freq = freq
 
     def validate_params(self) -> None:
         logging.info("Method validate_params() is not implemented.")
@@ -83,11 +96,26 @@ class ARIMAModel(Model[ARIMAParams]):
         params: The ARIMA model parameters from ARIMAParams
     """
 
-    exog: Optional[int] = None
+    # fit args
+    trend: Optional[str] = None
+    start_params: Optional[npt.ArrayLike] = None
+    transformed: bool = True
+    includes_fixed: bool = False
+    method: Optional[str] = None
+    method_kwargs: Optional[Dict[str, Any]] = None
+    gls: Optional[bool] = None
+    gls_kwargs: Optional[Dict[str, Any]] = None
+    cov_type: Optional[str] = None
+    cov_kwds: Optional[Dict[str, Any]] = None
+
+    # results placeholder
+    model: Optional[ARIMAResults] = None
+
+    # predict args
+    include_history: bool = False
+    fcst_exog: Optional[npt.ArrayLike] = None
     alpha: float = 0.05
     freq: Optional[str] = None
-    model: Optional[ARIMAResults] = None
-    include_history: bool = False
     fcst_df: Optional[pd.DataFrame] = None
     y_fcst: Optional[npt.NDArray] = None
     y_fcst_lower: Optional[npt.NDArray] = None
@@ -106,7 +134,7 @@ class ARIMAModel(Model[ARIMAParams]):
 
     def __init__(self, data: TimeSeriesData, params: ARIMAParams) -> None:
         super().__init__(data, params)
-        # pyre-fixme[16]: `Optional` has no attribute `value`.
+        self.data = data
         if not isinstance(self.data.value, pd.Series):
             msg = (
                 "Only support univariate time series, but got "
@@ -117,89 +145,101 @@ class ARIMAModel(Model[ARIMAParams]):
 
     def fit(
         self,
+        trend: str = "n",
         start_params: Optional[npt.NDArray] = None,
-        transparams: bool = True,
-        method: str = "css-mle",
-        trend: str = "c",
-        solver: str = "lbfgs",
-        maxiter: int = 500,
-        full_output: bool = True,
-        disp: int = 5,
-        callback: Optional[Callable[[npt.NDArray], None]] = None,
-        start_ar_lags: Optional[int] = None,
+        transformed: bool = True,
+        includes_fixed: bool = False,
+        method: Optional[str] = None,
+        method_kwargs: Optional[Dict[str, Any]] = None,
+        gls: Optional[bool] = None,
+        gls_kwargs: Optional[Dict[str, Any]] = None,
+        cov_type: Optional[str] = None,
+        cov_kwds: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> None:
         """Fit ARIMA model with given parameters
 
         For more details on each parameter please refer to the following doc:
-        https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima_model.ARIMA.fit.html#statsmodels.tsa.arima_model.ARIMA.fit
+        https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.html
 
         Args:
-            start_params: Optional; An array_like object for the initial guess
-                of the solution for the loglikelihood maximization
-            transparams: Optional; A boolean to specify whether or not to
-                transform the parameters to ensure stationarity.
-            method: A string that specifies the loglikelihood to maximize. Can
-                be 'css-mle', 'mle' and 'css'.
-            trend: A string that specifies the whether to include a constant in
-                the trend or not. Can be 'c' and 'nc'.
-            solver: Optional; A string that specifies specifies the solver to be
-                used. Can be 'bfgs', 'newton', 'cg', 'ncg' and 'powell'.
-            maxiter: Optional; A integer for the maximum number of function
-                iterations.
-            tol: Optional; The convergence tolerance for the fitting.
-            full_output: Optional; A boolean to specify whether to show all
-                output from the solver in the results.
-            disp: Optional; A integer to control the frequency of the output
-                during the iterations.
-            callback: Optional; A callable object to be called after each iteration.
-            start_ar_lags Optional; An integer to specify the AR lag parameter
-                to fit the start_params.
+            trend: Optional; A string representing the trend of time series, can be 'c', 't', or 'ct' (constant, linear trend, or both). Consult statsmodels documentation for further details.
+            start_params: Optional; Initial guess of the solution for the loglikelihood maximization.
+            transformed: Optional; Whether start_params are already transformed (default True)
+            includes_fixed: Optional; If params were previously fixed fwith the fix_params method (default False)
+            method: Optional; The parameter estimation method to use ('statespace', 'innovations_mle', 'hannan_rissanen','burg','innovations', or 'yule_walker')
+            method_kwargs: Optional; Additional keyword arguments to pass to the method.
+            gls: Optional; Whether to use generalized least squares (default depends on method).
+            gls_kwargs: Optional; Additional keyword arguments to pass to the GLS fit method.
+            cov_type: Optional; sets the method for calculating the covariance matrix of parameter estimates ('opg', 'oim', 'approx', 'robust', 'robust_approx', or 'none').
+            cov_kwds: Optional; Additional keyword arguments to pass to the covariance matrix method.
+            transparams: DEPRECATED;
+            solver: DEPRECATED;
+            maxiter: DEPRECATED;
+            full_output: DEPRECATED;
+            disp: DEPRECATED;
+            callback: DEPRECATED;
+            start_ar_lags: DEPRECATED;
 
         Returns:
             None
         """
 
-        logging.debug("Call fit() method")
-        self.start_params = start_params
-        self.transparams = transparams
-        self.method = method
         self.trend = trend
-        self.solver = solver
-        self.maxiter = maxiter
-        self.full_output = full_output
-        self.disp = disp
-        self.callback = callback
-        self.start_ar_lags = start_ar_lags
+        self.start_params = start_params
+        self.transformed = transformed
+        self.includes_fixed = includes_fixed
+        self.method = method
+        self.method_kwargs = method_kwargs
+        self.gls = gls
+        self.gls_kwargs = gls_kwargs
+        self.cov_type = cov_type
+        self.cov_kwds = cov_kwds
+
+        _log_deprecation_warnings(
+            transparams=kwargs.get("transparams"),
+            solver=kwargs.get("solver"),
+            maxiter=kwargs.get("maxiter"),
+            full_output=kwargs.get("full_output"),
+            disp=kwargs.get("disp"),
+            callback=kwargs.get("callback"),
+            start_ar_lags=kwargs.get("start_ar_lags"),
+        )
+
+        if self.trend not in ("n", "c", "t", "ct"):
+            raise ValueError("Trend must be one of 'n', 'c', 't', or 'ct'")
 
         arima = ARIMA(
-            # pyre-fixme[16]: `Optional` has no attribute `value`.
             self.data.value,
             order=(self.params.p, self.params.d, self.params.q),
             exog=self.params.exog,
-            # pyre-fixme[16]: `Optional` has no attribute `time`.
             dates=self.data.time,
             freq=self.params.freq,
         )
         logging.info("Created arima model.")
         self.model = arima.fit(
             start_params=self.start_params,
-            transparams=self.transparams,
+            transformed=self.transformed,
+            includes_fixed=self.includes_fixed,
             method=self.method,
-            trend=self.trend,
-            solver=self.solver,
-            maxiter=self.maxiter,
-            full_output=self.full_output,
-            disp=self.disp,
-            callback=self.callback,
-            start_ar_lags=self.start_ar_lags,
+            method_kwargs=self.method_kwargs,
+            gls=self.gls,
+            gls_kwargs=self.gls_kwargs,
+            cov_type=self.cov_type,
+            cov_kwds=self.cov_kwds,
+            return_params=False,
+            low_memory=False,
         )
-        logging.info("Fitted arima.")
 
-    # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.
-    # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.
+    # TODO: the Model base class should be converted to an ABC because otherwise these method overrides throw Pyre errors
+    # pyre-fixme
     def predict(
-        self, steps: int, include_history: bool = False, **kwargs: Any
+        self,
+        steps: int,
+        include_history: bool = False,
+        exog: Optional[npt.ArrayLike] = None,
+        alpha: float = 0.05,
+        **kwargs: Any,
     ) -> pd.DataFrame:
         """Predict with fitted ARIMA model
 
@@ -215,18 +255,20 @@ class ARIMAModel(Model[ARIMAParams]):
         if model is None:
             raise ValueError("Call fit() before predict().")
 
-        logging.debug(f"predict(steps:{steps}, kwargs:{kwargs})")
-        self.include_history = include_history
-        self.exog = kwargs.get("exog", None)
-        self.alpha = kwargs.get("alpha", 0.05)
-        # pyre-fixme[16]: `Optional` has no attribute `time`.
+        self.fcst_exog = exog
+        self.alpha = alpha
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
-        fcst = model.forecast(steps, exog=self.exog, alpha=self.alpha)
-        logging.info("Generated forecast data from arima model.")
-        logging.debug(f"Forecast data: {fcst}")
 
-        self.y_fcst = fcst[0]
-        lower, upper = fcst[2].transpose()
+        fcst = model.get_forecast(
+            steps,
+            exog=self.fcst_exog,
+            signal_only=False,
+        ).summary_frame()
+        logging.info("Generated forecast data from arima model.")
+
+        self.y_fcst = fcst["mean"].ravel()
+        lower = fcst["mean_ci_lower"].ravel()
+        upper = fcst["mean_ci_upper"].ravel()
         self.y_fcst_lower = lower
         self.y_fcst_upper = upper
 
@@ -244,16 +286,21 @@ class ARIMAModel(Model[ARIMAParams]):
             },
             copy=False,
         )
+
+        self.include_history = include_history
         if self.include_history:
             try:
+                t_pred = self.data.time[self.params.d :]
                 hist_fcst = (
-                    # pyre-fixme[6]: For 1st param expected `Sized` but got
-                    #  `Optional[TimeSeriesData]`.
-                    model.predict(self.params.d, len(self.data))
-                    .reset_index()
-                    .rename(columns={"index": "time", 0: "fcst"})
+                    model.predict(start=self.params.d, end=len(self.data))
+                    .rename("fcst")
+                    .to_frame()
+                    .assign(time=t_pred)
+                    .dropna(subset=["time"])
                 )
-                self.fcst_df = fcst_df = pd.concat([hist_fcst, fcst_df], copy=False)
+                self.fcst_df = fcst_df = pd.concat(
+                    [hist_fcst, fcst_df], axis=0, ignore_index=True
+                )
             except Exception as e:
                 msg = (
                     "Fail to generate in-sample forecasts for historical data "
@@ -261,7 +308,6 @@ class ARIMAModel(Model[ARIMAParams]):
                 )
                 logging.error(msg)
                 raise ValueError(msg)
-        logging.debug(f"Return forecast data: {fcst_df}")
         return fcst_df
 
     def __str__(self) -> str:

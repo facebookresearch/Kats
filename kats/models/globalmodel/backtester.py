@@ -438,6 +438,7 @@ class GMBackTester:
                 ]
                 ans.extend(tmp_ans)
                 ensemble_fcst = np.median(
+                    # pyre-fixme[6]: For 1st argument expected `Sequence[Union[_Suppo...
                     np.column_stack(fcst_all[i][k][j] for i in range(n)),
                     axis=1,
                 )
@@ -612,6 +613,7 @@ class GMBackTesterExpandingWindow(BackTesterExpandingWindow):
             train_data = train_data[~np.isnan(train_data)]
             truth = test_TSs[i].value.values
             # pyre-fixme [6]: Expected `_SupportsIndex` for 1st positional only parameter to call `list.__getitem__` but got `str`.
+            # pyre-fixme[16]: `ndarray` has no attribute `values`.
             fcst = fcsts[i]["fcst_quantile_0.5"].values[: len(truth)]
             fcst = fcst[~np.isnan(truth)]
             truth = truth[~np.isnan(truth)]

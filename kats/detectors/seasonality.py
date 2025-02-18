@@ -48,6 +48,7 @@ from scipy.signal import find_peaks  # @manual
 from statsmodels.tsa.stattools import acf
 
 # from numpy.typing import ArrayLike
+# pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
 ArrayLike = Union[np.ndarray, Sequence[float]]
 
 

@@ -92,6 +92,7 @@ class TimeSeriesBaseTest(TestCase):
         self.MULTIVAR_VALUE_DF = self.MULTIVAR_AIR_DF[MULTIVAR_VALUE_DF_COLS]
         self.AIR_TIME_SERIES = self.AIR_DF.ds
         self.AIR_TIME_SERIES_PD_DATETIME = pd.to_datetime(self.AIR_TIME_SERIES)
+        # pyre-fixme[16]: `Timestamp` has no attribute `apply`.
         self.AIR_TIME_SERIES_UNIXTIME = self.AIR_TIME_SERIES_PD_DATETIME.apply(
             lambda x: (x - datetime(1970, 1, 1)).total_seconds()
         )

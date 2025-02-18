@@ -472,6 +472,8 @@ class GMModel:
 
             train_loss_monitor.append(np.average(tmp_train_loss_monitor))
 
+            # pyre-fixme[16]: Item `float` of `float | Series` has no attribute
+            #  `to_dict`.
             valid_res = pd.DataFrame(tmp_valid_loss_monitor).mean(skipna=True).to_dict()
             valid_res["epoch"] = epoch
             valid_loss_monitor.append(valid_res)

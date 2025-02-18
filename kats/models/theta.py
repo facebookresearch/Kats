@@ -233,13 +233,17 @@ class ThetaModel(Model[ThetaParams]):
             fcst_df = pd.DataFrame(
                 {
                     "time": np.concatenate(
+                        # pyre-fixme[6]: For 1st argument expected `Union[_SupportsAr...
                         (pd.to_datetime(self.data.time), self.dates)
                     ),
+                    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[...
                     "fcst": np.concatenate((fitted_values, self.y_fcst)),
                     "fcst_lower": np.concatenate(
+                        # pyre-fixme[6]: For 1st argument expected `Union[_SupportsAr...
                         (fitted_values - zt * sigma2, self.y_fcst_lower)
                     ),
                     "fcst_upper": np.concatenate(
+                        # pyre-fixme[6]: For 1st argument expected `Union[_SupportsAr...
                         (fitted_values + zt * sigma2, self.y_fcst_upper)
                     ),
                 },

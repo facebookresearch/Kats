@@ -147,6 +147,8 @@ class EmpConfidenceInt:
 
         logging.info("Run backtesting.")
         backtester.run_backtest()
+        # pyre-fixme[8]: Attribute has type `Optional[DataFrame]`; used as
+        #  `Union[float, Series]`.
         self.SE = (
             pd.DataFrame(backtester.raw_errors, copy=False).transpose().std(axis=1)
         )
@@ -322,7 +324,9 @@ class EmpConfidenceInt:
         if predicted.shape[1] == 4:
             ax.fill_between(
                 fcst_dates,
+                # pyre-fixme[16]: `ndarray` has no attribute `fcst_lower`.
                 predicted.fcst_lower,
+                # pyre-fixme[16]: `ndarray` has no attribute `fcst_upper`.
                 predicted.fcst_upper,
                 color=modelcolor,
                 alpha=modelalpha,

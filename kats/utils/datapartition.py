@@ -302,9 +302,17 @@ class SimpleTimestampDataPartition(DataPartitionBase):
         self, tag: Union[str, int], data: TimeSeriesData
     ) -> Tuple[Union[str, int], List[TrainTestData]]:
         time_index = data.time
+        # pyre-fixme[6]: For 2nd argument expected `Union[bytes, complex, float,
+        #  int, generic, str]` but got `Timestamp`.
         train_start_idx = np.searchsorted(time_index, self.train_start)
+        # pyre-fixme[6]: For 2nd argument expected `Union[bytes, complex, float,
+        #  int, generic, str]` but got `Timestamp`.
         train_end_idx = np.searchsorted(time_index, self.train_end, side="right")
+        # pyre-fixme[6]: For 2nd argument expected `Union[bytes, complex, float,
+        #  int, generic, str]` but got `Timestamp`.
         test_start_idx = np.searchsorted(time_index, self.test_start)
+        # pyre-fixme[6]: For 2nd argument expected `Union[bytes, complex, float,
+        #  int, generic, str]` but got `Timestamp`.
         test_end_idx = np.searchsorted(time_index, self.test_end, side="right")
 
         return tag, [

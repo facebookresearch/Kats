@@ -331,7 +331,9 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
             + df.value_b * (1 - df.value_b) / df.sample_count_b
         )
         z_score = diff / std_error
+        # pyre-fixme[6]: For 1st argument expected `Iterable[object]` but got `bool_`.
         assert all(np.isclose(test_statistic.test_statistic.values, z_score))
+        # pyre-fixme[6]: For 1st argument expected `Iterable[object]` but got `bool_`.
         assert all(np.isclose(test_statistic.stat_sig.values, norm.sf(z_score)))
 
     def test_relative_difference_test_statistic(self) -> None:
@@ -348,7 +350,9 @@ class TestTwoSampleProportionIntervalDetectorModel(TestCase):
             + df.value_b * (1 - df.value_b) / df.sample_count_b / (df.value_b**2)
         )
         z_score = diff / std_error
+        # pyre-fixme[6]: For 1st argument expected `Iterable[object]` but got `bool_`.
         assert all(np.isclose(test_statistic.test_statistic.values, z_score))
+        # pyre-fixme[6]: For 1st argument expected `Iterable[object]` but got `bool_`.
         assert all(np.isclose(test_statistic.stat_sig.values, norm.sf(z_score)))
 
     # pyre-fixme[56]: Pyre was not able to infer the type of the decorator

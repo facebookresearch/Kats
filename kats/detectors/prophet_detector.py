@@ -299,6 +299,7 @@ def get_holiday_dates(
         )
         all_holidays = pd.concat((all_holidays, country_holidays_df), sort=False)
     all_holidays = pd.to_datetime(
+        # pyre-fixme[16]: `Timestamp` has no attribute `__iter__`.
         pd.Series(list({x.date() for x in pd.to_datetime(all_holidays.ds)}))
     ).sort_values(ignore_index=True)
     return all_holidays
@@ -611,6 +612,7 @@ class ProphetDetectorModel(DetectorModel):
             )
             if holidays_df is not None:
                 scores_ts = pd.Series(list(scores.value), index=data.time)
+                # pyre-fixme[16]: `Index` has no attribute `floor`.
                 scores_ts.loc[scores_ts.index.floor("d").isin(holidays_df)] *= (
                     self.holiday_multiplier
                 )

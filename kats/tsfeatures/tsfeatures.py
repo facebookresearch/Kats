@@ -242,6 +242,7 @@ _FEATURE_GROUP_MAPPING: Dict[str, List[str]] = {
 }
 
 TSMethod = Callable[[TimeSeriesData], Dict[str, float]]
+# pyre-fixme[24]: Generic type `np.ndarray` expects 2 type parameters.
 ArrayMethod = Callable[[np.ndarray], Dict[str, float]]
 
 
@@ -763,6 +764,8 @@ class TsFeatures:
 
         # strength of trend
         if extra_args is not None and extra_args.get("trend_strength", default_status):
+            # pyre-fixme[58]: `-` is not supported for operand types `int` and
+            #  `floating[Any]`.
             stl_features["trend_strength"] = 1 - np.var(res.resid) / np.var(
                 res.trend + res.resid
             )
@@ -771,6 +774,8 @@ class TsFeatures:
         if extra_args is not None and extra_args.get(
             "seasonality_strength", default_status
         ):
+            # pyre-fixme[58]: `-` is not supported for operand types `int` and
+            #  `floating[Any]`.
             stl_features["seasonality_strength"] = 1 - np.var(res.resid) / np.var(
                 res.seasonal + res.resid
             )
@@ -879,6 +884,7 @@ class TsFeatures:
                 "calculate flat spots feature"
             )
             logging.error(msg)
+            # pyre-fixme[7]: Expected `int` but got `float`.
             return np.nan
 
         max_run_length = 0
@@ -1284,7 +1290,7 @@ class TsFeatures:
 
     # First min/zero AC (2)
     @staticmethod
-    @jit(forceobj=True)
+    # @jit(forceobj=True)
     def get_special_ac(
         x: npt.NDArray,
         extra_args: Optional[Dict[str, bool]] = None,
@@ -1309,13 +1315,17 @@ class TsFeatures:
         # First min AC
         special_ac_features = {"firstmin_ac": np.nan, "firstzero_ac": np.nan}
         AC = acf(x, fft=True, nlags=len(x))[1:]
+        print("AC", AC)
         if extra_args is not None and extra_args.get("firstmin_ac", default_status):
             i = 0
             while i < len(AC) - 1:
+                print("i: ", i, "AC[i]: ", AC[i], "AC[i+1]: ", AC[i + 1])
                 if AC[i] > AC[i + 1]:
                     i += 1
                 else:
                     break
+            print("resulting i: ", i, "; firstmin_ac (i+1): ", i + 1)
+
             special_ac_features["firstmin_ac"] = i + 1
 
         # First zero AC
@@ -1327,6 +1337,7 @@ class TsFeatures:
                 else:
                     j += 1
             special_ac_features["firstzero_ac"] = j + 2
+
         return special_ac_features
 
     # Linearity
@@ -1478,6 +1489,8 @@ class TsFeatures:
                     0 if cp is None else cp.cp_index / len(ts)
                 )
             if extra_args is not None and extra_args.get("cusum_delta", default_status):
+                # pyre-fixme[6]: For 2nd argument expected `float` but got
+                #  `Union[ndarray[Any, dtype[Any]], float]`.
                 cusum_detector_features["cusum_delta"] = 0 if cp is None else cp.delta
             if extra_args is not None and extra_args.get("cusum_llr", default_status):
                 cusum_detector_features["cusum_llr"] = 0 if cp is None else cp.llr
@@ -2020,14 +2033,13 @@ class TsFeatures:
             n = len(ts)
             index = ts.time_to_index()
             # pyre-fixme[16]: `DatetimeIndex` has no attribute `dayofweek`.
-            dow = index.dayofweek
+            dow = index.weekday
 
             if extra_args is not None and extra_args.get("time_years", default_status):
                 # pyre-fixme[16]: `DatetimeIndex` has no attribute `year`.
                 time_features["time_years"] = index.year.nunique()
 
             if extra_args is not None and extra_args.get("time_months", default_status):
-                # pyre-fixme[16]: `DatetimeIndex` has no attribute `strftime`.
                 time_features["time_months"] = index.strftime("%Y-%m").nunique()
 
             if extra_args is not None and extra_args.get(
@@ -2042,8 +2054,7 @@ class TsFeatures:
             if extra_args is not None and extra_args.get(
                 "time_weeksofyear", default_status
             ):
-                # pyre-fixme[16]: `DatetimeIndex` has no attribute `weekofyear`.
-                time_features["time_weeksofyear"] = index.weekofyear.nunique()
+                time_features["time_weeksofyear"] = index.isocalendar().week.nunique()
 
             if extra_args is not None and extra_args.get("time_days", default_status):
                 time_features["time_days"] = index.strftime("%Y-%d").nunique()
@@ -2151,7 +2162,12 @@ class TsCalenderFeatures:
         for attr in self.features:
             if attr in _calendar_attrs:  # compute corresponding feature
                 col_names.append(attr)
-                res.append(getattr(timestamps, attr))
+                if attr == "week":
+                    res.append(timestamps.strftime("%G-%V"))
+                elif attr == "weekofyear":
+                    res.append(timestamps.isocalendar().week)
+                else:
+                    res.append(getattr(timestamps, attr))
             elif attr == "minuteofday":
                 col_names.append(attr)
                 res.append(timestamps.hour * 60 + timestamps.minute)

@@ -491,6 +491,7 @@ class MLARModel:
 
         data_dict = {}
         timestamps = set()
+        # pyre-fixme[6]: For 1st argument expected `None` but got `Optional[str]`.
         offset = pd.tseries.frequencies.to_offset(self.params.freq)
 
         for k in keys:
@@ -870,6 +871,7 @@ class MLARModel:
         emb_fut_cov: pd.DataFrame,
         gen_meta_data: bool = True,
     ) -> Tuple[npt.NDArray, pd.DataFrame, List[str]]:
+        # pyre-fixme[6]: For 1st argument expected `None` but got `Optional[str]`.
         offset = pd.tseries.frequencies.to_offset(self.params.freq)
         num_cols = self.num_hist_reg + cal_feat.shape[1] + emb_fut_cov.shape[1] + 1
         tv_idx = 0
@@ -1150,6 +1152,7 @@ class MLARModel:
         new_data_is_forecast: bool = True,
     ) -> None:
         new_data_dict = {}
+        # pyre-fixme[6]: For 1st argument expected `None` but got `Optional[str]`.
         offset = pd.tseries.frequencies.to_offset(self.params.freq)
 
         for curr_series in self.all_series.keys():

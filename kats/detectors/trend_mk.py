@@ -400,6 +400,7 @@ class MKDetector(Detector):
 
         ts = self.data.to_dataframe().set_index("time")
         ts = ts.dropna(axis=1)
+        # pyre-fixme[16]: `Index` has no attribute `inferred_freq`.
         ts.index = pd.DatetimeIndex(ts.index.values, freq=ts.index.inferred_freq)
         self.ts = ts
 
@@ -483,6 +484,8 @@ class MKDetector(Detector):
             )
 
         if self.multivariate:
+            # pyre-fixme[6]: For 1st argument expected `Dict[Any, Any]` but got
+            #  `List[Any]`.
             trend_df = pd.DataFrame.from_dict(list(MK_statistics.trend_direction))
             overall_trend = trend_df["overall"]
 
@@ -627,10 +630,12 @@ class MKDetector(Detector):
         assert MK_statistics is not None
 
         # obtain the Tau for all metrics at all time points
+        # pyre-fixme[6]: For 1st argument expected `Dict[Any, Any]` but got `List[Any]`.
         Tau_df = pd.DataFrame.from_dict(list(MK_statistics.Tau))
         Tau_df["ds"] = MK_statistics.ds
         Tau_df = Tau_df.drop(["overall"], axis=1)  # remove overall score
 
+        # pyre-fixme[6]: For 1st argument expected `Dict[Any, Any]` but got `List[Any]`.
         trend_df = pd.DataFrame.from_dict(list(MK_statistics.trend_direction))
         trend_df["ds"] = MK_statistics.ds
         trend_df = trend_df.drop(["overall"], axis=1)  # remove overall trend

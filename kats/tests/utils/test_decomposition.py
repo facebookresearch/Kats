@@ -104,7 +104,11 @@ class DecompositionTest(TestCase):
         )
 
         self.assertAlmostEqual(
-            np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2), 0, 5
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2),
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            0,
+            5,
         )
 
         m_seasonal = TimeSeriesDecomposition(
@@ -130,7 +134,11 @@ class DecompositionTest(TestCase):
         )
 
         self.assertAlmostEqual(
-            np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2), 0, 5
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2),
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            0,
+            5,
         )
 
         m2 = TimeSeriesDecomposition(self.ts_data_daily, "additive")
@@ -156,7 +164,11 @@ class DecompositionTest(TestCase):
             suffixes=("_actuals", "_decomposed"),
         )
         self.assertAlmostEqual(
-            np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2), 0, 5
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2),
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            0,
+            5,
         )
 
         m2_seasonal = TimeSeriesDecomposition(
@@ -184,7 +196,11 @@ class DecompositionTest(TestCase):
             suffixes=("_actuals", "_decomposed"),
         )
         self.assertAlmostEqual(
-            np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2), 0, 5
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2),
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            0,
+            5,
         )
 
     def test_decomposition_multiplicative(self) -> None:
@@ -209,7 +225,11 @@ class DecompositionTest(TestCase):
         )
 
         self.assertAlmostEqual(
-            np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2), 0, 5
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2),
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            0,
+            5,
         )
 
         m_seas = TimeSeriesDecomposition(
@@ -235,7 +255,11 @@ class DecompositionTest(TestCase):
         )
 
         self.assertAlmostEqual(
-            np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2), 0, 5
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            np.mean((out["y_actuals"] - out["y_decomposed"]) ** 2),
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            0,
+            5,
         )
         m2 = TimeSeriesDecomposition(self.ts_data_daily, "multiplicative")
         output = m2.decomposer()
@@ -260,7 +284,11 @@ class DecompositionTest(TestCase):
             suffixes=("_actuals", "_decomposed"),
         )
         self.assertAlmostEqual(
-            np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2), 0, 5
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2),
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            0,
+            5,
         )
 
         m2_seas = TimeSeriesDecomposition(
@@ -288,7 +316,11 @@ class DecompositionTest(TestCase):
             suffixes=("_actuals", "_decomposed"),
         )
         self.assertAlmostEqual(
-            np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2), 0, 5
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            np.mean((out2["y_actuals"] - out2["y_decomposed"]) ** 2),
+            # pyre-fixme[6]: For 2nd argument expected `_T` but got `int`.
+            0,
+            5,
         )
 
     def test_plot(self) -> None:

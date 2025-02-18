@@ -160,7 +160,7 @@ class VARModel(Model[VARParams]):
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
         self.alpha = alpha = kwargs.get("alpha", 0.05)
 
-        fcst = model.forecast_interval(y=model.y, steps=steps, alpha=alpha)
+        fcst = model.forecast_interval(y=model.endog, steps=steps, alpha=alpha)
         logging.info("Generated forecast data from VAR model.")
         logging.debug("Forecast data: {fcst}".format(fcst=fcst))
 

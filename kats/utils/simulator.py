@@ -132,6 +132,7 @@ class Simulator:
         p_max = len(ar)
 
         # add theta_0=1 to ma coefficients
+        # pyre-fixme[9]: ma has type `List[float]`; used as `ndarray[Any, dtype[Any]]`.
         ma = np.append(1, ma)
         q_max = len(ma)
 
@@ -197,8 +198,11 @@ class Simulator:
 
         def component_gen(timepoints: npt.NDArray) -> float:
             if trend_type == "sigmoid" or trend_type == "S":
+                # pyre-fixme[6]: For 1st argument expected `float` but got
+                #  `ndarray[Any, dtype[Any]]`.
                 return magnitude * self.sigmoid(timepoints - 0.5)
             else:  # 'linear' trend by default
+                # pyre-fixme[7]: Expected `float` but got `ndarray[Any, dtype[Any]]`.
                 return magnitude * timepoints
 
         return self._add_component(component_gen, multiply)
@@ -248,6 +252,7 @@ class Simulator:
         period = self._convert_period(period)
 
         def component_gen(timepoints: npt.NDArray) -> float:
+            # pyre-fixme[7]: Expected `float` but got `ndarray[Any, dtype[Any]]`.
             return magnitude * np.sin(2 * np.pi * timepoints)
 
         return self._add_component(component_gen, multiply, time_scale=period)
