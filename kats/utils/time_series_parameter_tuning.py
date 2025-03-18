@@ -39,7 +39,7 @@ from ax.core.metric import Metric, MetricFetchE, MetricFetchResult
 from ax.core.objective import Objective
 from ax.core.outcome_constraint import OutcomeConstraint
 from ax.core.trial import BaseTrial
-from ax.generation_strategy.dispatch_utils import choose_generation_strategy
+from ax.generation_strategy.dispatch_utils import choose_generation_strategy_legacy
 from ax.global_stopping.strategies.improvement import ImprovementGlobalStoppingStrategy
 from ax.modelbridge.base import Adapter
 from ax.modelbridge.discrete import DiscreteAdapter
@@ -1100,7 +1100,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             self.evaluation_function = list(
                 self._exp.optimization_config.metrics.values()  # type: ignore
             )[0].evaluation_function
-        generation_strategy = choose_generation_strategy(
+        generation_strategy = choose_generation_strategy_legacy(
             search_space=self._exp.search_space,
             max_parallelism_cap=min(
                 cpu_count(),
