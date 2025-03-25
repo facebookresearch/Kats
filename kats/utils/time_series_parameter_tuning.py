@@ -32,12 +32,15 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import nevergrad as ng
 import pandas as pd
-from ax import Arm, ComparisonOp, Data, OptimizationConfig, SearchSpace
+from ax.core.arm import Arm
+from ax.core.data import Data
 from ax.core.experiment import Experiment
 from ax.core.generator_run import GeneratorRun
 from ax.core.metric import Metric, MetricFetchE, MetricFetchResult
 from ax.core.objective import Objective
+from ax.core.optimization_config import ComparisonOp, OptimizationConfig
 from ax.core.outcome_constraint import OutcomeConstraint
+from ax.core.search_space import SearchSpace
 from ax.core.trial import BaseTrial
 from ax.generation_strategy.dispatch_utils import choose_generation_strategy_legacy
 from ax.global_stopping.strategies.improvement import ImprovementGlobalStoppingStrategy
