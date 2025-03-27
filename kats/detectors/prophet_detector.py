@@ -46,9 +46,6 @@ PROPHET_YHAT_UPPER_COLUMN = "yhat_upper"
 HOLIDAY_NAMES_COLUMN_NAME = "holiday"
 HOLIDAY_DATES_COLUMN_NAME = "ds"
 NOT_SUPPRESS_PROPHET_FIT_LOGS_VAR_NAME = "NOT_SUPPRESS_PROPHET_FIT_LOGS"
-# When less than 2 data points are left after outlier removal, Prophet will not
-# be able to fit the model.
-MIN_SAMPLES_REQUIRED_AFTER_OUTLIER_REMOVAL = 2
 
 
 # this is a bug in prophet which was discussed in open source thread
@@ -474,20 +471,12 @@ class ProphetDetectorModel(DetectorModel):
         data_df = timeseries_to_prophet_df(total_data)
 
         if self.remove_outliers:
-            updated_data_df = self._remove_outliers(
+            data_df = self._remove_outliers(
                 data_df,
                 self.outlier_threshold,
                 uncertainty_samples=self.outlier_removal_uncertainty_samples,
                 vectorize=self.vectorize,
             )
-            if len(updated_data_df) < MIN_SAMPLES_REQUIRED_AFTER_OUTLIER_REMOVAL:
-                logging.warning(
-                    f"Outlier removal left {len(updated_data_df)} which is"
-                    f" less than {MIN_SAMPLES_REQUIRED_AFTER_OUTLIER_REMOVAL}. Reverting"
-                    " to use all data."
-                )
-            else:
-                data_df = updated_data_df
         # seasonalities depends on current time series
         self.seasonalities_to_fit = seasonalities_processing(
             data_df[PROPHET_TIME_COLUMN], self.seasonalities
@@ -654,7 +643,9 @@ class ProphetDetectorModel(DetectorModel):
                 stack.enter_context(SilentStdoutStderr())
             model_pass1 = model.fit(ts_df)
 
-        forecast = predict(model_pass1, ts_dates_df, vectorize)
+        forecast = predict(
+            model_pass1, ts_dates_df, vectorize, confidence_band_margin=1e-5
+        )
 
         is_outlier = (
             ts_df[PROPHET_VALUE_COLUMN] < forecast[PROPHET_YHAT_LOWER_COLUMN]

@@ -515,7 +515,10 @@ class ProphetModel(Model[ProphetParams]):
 
 # From now on, the main logics are from github PR https://github.com/facebook/prophet/pull/2186 with some modifications.
 def predict_uncertainty(
-    prophet_model: Prophet, df: pd.DataFrame, vectorized: bool
+    prophet_model: Prophet,
+    df: pd.DataFrame,
+    vectorized: bool,
+    confidence_band_margin: Optional[float] = None,
 ) -> pd.DataFrame:
     """Prediction intervals for yhat and trend.
 
@@ -523,6 +526,7 @@ def predict_uncertainty(
         prophet_model: a trained prophet object.
         df: a `pd.dataframe` to generate uncertainty for.
         vectorized: a boolean for whether to use a vectorized method for generating future draws.
+        confidence_band_margin: minimum margin of the upper and lower bounds, applied to the data scale.
 
     Returns
         a `pd.Dataframe` for uncertainty intervals.
@@ -531,15 +535,20 @@ def predict_uncertainty(
 
     lower_p = 100 * (1.0 - prophet_model.interval_width) / 2
     upper_p = 100 * (1.0 + prophet_model.interval_width) / 2
+    half_margin = (
+        prophet_model.y_scale * confidence_band_margin / 2.0
+        if confidence_band_margin
+        else 0.0
+    )
 
     series = {}
 
     for key in ["yhat", "trend"]:
-        series["{}_lower".format(key)] = prophet_model.percentile(
-            sim_values[key], lower_p, axis=0
+        series["{}_lower".format(key)] = (
+            prophet_model.percentile(sim_values[key], lower_p, axis=0) - half_margin
         )
-        series["{}_upper".format(key)] = prophet_model.percentile(
-            sim_values[key], upper_p, axis=0
+        series["{}_upper".format(key)] = (
+            prophet_model.percentile(sim_values[key], upper_p, axis=0) + half_margin
         )
 
     return pd.DataFrame(series)
@@ -684,11 +693,13 @@ def predict(
     prophet_model: Prophet,
     df: Optional[pd.DataFrame] = None,
     vectorized: bool = False,
+    confidence_band_margin: Optional[float] = None,
 ) -> pd.DataFrame:
     """Predict using the prophet model.
     Args:
         df: a `pd.DataFrame` object with dates and necessary information for predictions.
         vectorized: a boolean for whether to use a vectorized method to compute uncertainty intervals. Default is False.
+        confidence_band_margin: minimum margin of the upper and lower bounds, applied to the data scale.
 
     Returns:
         A `pd.DataFrame` object for the forecasts.
@@ -708,8 +719,9 @@ def predict(
     seasonal_components = prophet_model.predict_seasonal_components(df)
 
     if prophet_model.uncertainty_samples:
-        intervals = predict_uncertainty(prophet_model, df, vectorized)
-
+        intervals = predict_uncertainty(
+            prophet_model, df, vectorized, confidence_band_margin
+        )
     else:
         intervals = None
 
