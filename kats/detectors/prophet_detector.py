@@ -13,6 +13,7 @@ as a Detector Model.
 import copy
 import logging
 import os
+import re
 import sys
 from contextlib import ExitStack
 from enum import Enum
@@ -302,6 +303,21 @@ def get_holiday_dates(
     return all_holidays
 
 
+def load_model_from_json(serialized_model: bytes) -> Prophet:
+    try:
+        return model_from_json(serialized_model)
+    except TypeError as e:
+        logging.error(f"Failed to load model from json: {e}")
+
+    # Bytes regular expression pattern to match time strings with 'Z'
+    pattern = rb"(\"\d+-\d+-\d+T\d+:\d+:\d+\.\d+)\w\\\""
+    # Replace 'Z' with an empty bytes string
+    model_without_timezone: bytes = re.sub(pattern, rb"\1\"", serialized_model)
+    model = model_from_json(model_without_timezone)
+    model.start = model.start.tz_localize(None)
+    return model
+
+
 class ProphetDetectorModel(DetectorModel):
     """Prophet based anomaly detection model.
 
@@ -370,7 +386,7 @@ class ProphetDetectorModel(DetectorModel):
         """
 
         if serialized_model:
-            self.model = model_from_json(serialized_model)
+            self.model = load_model_from_json(serialized_model)
         else:
             self.model = None
 
