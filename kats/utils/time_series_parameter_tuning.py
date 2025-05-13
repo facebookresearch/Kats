@@ -32,6 +32,9 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import nevergrad as ng
 import pandas as pd
+from ax.adapter.base import Adapter
+from ax.adapter.discrete import DiscreteAdapter
+from ax.adapter.registry import Generators
 from ax.core.arm import Arm
 from ax.core.data import Data
 from ax.core.experiment import Experiment
@@ -44,9 +47,6 @@ from ax.core.search_space import SearchSpace
 from ax.core.trial import BaseTrial
 from ax.generation_strategy.dispatch_utils import choose_generation_strategy_legacy
 from ax.global_stopping.strategies.improvement import ImprovementGlobalStoppingStrategy
-from ax.modelbridge.base import Adapter
-from ax.modelbridge.discrete import DiscreteAdapter
-from ax.modelbridge.registry import Generators
 from ax.runners.synthetic import SyntheticRunner
 from ax.service.scheduler import Scheduler, SchedulerOptions
 from ax.service.utils.instantiation import InstantiationBase

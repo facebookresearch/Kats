@@ -15,7 +15,7 @@ from unittest.mock import patch
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from ax.modelbridge.registry import Generators, SearchSpace
+from ax.adapter.registry import Generators, SearchSpace
 from ax.service.utils.instantiation import InstantiationBase
 from kats.consts import TimeSeriesData
 from kats.models.arima import ARIMAModel
