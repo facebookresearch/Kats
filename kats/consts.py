@@ -692,6 +692,36 @@ class TimeSeriesData:
         if validate:
             self.validate_data(validate_frequency=True, validate_dimension=False)
 
+    def exclude(
+        self,
+        start: pd.Timestamp,
+        end: pd.Timestamp,
+    ) -> TimeSeriesData:
+        """Exclude data between start and end.
+
+        Cautions:
+          1. This method may result in non-valid data and exceptions due to gaps in the time series.
+          2. It creates a new TimeSeriesData object.
+             The constructor has multiple arguments used only during initialization and
+             not stored in the object. Default values are used for these arguments,
+             which may lead to unexpected behavior.
+
+        Args:
+            start: start time of the data to exclude inclusive.
+            drop: end time of the data to exclude inclusive.
+        Returns:
+            TimeSeriesData.
+        """
+        mask = (self.time < start) | (self.time > end)
+
+        return TimeSeriesData(
+            sort_by_time=self.sort_by_time,
+            time=self.time[mask],
+            value=self.value[mask],
+            categorical_var=self.categorical_var,
+            time_col_name=self.time_col_name,
+        )
+
     def time_to_index(self) -> pd.DatetimeIndex:
         """
         Utility function converting the time in the :class:`TimeSeriesData`

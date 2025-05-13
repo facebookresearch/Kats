@@ -937,6 +937,92 @@ class TestProphetDetector(TestCase):
         self.assertEqual(model.seasonalities_to_fit[SeasonalityTypes.WEEKEND], "auto")
         self.assertGreater(1.5, mae)
 
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator `parameter...
+    @parameterized.expand(
+        [
+            (  # level shift at the beginning of the time series
+                0,
+                24 * 10,  # hours in 10 days
+            ),
+            (  # level shift at the end of the time series
+                24 * 90,  # hours in 90 days
+                24 * 100 - 1,  # hours in 100 days
+            ),
+            (  # level shift at the middle of the time series
+                24 * 50,  # hours in 50 days
+                24 * 60 - 1,  # hours in 60 days
+            ),
+        ]
+    )
+    def test_exclude_ts_range_from_model_training(
+        self,
+        level_shift_start: int,
+        level_shift_end: int,
+    ) -> None:
+        """
+        This test verifies that excluding data works. We introduce a large level shift to 10%
+        of the data at the beginning or ending of the time series.
+        Then we compare two models: one using the exclude_training_ranges parameter and
+        another where the noisy data is manually excluded before fitting.
+        Both approaches should produce identical results.
+        """
+        exclude_dataset_step = 24 * 10
+        ts = self.create_ts(
+            length=exclude_dataset_step * 10,
+            signal_to_noise_ratio=0,
+            freq="1h",
+            magnitude=10,
+        )
+        exclude_control_ts = self.create_ts(
+            seed=42,
+            length=exclude_dataset_step * 3,
+            signal_to_noise_ratio=0,
+            freq="1h",
+            magnitude=10,
+        )
+
+        ts.value[level_shift_start : level_shift_end + 1] += 100_000
+
+        # exclude data with new option
+        exclude_start = int(ts.time[level_shift_start].timestamp())
+        exclude_end = int(ts.time[level_shift_end].timestamp())
+
+        model_with_exclude_setting = ProphetDetectorModel(
+            exclude_training_ranges=[[exclude_start, exclude_end]],
+        )
+        model_with_exclude_setting.fit(
+            ts[exclude_dataset_step * 9 :],  # 90-100% of data
+            ts[: exclude_dataset_step * 9],  # history data 90% of data
+        )
+
+        # exclude data manually before fitting
+        model_exclude_data_before_fitting = ProphetDetectorModel()
+        model_exclude_data_before_fitting.fit(
+            ts[
+                (ts.time < ts.time[level_shift_start])
+                | (ts.time > ts.time[level_shift_end])
+            ],
+            None,
+        )
+
+        response_with_exclude_setting = model_with_exclude_setting.predict(
+            exclude_control_ts
+        )
+
+        response_exclude_data_before_fitting = (
+            model_exclude_data_before_fitting.predict(exclude_control_ts)
+        )
+
+        self.assertTrue(
+            all(
+                abs(exclude_option_value - control_value) < 1e-5
+                for exclude_option_value, control_value in zip(
+                    response_with_exclude_setting.scores.value.to_list(),
+                    response_exclude_data_before_fitting.scores.value.to_list(),
+                )
+            )
+        )
+
     def test_z_score_proportional_to_anomaly_magnitude(self) -> None:
         """Tests the z-score strategy on signals with different-sized anomalies
 

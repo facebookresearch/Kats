@@ -363,6 +363,7 @@ class ProphetDetectorModel(DetectorModel):
         country_holidays: Optional[str] = None,
         holidays_list: Optional[Union[List[str], Dict[str, List[str]]]] = None,
         holiday_multiplier: Optional[float] = None,
+        exclude_training_ranges: Optional[List[List[Union[int, pd.Timestamp]]]] = None,
     ) -> None:
         """
         Initializartion of Prophet
@@ -383,6 +384,7 @@ class ProphetDetectorModel(DetectorModel):
         country_holidays: Optional[str]: Country for which holidays should be added to the model.
         holidays_list:  Optional[Union[List[str], Dict[str, List[str]]]] : List of holiday dates to be added to the model. like ["2022-01-01","2022-03-31"], or dict of list if we have diffreent holidays patterns for example  {"ds":["2022-01-01","2022-03-31"], "holidays":["playoff","superbowl"]}
         holiday_multiplier: Optional[float], multiplier for holidays anomaly scores.
+        exclude_training_ranges: Optional[List[List[Union[int, pd.Timestamp]]]], define ranges to exclude from training data. Example [[1672552800, 1672567200]]
         """
 
         if serialized_model:
@@ -419,6 +421,9 @@ class ProphetDetectorModel(DetectorModel):
         self.holidays_list = holidays_list
         self.holiday_multiplier = holiday_multiplier
         self.holidays: Optional[pd.DataFrame] = None  # type: ignore
+        self.exclude_training_ranges: Optional[List[List[Union[int, pd.Timestamp]]]] = (
+            exclude_training_ranges
+        )
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -483,6 +488,12 @@ class ProphetDetectorModel(DetectorModel):
         else:
             historical_data.extend(data)
             total_data = historical_data
+
+        # Exclude training ranges if specified
+        if self.exclude_training_ranges is not None:
+            total_data = self._exclude_ranges(total_data, self.exclude_training_ranges)
+            if not len(total_data):
+                raise DataError("All data is excluded from training")
 
         data_df = timeseries_to_prophet_df(total_data)
 
@@ -635,6 +646,39 @@ class ProphetDetectorModel(DetectorModel):
             stat_sig_ts=zeros_ts,
         )
         return response
+
+    @staticmethod
+    def _exclude_ranges(
+        ts: TimeSeriesData,
+        exclude_ranges: List[List[Union[int, pd.Timestamp]]],
+    ) -> TimeSeriesData:
+        """
+        Exclude ranges from the time series.
+        """
+        for exclude_range in exclude_ranges:
+            if len(exclude_range) != 2:
+                raise ValueError(
+                    f"Each exclude range should have exactly 2 timestamps, got {exclude_range}"
+                )
+            start_timestamp, end_timestamp = exclude_range
+
+            if start_timestamp is None or end_timestamp is None:
+                raise ValueError(
+                    f"Start and end timestamps to exclude should not be None, got {exclude_range}"
+                )
+
+            if isinstance(start_timestamp, int):
+                start_timestamp = pd.to_datetime(
+                    start_timestamp, unit="s", utc=ts.is_timezone_aware(), origin="unix"
+                )
+            if isinstance(end_timestamp, int):
+                end_timestamp = pd.to_datetime(
+                    end_timestamp, unit="s", utc=ts.is_timezone_aware(), origin="unix"
+                )
+
+            # Filter out data points within the excluded range
+            ts = ts.exclude(start_timestamp, end_timestamp)
+        return ts
 
     @staticmethod
     def _remove_outliers(

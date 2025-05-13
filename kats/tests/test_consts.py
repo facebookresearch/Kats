@@ -1349,6 +1349,24 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
         # Other values
         self.length = len(self.AIR_DF)
 
+        self.tsd_exclude_test = TimeSeriesData(
+            df=pd.DataFrame(
+                {
+                    "time": [
+                        "2018-10-28 01:30:00",
+                        "2018-10-28 02:00:00",
+                        "2018-10-28 02:30:00",
+                        "2018-10-28 03:00:00",
+                        "2018-10-28 03:30:00",
+                        "2018-10-28 04:00:00",
+                        "2018-10-28 04:30:00",
+                    ],
+                    "value": [0] * 7,
+                }
+            ),
+            tz="UTC",
+        )
+
     def test_eq(self) -> None:
         # Univariate equality
         self.assertTrue(self.ts_univ_1 == self.ts_univ_2)
@@ -1510,6 +1528,71 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
         # Empty case
         self.ts_empty_extend.extend(self.ts_empty, validate=False)
         self.assertEqual(self.ts_empty_extend, self.ts_empty)
+
+    def test_exclude_whole_ts(self) -> None:
+        tsd_exclude = self.tsd_exclude_test.exclude(
+            self.tsd_exclude_test.time.min(), self.tsd_exclude_test.time.max()
+        )
+        self.assertEqual(tsd_exclude.is_empty(), True)
+
+    def test_exclude_starting_range(self) -> None:
+        tsd_after_exclude = self.tsd_exclude_test.exclude(
+            self.tsd_exclude_test.time.min(),
+            pd.to_datetime("2018-10-28 03:00:00", utc=True),
+        )
+        expected_result = TimeSeriesData(
+            df=pd.DataFrame(
+                {
+                    "time": [
+                        "2018-10-28 03:30:00",
+                        "2018-10-28 04:00:00",
+                        "2018-10-28 04:30:00",
+                    ],
+                    "value": [0] * 3,
+                }
+            ),
+            tz="UTC",
+        )
+        self.assertEqual(tsd_after_exclude, expected_result)
+
+    def test_exclude_ending_range(self) -> None:
+        tsd_after_exclude = self.tsd_exclude_test.exclude(
+            pd.to_datetime("2018-10-28 02:30:00", utc=True),
+            self.tsd_exclude_test.time.max(),
+        )
+        expected_result = TimeSeriesData(
+            df=pd.DataFrame(
+                {
+                    "time": [
+                        "2018-10-28 01:30:00",
+                        "2018-10-28 02:00:00",
+                    ],
+                    "value": [0] * 2,
+                }
+            ),
+            tz="UTC",
+        )
+        self.assertEqual(tsd_after_exclude, expected_result)
+
+    def test_exclude_middle_range(self) -> None:
+        tsd_after_exclude = self.tsd_exclude_test.exclude(
+            pd.to_datetime("2018-10-28 02:30:00", utc=True),
+            pd.to_datetime("2018-10-28 04:00:00", utc=True),
+        )
+        expected_result = TimeSeriesData(
+            df=pd.DataFrame(
+                {
+                    "time": [
+                        "2018-10-28 01:30:00",
+                        "2018-10-28 02:00:00",
+                        "2018-10-28 04:30:00",
+                    ],
+                    "value": [0] * 3,
+                }
+            ),
+            tz="UTC",
+        )
+        self.assertEqual(tsd_after_exclude, expected_result)
 
     def test_get_item(self) -> None:
         # Univariate test case
