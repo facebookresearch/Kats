@@ -203,7 +203,7 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(
             # pyre-fixme[16]: `TimeSeriesParameterTuning` has no attribute
             #  `_random_strategy_model`.
-            time_series_parameter_tuner._random_strategy_model.model,
+            time_series_parameter_tuner._random_strategy_model.generator,
             UniformGenerator,
         )
         for _ in range(3):
@@ -233,7 +233,7 @@ class GridSearchTest(TestCase):
         self.assertIsInstance(
             # pyre-fixme[16]: `TimeSeriesParameterTuning` has no attribute
             #  `_random_strategy_model`.
-            time_series_parameter_tuner._random_strategy_model.model,
+            time_series_parameter_tuner._random_strategy_model.generator,
             SobolGenerator,
         )
         for _ in range(4):
