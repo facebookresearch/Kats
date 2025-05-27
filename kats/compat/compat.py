@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from libfb.py.version import LegacyVersion, parse
+
 try:
     from importlib import metadata
 except ImportError:
@@ -25,11 +27,11 @@ OLD_PACKAGING_VERSION: bool = pv.parse(packaging.__version__) <= pv.parse("21.3"
 
 # type: ignore
 VERSION_TYPE: Type[Any] = (
-    Union[pv.Version, pv.LegacyVersion] if OLD_PACKAGING_VERSION else pv.Version
+    Union[pv.Version, LegacyVersion] if OLD_PACKAGING_VERSION else pv.Version
 )
 
 if OLD_PACKAGING_VERSION:
-    V = Union[str, "Version", pv.Version, pv.LegacyVersion]
+    V = Union[str, "Version", pv.Version, LegacyVersion]
 else:
     V = Union[str, "Version", pv.Version]
 
@@ -61,7 +63,7 @@ class Version:
             # type: ignore
             self.version: VERSION_TYPE = version
 
-    def _parse(self, version: str) -> Union[pv.Version, pv.LegacyVersion]:
+    def _parse(self, version: str) -> Union[pv.Version, LegacyVersion]:
         if version == "statsmodels":
             return pv.Version(
                 statsmodels.__version__
@@ -71,7 +73,7 @@ class Version:
             version = metadata.version(version)
         except metadata.PackageNotFoundError:
             pass
-        return pv.parse(version)
+        return parse(version)
 
     def __lt__(self, other: V) -> bool:
         return self._compare(other, lambda s, o: s < o)
