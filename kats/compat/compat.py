@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from libfb.py.version import LegacyVersion, parse
+from typing import TypeAlias
 
 try:
     from importlib import metadata
@@ -15,25 +15,16 @@ except ImportError:
     # Python < 3.8
     import importlib_metadata as metadata
 
-import logging
-from typing import Any, Callable, Type, Union
+from typing import Callable, Union
 
-import packaging
+import sklearn
+
 import statsmodels
 
 from packaging import version as pv
 
-OLD_PACKAGING_VERSION: bool = pv.parse(packaging.__version__) <= pv.parse("21.3")
-
-# type: ignore
-VERSION_TYPE: Type[Any] = (
-    Union[pv.Version, LegacyVersion] if OLD_PACKAGING_VERSION else pv.Version
-)
-
-if OLD_PACKAGING_VERSION:
-    V = Union[str, "Version", pv.Version, LegacyVersion]
-else:
-    V = Union[str, "Version", pv.Version]
+VERSION_TYPE: TypeAlias = pv.Version
+V: TypeAlias = Union[str, "Version", pv.Version]
 
 
 class Version:
@@ -43,7 +34,6 @@ class Version:
     pv.Version or a pv.LegacyVersion for version under 21.3
     """
 
-    # type: ignore
     version: VERSION_TYPE
 
     def __init__(self, version: V) -> None:
@@ -54,26 +44,27 @@ class Version:
                 version object.
         """
         if isinstance(version, str):
-            # type: ignore
             self.version: VERSION_TYPE = self._parse(version)
         elif isinstance(version, Version):
-            # type: ignore
             self.version: VERSION_TYPE = version.version
         else:
-            # type: ignore
             self.version: VERSION_TYPE = version
 
-    def _parse(self, version: str) -> Union[pv.Version, LegacyVersion]:
+    def _parse(self, version: str) -> pv.Version:
         if version == "statsmodels":
             return pv.Version(
                 statsmodels.__version__
             )  # TODO: importlib.metadata.version is spuriously returning 0.0.0 as statsmodels version, breaking compat
 
+        if version == "sklearn":
+            return pv.parse(sklearn.__version__)
+
         try:
             version = metadata.version(version)
         except metadata.PackageNotFoundError:
             pass
-        return parse(version)
+
+        return pv.parse(version)
 
     def __lt__(self, other: V) -> bool:
         return self._compare(other, lambda s, o: s < o)
