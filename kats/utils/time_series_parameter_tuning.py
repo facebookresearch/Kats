@@ -48,7 +48,7 @@ from ax.core.trial import BaseTrial
 from ax.generation_strategy.dispatch_utils import choose_generation_strategy_legacy
 from ax.global_stopping.strategies.improvement import ImprovementGlobalStoppingStrategy
 from ax.runners.synthetic import SyntheticRunner
-from ax.service.scheduler import Scheduler, SchedulerOptions
+from ax.service.orchestrator import Orchestrator, OrchestratorOptions
 from ax.service.utils.instantiation import InstantiationBase
 from ax.utils.common.result import Err, Ok
 from kats.consts import SearchMethodEnum
@@ -1062,7 +1062,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         arm_count: int = 1,
     ) -> None:
         """In comparison with other generate_evaluate_new_parameter_values for GRID
-        and RANDOM search, this method use Scheduler in order to manipulate epochs
+        and RANDOM search, this method use Orchestrator in order to manipulate epochs
         of optimization, and do NOT use generator_run_for_search_method function.
         """
 
@@ -1125,19 +1125,19 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
             window_size=options.window_global_stop_size,
             improvement_bar=options.improvement_bar,
         )
-        scheduler = Scheduler(
+        orchestrator = Orchestrator(
             experiment=self._exp,
             generation_strategy=generation_strategy,
-            options=SchedulerOptions(
+            options=OrchestratorOptions(
                 global_stopping_strategy=stop_strategy,
                 run_trials_in_batches=bool(options.multiprocessing),
             ),
         )
 
-        scheduler.run_n_trials(
+        orchestrator.run_n_trials(
             max_trials=options.max_trials, timeout_hours=options.timeout_hours
         )
-        res_data = scheduler.experiment.lookup_data()
+        res_data = orchestrator.experiment.lookup_data()
         self._trial_data = Data.from_multiple_data(
             [
                 self._trial_data,
