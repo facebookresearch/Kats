@@ -890,10 +890,13 @@ class MultitaskNet(nn.Module):
         else:
             y_pred_cat_combo = []
             for cat_layer in self.cat_layer_combo:
+                # pyre-fixme[29]: Call error: `Union[nn.modules.module.Module, torch._tensor.Tens...
                 y_pred_cat = cat_layer[0](x)
+                # pyre-fixme[6]: Incompatible parameter type: In call `len`, for 1st positional a...
                 for i in range(1, len(cat_layer)):
                     # the last layer has no activation function
                     y_pred_cat = nn.functional.relu(y_pred_cat)
+                    # pyre-fixme[29]: Call error: `Union[nn.modules.module.Module, torch._tensor....
                     y_pred_cat = cat_layer[i](y_pred_cat)
                 y_pred_cat_combo.append(y_pred_cat)
 
