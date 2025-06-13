@@ -24,7 +24,6 @@ We use the implementation in statsmodels and re-write the API to adapt Kats deve
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from kats.consts import Params, TimeSeriesData
