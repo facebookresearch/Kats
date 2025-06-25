@@ -5,7 +5,7 @@
 
 # pyre-strict
 
-from typing import cast, Union
+from typing import Union
 from unittest import TestCase
 
 import numpy as np
@@ -49,8 +49,7 @@ class HourlyRatioDectorTest(TestCase):
         df = pd.DataFrame(values, columns=["value"])
         df["time"] = time
         if drop:
-            # pyre-fixme[22]: The cast is redundant.
-            df = cast(pd.DataFrame, df.sample(frac=frac, replace=False))
+            df = df.sample(frac=frac, replace=False)
         return TimeSeriesData(df)
 
     @parameterized.expand(
