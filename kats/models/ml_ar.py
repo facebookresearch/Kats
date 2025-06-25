@@ -574,10 +574,7 @@ class MLARModel:
                     )
                 )
 
-                # pyre-fixme[22]: The cast is redundant.
-                emb_ts_curr_cov = cast(
-                    pd.DataFrame, emb_ts_curr_cov.add_prefix(f"{curr_cov}_")
-                )
+                emb_ts_curr_cov = emb_ts_curr_cov.add_prefix(f"{curr_cov}_")
 
                 if self.params.cov_history_norm:
                     norm_emb_ts_curr_cov, normalizer_curr_cov = self._normalize_data(
@@ -843,10 +840,7 @@ class MLARModel:
                 )
             )
 
-            # pyre-fixme[22]: The cast is redundant.
-            emb_ts_curr_cov = cast(
-                pd.DataFrame, emb_ts_curr_cov.add_prefix(f"Fut_Cov_{curr_cov}_")
-            )
+            emb_ts_curr_cov = emb_ts_curr_cov.add_prefix(f"Fut_Cov_{curr_cov}_")
 
             emb_ts_curr_cov.set_index(data.index[curr_cov_lags - 1 :], inplace=True)
 
