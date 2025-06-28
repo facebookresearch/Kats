@@ -475,7 +475,7 @@ class TimeSeriesParameterTuning(ABC):
         self._trial_data = Data.from_multiple_data(
             [
                 self._trial_data,
-                self._exp.fetch_trials_data(trial_indices=[max(self._exp.trials)]),
+                self._exp.fetch_data(trial_indices=[max(self._exp.trials)]),
             ]
         )
 
