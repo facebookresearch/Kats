@@ -364,9 +364,10 @@ class ProphetDetectorModel(DetectorModel):
         holidays_list: Optional[Union[List[str], Dict[str, List[str]]]] = None,
         holiday_multiplier: Optional[float] = None,
         exclude_training_ranges: Optional[List[List[Union[int, pd.Timestamp]]]] = None,
+        saturation_range: Optional[List[float]] = None,
     ) -> None:
         """
-        Initializartion of Prophet
+        Initialization of Prophet
         serialized_model: Optional[bytes] = None, json, representing data from a previously serialized model.
         score_func: Union[str, ProphetScoreFunction] = DEFAULT_SCORE_FUNCTION,
         scoring_confidence_interval: float = 0.8,
@@ -385,7 +386,11 @@ class ProphetDetectorModel(DetectorModel):
         holidays_list:  Optional[Union[List[str], Dict[str, List[str]]]] : List of holiday dates to be added to the model. like ["2022-01-01","2022-03-31"], or dict of list if we have diffreent holidays patterns for example  {"ds":["2022-01-01","2022-03-31"], "holidays":["playoff","superbowl"]}
         holiday_multiplier: Optional[float], multiplier for holidays anomaly scores.
         exclude_training_ranges: Optional[List[List[Union[int, pd.Timestamp]]]], define ranges to exclude from training data. Example [[1672552800, 1672567200]]
+        saturation_range: Optional[List[float]]. A saturation range (min, max). Must have length 2. If not specified, Prophet will use a linear model for its forecast. If specified, it will use a logistic growth model with the specified saturation minimum and maximum. Example: [0.0, 100.0].
         """
+        if saturation_range == []:
+            saturation_range = None
+        self._validate_saturation_range(saturation_range)
 
         if serialized_model:
             self.model = load_model_from_json(serialized_model)
@@ -424,6 +429,7 @@ class ProphetDetectorModel(DetectorModel):
         self.exclude_training_ranges: Optional[List[List[Union[int, pd.Timestamp]]]] = (
             exclude_training_ranges
         )
+        self.saturation_range = saturation_range
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -496,6 +502,8 @@ class ProphetDetectorModel(DetectorModel):
                 raise DataError("All data is excluded from training")
 
         data_df = timeseries_to_prophet_df(total_data)
+        if self.saturation_range:
+            data_df["floor"], data_df["cap"] = self.saturation_range
 
         if self.remove_outliers:
             data_df = self._remove_outliers(
@@ -533,6 +541,7 @@ class ProphetDetectorModel(DetectorModel):
 
         # No incremental training. Create a model and train from scratch
         model = Prophet(
+            growth="logistic" if self.saturation_range else "linear",
             interval_width=self.scoring_confidence_interval,
             uncertainty_samples=self.uncertainty_samples,
             daily_seasonality=self.seasonalities_to_fit[SeasonalityTypes.DAY],
@@ -575,6 +584,8 @@ class ProphetDetectorModel(DetectorModel):
             raise InternalError(msg)
 
         time_df = pd.DataFrame({PROPHET_TIME_COLUMN: data.time}, copy=False)
+        if self.saturation_range:
+            time_df["floor"], time_df["cap"] = self.saturation_range
         if self.seasonalities_to_fit.get(
             SeasonalityTypes.WEEKEND
         ) or self.seasonalities.get(SeasonalityTypes.WEEKEND):
@@ -714,6 +725,27 @@ class ProphetDetectorModel(DetectorModel):
         ts_df = ts_df[~is_outlier]
 
         return ts_df
+
+    @staticmethod
+    def _validate_saturation_range(
+        saturation_range: Optional[List[float]] = None,
+    ) -> None:
+        if saturation_range is None:
+            return
+        if not (
+            isinstance(saturation_range, list)
+            and len(saturation_range) == 2
+            and all(isinstance(x, (int, float)) for x in saturation_range)
+        ):
+            raise ValueError(
+                "Saturation range must be a list of exactly 2 integers or floats."
+            )
+
+        minimum, maximum = saturation_range
+        if minimum >= maximum:
+            raise ValueError(
+                f"Saturation range minimum {minimum} must be smaller than maximum {maximum}."
+            )
 
 
 class ProphetTrendDetectorModel(DetectorModel):

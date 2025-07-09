@@ -1086,6 +1086,103 @@ class TestProphetDetector(TestCase):
         model_json = json.loads(serialized_model)
         self.assertIn("__prophet_version", model_json)
 
+    def test_predictions_work_with_saturation_range(self) -> None:
+        # Given
+        ts = self.create_ts(length=100, magnitude=50, signal_to_noise_ratio=0.1)
+
+        # When
+        model = ProphetDetectorModel(saturation_range=[0.0, 100.0])
+        model.fit(ts[:80])
+        response = model.predict(ts[80:])
+
+        # Then
+        self.assertEqual(len(response.scores), 20)
+        self.assertIsNotNone(response.predicted_ts)
+        # pyre-ignore[16]: Optional type has no attribute `value`.
+        self.assertTrue(all(pd.notna(response.predicted_ts.value)))
+
+    def test_saturation_range_validation(self) -> None:
+        # Forbid non-empty lists with length != 2, non-lists, non-numeric list values, and min >= max.
+        invalid_values = [
+            [100.0],  # length != 2
+            [100.0, 100.0],  # length != 2
+            5,
+            [None, 100.0],
+            [50.0, None],
+            [None, None],
+            ["50.0", "100.0"],  # strings
+            [[], 100],  # non-numeric type
+            (50.0, 100.0),  # tuple
+            [50.0, 50.0],  # min == max
+            [100.0, 50.0],  # min > max
+        ]
+        for value in invalid_values:
+            with self.assertRaises(ValueError):
+                # pyre-ignore[6]: Incompatible parameter type
+                ProphetDetectorModel(saturation_range=value)
+
+        # Permit None, [], and min < max.
+        valid_values = [
+            None,
+            [],
+            [50.0, 100.0],
+        ]
+        for value in valid_values:
+            try:
+                ProphetDetectorModel(saturation_range=value)
+            except ValueError:
+                self.fail()
+
+    def test_saturation_range_enforcement(self, seed: int = 42) -> None:
+        """Test that logistic model respects saturation range while linear model does not"""
+        np.random.seed(seed)
+        sim = Simulator(n=500, freq="1h", start=pd.to_datetime("2025-01-01"))
+        sim.add_trend(magnitude=100.0)
+        ts = sim.stl_sim()
+
+        saturation_min, saturation_max = 30.0, 40.0
+
+        linear_model = ProphetDetectorModel()
+        linear_model.fit(ts[:80])
+        linear_response = linear_model.predict(ts[80:])
+
+        logistic_model = ProphetDetectorModel(
+            saturation_range=[saturation_min, saturation_max]
+        )
+        logistic_model.fit(ts[:80])
+        logistic_response = logistic_model.predict(ts[80:])
+
+        # Verify linear model is set with correct growth parameter
+        linear_model_dict = json.loads(linear_model.serialize())
+        self.assertEqual(linear_model_dict["growth"], "linear")
+
+        # Verify logistic model is set with correct growth parameter and saturation range
+        logistic_model_dict = json.loads(logistic_model.serialize())
+        self.assertEqual(logistic_model_dict["growth"], "logistic")
+        history_dict = json.loads(logistic_model_dict["history"])
+        history_data = history_dict["data"]
+        self.assertTrue(all(point_dict["floor"] == 30.0 for point_dict in history_data))
+        self.assertTrue(all(point_dict["cap"] == 40.0 for point_dict in history_data))
+
+        # pyre-ignore[16]: Optional type has no attribute `value`.
+        linear_predictions = linear_response.predicted_ts.value
+        linear_exceeds_bounds = (
+            linear_predictions.min() < 20.0  # << saturation_min
+            or linear_predictions.max() > 100  # >> saturation_max
+        )
+        self.assertTrue(linear_exceeds_bounds)
+
+        # Logistic growth saturation range doesn't strictly enforce bounds, but it
+        # limits the extent by which predictions exceed bounds. We allow the
+        # predictions to exceed bounds by saturation_range_buffer to account for this.
+        saturation_range_buffer = 5.0
+        logistic_predictions = logistic_response.predicted_ts.value
+        logistic_within_bounds = (
+            logistic_predictions.min() >= saturation_min - saturation_range_buffer
+            and logistic_predictions.max() <= saturation_max + saturation_range_buffer
+        )
+        self.assertTrue(logistic_within_bounds)
+
 
 class TestProphetTrendDetectorModel(TestCase):
     def setUp(self) -> None:
