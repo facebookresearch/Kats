@@ -149,7 +149,7 @@ class TestStatSigDetector(TestCase):
         )
         detector = StatSigDetectorModel(n_control=20, n_test=7)
         detector.fit_predict(data=data, historical_data=self.ts_init)
-        self.assertEqual("86400.0S", detector.time_unit)
+        self.assertEqual("86400.0s", detector.time_unit)
 
     def test_remove_season(self) -> None:
         sim3 = Simulator(n=120, start="2018-01-01")
@@ -867,9 +867,9 @@ class TestStatSigDetectorTimeUnit(TestCase):
 
     def test_time_unit_and_multiplier(self) -> None:
         # infer time unit
-        self.assertEqual(self.ss_detect3.time_unit, "86400.0S")
-        self.assertEqual(self.ss_detect5.time_unit, "86400.0S")
-        self.assertEqual(self.ss_detect7.time_unit, "172800.0S")
+        self.assertEqual(self.ss_detect3.time_unit, "86400.0s")
+        self.assertEqual(self.ss_detect5.time_unit, "86400.0s")
+        self.assertEqual(self.ss_detect7.time_unit, "172800.0s")
 
         # test adding 1 before a unit
         self.assertEqual(self.ss_detect6.time_unit, "1D")
@@ -1085,8 +1085,8 @@ class TestStatSigDetectorAnomalyScoresOnly(TestCase):
             == np.round(np.asarray(anom2.scores.value.to_list()), 10)
         )
         self.assertEqual(res, 100)
-        self.assertEqual(ss_detect1.time_unit, "7200.0S")
-        self.assertEqual(ss_detect2.time_unit, "7200.0S")
+        self.assertEqual(ss_detect1.time_unit, "7200.0s")
+        self.assertEqual(ss_detect2.time_unit, "7200.0s")
 
 
 class TestInterpolateBase(TestCase):

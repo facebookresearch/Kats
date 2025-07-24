@@ -681,7 +681,7 @@ class StatSigDetectorModel(DetectorModel):
                 )
 
             # Timedelta string
-            self.time_unit = f"{frequency.total_seconds()}S"
+            self.time_unit = f"{frequency.total_seconds()}s"
 
         # validate the time_unit
         try:
