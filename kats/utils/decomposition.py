@@ -346,7 +346,6 @@ class SeasonalityHandler:
                     self.data.time.diff().value_counts().sort_values(ascending=False)
                 )
                 if freq_counts.iloc[0] >= int(len(self.data)) * 0.5 - 1:
-                    # pyre-fixme[4]: Attribute must be annotated.
                     self.frequency = freq_counts.index[0]
                 else:
                     _log.debug(f"freq_counts: {freq_counts}")
