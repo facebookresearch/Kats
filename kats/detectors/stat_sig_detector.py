@@ -16,6 +16,7 @@ import pandas as pd
 import scipy.stats as stats
 from kats.consts import (
     DataError,
+    DataInsufficientError,
     DataIrregularGranularityError,
     InternalError,
     IRREGULAR_GRANULARITY_ERROR,
@@ -675,8 +676,8 @@ class StatSigDetectorModel(DetectorModel):
             elif historical_data and len(historical_data) >= 3:
                 frequency = historical_data.infer_freq_robust()
             else:
-                raise InternalError(
-                    "Not able to infer freqency of the time series. "
+                raise DataInsufficientError(
+                    "Not able to infer frequency of the time series. "
                     "Please use longer time series data or pass the time_unit parameter to the initializer."
                 )
 
