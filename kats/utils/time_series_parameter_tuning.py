@@ -179,6 +179,7 @@ class TimeSeriesEvaluationMetric(Metric):
             return [
                 {
                     "metric_name": name,
+                    "metric_signature": name,
                     "arm_name": arm.name,
                     "mean": value[0],
                     "sem": value[1],
@@ -202,6 +203,7 @@ class TimeSeriesEvaluationMetric(Metric):
             )
         return {
             "metric_name": self.name,
+            "metric_signature": self.signature,
             "arm_name": arm.name,
             "mean": evaluation_result[0],
             "sem": evaluation_result[1],
@@ -550,6 +552,7 @@ class TimeSeriesParameterTuning(ABC):
                 columns=[
                     "arm_name",
                     "metric_name",
+                    "metric_signature",
                     "mean",
                     "sem",
                     "parameters",
@@ -1316,6 +1319,7 @@ class NevergradOptSearch(TimeSeriesParameterTuning):
                 "sem": [0.0],
                 "trial_index": [arm_count],
                 "parameters": [recommendation.value[1]],
+                "metric_signature": [self.options.objective_name],
             }
         )
         self._list_parameter_value_scores = res_df
