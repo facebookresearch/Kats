@@ -1732,7 +1732,7 @@ class TsFeatures:
             A np.ndarray. The exponentially weighted moving average of the array.
         """
         output_array = np.empty(arr.shape[0], dtype=np.float64)
-        output_array[:] = np.nan
+        output_array[:] = np.NaN
 
         arr = arr[~np.isnan(arr)]
         n = arr.shape[0]
