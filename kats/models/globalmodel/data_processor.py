@@ -585,13 +585,13 @@ class GMBatch:
                     ).values
                 )
 
-        train_x = np.row_stack(train_x)
-        train_time = np.row_stack(train_time)
+        train_x = np.vstack(train_x)
+        train_time = np.vstack(train_time)
         offset = np.array(offset)
 
         if valid is not None or not self.training:
-            valid_x = np.row_stack(valid_x)
-            valid_time = np.row_stack(valid_time)
+            valid_x = np.vstack(valid_x)
+            valid_time = np.vstack(valid_time)
         else:
             valid_x = None
             valid_time = None

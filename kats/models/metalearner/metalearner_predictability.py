@@ -318,7 +318,7 @@ class MetaLearnPredictability:
             logging.error(msg)
             raise ValueError(msg)
         if isinstance(source_x, List):
-            x = np.row_stack(source_x)
+            x = np.vstack(source_x)
         elif isinstance(source_x, np.ndarray):
             x = source_x.copy()
         else:

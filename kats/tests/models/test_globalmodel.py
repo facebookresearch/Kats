@@ -468,8 +468,8 @@ class PinballLossTest(TestCase):
 class GMFeatureTest(TestCase):
     @patch("kats.models.globalmodel.utils.GMFeature._get_tsfeatures")
     def test_gmfeature(self, _get_ts_features_mock: MagicMock) -> None:
-        x = np.row_stack([np.abs(ts.value.values[:10]) for ts in TSs])
-        time = np.row_stack([ts.time.values[:10] for ts in TSs])
+        x = np.vstack([np.abs(ts.value.values[:10]) for ts in TSs])
+        time = np.vstack([ts.time.values[:10] for ts in TSs])
 
         _get_ts_features_mock.return_value = _MOCK_GET_TSFEATURES(x, time)
 

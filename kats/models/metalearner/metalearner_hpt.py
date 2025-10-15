@@ -693,7 +693,7 @@ class MetaLearnHPT:
                 "Haven't trained a model. Please train a model or load a model before predicting."
             )
         if isinstance(source_x, List):
-            x = np.row_stack(source_x)
+            x = np.vstack(source_x)
         elif isinstance(source_x, pd.DataFrame):
             x = source_x.values.copy()
         elif isinstance(source_x, np.ndarray):

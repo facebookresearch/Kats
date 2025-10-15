@@ -66,12 +66,12 @@ _NONNEGATIVE_ERROR_METRIC = MetricMetadata(
 )
 _ERROR_RATE_METRIC = MetricMetadata(MetricType.ERROR, Directionality.NEGATIVE, 0.0, 1.0)
 _UNBOUNDED_ERROR_METRIC = MetricMetadata(
-    MetricType.ERROR, Directionality.NONE, np.NINF, np.inf
+    MetricType.ERROR, Directionality.NONE, -np.inf, np.inf
 )
 _UNBOUNDED_METRIC = MetricMetadata(
-    MetricType.NONE, Directionality.NONE, np.NINF, np.inf
+    MetricType.NONE, Directionality.NONE, -np.inf, np.inf
 )
-_SCORE_MAX_1 = MetricMetadata(MetricType.SCORE, Directionality.POSITIVE, np.NINF, 1.0)
+_SCORE_MAX_1 = MetricMetadata(MetricType.SCORE, Directionality.POSITIVE, -np.inf, 1.0)
 _SCORE_MIN_0 = MetricMetadata(MetricType.SCORE, Directionality.POSITIVE, 0.0, np.inf)
 
 

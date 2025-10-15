@@ -162,7 +162,7 @@ class TemporalHierarchicalModel:
                 tem = np.zeros(m)
                 tem[(i * k) : (i * k + k)] = 1.0
                 ans.append(tem)
-        return np.row_stack(ans)
+        return np.vstack(ans)
 
     def _aggregate_data(self, data: npt.NDArray, k: int) -> npt.NDArray:
         """Aggregate data according to level k."""
@@ -246,7 +246,7 @@ class TemporalHierarchicalModel:
             for k in ks:
                 n = h * freq[k]
                 res_matrix.append(residuals[k][-n:].reshape(h, -1).T)
-            res_matrix = np.row_stack(res_matrix)
+            res_matrix = np.vstack(res_matrix)
             self.res_matrix = res_matrix
         return res_matrix
 
@@ -403,14 +403,14 @@ class TemporalHierarchicalModel:
             tem = []
             for k in levels:
                 tem.append(np.repeat(orig_fcst[k] / k, k))
-            tem = np.row_stack(tem)
+            tem = np.vstack(tem)
             yhat = np.median(tem, axis=0)
         elif method in {"struc", "svar", "hvar", "mint_shrink", "mint_sample"}:
             # transform fcsts into matrix
             yh = []
             for k in levels:
                 yh.append(orig_fcst[k].reshape(h, -1).T)
-            yh = np.row_stack(yh)
+            yh = np.vstack(yh)
             S = self.get_S()
             W = self.get_W(method)
             # when W is a vector, i.e., a simpler represent for a diagnoal matrix

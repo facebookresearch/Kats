@@ -1029,7 +1029,7 @@ class MLARModel:
         logging.info(f"all_res_data_np_shape: {all_res_data_np.shape}")
 
         all_meta_data = pd.concat(all_meta_data_list, copy=False)
-        self.full_mat = np.row_stack(all_in_data_list)
+        self.full_mat = np.vstack(all_in_data_list)
 
         logging.info("Finished _embed_and_gen_features")
 
