@@ -17,28 +17,28 @@ def rename_columns_by_prefix(
 ) -> pd.DataFrame:
     """
     Renames columns in the dataframe based on provided prefix mappings.
-
-    This utility function maps columns from the input dataframe to standardized names
-    by matching column names against prefixes. Each column must match exactly one prefix.
+    Each prefix in prefix_map must match exactly one column in df.
+    No column can be matched by more than one prefix.
+    Columns that do not match any prefix are left unchanged.
+    The "time" column is always preserved.
 
     Args:
-        df: Input pandas DataFrame containing time series data
+        df: Input pandas DataFrame.
         prefix_map: Dictionary mapping column prefixes to desired column names.
-                   Example: {"test_": "value_test", "control_": "value_control"}
 
     Returns:
         pandas.DataFrame: A copy of the input dataframe with renamed columns.
-                         The "time" column is preserved unchanged.
 
     Raises:
-        ValueError: If a column matches multiple prefixes or doesn't match any prefix
-                   (excluding the "time" column which is always preserved).
+        ValueError: If a prefix matches zero or multiple columns,
+                    or if a column is matched by multiple prefixes.
 
     Example:
         >>> df = pd.DataFrame({
         ...     "time": [1, 2, 3],
         ...     "test_metric_count": [100, 110, 120],
         ...     "control_metric_count": [90, 95, 100],
+        ...     "other_column": [1, 2, 3],
         ... })
         >>> prefix_map = {
         ...     "test_metric_": "numerator_test",
@@ -46,34 +46,46 @@ def rename_columns_by_prefix(
         ... }
         >>> renamed_df = rename_columns_by_prefix(df, prefix_map)
         >>> list(renamed_df.columns)
-        ['time', 'numerator_test', 'numerator_control']
+        ['time', 'numerator_test', 'numerator_control', 'other_column']
+
+    Example (error if multiple prefixes match the same column):
+        >>> df = pd.DataFrame({
+        ...     "test_metric_count": [1, 2, 3],
+        ...     "time": [0, 1, 2]
+        ... })
+        >>> prefix_map = {
+        ...     "test_": "foo",
+        ...     "test_metric_": "bar"
+        ... }
+        >>> # This will raise a ValueError:
+        >>> renamed_df = rename_columns_by_prefix(df, prefix_map)
+        ValueError: Column 'test_metric_count' is matched by multiple prefixes: 'test_' and 'test_metric_'. Each column can only be matched by one prefix.
     """
     rename_mapping = {}
+    matched_columns = {}
 
-    for column in df.columns:
-        # Skip the time column
-        if column == "time":
-            continue
-
-        # Find all prefixes that match this column
-        matching_prefixes = [
-            prefix for prefix in prefix_map.keys() if column.startswith(prefix)
+    for prefix, new_name in prefix_map.items():
+        # Find all columns that match this prefix
+        matched = [
+            col for col in df.columns if col != "time" and col.startswith(prefix)
         ]
-
-        if len(matching_prefixes) > 1:
+        if len(matched) == 0:
             raise ValueError(
-                f"Column '{column}' matches multiple prefixes: {matching_prefixes}. "
-                f"Each column must match exactly one prefix from: {list(prefix_map.keys())}"
+                f"Prefix '{prefix}' does not match any column in the DataFrame."
             )
-
-        if len(matching_prefixes) == 0:
+        if len(matched) > 1:
             raise ValueError(
-                f"Column '{column}' does not match any prefix from the provided mapping. "
-                f"Expected prefixes: {list(prefix_map.keys())}"
+                f"Prefix '{prefix}' matches multiple columns: {matched}. "
+                "Each prefix must match exactly one column."
             )
-
-        # Exactly one match - add to rename mapping
-        new_name = prefix_map[matching_prefixes[0]]
-        rename_mapping[column] = new_name
+        matched_col = matched[0]
+        if matched_col in matched_columns:
+            raise ValueError(
+                f"Column '{matched_col}' is matched by multiple prefixes: "
+                f"'{matched_columns[matched_col]}' and '{prefix}'. "
+                "Each column can only be matched by one prefix."
+            )
+        rename_mapping[matched_col] = new_name
+        matched_columns[matched_col] = prefix
 
     return df.rename(columns=rename_mapping, copy=True)
