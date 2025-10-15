@@ -785,7 +785,7 @@ class TsFeatures:
             resid_array = np.repeat(
                 np.array(res.resid)[:, np.newaxis], len(res.resid), axis=1
             )
-            resid_array[np.diag_indices(len(resid_array))] = np.NaN
+            resid_array[np.diag_indices(len(resid_array))] = np.nan
             stl_features["spikiness"] = np.var(np.nanvar(resid_array, axis=0))
 
         # location of peak
@@ -1732,7 +1732,7 @@ class TsFeatures:
             A np.ndarray. The exponentially weighted moving average of the array.
         """
         output_array = np.empty(arr.shape[0], dtype=np.float64)
-        output_array[:] = np.NaN
+        output_array[:] = np.nan
 
         arr = arr[~np.isnan(arr)]
         n = arr.shape[0]

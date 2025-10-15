@@ -142,7 +142,7 @@ class MultivariateAnomalyDetectorModel(DetectorModel):
         padding = np.empty(
             shape=[len(data) - output_scores_df.shape[0], output_scores_df.shape[1]]
         )
-        padding[:] = np.NaN
+        padding[:] = np.nan
         padding = pd.DataFrame(padding, columns=output_scores_df.columns, copy=False)
         # all fields other than scores are left as TimeSeriesData with all zero values
         response = AnomalyResponse(

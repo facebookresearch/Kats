@@ -190,7 +190,7 @@ def MACD(
             A np.ndarray. The exponentially weighted moving average of the array.
         """
         output_array = np.empty(arr.shape[0], dtype=np.float64)
-        output_array[:] = np.NaN
+        output_array[:] = np.nan
 
         arr = arr[~np.isnan(arr)]
         n = arr.shape[0]

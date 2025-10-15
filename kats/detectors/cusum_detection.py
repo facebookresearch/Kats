@@ -390,7 +390,7 @@ class CUSUMDetector(Detector):
         # llr in interest window
         if interest_window is None:
             llr_int = np.inf
-            pval_int = np.NaN
+            pval_int = np.nan
             delta_int = None
         else:
             # need to re-calculating mu0 and mu1 after the while loop
@@ -929,7 +929,7 @@ class MultiCUSUMDetector(CUSUMDetector):
             stable_changepoint = True
 
         llr_int = np.inf
-        pval_int = np.NaN
+        pval_int = np.nan
         delta_int = None
 
         # full time changepoint and mean
@@ -1388,7 +1388,7 @@ class VectorizedCUSUMDetector(CUSUMDetector):
         # llr in interest window
         if interest_window is None:
             llr_int = [np.inf] * n_ts
-            pval_int = [np.NaN] * n_ts
+            pval_int = [np.nan] * n_ts
             delta_int = [None] * n_ts
         else:
             llr_int = []
