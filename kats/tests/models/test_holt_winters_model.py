@@ -5,7 +5,6 @@
 
 # pyre-strict
 
-import re
 import unittest
 from typing import Any, cast, Dict
 from unittest import TestCase
@@ -21,8 +20,6 @@ from kats.tests.models.test_models_dummy_data import (
 )
 
 from parameterized.parameterized import parameterized
-
-pd_ver = float(re.findall("([0-9]+\\.[0-9]+)\\..*", pd.__version__)[0])
 
 ADD_PARAMS = HoltWintersParams(
     trend="add",

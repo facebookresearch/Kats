@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from kats.compat import compat
 from kats.compat.pandas import assert_frame_equal, assert_series_equal
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
 from pandas.tseries.frequencies import to_offset
@@ -1055,7 +1056,7 @@ class TimeSeriesData:
         if remove_duplicate_time:
             df = df[~df.index.duplicated()]
 
-        if pd.__version__ >= "1.1":
+        if compat.Version("pandas") >= compat.Version("1.1"):
             origin = origin if base == 0 else "start"
             return self._interpolate_new(df, freq, origin, method, **kwargs)
 
