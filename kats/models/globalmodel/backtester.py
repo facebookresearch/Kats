@@ -438,8 +438,7 @@ class GMBackTester:
                 ]
                 ans.extend(tmp_ans)
                 ensemble_fcst = np.median(
-                    # pyre-fixme[6]: For 1st argument expected `Sequence[Union[_Suppo...
-                    np.column_stack(fcst_all[i][k][j] for i in range(n)),
+                    np.column_stack([fcst_all[i][k][j] for i in range(n)]),
                     axis=1,
                 )
                 evl = eval_func(ensemble_fcst, tmp_actuals)
