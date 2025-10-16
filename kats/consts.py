@@ -1282,18 +1282,36 @@ class Params:
 
 
 class IntervalAnomaly:
+    """
+    Represents an anomaly occurring over a time interval.
+
+    Args:
+        start: The start timestamp of the anomaly interval
+        end: The end timestamp of the anomaly interval
+        confidence: Optional confidence score for the anomaly (0.0 to 1.0).
+                   Higher values indicate higher confidence that this is a true anomaly. Used when auto-labels are enabled.
+    """
+
     def __init__(
         self,
         start: pd.Timestamp,
         end: pd.Timestamp,
+        confidence: Optional[float] = None,
     ) -> None:
         if start >= end:
             raise ValueError("Start value is supposed to be larger than end value.")
+        if confidence is not None and not (0.0 <= confidence <= 1.0):
+            raise ValueError("Confidence must be between 0.0 and 1.0")
+
         self.start: pd.Timestamp = start
         self.end: pd.Timestamp = end
+        self.confidence: Optional[float] = confidence
 
     def __str__(self) -> str:
-        return f"IntervalAnomaly(start: {self.start}, end: {self.end})"
+        confidence_str = (
+            f", confidence: {self.confidence}" if self.confidence is not None else ""
+        )
+        return f"IntervalAnomaly(start: {self.start}, end: {self.end}{confidence_str})"
 
     def __repr__(self) -> str:
         return self.__str__()

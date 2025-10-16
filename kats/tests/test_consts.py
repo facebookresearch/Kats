@@ -27,6 +27,7 @@ from kats.compat.pandas import (
 from kats.consts import (
     DEFAULT_TIME_NAME,
     DEFAULT_VALUE_NAME,
+    IntervalAnomaly,
     TimeSeriesData,
     TSIterator,
 )
@@ -1715,6 +1716,119 @@ class TimeSeriesDataMiscTest(TimeSeriesBaseTest):
         self.assertEqual(
             self.ts_multi._repr_html_(), self.MULTIVAR_AIR_DF_DATETIME._repr_html_()
         )
+
+
+class IntervalAnomalyTest(TestCase):
+    def setUp(self) -> None:
+        self.start_time = pd.Timestamp("2025-10-01 08:00:00")
+        self.end_time = pd.Timestamp("2025-10-01 10:00:00")
+
+    def test_basic_creation_without_confidence(self) -> None:
+        # Setup: Create IntervalAnomaly without confidence parameter
+        anomaly = IntervalAnomaly(self.start_time, self.end_time)
+
+        # Execute & Assert: Verify basic properties are set correctly
+        self.assertEqual(anomaly.start, self.start_time)
+        self.assertEqual(anomaly.end, self.end_time)
+        self.assertIsNone(anomaly.confidence)
+
+    def test_creation_with_valid_confidence_values(self) -> None:
+        # Setup & Execute: Test each valid confidence value
+        confidence = 0.5
+        anomaly = IntervalAnomaly(self.start_time, self.end_time, confidence=confidence)
+
+        # Assert: Verify confidence is stored correctly
+        self.assertEqual(anomaly.confidence, confidence)
+        self.assertEqual(anomaly.start, self.start_time)
+        self.assertEqual(anomaly.end, self.end_time)
+
+    def test_creation_with_confidence_boundary_values(self) -> None:
+        # Setup & Execute: Test boundary values 0.0 and 1.0
+        anomaly_zero = IntervalAnomaly(self.start_time, self.end_time, confidence=0.0)
+        anomaly_one = IntervalAnomaly(self.start_time, self.end_time, confidence=1.0)
+
+        # Assert: Verify boundary values are accepted
+        self.assertEqual(anomaly_zero.confidence, 0.0)
+        self.assertEqual(anomaly_one.confidence, 1.0)
+
+    def test_creation_with_invalid_confidence_negative(self) -> None:
+        # Setup & Execute: Test invalid negative confidence value raises ValueError
+        confidence = -0.1
+        with self.assertRaises(ValueError) as context:
+            IntervalAnomaly(self.start_time, self.end_time, confidence=confidence)
+
+        # Assert: Check error message is correct
+        self.assertEqual(
+            str(context.exception), "Confidence must be between 0.0 and 1.0"
+        )
+
+    def test_creation_with_invalid_confidence_above_one(self) -> None:
+        # Setup & Execute: Test invalid confidence value above 1.0 raises ValueError
+        confidence = 1.1
+        with self.assertRaises(ValueError) as context:
+            IntervalAnomaly(self.start_time, self.end_time, confidence=confidence)
+
+        # Assert: Check error message is correct
+        self.assertEqual(
+            str(context.exception), "Confidence must be between 0.0 and 1.0"
+        )
+
+    def test_invalid_time_range_raises_error(self) -> None:
+        # Setup: Create invalid time range (start >= end)
+        invalid_cases = [
+            (self.end_time, self.start_time),  # end before start
+            (self.start_time, self.start_time),  # start equals end
+        ]
+
+        for start, end in invalid_cases:
+            with self.subTest(start=start, end=end):
+                # Execute & Assert: Creating anomaly with invalid time range should raise ValueError
+                with self.assertRaises(ValueError) as context:
+                    IntervalAnomaly(start, end)
+
+                # Assert: Check error message is correct
+                self.assertEqual(
+                    str(context.exception),
+                    "Start value is supposed to be larger than end value.",
+                )
+
+    def test_str_without_confidence(self) -> None:
+        # Setup: Create IntervalAnomaly without confidence
+        anomaly = IntervalAnomaly(self.start_time, self.end_time)
+
+        # Execute: Get string representation
+        result = str(anomaly)
+
+        # Assert: Verify string representation without confidence field
+        expected = f"IntervalAnomaly(start: {self.start_time}, end: {self.end_time})"
+        self.assertEqual(result, expected)
+
+    def test_str_with_confidence(self) -> None:
+        # Setup: Create IntervalAnomaly with confidence
+        confidence = 0.8
+        anomaly = IntervalAnomaly(self.start_time, self.end_time, confidence=confidence)
+
+        # Execute: Get string representation
+        result = str(anomaly)
+
+        # Assert: Verify string representation includes confidence field
+        expected = f"IntervalAnomaly(start: {self.start_time}, end: {self.end_time}, confidence: {confidence})"
+        self.assertEqual(result, expected)
+
+    def test_repr(self) -> None:
+        # Setup: Create IntervalAnomaly with and without confidence
+        anomaly_no_conf = IntervalAnomaly(self.start_time, self.end_time)
+        anomaly_with_conf = IntervalAnomaly(
+            self.start_time, self.end_time, confidence=0.9
+        )
+
+        # Execute: Get repr representation
+        result_no_conf = repr(anomaly_no_conf)
+        result_with_conf = repr(anomaly_with_conf)
+
+        # Assert: Verify repr returns same as str
+        self.assertEqual(result_no_conf, str(anomaly_no_conf))
+        self.assertEqual(result_with_conf, str(anomaly_with_conf))
 
 
 class TSIteratorTest(TestCase):
