@@ -7,7 +7,7 @@
 
 from datetime import datetime, timedelta
 from operator import attrgetter
-from typing import cast, List, Tuple, Type, Union
+from typing import List, Tuple, Type, Union
 from unittest import TestCase
 
 import numpy as np
@@ -16,7 +16,6 @@ import pandas as pd
 
 from kats.consts import TimeSeriesData
 from kats.detectors.interval_detector import (
-    ABInterval,
     ar_1,
     IntervalDetectorModel,
     OneSampleProportionIntervalDetectorModel,
@@ -30,13 +29,10 @@ from kats.detectors.interval_detector import (
 )
 
 from parameterized.parameterized import parameterized
-from scipy.stats import norm
+from scipy.stats import multivariate_normal, norm
 
 
 _SERIALIZED = b'{"alpha": 0.1, "duration": 1, "test_type": "one_sided_upper", "test_statistic": "absolute_difference"}'
-
-_Z_SCORE: float = 1.6448536269514722
-_P_VALUE: float = 0.05
 
 
 def _dp_solve(p: float, n: int, m: int) -> npt.NDArray:
@@ -258,6 +254,363 @@ class TestIntervalDetectorModel(TestCase):
                         cov=None,
                     ),
                 )
+
+    # Tests for the _mvn_mvnun static method wrapper around scipy's mvnun.
+
+    def test_univariate_standard_normal(self) -> None:
+        """Test 1D standard normal distribution matches scipy.stats.norm."""
+        # Setup: 1D standard normal, integrate from -1 to 1
+        lower = np.array([-1.0])
+        upper = np.array([1.0])
+        cov = np.array([[1.0]])
+
+        # Execute: compute probability using _mvn_mvnun
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: result should match scipy.stats.norm cdf
+        expected = norm.cdf(1.0) - norm.cdf(-1.0)
+        self.assertTrue(np.isclose(result, expected, atol=1e-5))
+
+    def test_univariate_with_mean_and_variance(self) -> None:
+        """Test 1D normal distribution with custom mean and variance."""
+        # Setup: 1D normal with mean=2, variance=4
+        lower = np.array([0.0])
+        upper = np.array([4.0])
+        mean = np.array([2.0])
+        cov = np.array([[4.0]])
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(
+            lower=lower, upper=upper, mean=mean, cov=cov
+        )
+
+        # Assert: compare with scipy multivariate_normal
+        expected = multivariate_normal.cdf(
+            upper,
+            mean=mean.flatten(),
+            # pyre-fixme[6]: Type stub incomplete - cov accepts ndarray
+            cov=cov,
+        ) - multivariate_normal.cdf(
+            lower,
+            mean=mean.flatten(),
+            # pyre-fixme[6]: Type stub incomplete - cov accepts ndarray
+            cov=cov,
+        )
+        self.assertTrue(np.isclose(result, expected, atol=1e-5))
+
+    def test_bivariate_standard_normal_independent(self) -> None:
+        """Test 2D standard normal with independent variables (identity covariance)."""
+        # Setup: 2D standard normal, independent variables
+        lower = np.array([-1.0, -1.0])
+        upper = np.array([1.0, 1.0])
+        cov = np.eye(2)
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: for independent variables, probability should be product of univariate probabilities
+        p_single = norm.cdf(1.0) - norm.cdf(-1.0)
+        expected = p_single * p_single
+        self.assertTrue(np.isclose(result, expected, atol=1e-5))
+
+    def test_bivariate_with_correlation(self) -> None:
+        """Test 2D normal distribution with correlated variables."""
+        # Setup: 2D normal with positive correlation
+        lower = np.array([-1.0, -1.0])
+        upper = np.array([1.0, 1.0])
+        rho = 0.5
+        cov = np.array([[1.0, rho], [rho, 1.0]])
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: result should be positive and less than 1
+        self.assertGreater(result, 0.0)
+        self.assertLess(result, 1.0)
+
+        # For positive correlation, probability should be higher than independent case
+        independent_result = IntervalDetectorModel._mvn_mvnun(
+            lower=lower, upper=upper, cov=np.eye(2)
+        )
+        self.assertGreater(result, independent_result)
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            ("2d", 2),
+            ("3d", 3),
+            ("4d", 4),
+        ]
+    )
+    def test_multivariate_dimensions(self, name: str, dim: int) -> None:
+        """Test multivariate normal with various dimensions."""
+        # Setup: create dim-dimensional standard normal
+        lower = np.full(dim, -0.5)
+        upper = np.full(dim, 0.5)
+        cov = np.eye(dim)
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: for independent standard normals, should equal product of marginals
+        p_marginal = norm.cdf(0.5) - norm.cdf(-0.5)
+        expected = p_marginal**dim
+        self.assertTrue(np.isclose(result, expected, atol=1e-4))
+
+    def test_default_mean_is_zero(self) -> None:
+        """Test that default mean is zero vector when not provided."""
+        # Setup: bounds around zero without specifying mean
+        lower = np.array([-1.0, -1.0])
+        upper = np.array([1.0, 1.0])
+
+        # Execute: compute with and without explicit zero mean
+        result_implicit = IntervalDetectorModel._mvn_mvnun(
+            lower=lower, upper=upper, cov=np.eye(2)
+        )
+        result_explicit = IntervalDetectorModel._mvn_mvnun(
+            lower=lower, upper=upper, mean=np.zeros((2, 1)), cov=np.eye(2)
+        )
+
+        # Assert: results should be identical
+        self.assertTrue(np.isclose(result_implicit, result_explicit, atol=1e-10))
+
+    def test_infinite_lower_bound(self) -> None:
+        """Test with negative infinity as lower bound."""
+        # Setup: integrate from -inf to 0 (should give 0.5 for standard normal)
+        lower = np.array([-np.inf])
+        upper = np.array([0.0])
+        cov = np.array([[1.0]])
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: should equal norm.cdf(0) = 0.5
+        expected = norm.cdf(0.0)
+        self.assertTrue(np.isclose(result, expected, atol=1e-5))
+
+    def test_infinite_upper_bound(self) -> None:
+        """Test with positive infinity as upper bound."""
+        # Setup: integrate from 0 to +inf (should give 0.5 for standard normal)
+        lower = np.array([0.0])
+        upper = np.array([np.inf])
+        cov = np.array([[1.0]])
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: should equal 1 - norm.cdf(0) = 0.5
+        expected = 1.0 - norm.cdf(0.0)
+        self.assertTrue(np.isclose(result, expected, atol=1e-5))
+
+    def test_full_probability_space(self) -> None:
+        """Test integration over entire probability space."""
+        # Setup: integrate from -inf to +inf (should give 1.0)
+        lower = np.array([-np.inf, -np.inf])
+        upper = np.array([np.inf, np.inf])
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(
+            lower=lower, upper=upper, cov=np.eye(2)
+        )
+
+        # Assert: integrating over entire space should give probability 1
+        self.assertTrue(np.isclose(result, 1.0, atol=1e-5))
+
+    def test_custom_tolerance_parameters(self) -> None:
+        """Test that custom tolerance parameters are accepted."""
+        # Setup: standard case with custom tolerances
+        lower = np.array([-1.0, -1.0])
+        upper = np.array([1.0, 1.0])
+
+        # Execute: compute with custom tolerances
+        result = IntervalDetectorModel._mvn_mvnun(
+            lower=lower,
+            upper=upper,
+            cov=np.eye(2),
+            abseps=1e-8,
+            releps=1e-8,
+        )
+
+        # Assert: result should still be valid probability
+        self.assertGreater(result, 0.0)
+        self.assertLess(result, 1.0)
+
+    def test_custom_maxpts_parameter(self) -> None:
+        """Test that custom maxpts parameter is accepted."""
+        # Setup: standard case with custom maxpts
+        lower = np.array([-1.0, -1.0])
+        upper = np.array([1.0, 1.0])
+
+        # Execute: compute with custom maxpts
+        result = IntervalDetectorModel._mvn_mvnun(
+            lower=lower,
+            upper=upper,
+            cov=np.eye(2),
+            maxpts=100_000,
+        )
+
+        # Assert: result should still be valid probability
+        self.assertGreater(result, 0.0)
+        self.assertLess(result, 1.0)
+
+    def test_singular_covariance_with_allow_singular(self) -> None:
+        """Test singular covariance matrix with allow_singular=True."""
+        # Setup: singular covariance matrix (rank deficient)
+        lower = np.array([0.0, 0.0])
+        upper = np.array([1.0, 1.0])
+        # Singular covariance: second variable is perfectly correlated with first
+        cov = np.array([[1.0, 1.0], [1.0, 1.0]])
+
+        # Execute: compute with allow_singular=True
+        result = IntervalDetectorModel._mvn_mvnun(
+            lower=lower,
+            upper=upper,
+            cov=cov,
+            allow_singular=True,
+        )
+
+        # Assert: should return a valid probability
+        self.assertGreaterEqual(result, 0.0)
+        self.assertLessEqual(result, 1.0)
+
+    def test_high_dimensional_case(self) -> None:
+        """Test higher dimensional case (5D)."""
+        # Setup: 5D standard normal
+        dim = 5
+        lower = np.full(dim, -0.3)
+        upper = np.full(dim, 0.3)
+        cov = np.eye(dim)
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: for independent normals, should equal product of marginals
+        p_marginal = norm.cdf(0.3) - norm.cdf(-0.3)
+        expected = p_marginal**dim
+        self.assertTrue(np.isclose(result, expected, atol=1e-4))
+
+    # pyre-fixme[56]: Pyre was not able to infer the type of the decorator
+    @parameterized.expand(
+        [
+            ("negative_correlation", -0.7),
+            ("zero_correlation", 0.0),
+            ("positive_correlation", 0.7),
+            ("strong_positive", 0.95),
+        ]
+    )
+    def test_various_correlations(self, name: str, rho: float) -> None:
+        """Test bivariate normal with various correlation coefficients."""
+        # Setup: 2D normal with specified correlation
+        lower = np.array([-1.0, -1.0])
+        upper = np.array([1.0, 1.0])
+        cov = np.array([[1.0, rho], [rho, 1.0]])
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: result should be a valid probability
+        self.assertGreater(result, 0.0)
+        self.assertLess(result, 1.0)
+
+    def test_asymmetric_bounds(self) -> None:
+        """Test with asymmetric integration bounds."""
+        # Setup: asymmetric bounds (not centered at zero)
+        lower = np.array([0.5, -2.0])
+        upper = np.array([2.5, 1.0])
+        mean = np.array([1.0, -0.5])
+        cov = np.eye(2)
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(
+            lower=lower, upper=upper, mean=mean, cov=cov
+        )
+
+        # Assert: result should be a valid probability
+        self.assertGreater(result, 0.0)
+        self.assertLess(result, 1.0)
+
+    def test_scaled_covariance(self) -> None:
+        """Test with scaled covariance matrix."""
+        # Setup: covariance scaled by factor
+        lower = np.array([-1.0, -1.0])
+        upper = np.array([1.0, 1.0])
+        scale = 2.0
+        cov = scale * np.eye(2)
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: larger variance should give smaller probability in fixed region
+        result_unit = IntervalDetectorModel._mvn_mvnun(
+            lower=lower, upper=upper, cov=np.eye(2)
+        )
+        self.assertLess(result, result_unit)
+
+    def test_narrow_integration_region(self) -> None:
+        """Test with very narrow integration region."""
+        # Setup: very narrow region around the mean
+        lower = np.array([-0.01])
+        upper = np.array([0.01])
+        cov = np.array([[1.0]])
+
+        # Execute: compute probability
+        result = IntervalDetectorModel._mvn_mvnun(lower=lower, upper=upper, cov=cov)
+
+        # Assert: probability should be small but positive
+        self.assertGreater(result, 0.0)
+        self.assertLess(result, 0.02)
+
+    def test_consistency_across_dimensions(self) -> None:
+        """Test that extending to higher dimensions works consistently."""
+        # Setup: compare 2D with independent components to product of 1D
+        lower_1d = np.array([-1.0])
+        upper_1d = np.array([1.0])
+        cov_1d = np.array([[1.0]])
+
+        lower_2d = np.array([-1.0, -1.0])
+        upper_2d = np.array([1.0, 1.0])
+
+        # Execute: compute probabilities
+        p_1d = IntervalDetectorModel._mvn_mvnun(
+            lower=lower_1d, upper=upper_1d, cov=cov_1d
+        )
+        p_2d = IntervalDetectorModel._mvn_mvnun(
+            lower=lower_2d, upper=upper_2d, cov=np.eye(2)
+        )
+
+        # Assert: 2D probability should equal square of 1D (for independent variables)
+        self.assertTrue(np.isclose(p_2d, p_1d * p_1d, atol=1e-5))
+
+    def test_multivariate_positive_correlation_increases_probability(self) -> None:
+        """Test that positive correlation across multiple dimensions increases probability compared to independent case."""
+        # Setup: Create a multivariate normal with several dimensions and positive correlations
+        dim = 4
+        lower = np.full(dim, -1.0)
+        upper = np.full(dim, 1.0)
+
+        # Create a covariance matrix with positive correlations (rho=0.5 between all pairs)
+        rho = 0.5
+        cov_correlated = np.full((dim, dim), rho)
+        np.fill_diagonal(cov_correlated, 1.0)
+
+        # Execute: compute probability with correlated variables
+        result_correlated = IntervalDetectorModel._mvn_mvnun(
+            lower=lower, upper=upper, cov=cov_correlated
+        )
+
+        # Execute: compute probability with independent variables
+        result_independent = IntervalDetectorModel._mvn_mvnun(
+            lower=lower, upper=upper, cov=np.eye(dim)
+        )
+
+        # Assert: positive correlation should give higher probability than independent case
+        self.assertGreater(result_correlated, result_independent)
+
+        # Assert: both should be valid probabilities
+        self.assertGreater(result_correlated, 0.0)
+        self.assertLess(result_correlated, 1.0)
+        self.assertGreater(result_independent, 0.0)
+        self.assertLess(result_independent, 1.0)
 
 
 class TestTwoSampleProportionIntervalDetectorModel(TestCase):
