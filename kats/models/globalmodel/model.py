@@ -882,7 +882,14 @@ class GMModel:
             A `pandas.DataFrame` object representing the evaluation results.
         """
 
-        if type(test_train_TSs) != type(test_valid_TSs):
+        if not (
+            (
+                isinstance(test_train_TSs, TimeSeriesData)
+                and isinstance(test_valid_TSs, TimeSeriesData)
+            )
+            or (isinstance(test_train_TSs, list) and isinstance(test_valid_TSs, list))
+            or (isinstance(test_train_TSs, dict) and isinstance(test_valid_TSs, dict))
+        ):
             msg = (
                 "The data type of test_train_TSs and test_valid_TSs should be the same."
             )
@@ -923,6 +930,8 @@ class GMModel:
             else range(len(test_train_TSs))
         )
         for k in keys:
+            # pyre-fixme[16]: After type narrowing, test_valid_TSs is either List or Dict,
+            # and test_valid_TSs[k] is always TimeSeriesData which has .value attribute.
             tmp = test_valid_TSs[k].value.values
             tmp_step = len(tmp) // fcst_window + int(len(tmp) % fcst_window != 0)
             tmp_fcst_length = tmp_step * fcst_window
