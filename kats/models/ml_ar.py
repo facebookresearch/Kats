@@ -1330,7 +1330,7 @@ class MLARModel:
                     "Model not trained for 1-step, so iterating the model may not work properly."
                 )
 
-            if type(steps) == int:
+            if isinstance(steps, int):
                 steps = np.arange(1, steps + 1)
 
             cont_steps_in_hor = find_first_missing_number(horizons) - 1
