@@ -55,8 +55,7 @@ from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse, ConfidenceBand
 from matplotlib import pyplot as plt
 from scipy.linalg import toeplitz
-from scipy.stats import beta, binom, mvn, norm
-from scipy.stats._multivariate import _PSD, multivariate_normal_gen
+from scipy.stats import beta, binom, multivariate_normal, norm
 from statsmodels.tsa.arima_process import ArmaProcess
 
 DEFAULT_FIGSIZE = (10, 12)
@@ -915,43 +914,51 @@ class IntervalDetectorModel(DetectorModel, ABC):
         abseps: float = 1e-6,
         releps: float = 1e-6,
     ) -> float:
-        """Wrapper on scipy mvnun function enabling definite integrals.
+        """Compute multivariate normal CDF using scipy's public API.
 
-        References:
-            https://github.com/scipy/scipy/blob/main/scipy/stats/mvndst.f
+        Computes P(lower <= X <= upper) where X ~ N(mean, cov) using the public
+        scipy.stats.multivariate_normal.cdf() interface with the lower_limit parameter.
+
+        This implementation migrates from the deprecated scipy.stats.mvn.mvnun to the
+        stable public API, ensuring forward compatibility with future scipy versions.
 
         Args:
-            lower: Lower limit of integration
-            upper: Upper limit of integration
-            mean: (N,) dimensional mean vector of MVN distribution.
-            cov: (N, N) dimensional covariance matrix of MVN distribution.
-            maxpts: The maximum number of points to use for integration
+            lower: Lower limit of integration (N,) array
+            upper: Upper limit of integration (N,) array
+            mean: (N,) dimensional mean vector of MVN distribution. Defaults to zeros.
+            cov: (N, N) dimensional covariance matrix of MVN distribution or scalar.
+            allow_singular: If True, tolerate singular covariance matrices.
+            maxpts: The maximum number of points to use for integration.
+                Defaults to 1,000,000 * dim if not specified.
             abseps: Absolute error tolerance
             releps: Relative error tolerance
+
+        Returns:
+            Probability P(lower <= X <= upper) as a float.
+
+        References:
+            - Public API: https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.multivariate_normal.html
         """
         dim = lower.shape[0]
         if mean is None:
-            mean = np.zeros((dim, 1))
+            mean = np.zeros(dim)
+        else:
+            mean = mean.flatten()
 
-        _multivariate_normal_gen = multivariate_normal_gen()
-        # pyre-fixme[16]: `multivariate_normal_gen` has no attribute
-        #  `_process_quantiles`.
-        lower = _multivariate_normal_gen._process_quantiles(lower, dim)
-        upper = _multivariate_normal_gen._process_quantiles(upper, dim)
-        # TODO: this is deprecated, replace
-        # pyre-fixme[16]: Item `int` of `ndarray[Any, dtype[Any]] | int` has no
-        #  attribute `astype`.
-        _PSD(cov, allow_singular=allow_singular)
-
-        return mvn.mvnun(
-            lower=lower,
-            upper=upper,
-            means=mean,
-            covar=cov,
-            maxpts=1_000_000 * dim if not maxpts else maxpts,
+        # Use scipy's public multivariate_normal.cdf() with lower_limit parameter
+        # This computes P(lower <= X <= upper) directly as a definite integral
+        # pyre-fixme[28]: Type stub incomplete - lower_limit is a valid parameter
+        result = multivariate_normal.cdf(
+            x=upper,
+            mean=mean,
+            cov=cov,
+            allow_singular=allow_singular,
+            maxpts=maxpts if maxpts else 1_000_000 * dim,
             abseps=abseps,
             releps=releps,
-        )[0]
+            lower_limit=lower,
+        )
+        return float(result)
 
     @staticmethod
     def _w_independent(m: int, p: float) -> npt.NDArray:
