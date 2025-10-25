@@ -770,7 +770,7 @@ class GridSearch(TimeSeriesParameterTuning):
         )
         # pyre-fixme[4]: Attribute must be annotated.
         self._factorial = Generators.FACTORIAL(
-            search_space=self.get_search_space(), check_cardinality=False
+            experiment=self._exp, check_cardinality=False
         )
         self.logger.info("A factorial model for arm generation is created.")
         self.logger.info("A GridSearch object is successfully created.")
@@ -851,11 +851,11 @@ class RandomSearch(TimeSeriesParameterTuning):
         if random_strategy == SearchMethodEnum.RANDOM_SEARCH_UNIFORM:
             # pyre-fixme[4]: Attribute must be annotated.
             self._random_strategy_model = Generators.UNIFORM(
-                search_space=self.get_search_space(), deduplicate=True, seed=seed
+                experiment=self._exp, deduplicate=True, seed=seed
             )
         elif random_strategy == SearchMethodEnum.RANDOM_SEARCH_SOBOL:
             self._random_strategy_model = Generators.SOBOL(
-                search_space=self.get_search_space(), deduplicate=True, seed=seed
+                experiment=self._exp, deduplicate=True, seed=seed
             )
         else:
             raise NotImplementedError(
@@ -972,11 +972,11 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         if random_strategy == SearchMethodEnum.RANDOM_SEARCH_UNIFORM:
             # pyre-fixme[4]: Attribute must be annotated.
             self._random_strategy_model = Generators.UNIFORM(
-                search_space=self.get_search_space(), deduplicate=True, seed=seed
+                experiment=self._exp, deduplicate=True, seed=seed
             )
         elif random_strategy == SearchMethodEnum.RANDOM_SEARCH_SOBOL:
             self._random_strategy_model = Generators.SOBOL(
-                search_space=self.get_search_space(), deduplicate=True, seed=seed
+                experiment=self._exp, deduplicate=True, seed=seed
             )
         else:
             raise NotImplementedError(
