@@ -47,6 +47,21 @@ class TestRenameColumnsByPrefix(TestCase):
         self.assertIn("time", result.columns)
         self.assertEqual(result["time"].tolist(), [1, 2, 3])
 
+    def test_custom_time_column_preserved(self) -> None:
+        df = pd.DataFrame(
+            {
+                "my_time": [1, 2, 3],
+                "metric_value": [10, 20, 30],
+            }
+        )
+        prefix_map = {"metric_": "renamed_metric"}
+
+        result = rename_columns_by_prefix(df, prefix_map, time_col_name="my_time")
+
+        self.assertIn("my_time", result.columns)
+        self.assertEqual(result["my_time"].tolist(), [1, 2, 3])
+        self.assertEqual(result["renamed_metric"].tolist(), [10, 20, 30])
+
     def test_error_when_prefix_matches_zero_columns(self) -> None:
         df = pd.DataFrame(
             {

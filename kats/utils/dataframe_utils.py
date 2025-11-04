@@ -14,13 +14,14 @@ import pandas as pd
 def rename_columns_by_prefix(
     df: pd.DataFrame,
     prefix_map: Dict[str, str],
+    time_col_name: str = "time",
 ) -> pd.DataFrame:
     """
     Renames columns in the dataframe based on provided prefix mappings.
     Each prefix in prefix_map must match exactly one column in df.
     No column can be matched by more than one prefix.
     Columns that do not match any prefix are left unchanged.
-    The "time" column is always preserved.
+    The time_col_name column is always preserved.
 
     Args:
         df: Input pandas DataFrame.
@@ -67,7 +68,7 @@ def rename_columns_by_prefix(
     for prefix, new_name in prefix_map.items():
         # Find all columns that match this prefix
         matched = [
-            col for col in df.columns if col != "time" and col.startswith(prefix)
+            col for col in df.columns if col != time_col_name and col.startswith(prefix)
         ]
         if len(matched) == 0:
             raise ValueError(
