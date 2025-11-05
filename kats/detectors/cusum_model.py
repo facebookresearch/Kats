@@ -72,7 +72,7 @@ def percentage_change(
         data: The data need to calculate the score
         pre_mean: Baseline mean
     """
-    if type(data.value) == pd.DataFrame and data.value.shape[1] > 1:
+    if isinstance(data.value, pd.DataFrame) and data.value.shape[1] > 1:
         res = (data.value - pre_mean) / (pre_mean)
         return TimeSeriesData(value=res, time=data.time)
     else:
@@ -89,7 +89,7 @@ def change(
         data: The data need to calculate the score
         pre_mean: Baseline mean
     """
-    if type(data.value) == pd.DataFrame and data.value.shape[1] > 1:
+    if isinstance(data.value, pd.DataFrame) and data.value.shape[1] > 1:
         res = data.value - pre_mean
         return TimeSeriesData(value=res, time=data.time)
     else:
@@ -114,7 +114,7 @@ def z_score(
         pre_mean: Baseline mean
         pre_std: Baseline std
     """
-    if type(data.value) == pd.DataFrame and data.value.shape[1] > 1:
+    if isinstance(data.value, pd.DataFrame) and data.value.shape[1] > 1:
         res = (data.value - pre_mean) / (pre_std)
         return TimeSeriesData(value=res, time=data.time)
     else:
@@ -1496,7 +1496,9 @@ class VectorizedCUSUMDetectorModel(CUSUMDetectorModel):
             The anomaly response contains the anomaly scores.
         """
         # init parameters after getting input data
-        num_timeseries = data.value.shape[1] if type(data.value) == pd.DataFrame else 1
+        num_timeseries = (
+            data.value.shape[1] if isinstance(data.value, pd.DataFrame) else 1
+        )
         if num_timeseries == 1:
             _log.info(
                 "Input timeseries is univariate. CUSUMDetectorModel is preferred."
