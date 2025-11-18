@@ -77,6 +77,8 @@ class OutlierDetector(Detector):
 
         original.index = pd.to_datetime(original.index)
 
+        # pyre-fixme[6]: For 1st positional argument expected
+        #  `Union[DatetimeLikeArrayMixin, DatetimeIndex, TimedeltaIndex, Series]` but got `Index`.
         if pd.infer_freq(original.index) is None:
             original = cast(pd.DataFrame, original.asfreq("D"))
             logging.info("Setting frequency to Daily since it cannot be inferred")

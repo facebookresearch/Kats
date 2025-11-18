@@ -84,8 +84,8 @@ class ThetaModel(Model[ThetaParams]):
         params: ThetaParams,
     ) -> None:
         super().__init__(data, params)
+        self.data: TimeSeriesData = data
         self.__subtype__ = "theta"
-        # pyre-fixme[16]: `Optional` has no attribute `value`.
         if not isinstance(self.data.value, pd.Series):
             msg = "Only support univariate time series, but get {type}.".format(
                 type=type(self.data.value)
@@ -97,7 +97,6 @@ class ThetaModel(Model[ThetaParams]):
     def check_seasonality(self) -> None:
         """Determine if the metric to be forecasted is seasonal or not"""
 
-        # pyre-fixme[16]: `Optional` has no attribute `value`.
         y = self.data.value
         m = self.params.m
         if (m > 1) and (y.nunique() > 1) and (self.n > 2 * m):
@@ -110,28 +109,26 @@ class ThetaModel(Model[ThetaParams]):
     def deseasonalize(self) -> TimeSeriesData:
         """Returns the deseasonalized input time series"""
 
-        deseas_data = copy(self.data)
+        deseas_data: TimeSeriesData = copy(self.data)
         decomp = None
         if self.seasonal:
-            # pyre-fixme[6]: For 1st param expected `TimeSeriesData` but got
-            #  `Optional[TimeSeriesData]`.
             decomp = TimeSeriesDecomposition(deseas_data, "multiplicative").decomposer()
-            if (abs(decomp["seasonal"].value) < 10**-10).sum():
+            abs_seasonal_values = decomp["seasonal"].value.abs()
+            zeroes_in_seasonal = abs_seasonal_values < 10**-10
+
+            if zeroes_in_seasonal.any():
                 logging.info(
                     "Seasonal indexes equal to zero. Using non-seasonal Theta method"
                 )
             else:
-                # pyre-fixme[16]: `Optional` has no attribute `value`.
                 deseas_data.value = deseas_data.value / decomp["seasonal"].value
         self.decomp = decomp
-        # pyre-fixme[7]: Expected `TimeSeriesData` but got `Optional[TimeSeriesData]`.
         return deseas_data
 
     # pyre-fixme[15]: `fit` overrides method defined in `Model` inconsistently.
     def fit(self) -> ThetaModel:
         """Fit Theta model"""
         if self.n is None:
-            # pyre-fixme[16]: `Optional` has no attribute `value`.
             self.n = self.data.value.shape[0]
         self.check_seasonality()
         deseas_data = self.deseasonalize()
@@ -184,7 +181,6 @@ class ThetaModel(Model[ThetaParams]):
             f"freq={freq}, alpha={alpha})"
         )
         if freq is None:
-            # pyre-fixme[16]: `Optional` has no attribute `time`.
             freq = pd.infer_freq(self.data.time)
         self.freq = freq
         self.alpha = alpha

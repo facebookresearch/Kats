@@ -308,6 +308,7 @@ class RollingStatsModel(DetectorModel):
                 self.rolling_window,
             )
         strides = data.strides + (data.strides[-1],)
+        # pyre-fixme[16]: Module `numpy.lib.stride_tricks` has no attribute `as_strided`.
         return np.lib.stride_tricks.as_strided(
             data, shape=shape, strides=strides, writeable=False
         )

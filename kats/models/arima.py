@@ -68,7 +68,7 @@ class ARIMAParams(Params):
         p: int,
         d: int,
         q: int,
-        exog: Optional[npt.ArrayLike] = None,
+        exog: Optional[npt.NDArray] = None,
         dates: Optional[pd.DatetimeIndex] = None,
         freq: Optional[str] = None,
         **kwargs: Any,
@@ -98,7 +98,6 @@ class ARIMAModel(Model[ARIMAParams]):
 
     # fit args
     trend: Optional[str] = None
-    start_params: Optional[npt.ArrayLike] = None
     transformed: bool = True
     includes_fixed: bool = False
     method: Optional[str] = None
@@ -113,7 +112,7 @@ class ARIMAModel(Model[ARIMAParams]):
 
     # predict args
     include_history: bool = False
-    fcst_exog: Optional[npt.ArrayLike] = None
+    fcst_exog: Optional[npt.NDArray[Any]] = None
     alpha: float = 0.05
     freq: Optional[str] = None
     fcst_df: Optional[pd.DataFrame] = None
@@ -237,7 +236,7 @@ class ARIMAModel(Model[ARIMAParams]):
         self,
         steps: int,
         include_history: bool = False,
-        exog: Optional[npt.ArrayLike] = None,
+        exog: Optional[npt.NDArray] = None,
         alpha: float = 0.05,
         **kwargs: Any,
     ) -> pd.DataFrame:

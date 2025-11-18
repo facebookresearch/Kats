@@ -1003,22 +1003,15 @@ class GMFeature:
         ans = np.zeros(n * m)
         pdt = pd.to_datetime(time[:, -1])
         indices = []
-        if PANDAS_VERSION < "2.0.3":
-            # compute day of week indices
-            # pyre-fixme[16]: `DatetimeIndex` has no attribute `dayofweek`.
-            indices.append(pdt.dayofweek.values + offset)
-
-            # compute bi-week indices
-            # pyre-fixme[16]: `DatetimeIndex` has no attribute `weekofyear`.
-            indices.append((pdt.weekofyear.values - 1) // 2 + 7 + offset)
-        else:
-            # compute day of week indices
-            indices.append(pdt.isocalendar().day.values + offset)
-            # compute bi-week indices
-            indices.append((pdt.isocalendar().week.values - 1) // 2 + 7 + offset)
+        # compute day of week indices
+        # pyre-fixme[16]: `Tuple` has no attribute `day`.
+        indices.append(pdt.isocalendar().day.values + offset)
+        # compute bi-week indices
+        # pyre-fixme[16]: `Tuple` has no attribute `week`.
+        indices.append((pdt.isocalendar().week.values - 1) // 2 + 7 + offset)
 
         # compute day of month indices
-        # pyre-fixme[16]: `DatetimeIndex` has no attribute `day`.
+        # pyre-fixme[16]: `int` has no attribute `values`
         indices.append(pdt.day.values + 6 + 27 + offset)
         indices = np.concatenate(indices)
         ans[indices.astype(int)] = 1.0

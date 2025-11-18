@@ -534,7 +534,7 @@ class TestIntervalDetectorModel(TestCase):
         # Setup: covariance scaled by factor
         lower = np.array([-1.0, -1.0])
         upper = np.array([1.0, 1.0])
-        scale = 2.0
+        scale = 2
         cov = scale * np.eye(2)
 
         # Execute: compute probability

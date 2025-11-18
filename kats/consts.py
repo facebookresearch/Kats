@@ -175,30 +175,31 @@ class TimeSeriesData:
     Initialization arguments (all optional, but must choose one way to
     initialize e.g. `pandas.DataFrame`):
 
-    - df: A `pandas.DataFrame` storing the time series (default None).
+    - df: A `pandas.DataFrame` storing the time series.
     - sort_by_time: A boolean indicating whether the :class:`TimeSeriesData`
-        should be sorted by time (default True).
+        should be sorted by time.
     - time: a `pandas.Series` or `pandas.DatetimeIndex` storing the time
-        values (default None).
-    - value: A pandas.Series or pandas.DataFrame storing the series value(s)
-        (default None).
-    - time_col_name: A string representing the value of the time column (
-        default "time")
-    - date_format: A string specifying the format of the date/time in the
-        time column. Useful for faster parsing, and required
-        `pandas.to_datetime()` cannot parse the column otherwise (default None).
+        values.
+    - value: A pandas.Series or pandas.DataFrame storing the series value(s).
+    - time_col_name: A string representing the value of the time column.
+    - date_format: A string specifying the format of the date/time in the time
+        column. Useful for faster parsing, and required `pandas.to_datetime()`
+        cannot parse the column otherwise.
     - use_unix_time: A boolean indicating if the time is represented as
-        unix time (default False).
+        unix time.
     - unix_time_units: A string indicating the units of the unix time -- only
-        used if `use_unix_time=True` (default "ns").
-    - tz: A string representing the timezone of the time values (default None).
-    - tz_ambiguous: A string representing how to handle ambiguous timezones
-        (default "raise").
+        used if `use_unix_time=True`.
+    - tz: A string representing the timezone of the time values.
+    - tz_ambiguous: A string representing how to handle ambiguous timezones.
+        Used in Pandas `tz_localize` function.
     - tz_nonexistant: A string representing how to handle nonexistant timezone
-        values (default "raise").
-    - categorical_var: A list of column names of categorical variables that are not required to be numerical. Default is None.
-    - drop_duplicate_time: A bool variable to indicate whether to drop the duplicate time stamps.
-    - cache_datetimes: A bool variable to indicate whether to use pandas cache to avoid recomputing datetime conversions
+        values. Used in Pandas `tz_localize` function.
+    - categorical_var: A list of column names of categorical variables that are
+        not required to be numerical. Default is None.
+    - drop_duplicate_time: A bool variable to indicate whether to drop the
+        duplicate time stamps.
+    - cache_datetimes: A bool variable to indicate whether to use pandas cache
+        to avoid recomputing datetime conversions
 
     Raises:
       ValueError: Invalid params passed when trying to create the
@@ -247,8 +248,10 @@ class TimeSeriesData:
         use_unix_time: bool = False,
         unix_time_units: str = "ns",
         tz: Optional[str] = None,
-        tz_ambiguous: Union[str, npt.NDArray] = "raise",
-        tz_nonexistent: str = "raise",
+        tz_ambiguous: Literal["raise", "infer", "NaT"] = "raise",
+        tz_nonexistent: Literal[
+            "NaT", "raise", "shift_backward", "shift_forward"
+        ] = "raise",
         categorical_var: Optional[List[str]] = None,
         drop_duplicate_time: bool = False,
         cache_datetimes: bool = True,
@@ -584,75 +587,70 @@ class TimeSeriesData:
         use_unix_time: Optional[bool],
         unix_time_units: Optional[str],
         tz: Optional[str] = None,
-        tz_ambiguous: Union[str, npt.NDArray] = "raise",
-        tz_nonexistent: str = "raise",
+        tz_ambiguous: Literal["raise", "infer", "NaT"] = "raise",
+        tz_nonexistent: Literal[
+            "NaT", "raise", "shift_backward", "shift_forward"
+        ] = "raise",
         cache_datetimes: bool = True,
-    ) -> pd.core.series.Series:
+    ) -> pd.Series:
         """Parses time format when initializing :class:`TimeSeriesData`."""
 
         # Checking if time column is of type pandas datetime
-        if not is_datetime(series):
-            if use_unix_time:
-                try:
-                    if tz:
-                        return (
-                            # pyre-fixme[16]: `Timestamp` has no attribute `to_series`.
-                            pd.to_datetime(
-                                series.values,
-                                unit=unix_time_units,
-                                utc=True,
-                                cache=cache_datetimes,
-                            )
-                            .tz_convert(tz)
-                            .to_series()
-                            .reset_index(drop=True)
-                        )
-                    else:
-                        return pd.to_datetime(
-                            series, unit=unix_time_units, cache=cache_datetimes
-                        )
-                except ValueError:
-                    msg = (
-                        "Failed to parse time column "
-                        f"{list(series)} using unix units "
-                        f"{unix_time_units}"
-                    )
-                    logging.error(msg)
-                    raise ValueError(msg)
-            # Otherwise try to parse string
-            else:
-                try:
-                    if tz:
-                        return (
-                            pd.to_datetime(
-                                series.values, format=date_format, cache=cache_datetimes
-                            )
-                            .tz_localize(
-                                # pyre-fixme[6]: For 2nd argument expected `str` but
-                                #  got `Union[ndarray[Any, dtype[Any]], str]`.
-                                tz,
-                                # pyre-fixme[6]: For 2nd argument expected `str` but
-                                #  got `Union[ndarray[Any, dtype[Any]], str]`.
-                                ambiguous=tz_ambiguous,
-                                nonexistent=tz_nonexistent,
-                            )
-                            .to_series()
-                            .reset_index(drop=True)
-                        )
-                    else:
-                        return pd.to_datetime(
-                            series, format=date_format, cache=cache_datetimes
-                        )
-                except ValueError:
-                    msg = (
-                        "Failed to parse time column "
-                        f"{list(series)} using specified format "
-                        f"{date_format}"
-                    )
-                    logging.error(msg)
-                    raise ValueError(msg)
-        else:
+        if is_datetime(series):
             return series
+
+        if use_unix_time:
+            try:
+                if tz:
+                    return (
+                        pd.to_datetime(
+                            series.to_numpy(),
+                            unit=unix_time_units,
+                            utc=True,
+                            cache=cache_datetimes,
+                        )
+                        .tz_convert(tz)
+                        .to_series()
+                        .reset_index(drop=True)
+                    )
+                else:
+                    return pd.to_datetime(
+                        series, unit=unix_time_units, cache=cache_datetimes
+                    )
+            except ValueError:
+                msg = (
+                    f"Failed to parse time column {list(series)} using unix"
+                    f" units {unix_time_units}"
+                )
+                logging.error(msg)
+                raise ValueError(msg)
+        # Otherwise try to parse string
+        else:
+            try:
+                if tz:
+                    return (
+                        pd.to_datetime(
+                            series.to_numpy(), format=date_format, cache=cache_datetimes
+                        )
+                        .tz_localize(
+                            tz,
+                            ambiguous=tz_ambiguous,
+                            nonexistent=tz_nonexistent,
+                        )
+                        .to_series()
+                        .reset_index(drop=True)
+                    )
+                else:
+                    return pd.to_datetime(
+                        series, format=date_format, cache=cache_datetimes
+                    )
+            except ValueError:
+                msg = (
+                    f"Failed to parse time column {list(series)} using"
+                    f" specified format {date_format}"
+                )
+                logging.error(msg)
+                raise ValueError(msg)
 
     def extend(self, other: object, validate: bool = True) -> None:
         """
@@ -1180,20 +1178,16 @@ class TimeSeriesData:
     def set_timezone(
         self,
         tz: str,
-        tz_ambiguous: Union[str, npt.NDArray] = "raise",
-        tz_nonexistent: str = "raise",
+        tz_ambiguous: Literal["raise", "infer", "NaT"] = "raise",
+        tz_nonexistent: Literal[
+            "NaT", "raise", "shift_backward", "shift_forward"
+        ] = "raise",
         sort_by_time: bool = True,
     ) -> None:
         if not (self.is_timezone_aware()):
             self.time = (
                 # pyre-ignore
                 pd.DatetimeIndex(self.time)
-                # pyre-fixme[6]: For 2nd argument expected `Union[Literal['NaT'],
-                #  Literal['infer'], Literal['raise'], ndarray[Any, dtype[Any]]]` but
-                #  got `Union[ndarray[Any, dtype[Any]], str]`.
-                # pyre-fixme[6]: For 3rd argument expected `Union[Literal['NaT'],
-                #  Literal['raise'], Literal['shift_backward'],
-                #  Literal['shift_forward'], timedelta]` but got `str`.
                 .tz_localize(tz, ambiguous=tz_ambiguous, nonexistent=tz_nonexistent)
                 .to_series()
                 .reset_index(drop=True)
