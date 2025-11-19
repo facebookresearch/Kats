@@ -50,6 +50,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.12",
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",

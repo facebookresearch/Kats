@@ -8,7 +8,7 @@
 
 import json
 import logging
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -28,7 +28,30 @@ from scipy.spatial import distance
 
 # Supported metrics for calculating distance
 # details: https://github.com/scipy/scipy/blob/v1.10.1/scipy/spatial/distance.py#L1947
-from scipy.spatial.distance import _METRICS_NAMES as SUPPORTED_DISTANCE_METRICS
+SUPPORTED_DISTANCE_METRICS: List[str] = [
+    "braycurtis",
+    "canberra",
+    "chebyshev",
+    "cityblock",
+    "correlation",
+    "cosine",
+    "dice",
+    "euclidean",
+    "hamming",
+    "jaccard",
+    "jensenshannon",
+    "kulsinski",
+    "kulczynski1",
+    "mahalanobis",
+    "minkowski",
+    "rogerstanimoto",
+    "russellrao",
+    "seuclidean",
+    "sokalmichener",
+    "sokalsneath",
+    "sqeuclidean",
+    "yule",
+]
 
 
 _log: logging.Logger = logging.getLogger("distribution_distance_model")
