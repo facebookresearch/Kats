@@ -151,6 +151,32 @@ year = {2022}
 }
 ```
 
+## Core Algorithm and Related Papers
+
+Core Algorithm
+* Self-supervised learning for fast and scalable time series hyper-parameter tuning
+
+A self-supervised framework designed to automatically optimize hyper-parameters for time-series forecasting models at scale. The method reduces tuning cost, improves generalization across heterogeneous datasets, and supports efficient deployment in large production forecasting environments. The accompanying research was presented as an invited talk at international forecasting venues and has been referenced in work on automated model selection and adaptive time-series learning.
+
+Meta AI Official post: [Large-scale forecasting: Self-supervised learning framework for hyperparameter tuning](https://ai.meta.com/blog/large-scale-forecasting-self-supervised-learning-framework-for-hyper-parameter-tuning/)
+
+Paper: [Self-supervised Learning for Fast and Scalable Time Series Hyper-parameter Tuning](https://arxiv.org/abs/2102.05740)
+
+Invited talk: [the 40th International Symposium on Forecasting](https://isf.forecasters.org/wp-content/uploads/ISF20_program.pdf).
+
+If you use this algorithm in your work or research, please use the following BibTeX entry.
+```
+@article{Zhang_SSL-HPT_2021,
+  author = {Zhang, Peiyi and Jiang, Xiaodong and Holt, Ginger M. and Laptev, Nikolay Pavlovich and Komurlu, Caner and Gao, Peng and Yu, Yang},
+  title  = {Self-supervised Learning for Fast and Scalable Time Series Hyper-parameter Tuning},
+  year   = {2021},
+  eprint = {2102.05740},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  url    = {https://arxiv.org/pdf/2102.05740}
+}
+```
+
 ## Changelog
 
 ### Version 0.2.0
