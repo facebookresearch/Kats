@@ -47,8 +47,8 @@ from ax.core.search_space import SearchSpace
 from ax.core.trial import BaseTrial
 from ax.generation_strategy.dispatch_utils import choose_generation_strategy_legacy
 from ax.global_stopping.strategies.improvement import ImprovementGlobalStoppingStrategy
+from ax.orchestration.orchestrator import Orchestrator, OrchestratorOptions
 from ax.runners.synthetic import SyntheticRunner
-from ax.service.orchestrator import Orchestrator, OrchestratorOptions
 from ax.service.utils.instantiation import InstantiationBase
 from ax.utils.common.result import Err, Ok
 from kats.consts import SearchMethodEnum
