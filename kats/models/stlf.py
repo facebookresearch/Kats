@@ -267,7 +267,7 @@ class STLFModel(Model[STLFParams]):
         """
 
         logging.debug(
-            "Call fit() with parameters. " "kwargs:{kwargs}".format(kwargs=kwargs)
+            "Call fit() with parameters. kwargs:{kwargs}".format(kwargs=kwargs)
         )
         self.deseasonalize()
         if self.params.method == "simple":
@@ -324,7 +324,7 @@ class STLFModel(Model[STLFParams]):
         assert decomp is not None
 
         logging.debug(
-            "Call predict() with parameters. " "steps:{steps}, kwargs:{kwargs}".format(
+            "Call predict() with parameters. steps:{steps}, kwargs:{kwargs}".format(
                 steps=steps, kwargs=kwargs
             )
         )

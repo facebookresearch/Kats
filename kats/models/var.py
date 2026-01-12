@@ -150,7 +150,7 @@ class VARModel(Model[VARParams]):
             raise ValueError("Call fit() before predict().")
 
         logging.debug(
-            "Call predict() with parameters. " "steps:{steps}, kwargs:{kwargs}".format(
+            "Call predict() with parameters. steps:{steps}, kwargs:{kwargs}".format(
                 steps=steps, kwargs=kwargs
             )
         )

@@ -352,7 +352,7 @@ class TemporalHierarchicalModel:
                         orig_fcst[k] = self.info_fcsts[k]
                     else:
                         msg = (
-                            f"{hf*freq[k]} steps of forecasts for level {k} are"
+                            f"{hf * freq[k]} steps of forecasts for level {k} are"
                             f" needed, but only receive {fcst_num} steps (and "
                             "forecast model is None)."
                         )

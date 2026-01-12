@@ -15,7 +15,6 @@ Do this procedure for m times (ensemble), based on which, generate fcst/fcst_upp
 """
 
 import logging
-
 from multiprocessing import cpu_count
 from multiprocessing.pool import Pool
 from typing import Optional, Tuple, Type

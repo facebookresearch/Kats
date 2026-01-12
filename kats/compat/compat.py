@@ -18,9 +18,7 @@ except ImportError:
 from typing import Callable, Union
 
 import sklearn
-
 import statsmodels
-
 from packaging import version as pv
 
 VERSION_TYPE: TypeAlias = pv.Version

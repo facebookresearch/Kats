@@ -30,7 +30,6 @@ from kats.models.ensemble.kats_ensemble import KatsEnsemble
 from kats.models.ensemble.median_ensemble import MedianEnsembleModel
 from kats.models.ensemble.weighted_avg_ensemble import WeightedAvgEnsemble
 from kats.models.model import Model
-
 from parameterized.parameterized import parameterized
 
 np.random.seed(123321)

@@ -9,11 +9,9 @@ import importlib
 from operator import attrgetter
 from typing import Any, cast, Dict, List, Union
 from unittest import TestCase
-
 from unittest.mock import patch
 
 import kats.tsfeatures.tsfeatures
-
 import numpy as np
 import pandas as pd
 from kats.compat import statsmodels
@@ -25,7 +23,6 @@ from kats.tsfeatures.tsfeatures import (
     TsFeatures,
     TsFourierFeatures,
 )
-
 from parameterized.parameterized import parameterized
 
 SAMPLE_INPUT_TS_BOCPD_SCALED = pd.DataFrame(

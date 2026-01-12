@@ -39,7 +39,6 @@ Typical usage example:
 from __future__ import annotations
 
 import itertools
-
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -1002,7 +1001,7 @@ class IntervalDetectorModel(DetectorModel, ABC):
         if m > _m_warn:
             logging.warning(
                 f"Non-spherical covariance is unstable for m > {_m_warn}"
-                + f" and requires {2 ** m} simulations / evaluation."
+                + f" and requires {2**m} simulations / evaluation."
             )
         z_crit = norm().ppf(1.0 - p / 2)
         # Integration region is an AND conjunction of several OR clauses.

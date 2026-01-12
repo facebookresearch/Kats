@@ -13,7 +13,6 @@ from unittest import TestCase
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-
 from kats.consts import TimeSeriesData
 from kats.detectors.interval_detector import (
     ar_1,
@@ -27,7 +26,6 @@ from kats.detectors.interval_detector import (
     TwoSampleRealValuedIntervalDetectorModel,
     TwoSampleSchema,
 )
-
 from parameterized.parameterized import parameterized
 from scipy.stats import multivariate_normal, norm
 

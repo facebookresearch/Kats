@@ -160,7 +160,7 @@ class HoltWintersModel(Model[HoltWintersParams]):
             raise ValueError("Call fit() before predict().")
 
         logging.debug(
-            "Call predict() with parameters. " "steps:{steps}, kwargs:{kwargs}".format(
+            "Call predict() with parameters. steps:{steps}, kwargs:{kwargs}".format(
                 steps=steps, kwargs=kwargs
             )
         )
@@ -201,7 +201,7 @@ class HoltWintersModel(Model[HoltWintersParams]):
                 "Use EmpConfidenceInt for CI with parameters: error_methods = "
                 f"{error_methods}, train_percentage = {train_percentage}, "
                 f"test_percentage = {test_percentage}, sliding_steps = "
-                f"{sliding_steps}, confidence_level = {1-alpha}, multi={multi}."
+                f"{sliding_steps}, confidence_level = {1 - alpha}, multi={multi}."
             )
             fcst = eci.get_eci(steps=steps)
             self.y_fcst = fcst["fcst"]

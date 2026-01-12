@@ -20,7 +20,6 @@ from kats.consts import (
     TimeSeriesData,
 )
 from kats.detectors.distribution_distance_model import DistributionDistanceModel
-
 from parameterized.parameterized import parameterized
 
 

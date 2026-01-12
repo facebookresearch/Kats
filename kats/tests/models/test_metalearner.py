@@ -17,7 +17,6 @@ import numpy.typing as npt
 import pandas as pd
 from ax.adapter.registry import Generators
 from ax.core import Experiment, SearchSpace
-
 from ax.service.utils.instantiation import InstantiationBase
 from kats.consts import TimeSeriesData
 from kats.models.arima import ARIMAModel

@@ -21,7 +21,6 @@ from kats.consts import (
     ParameterError,
     TimeSeriesData,
 )
-
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
 from scipy.spatial import distance

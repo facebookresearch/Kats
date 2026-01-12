@@ -28,7 +28,6 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_THETA_SM_11,
     PEYTON_FCST_30_THETA_SM_12,
 )
-
 from parameterized.parameterized import parameterized
 
 
@@ -297,9 +296,10 @@ class ThetaModelTest(TestCase):
         self.assertRaises(ValueError, m.predict, 30)
 
         # seasonal data must be deseasonalized before fit
-        with patch.object(
-            m, "deseasonalize", (lambda self: self.data).__get__(m)
-        ), patch.object(m, "check_seasonality"):
+        with (
+            patch.object(m, "deseasonalize", (lambda self: self.data).__get__(m)),
+            patch.object(m, "check_seasonality"),
+        ):
             m.seasonal = True
             m.decomp = None
             self.assertRaises(ValueError, m.fit)

@@ -20,7 +20,6 @@ from kats.detectors.detector_consts import (
     PercentageChange,
     SingleSpike,
 )
-
 from parameterized.parameterized import parameterized
 
 

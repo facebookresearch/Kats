@@ -136,8 +136,7 @@ class ARIMAModel(Model[ARIMAParams]):
         self.data = data
         if not isinstance(self.data.value, pd.Series):
             msg = (
-                "Only support univariate time series, but got "
-                f"{type(self.data.value)}."
+                f"Only support univariate time series, but got {type(self.data.value)}."
             )
             logging.error(msg)
             raise ValueError(msg)

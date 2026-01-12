@@ -547,7 +547,7 @@ class Simulator:
                 anomaly_arr,
                 z_score_arr,
             )
-            df_dict[f"value{i+1}"] = yval
+            df_dict[f"value{i + 1}"] = yval
 
         ts_df = pd.DataFrame(df_dict, copy=False)
 

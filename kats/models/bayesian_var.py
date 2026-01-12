@@ -27,7 +27,6 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from kats.consts import _log_error, Params, TimeSeriesData
-
 from numpy.linalg import inv
 from scipy.linalg import block_diag
 
@@ -113,9 +112,9 @@ class BayesianVAR(m.Model[BayesianVARParams]):
         self.time_freq = BayesianVAR._check_get_freq(data)
         # pyre-fixme[4]: Attribute annotation cannot contain `Any`.
         self.X, self.Y = BayesianVAR._convert_timeseries_np(data)
-        assert (
-            self.X.shape[1] == self.Y.shape[1]
-        ), "Expected same amount of data on time axis for X and Y"
+        assert self.X.shape[1] == self.Y.shape[1], (
+            "Expected same amount of data on time axis for X and Y"
+        )
 
         self.m, self.T = self.Y.shape
         self.r = self.X.shape[0]
@@ -168,7 +167,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
         if times.empty:
             logging.info(
                 "Performing one-step ahead forecasting on history from step "
-                f"{self.p} to {self.T-1} (t={times[0]} to {times[-1]}) inclusive."
+                f"{self.p} to {self.T - 1} (t={times[0]} to {times[-1]}) inclusive."
             )
         for t in range(p, T):
             point_pred = self._evaluate_point_t(self.X, self.Y, t)
@@ -211,15 +210,14 @@ class BayesianVAR(m.Model[BayesianVARParams]):
             ]  # shape: [m * (m * p + r + 1)] x 1
 
             assert (
-                (
-                    num_mu,
-                    num_mu,
-                )
-                == z_sum_term.shape
-            ), f"Expected {(num_mu, num_mu)}, got {z_sum_term.shape}"
-            assert (
                 num_mu,
-            ) == y_sum_term.shape, f"Expected {(num_mu,)}, got {y_sum_term.shape}"
+                num_mu,
+            ) == z_sum_term.shape, (
+                f"Expected {(num_mu, num_mu)}, got {z_sum_term.shape}"
+            )
+            assert (num_mu,) == y_sum_term.shape, (
+                f"Expected {(num_mu,)}, got {y_sum_term.shape}"
+            )
 
             Z_sig_Z_sum += z_sum_term
             Z_sig_y_sum += y_sum_term
@@ -237,9 +235,9 @@ class BayesianVAR(m.Model[BayesianVARParams]):
             inv(v_prior) @ mu_prior + Z_sig_y_sum
         )  # shape: [m * (m * p + r + 1)] x 1
         self.mu_posterior = mu_posterior
-        assert (
-            num_mu,
-        ) == mu_posterior.shape, f"Expected {(num_mu,)}, got {mu_posterior.shape}"
+        assert (num_mu,) == mu_posterior.shape, (
+            f"Expected {(num_mu,)}, got {mu_posterior.shape}"
+        )
         self.resid = self._get_training_residuals()
         self.fitted = True
 
@@ -262,12 +260,11 @@ class BayesianVAR(m.Model[BayesianVARParams]):
         Z_t = block_diag(*([z] * self.m))
 
         assert (
-            (
-                self.m,
-                self.num_mu_coefficients,
-            )
-            == Z_t.shape
-        ), f"Expected {(self.m, self.num_mu_coefficients)}, got {Z_t.shape}"
+            self.m,
+            self.num_mu_coefficients,
+        ) == Z_t.shape, (
+            f"Expected {(self.m, self.num_mu_coefficients)}, got {Z_t.shape}"
+        )
 
         return Z_t  # shape: m x [m * (m * p + m + 1)]
 
@@ -351,9 +348,9 @@ class BayesianVAR(m.Model[BayesianVARParams]):
             )
             element_ind += 1
 
-        assert (
-            element_ind == num_mu
-        ), f"Final element: {element_ind}, expected: {num_mu}"
+        assert element_ind == num_mu, (
+            f"Final element: {element_ind}, expected: {num_mu}"
+        )
 
         return cov  # shape: [m * (m * p + r + 1)] x [m * (m * p + r + 1)] matrix
 
@@ -425,7 +422,7 @@ class BayesianVAR(m.Model[BayesianVARParams]):
                 start=self.data.time.iloc[-1], periods=steps + 1, freq=self.time_freq
             )[1:]
             logging.info(
-                f"Performing future forecasting from step {T} to {T+steps-1} ("
+                f"Performing future forecasting from step {T} to {T + steps - 1} ("
                 f"t={ahead_times[0]} to t={ahead_times[-1]}) inclusive."
             )
             assert len(ahead_times) == steps
@@ -450,9 +447,9 @@ class BayesianVAR(m.Model[BayesianVARParams]):
 
         forecast_length = len(times)
 
-        assert forecast_length == len(
-            forecast_vals
-        ), f"{forecast_length} != {len(forecast_vals)}"
+        assert forecast_length == len(forecast_vals), (
+            f"{forecast_length} != {len(forecast_vals)}"
+        )
 
         self.forecast = indiv_forecasts = {}
         self.forecast_max_time = times[-1]

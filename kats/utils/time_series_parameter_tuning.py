@@ -697,9 +697,9 @@ class SearchMethodFactory(metaclass=Final):
                 multiprocessing=multiprocessing,
             )
         elif selected_search_method == SearchMethodEnum.BAYES_OPT:
-            assert (
-                evaluation_function is not None
-            ), "evaluation_function cannot be None. It is needed at initialization of BayesianOptSearch object."
+            assert evaluation_function is not None, (
+                "evaluation_function cannot be None. It is needed at initialization of BayesianOptSearch object."
+            )
             return BayesianOptSearch(
                 parameters=parameters,
                 evaluation_function=evaluation_function,
@@ -1001,7 +1001,7 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         self.generator_run_for_search_method(
             evaluation_function=evaluation_function, generator_run=model_run
         )
-        self.logger.info(f'fitted data columns: {self._trial_data.df["metric_name"]}')
+        self.logger.info(f"fitted data columns: {self._trial_data.df['metric_name']}")
         self.logger.info(f"Bootstrapping of size = {bootstrap_size} is done.")
 
     def generate_evaluate_new_parameter_values(

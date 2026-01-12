@@ -11,7 +11,6 @@ from unittest import TestCase
 
 import kats.utils.time_series_parameter_tuning as tpt
 import pandas as pd
-
 from ax.core.parameter import ChoiceParameter, FixedParameter, ParameterType
 from ax.generators.random.sobol import SobolGenerator
 from ax.generators.random.uniform import UniformGenerator
@@ -19,7 +18,6 @@ from kats.consts import SearchMethodEnum
 from kats.models.arima import ARIMAModel
 from kats.models.prophet import ProphetModel
 from kats.utils.time_series_parameter_tuning import compute_search_cardinality
-
 from numpy.random import RandomState
 
 

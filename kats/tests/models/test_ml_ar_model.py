@@ -12,7 +12,6 @@ import numpy as np
 import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.models.ml_ar import MLARModel, MLARParams
-
 from parameterized.parameterized import parameterized
 
 single_univariate_ts = [

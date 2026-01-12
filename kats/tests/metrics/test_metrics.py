@@ -9,11 +9,9 @@ from typing import List, Optional, Union
 from unittest import TestCase
 
 import numpy as np
-
 import numpy.testing as npt
 import numpy.typing as np_typing
 from kats.metrics import metrics
-
 from parameterized.parameterized import parameterized
 
 

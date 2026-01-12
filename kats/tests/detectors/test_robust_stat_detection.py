@@ -17,7 +17,6 @@ from kats.detectors.robust_stat_detection import (
     RobustStatChangePoint,
     RobustStatDetector,
 )
-
 from parameterized.parameterized import parameterized
 from sklearn.datasets import make_spd_matrix
 

@@ -11,7 +11,6 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
 from kats.consts import (
     DataError,
     DataIrregularGranularityError,

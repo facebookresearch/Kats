@@ -23,7 +23,6 @@ from kats.detectors.cusum_model import (
     CusumScoreFunction,
     VectorizedCUSUMDetectorModel,
 )
-
 from parameterized.parameterized import parameterized
 
 

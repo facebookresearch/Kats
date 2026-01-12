@@ -23,7 +23,6 @@ from kats.consts import (
 )
 from kats.detectors.detector import DetectorModel
 from kats.detectors.detector_consts import AnomalyResponse
-
 from kats.utils.decomposition import SeasonalityHandler
 from scipy import stats
 
@@ -375,7 +374,7 @@ class RollingStatsModel(DetectorModel):
         if self.rolling_window / frequency_sec < 3:
             error_info = (
                 "Please use a larger rolling window size, which at least "
-                f"includes 3 data points in the time series data, i.e., rolling_window > {3*frequency_sec}."
+                f"includes 3 data points in the time series data, i.e., rolling_window > {3 * frequency_sec}."
             )
             _log.error(error_info)
             raise ParameterError(error_info)

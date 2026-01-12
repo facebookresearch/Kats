@@ -42,7 +42,6 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_11,
     PEYTON_FCST_30_PROPHET_DAILY_CAP_SM_12,
 )
-
 from parameterized.parameterized import parameterized
 
 

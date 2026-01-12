@@ -373,7 +373,7 @@ def get_default_var_parameter_search_space() -> List[Dict[str, Any]]:
     # TODO: remove raise error, then implement the default parameter
     # space definition.
     raise NotImplementedError(
-        "get_parameter_search_space() method has not been implemented for " "VAR model."
+        "get_parameter_search_space() method has not been implemented for VAR model."
     )
 
 

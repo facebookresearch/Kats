@@ -357,7 +357,7 @@ class GMBackTester:
                         self.gm_info_collects[bt].append(info)
                         i += 1
                 logging.info(
-                    f"fit {self.replicate*self.splits} gm time {time.time()-t0}"
+                    f"fit {self.replicate * self.splits} gm time {time.time() - t0}"
                 )
             else:
                 t0 = time.time()
@@ -378,7 +378,7 @@ class GMBackTester:
                 pool.join()
                 self.gm_info_collects[bt] = results
 
-                logging.info(f"fit {m} gm time {time.time()-t0}")
+                logging.info(f"fit {m} gm time {time.time() - t0}")
 
             bt_eval = self._evaluate(
                 self.gm_collects[bt], bt_test_train_TSs, bt_test_valid_TSs

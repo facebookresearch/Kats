@@ -17,7 +17,6 @@ from kats.utils.datapartition import (
     SimpleDataPartition,
     SimpleTimestampDataPartition,
 )
-
 from parameterized.parameterized import parameterized
 
 

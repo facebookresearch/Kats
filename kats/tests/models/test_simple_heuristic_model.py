@@ -15,7 +15,6 @@ from kats.models.simple_heuristic_model import (
     SimpleHeuristicModel,
     SimpleHeuristicModelParams,
 )
-
 from parameterized.parameterized import parameterized
 
 test_univariate_df = pd.DataFrame(

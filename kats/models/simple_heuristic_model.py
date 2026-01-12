@@ -141,7 +141,7 @@ class SimpleHeuristicModel(Model[SimpleHeuristicModelParams]):
     def fit(self) -> None:
         "fit Simple Heuristic Model."
         logging.debug(
-            "Call fit() with parameters: " "method:{method}".format(
+            "Call fit() with parameters: method:{method}".format(
                 method=self.params.method
             )
         )

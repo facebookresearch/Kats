@@ -38,7 +38,7 @@ class LinearModelParams(Params):
         super().__init__()
         self.alpha = alpha
         logging.debug(
-            "Initialized LinearModel parameters. " "alpha:{alpha}".format(alpha=alpha)
+            "Initialized LinearModel parameters. alpha:{alpha}".format(alpha=alpha)
         )
 
     def validate_params(self) -> None:
@@ -83,9 +83,7 @@ class LinearModel(Model[LinearModelParams]):
     def fit(self) -> None:
         """fit Linear Model."""
         logging.debug(
-            "Call fit() with parameters: " "alpha:{alpha}".format(
-                alpha=self.params.alpha
-            )
+            "Call fit() with parameters: alpha:{alpha}".format(alpha=self.params.alpha)
         )
 
         # prepare X and y for linear model
@@ -112,7 +110,7 @@ class LinearModel(Model[LinearModelParams]):
                 `time`, `fcst`, `fcst_lower`, and `fcst_upper`
         """
         logging.debug(
-            "Call predict() with parameters. " "steps:{steps}, kwargs:{kwargs}".format(
+            "Call predict() with parameters. steps:{steps}, kwargs:{kwargs}".format(
                 steps=steps, kwargs=kwargs
             )
         )

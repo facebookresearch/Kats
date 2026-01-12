@@ -299,9 +299,9 @@ class BOCPDetector(Detector):
         self._run_length_prob: Dict[str, ArrayLike] = {}
         self.detected_flag = False
 
-        assert (
-            self.models.keys() == self.parameter_type.keys()
-        ), f"Expected equivalent models in .models and .parameter_types, but got {self.models.keys()} and {self.parameter_type.keys()}"
+        assert self.models.keys() == self.parameter_type.keys(), (
+            f"Expected equivalent models in .models and .parameter_types, but got {self.models.keys()} and {self.parameter_type.keys()}"
+        )
 
     # pyre-fixme[14]: `detector` overrides method defined in `Detector` inconsistently.
     def detector(
@@ -372,16 +372,16 @@ class BOCPDetector(Detector):
              The start_time gives the time that the change was detected.
         """
 
-        assert (
-            model in self.available_models
-        ), f"Requested model {model} not currently supported. Please choose one from: {self.available_models}"
+        assert model in self.available_models, (
+            f"Requested model {model} not currently supported. Please choose one from: {self.available_models}"
+        )
 
         if model_parameters is None:
             model_parameters = self.parameter_type[model]()
 
-        assert isinstance(
-            model_parameters, self.parameter_type[model]
-        ), f"Expected parameter type {self.parameter_type[model]}, but got {model_parameters}"
+        assert isinstance(model_parameters, self.parameter_type[model]), (
+            f"Expected parameter type {self.parameter_type[model]}, but got {model_parameters}"
+        )
 
         if choose_priors:
             changepoint_prior, model_parameters = self._choose_priors(
@@ -1600,9 +1600,9 @@ class _BayesianLinReg(_PredictiveModel):
         sample_sigma_squared = cast(np.ndarray, invgamma.rvs(a_n, scale=b_n, size=1))
 
         # Sample a beta value from Normal(mu_n, sigma^2 * inv(lambda_n))
-        assert (
-            len(mu_n.shape) == 1
-        ), f"Expected 1 dimensional mu_n, but got {mu_n.shape}"
+        assert len(mu_n.shape) == 1, (
+            f"Expected 1 dimensional mu_n, but got {mu_n.shape}"
+        )
 
         all_beta_samples = np.random.multivariate_normal(
             mu_n, sample_sigma_squared * np.linalg.inv(lambda_n), size=num_samples

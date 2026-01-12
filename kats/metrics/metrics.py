@@ -713,11 +713,11 @@ def mult_exceed(
 
     if y_pred.shape[0] != n:
         raise ValueError(
-            f"Arrays have different number of samples ({y_pred.shape}, expected {n, m*horizon})"
+            f"Arrays have different number of samples ({y_pred.shape}, expected {n, m * horizon})"
         )
     elif y_pred.shape[1] != (m * horizon):
         raise ValueError(
-            f"Arrays have different number of samples ({y_pred.shape}, expected {n, m*horizon})"
+            f"Arrays have different number of samples ({y_pred.shape}, expected {n, m * horizon})"
         )
 
     y_true = np.tile(y_true, m)

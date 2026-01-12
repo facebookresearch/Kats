@@ -14,7 +14,6 @@ import pandas as pd
 from kats.consts import TimeSeriesData
 from kats.data.utils import load_data
 from kats.models.var import VARModel, VARParams
-
 from parameterized.parameterized import parameterized
 
 

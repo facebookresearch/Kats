@@ -162,7 +162,7 @@ class GMEnsemble:
         fcst = gm.predict(
             test_TSs, steps=steps, raw=True, test_batch_size=test_batch_size
         )
-        logging.info(f"fcst {len(fcst)} TSs with {time.time()-t}.")
+        logging.info(f"fcst {len(fcst)} TSs with {time.time() - t}.")
         return fcst
 
     def train(
@@ -229,7 +229,7 @@ class GMEnsemble:
             # return results
             self.gm_info = results
             logging.info(
-                f"fit {self.model_num} global models using time {time.time()-t0}"
+                f"fit {self.model_num} global models using time {time.time() - t0}"
             )
         else:
             self.gm_info = []
@@ -247,7 +247,7 @@ class GMEnsemble:
                     self.gm_info.append(info)
                     i += 1
             logging.info(
-                f"fit {self.model_num} global models using time {time.time()-t0}"
+                f"fit {self.model_num} global models using time {time.time() - t0}"
             )
         return
 

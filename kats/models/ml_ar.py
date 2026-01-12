@@ -6,7 +6,6 @@
 # pyre-strict
 
 import logging
-
 from typing import Any, cast, Dict, List, Optional, Set, Tuple, Union
 
 import lightgbm as gbm  # @manual
@@ -19,7 +18,6 @@ from kats.tsfeatures.tsfeatures import TsCalenderFeatures, TsFourierFeatures
 from kats.utils.parameter_tuning_utils import (
     get_default_lightgbm_parameter_search_space,
 )
-
 from numpy.random import RandomState
 
 try:

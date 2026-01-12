@@ -25,7 +25,6 @@ from kats.detectors.prophet_detector import (
     to_seasonality,
 )
 from kats.utils.simulator import Simulator
-
 from parameterized.parameterized import parameterized
 from prophet import Prophet  # @manual
 

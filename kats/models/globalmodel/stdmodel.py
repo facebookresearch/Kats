@@ -12,18 +12,15 @@ import time
 from copy import copy
 from multiprocessing import cpu_count
 from multiprocessing.dummy import Pool
-
 from typing import cast, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-
 from kats.consts import Params, TimeSeriesData
 from kats.models.globalmodel.ensemble import GMEnsemble
 from kats.models.globalmodel.model import GMModel
 from kats.models.globalmodel.utils import GMParam
-
 from kats.models.prophet import ProphetModel, ProphetParams
 from kats.utils.decomposition import TimeSeriesDecomposition
 from statsmodels.tsa.tsatools import freq_to_period
@@ -274,7 +271,7 @@ class STDGlobalModel:
         else:
             prepared_TSs = [self._prepare_ts(key, test_TSs[key], steps) for key in keys]
         logging.info(
-            f"Successfully preparing all timeseries with time = {time.time()-t0}"
+            f"Successfully preparing all timeseries with time = {time.time() - t0}"
         )
 
         # generate fcsts using GM

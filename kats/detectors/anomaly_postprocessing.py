@@ -7,16 +7,13 @@
 
 
 import logging
-
 from typing import Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
-
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from kats.consts import IntervalAnomaly, TimeSeriesData
-
 from kats.detectors.utils import ChangeDirections
 from scipy import stats
 

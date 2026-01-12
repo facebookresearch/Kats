@@ -23,7 +23,6 @@ from kats.detectors.bocpd import (
     TrendChangeParameters,
 )
 from kats.utils.simulator import Simulator
-
 from parameterized.parameterized import parameterized
 
 

@@ -142,9 +142,7 @@ class NowcastingModel(m.Model):
     def fit(self) -> None:
         """Fits model."""
 
-        logging.debug(
-            "Call fit() with parameters: " "step:{step}".format(step=self.step)
-        )
+        logging.debug("Call fit() with parameters: step:{step}".format(step=self.step))
         train_index = self.df[~self.df.isin([np.nan, np.inf, -np.inf]).any(1)].index
         X_train, y_train = (
             self.df[self.feature_names].loc[train_index],

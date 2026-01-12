@@ -9,7 +9,6 @@ from typing import Dict, List
 from unittest import TestCase
 
 import numpy as np
-
 import pandas as pd
 from kats.detectors.cusum_model import CUSUMDetectorModel
 from kats.detectors.meta_learning.hpt_tuning import (

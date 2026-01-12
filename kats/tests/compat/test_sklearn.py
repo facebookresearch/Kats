@@ -10,7 +10,6 @@ from typing import Any
 from unittest.mock import patch
 
 import numpy as np
-
 from kats.compat import compat, sklearn
 
 

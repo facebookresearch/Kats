@@ -208,7 +208,7 @@ class KDEResidualTranslator:
             residual = y - yhat
             if (yhat_lower is not None) != (yhat_upper is not None):
                 raise ValueError(
-                    "Must supply either both yhat_lower and yhat_upper" "or neither"
+                    "Must supply either both yhat_lower and yhat_upperor neither"
                 )
             if yhat_lower is not None:
                 assert yhat_upper is not None

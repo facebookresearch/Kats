@@ -214,9 +214,7 @@ class NowcastingModel(m.Model):
     def fit(self) -> None:
         """Fits model."""
 
-        logging.debug(
-            "Call fit() with parameters: " "step:{step}".format(step=self.step)
-        )
+        logging.debug("Call fit() with parameters: step:{step}".format(step=self.step))
 
         if np.sum(self.df["y"].isin([0.0])) == 0:
             n = 1

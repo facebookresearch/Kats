@@ -20,7 +20,6 @@ from kats.tests.models.test_models_dummy_data import (
     PEYTON_FCST_30_ARIMA_PARAM_1_MODEL_1,
     PEYTON_FCST_30_ARIMA_PARAM_2_MODEL_1,
 )
-
 from parameterized.parameterized import parameterized
 
 

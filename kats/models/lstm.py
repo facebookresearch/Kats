@@ -185,7 +185,7 @@ class LSTMModel(Model[LSTMParams]):
             The fitted LSTM model object
         """
 
-        logging.debug("Call fit() with parameters." f"kwargs:{kwargs}")
+        logging.debug(f"Call fit() with parameters.kwargs:{kwargs}")
 
         # learning rate
         self.lr = kwargs.get("lr", 0.001)
@@ -243,9 +243,7 @@ class LSTMModel(Model[LSTMParams]):
         time_window = self.params.time_window
         hidden_size = self.params.hidden_size
 
-        logging.debug(
-            "Call predict() with parameters. " f"steps:{steps}, kwargs:{kwargs}"
-        )
+        logging.debug(f"Call predict() with parameters. steps:{steps}, kwargs:{kwargs}")
         # pyre-fixme[16]: `Optional` has no attribute `time`.
         self.freq = kwargs.get("freq", pd.infer_freq(self.data.time))
 

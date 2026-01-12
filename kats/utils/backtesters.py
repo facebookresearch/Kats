@@ -53,7 +53,6 @@ import numpy.typing as npt
 import pandas as pd
 from kats.consts import _log_error, Params, TimeSeriesData
 from kats.metrics.metrics import core_metric, CoreMetric
-
 from kats.utils.datapartition import DataPartitionBase
 
 if TYPE_CHECKING:
@@ -927,9 +926,7 @@ class BackTesterRollingOrigin(BackTesterParent):
             raise ValueError("Incorrect training and testing sizes")
         elif start_train_size + test_size == self.size:
             if self.expanding_steps > 1:
-                logging.error(
-                    "Training and Testing sizes too big " "for multiple steps"
-                )
+                logging.error("Training and Testing sizes too big for multiple steps")
                 logging.error("Start Training size: {0}".format(start_train_size))
                 logging.error(
                     "Start Training Percentage: {0}".format(self.start_train_percentage)
@@ -938,7 +935,7 @@ class BackTesterRollingOrigin(BackTesterParent):
                 logging.error("Testing Percentage: {0}".format(self.test_percentage))
                 logging.error("Expanding steps: {}".format(self.expanding_steps))
                 raise ValueError(
-                    "Incorrect training and testing sizes " "for multiple steps"
+                    "Incorrect training and testing sizes for multiple steps"
                 )
 
         # Handling edge case where only 1 fold is needed (same as BackTesterSimple)

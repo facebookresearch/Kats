@@ -27,7 +27,6 @@ from kats.detectors.stat_sig_detector import (
 )
 from kats.utils.decomposition import SeasonalityHandler
 from kats.utils.simulator import Simulator
-
 from parameterized.parameterized import parameterized
 
 

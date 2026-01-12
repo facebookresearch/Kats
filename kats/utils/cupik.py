@@ -219,9 +219,9 @@ class Pipeline:
         outputs:
         step: a fitted sklearn model
         """
-        assert (type(data) == list) and (
-            type(data[0]) == dict
-        ), "Require data preprocessed by TsFeatures, please set useFeatures = True"
+        assert (type(data) == list) and (type(data[0]) == dict), (
+            "Require data preprocessed by TsFeatures, please set useFeatures = True"
+        )
         assert y is not None, "Missing dependent variable"
         df = pd.DataFrame(data, copy=False).dropna(axis=1)
         return step.fit(df.values, y)

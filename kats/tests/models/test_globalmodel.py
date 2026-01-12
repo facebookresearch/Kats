@@ -41,7 +41,6 @@ from kats.models.globalmodel.utils import (
     split,
 )
 from kats.tsfeatures.tsfeatures import TsFeatures
-
 from parameterized.parameterized import parameterized
 
 

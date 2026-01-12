@@ -21,7 +21,6 @@ from kats.models import (
 )
 from kats.models.stlf import STLFModel, STLFParams
 from kats.utils.simulator import Simulator
-
 from parameterized.parameterized import parameterized
 
 

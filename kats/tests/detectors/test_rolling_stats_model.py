@@ -19,7 +19,6 @@ from kats.consts import (
     TimeSeriesData,
 )
 from kats.detectors.rolling_stats_model import RollingStatsModel
-
 from parameterized.parameterized import parameterized
 
 

@@ -13,7 +13,6 @@ algorithm as a DetectorModel, to provide a common interface.
 from __future__ import annotations
 
 import logging
-
 # Put code into Kats class
 
 from collections import defaultdict
@@ -206,7 +205,7 @@ class DTWCPDDetector(Detector):
                 c_subs += len(subs)
             preprocess_log_unit = 1000
             if ix % preprocess_log_unit == 0:
-                logging.info(f"Preprocessed {ix+1} / {len(df_ts.columns)}")
+                logging.info(f"Preprocessed {ix + 1} / {len(df_ts.columns)}")
         logging.info(
             f"non-zero subsequences of length {self.sliding_window_size}"
             f" with minimum value of {self.MIN_TS_VALUE}: {c_subs} subsequences "

@@ -18,7 +18,6 @@ from kats.tests.models.test_models_dummy_data import (
     AIR_FCST_HW_1,  # first param combination results
     AIR_FCST_HW_2,
 )
-
 from parameterized.parameterized import parameterized
 
 ADD_PARAMS = HoltWintersParams(
