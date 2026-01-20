@@ -13,11 +13,12 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
-from kats.consts import TimeSeriesData
+from kats.consts import ParameterError, TimeSeriesData
 from kats.data.utils import load_air_passengers
 from kats.detectors.detector_consts import AnomalyResponse
 from kats.detectors.prophet_detector import (
     get_holiday_dates,
+    GrowthType,
     ProphetDetectorModel,
     ProphetScoreFunction,
     ProphetTrendDetectorModel,
@@ -1090,7 +1091,9 @@ class TestProphetDetector(TestCase):
         ts = self.create_ts(length=100, magnitude=50, signal_to_noise_ratio=0.1)
 
         # When
-        model = ProphetDetectorModel(saturation_range=[0.0, 100.0])
+        model = ProphetDetectorModel(
+            growth_type="logistic", saturation_range=[0.0, 100.0]
+        )
         model.fit(ts[:80])
         response = model.predict(ts[80:])
 
@@ -1128,7 +1131,7 @@ class TestProphetDetector(TestCase):
         ]
         for value in valid_values:
             try:
-                ProphetDetectorModel(saturation_range=value)
+                ProphetDetectorModel(growth_type="logistic", saturation_range=value)
             except ValueError:
                 self.fail()
 
@@ -1146,7 +1149,7 @@ class TestProphetDetector(TestCase):
         linear_response = linear_model.predict(ts[80:])
 
         logistic_model = ProphetDetectorModel(
-            saturation_range=[saturation_min, saturation_max]
+            growth_type="logistic", saturation_range=[saturation_min, saturation_max]
         )
         logistic_model.fit(ts[:80])
         logistic_response = logistic_model.predict(ts[80:])
@@ -1181,6 +1184,100 @@ class TestProphetDetector(TestCase):
             and logistic_predictions.max() <= saturation_max + saturation_range_buffer
         )
         self.assertTrue(logistic_within_bounds)
+
+    def test_unsupported_growth_type_throws_error(self) -> None:
+        """Test that an error is thrown when an unsupported growth type is provided"""
+        with self.assertRaises(ParameterError):
+            ProphetDetectorModel(growth_type="quadratic")
+
+    def test_growth_types_linear_and_flat_are_passed_to_model(
+        self, seed: int = 42
+    ) -> None:
+        np.random.seed(seed)
+        sim = Simulator(n=100, freq="1D", start=pd.to_datetime(START_DATE_TEST_DATA))
+        sim.add_trend(magnitude=20.0)
+        sim.add_noise(magnitude=2.0)
+        ts = sim.stl_sim()
+        for growth_type in ["linear", "flat"]:
+            model = ProphetDetectorModel(growth_type=growth_type)
+            model.fit(ts[:80])
+            model_dict = json.loads(model.serialize())
+            self.assertEqual(model_dict["growth"], growth_type)
+
+    def test_growth_type_logistic_is_passed_to_model(self, seed: int = 42) -> None:
+        np.random.seed(seed)
+        sim = Simulator(n=100, freq="1D", start=pd.to_datetime(START_DATE_TEST_DATA))
+        sim.add_trend(magnitude=20.0)
+        sim.add_noise(magnitude=2.0)
+        ts = sim.stl_sim()
+        model = ProphetDetectorModel(
+            growth_type="logistic", saturation_range=[0.0, 100.0]
+        )
+        model.fit(ts[:80])
+        model_dict = json.loads(model.serialize())
+        self.assertEqual(model_dict["growth"], "logistic")
+
+    def test_non_logistic_growth_type_warns_and_sets_logistic_with_saturation_range(
+        self,
+    ) -> None:
+        """Test that a warning is raised and growth_type is set to logistic when a non-logistic growth type is provided with a saturation range"""
+        with self.assertLogs(level="WARNING") as log_context:
+            model = ProphetDetectorModel(
+                growth_type="linear", saturation_range=[0.0, 100.0]
+            )
+        self.assertTrue(
+            any(
+                'Saturation range is not compatible with `growth_type="GrowthType.linear"`. Setting `growth_type=GrowthType.logistic`'
+                in message
+                for message in log_context.output
+            )
+        )
+        self.assertEqual(model.growth_type, GrowthType.logistic)
+
+    def test_non_logistic_growth_type_with_empty_saturation_range_stays_unchanged(
+        self, seed: int = 42
+    ) -> None:
+        """Test that a non-logistic growth type with an empty saturation range is not changed to logistic"""
+        model = ProphetDetectorModel(growth_type="linear", saturation_range=[])
+        self.assertEqual(model.growth_type, GrowthType.linear)
+
+    def test_flat_vs_linear_growth_when_trained_on_trended_data(
+        self, seed: int = 42
+    ) -> None:
+        """Test that a flat growth model gives a slope of zero when trained on trended data"""
+        np.random.seed(seed)
+        sim = Simulator(n=101, freq="1D", start=pd.to_datetime(START_DATE_TEST_DATA))
+        sim.add_trend(magnitude=1)
+        ts = sim.stl_sim()
+        flat_model = ProphetDetectorModel(growth_type="flat", seasonalities=None)
+        flat_model.fit(ts[:80])
+        flat_response = flat_model.predict(ts[80:])
+        linear_model = ProphetDetectorModel(growth_type="linear", seasonalities=None)
+        linear_model.fit(ts[:80])
+        linear_response = linear_model.predict(ts[80:])
+        # flat model has 0 slope
+        self.assertIsNotNone(flat_model.model)
+        # pyre-ignore[16]: Optional type has no attribute `params`.
+        self.assertAlmostEqual(flat_model.model.params["k"][0, 0], 0.0)
+        # linear model has positive slope
+        self.assertIsNotNone(linear_model.model)
+        # pyre-ignore[16]: Optional type has no attribute `params`.
+        self.assertAlmostEqual(linear_model.model.params["k"][0, 0], 1)
+        # linear model generates values larger in the end than in the beginning (positive slope)
+        self.assertIsNotNone(linear_response.predicted_ts)
+        self.assertGreater(
+            # pyre-ignore[16]: Optional type has no attribute `value`.
+            linear_response.predicted_ts.value.iloc[-1],
+            # pyre-ignore[16]: Optional type has no attribute `value`.
+            linear_response.predicted_ts.value.iloc[0],
+        )
+        # flat model is less than linear model because it only captures average
+        self.assertIsNotNone(flat_response.predicted_ts)
+        self.assertLess(
+            # pyre-ignore[16]: Optional type has no attribute `value`.
+            flat_response.predicted_ts.value.iloc[-1],
+            linear_response.predicted_ts.value.iloc[-1],
+        )
 
 
 class TestProphetTrendDetectorModel(TestCase):

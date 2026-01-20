@@ -175,6 +175,15 @@ STR_TO_SCORE_FUNC: Dict[str, ProphetScoreFunction] = {  # Used for param tuning
 }
 
 
+class GrowthType(Enum):
+    linear = "linear"
+    flat = "flat"
+    logistic = "logistic"
+
+
+DEFAULT_GROWTH_TYPE: GrowthType = GrowthType.linear
+
+
 class SeasonalityTypes(Enum):
     DAY = 0
     WEEK = 1
@@ -365,6 +374,7 @@ class ProphetDetectorModel(DetectorModel):
         holiday_multiplier: Optional[float] = None,
         exclude_training_ranges: Optional[List[List[Union[int, pd.Timestamp]]]] = None,
         saturation_range: Optional[List[float]] = None,
+        growth_type: Union[str, GrowthType] = DEFAULT_GROWTH_TYPE,
     ) -> None:
         """
         Initialization of Prophet
@@ -387,10 +397,19 @@ class ProphetDetectorModel(DetectorModel):
         holiday_multiplier: Optional[float], multiplier for holidays anomaly scores.
         exclude_training_ranges: Optional[List[List[Union[int, pd.Timestamp]]]], define ranges to exclude from training data. Example [[1672552800, 1672567200]]
         saturation_range: Optional[List[float]]. A saturation range (min, max). Must have length 2. If not specified, Prophet will use a linear model for its forecast. If specified, it will use a logistic growth model with the specified saturation minimum and maximum. Example: [0.0, 100.0].
+        growth_type: Union[str, GrowthType]. Growth model for trend, any of ('linear', 'flat', 'logistic'). Defaults to 'linear' to match Prophet's default and maintain backwards compatibility.
         """
         if saturation_range == []:
             saturation_range = None
         self._validate_saturation_range(saturation_range)
+
+        if isinstance(growth_type, str):
+            try:
+                growth_type = GrowthType(growth_type)
+            except ValueError:
+                raise ParameterError(
+                    f"Invalid growth type {growth_type}. Must be one of 'linear', 'flat', or 'logistic'."
+                )
 
         if serialized_model:
             self.model = load_model_from_json(serialized_model)
@@ -430,6 +449,13 @@ class ProphetDetectorModel(DetectorModel):
             exclude_training_ranges
         )
         self.saturation_range = saturation_range
+
+        if growth_type != GrowthType.logistic and saturation_range:
+            logging.warning(
+                f'Saturation range is not compatible with `growth_type="{growth_type}"`. Setting `growth_type=GrowthType.logistic`'
+            )
+            growth_type = GrowthType.logistic
+        self.growth_type = growth_type
 
     def serialize(self) -> bytes:
         """Serialize the model into a json.
@@ -539,9 +565,8 @@ class ProphetDetectorModel(DetectorModel):
 
             self.holidays = pd.DataFrame(self.holidays_list)
 
-        # No incremental training. Create a model and train from scratch
         model = Prophet(
-            growth="logistic" if self.saturation_range else "linear",
+            growth=self.growth_type.value,
             interval_width=self.scoring_confidence_interval,
             uncertainty_samples=self.uncertainty_samples,
             daily_seasonality=self.seasonalities_to_fit[SeasonalityTypes.DAY],
