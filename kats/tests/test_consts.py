@@ -40,7 +40,8 @@ def load_data(file_name: str) -> pd.DataFrame:
     else:
         path = "kats/data/"
     data_object = pkgutil.get_data(ROOT, path + file_name)
-    # pyre-fixme[6]: For 1st argument expected `Buffer` but got `Optional[bytes]`.
+    if data_object is None:
+        raise FileNotFoundError(f"Could not load data file: {path + file_name}")
     return pd.read_csv(io.BytesIO(data_object), encoding="utf8")
 
 
