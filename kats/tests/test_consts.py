@@ -52,8 +52,6 @@ EMPTY_DF = pd.DataFrame()
 EMPTY_TIME_SERIES = pd.Series([], name=DEFAULT_TIME_NAME, dtype="datetime64[ns]")
 EMPTY_VALUE_SERIES = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)
 EMPTY_VALUE_SERIES_NO_NAME = pd.Series([], dtype=float)
-# pyre-fixme[9]: EMPTY_DF_WITH_COLS has type `DataFrame`; used as `Union[DataFrame,
-#  Series]`.
 EMPTY_DF_WITH_COLS: pd.DataFrame = pd.concat(
     [EMPTY_TIME_SERIES, EMPTY_VALUE_SERIES], axis=1
 )
@@ -870,8 +868,7 @@ class TimeSeriesDataInitTest(TimeSeriesBaseTest):
         # this is because start time is not from "**:00:00" or "**:30:00" type.
         # This is equivalent to origin="start_day"
         self.assertEqual(
-            # pyre-fixme[16]: Optional type has no attribute `value`.
-            ts0.interpolate(freq=frequency).to_dataframe().fillna(0).value.sum(),
+            ts0.interpolate(freq=frequency).to_dataframe().fillna(0)["value"].sum(),
             0,
         )
         # With base value, will start from "**:59:59" ("**:00:00" - 1 sec)
