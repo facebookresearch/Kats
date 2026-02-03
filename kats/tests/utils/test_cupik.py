@@ -75,8 +75,7 @@ class cupikTest(TestCase):
             == fitted.fitted_values.values
         )
         self.assertEqual(np.sum(bools), 144)
-        old_statsmodels = statsmodels.version < "0.12"
-        expected = 433.328591954023 if old_statsmodels else 433.1270492317991
+        expected = 433.3285913479718
         # pyre-fixme[16]: Item `List` of `Union[List[kats.consts.TimeSeriesData],
         #  TimeSeriesData]` has no attribute `predict`.
         self.assertEqual(expected, fitted.predict(1).fcst.values[0])
@@ -92,7 +91,7 @@ class cupikTest(TestCase):
         )
         fitted = pipe.fit(self.TSData)
         self.assertEqual(len(pipe.metadata["trend_detector"][0]), 2)
-        expected = 433.328591954023 if old_statsmodels else 433.1270492317991
+        expected = 433.3285913479718
         # pyre-fixme[16]: Item `List` of `Union[List[kats.consts.TimeSeriesData],
         #  TimeSeriesData]` has no attribute `predict`.
         self.assertEqual(expected, fitted.predict(1).fcst.values[0])
