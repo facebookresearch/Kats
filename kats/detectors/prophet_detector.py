@@ -566,6 +566,7 @@ class ProphetDetectorModel(DetectorModel):
             self.holidays = pd.DataFrame(self.holidays_list)
 
         model = Prophet(
+            # pyre-fixme[16]: Item `str` of `GrowthType | str` has no attribute `value`.
             growth=self.growth_type.value,
             interval_width=self.scoring_confidence_interval,
             uncertainty_samples=self.uncertainty_samples,

@@ -116,6 +116,7 @@ class ThetaModel(Model[ThetaParams]):
             abs_seasonal_values = decomp["seasonal"].value.abs()
             zeroes_in_seasonal = abs_seasonal_values < 10**-10
 
+            # pyre-fixme[16]: `bool` has no attribute `any`.
             if zeroes_in_seasonal.any():
                 logging.info(
                     "Seasonal indexes equal to zero. Using non-seasonal Theta method"
