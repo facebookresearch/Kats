@@ -179,6 +179,8 @@ If you use this algorithm in your work or research, please use the following Bib
 
 ## Changelog
 
+test function
+
 ### Version 0.2.0
 * Forecasting
     * Added global model, a neural network forecasting model
