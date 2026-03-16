@@ -343,7 +343,7 @@ class TimeSeriesParameterTuning(ABC):
         self._kats_search_space = SearchSpace(parameters=self.parameters)
         self.logger.info("Search space is created.")
         # pyre-fixme[4]: Attribute must be annotated.
-        self.job_id = uuid.uuid4()
+        self.job_id = uuid.uuid4().hex
         # pyre-fixme[4]: Attribute must be annotated.
         self.experiment_name = (
             experiment_name if experiment_name else f"parameter_tuning_{self.job_id}"
@@ -439,31 +439,52 @@ class TimeSeriesParameterTuning(ABC):
         """
 
         self.evaluation_function = evaluation_function
+
+        # Build constraint metrics
         outcome_constraints = self.outcome_constraints
+        constraint_metrics: List[TimeSeriesEvaluationMetric] = []
+        new_outcome_constraints: List[OutcomeConstraint] = []
         if outcome_constraints:
-            # Convert dummy base Metrics to TimeseriesEvaluationMetrics
-            self.outcome_constraints = [
-                OutcomeConstraint(
-                    TimeSeriesEvaluationMetric(
-                        name=oc.metric.name,
-                        evaluation_function=evaluation_function,
-                        logger=self.logger,
-                        multiprocessing=self.multiprocessing,
-                    ),
-                    op=oc.op,
-                    bound=oc.bound,
-                    relative=oc.relative,
-                )
-                for oc in outcome_constraints
-            ]
-        self._exp.optimization_config = OptimizationConfig(
-            objective=Objective(
-                metric=TimeSeriesEvaluationMetric(
-                    name=self.objective_name,
-                    evaluation_function=self.evaluation_function,
+            for oc in outcome_constraints:
+                m = TimeSeriesEvaluationMetric(
+                    name=oc.metric_names[0],
+                    evaluation_function=evaluation_function,
                     logger=self.logger,
                     multiprocessing=self.multiprocessing,
-                ),
+                )
+                constraint_metrics.append(m)
+                new_outcome_constraints.append(
+                    OutcomeConstraint(
+                        metric=m,
+                        op=oc.op,
+                        bound=oc.bound,
+                        relative=oc.relative,
+                    )
+                )
+            self.outcome_constraints = new_outcome_constraints
+
+        # Build objective metric
+        objective_metric = TimeSeriesEvaluationMetric(
+            name=self.objective_name,
+            evaluation_function=evaluation_function,
+            logger=self.logger,
+            multiprocessing=self.multiprocessing,
+        )
+
+        # Register all metrics on experiment BEFORE setting optimization_config
+        if objective_metric.name in self._exp.metrics:
+            self._exp.update_metric(objective_metric)
+        else:
+            self._exp.add_metric(objective_metric)
+        for m in constraint_metrics:
+            if m.name in self._exp.metrics:
+                self._exp.update_metric(m)
+            else:
+                self._exp.add_metric(m)
+
+        self._exp.optimization_config = OptimizationConfig(
+            objective=Objective(
+                metric=objective_metric,
                 minimize=True,
             ),
             outcome_constraints=self.outcome_constraints,
@@ -578,12 +599,16 @@ class TimeSeriesParameterTuning(ABC):
                     for oc in optimization_config.outcome_constraints:
                         if oc.op is ComparisonOp.LEQ:
                             boolean_indices.append(
-                                data.df[data.df.metric_name == oc.metric.name]["mean"]
+                                data.df[data.df.metric_name == oc.metric_names[0]][
+                                    "mean"
+                                ]
                                 <= oc.bound
                             )
                         else:
                             boolean_indices.append(
-                                data.df[data.df.metric_name == oc.metric.name]["mean"]
+                                data.df[data.df.metric_name == oc.metric_names[0]][
+                                    "mean"
+                                ]
                                 >= oc.bound
                             )
                     eligible_arm_indices = reduce(lambda x, y: x & y, boolean_indices)
@@ -1074,38 +1099,58 @@ class BayesianOptSearch(TimeSeriesParameterTuning):
         self.evaluation_function = evaluation_function
 
         if self.evaluation_function is not None:
+            # Build constraint metrics
+            constraint_metrics: List[TimeSeriesEvaluationMetric] = []
+            new_outcome_constraints: List[OutcomeConstraint] = []
             if outcome_constraints:
-                # Convert dummy base Metrics to TimeseriesEvaluationMetrics
-                self.outcome_constraints = [
-                    OutcomeConstraint(
-                        TimeSeriesEvaluationMetric(
-                            name=oc.metric.name,
-                            evaluation_function=evaluation_function,  # type: ignore
-                            logger=self.logger,
-                            multiprocessing=self.multiprocessing,
-                        ),
-                        op=oc.op,
-                        bound=oc.bound,
-                        relative=oc.relative,
+                for oc in outcome_constraints:
+                    m = TimeSeriesEvaluationMetric(
+                        name=oc.metric_names[0],
+                        evaluation_function=evaluation_function,  # type: ignore
+                        logger=self.logger,
+                        multiprocessing=self.multiprocessing,
                     )
-                    for oc in outcome_constraints
-                ]
+                    constraint_metrics.append(m)
+                    new_outcome_constraints.append(
+                        OutcomeConstraint(
+                            metric=m,
+                            op=oc.op,
+                            bound=oc.bound,
+                            relative=oc.relative,
+                        )
+                    )
+                self.outcome_constraints = new_outcome_constraints
+
+            # Build objective metric
+            objective_metric = TimeSeriesEvaluationMetric(
+                name=str(options.objective_name),
+                evaluation_function=self.evaluation_function,
+                logger=self.logger,
+                multiprocessing=options.multiprocessing,
+            )
+
+            # Register all metrics on experiment BEFORE setting optimization_config
+            if objective_metric.name in self._exp.metrics:
+                self._exp.update_metric(objective_metric)
+            else:
+                self._exp.add_metric(objective_metric)
+            for m in constraint_metrics:
+                if m.name in self._exp.metrics:
+                    self._exp.update_metric(m)
+                else:
+                    self._exp.add_metric(m)
+
             self._exp.optimization_config = OptimizationConfig(
                 objective=Objective(
-                    metric=TimeSeriesEvaluationMetric(
-                        name=str(options.objective_name),
-                        evaluation_function=self.evaluation_function,
-                        logger=self.logger,
-                        multiprocessing=options.multiprocessing,
-                    ),
+                    metric=objective_metric,
                     minimize=True,
                 ),
                 outcome_constraints=self.outcome_constraints,
             )
         else:
-            self.evaluation_function = list(
-                self._exp.optimization_config.metrics.values()  # type: ignore
-            )[0].evaluation_function
+            self.evaluation_function = self._exp.metrics.popitem()[  # pyre-ignore[16]
+                1
+            ].evaluation_function
         generation_strategy = choose_generation_strategy_legacy(
             search_space=self._exp.search_space,
             max_parallelism_cap=min(
