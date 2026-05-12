@@ -92,6 +92,7 @@ class LinearModel(Model[LinearModelParams]):
         # pyre-fixme[16]: `Optional` has no attribute `value`.
         y = self.data.value
         lm = sm.OLS(y, X)
+        # pyrefly: ignore
         self.model = lm.fit()
 
     # pyre-fixme[15]: `predict` overrides method defined in `Model` inconsistently.

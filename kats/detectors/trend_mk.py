@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
+from typing import Any, cast, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -192,7 +192,7 @@ class MKDetector(Detector):
         if freq is None:
             return ts  # no seasonality
         else:
-            ts = ts.rolling(window=SEASON_FREQ_MAP[freq]).mean()
+            ts = cast(pd.DataFrame, ts.rolling(window=SEASON_FREQ_MAP[freq]).mean())
         return ts
 
     def _smoothing(self, ts: pd.DataFrame) -> pd.DataFrame:

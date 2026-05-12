@@ -150,6 +150,7 @@ class EmpConfidenceInt:
         # pyre-fixme[8]: Attribute has type `Optional[DataFrame]`; used as
         #  `Union[float, Series]`.
         self.SE = (
+            # pyrefly: ignore
             pd.DataFrame(backtester.raw_errors, copy=False).transpose().std(axis=1)
         )
 

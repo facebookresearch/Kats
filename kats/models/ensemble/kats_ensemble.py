@@ -675,7 +675,7 @@ class KatsEnsemble(Model):
                 axis=1,
                 copy=False,
             )
-            fcsts[col].columns = predicted.keys()
+            fcsts[col].columns = list(predicted.keys())
 
         if self.params["aggregation"].lower() == "median":
             # clean up dataframes with C.I as np.nan or zero

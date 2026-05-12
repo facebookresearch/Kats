@@ -25,6 +25,7 @@ class DataValidationTest(TestCase):
         DATA = self.TSData.to_dataframe()
         data_with_extra_point = pd.concat([DATA.copy(), extra_point])
 
+        # pyrefly: ignore
         tsData_with_missing_point = TimeSeriesData(data_with_extra_point)
 
         tsData_with_missing_point.validate_data(

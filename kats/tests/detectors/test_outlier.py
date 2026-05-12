@@ -134,6 +134,7 @@ class MultivariateVARDetectorTest(TestCase):
         DATA_multi2 = pd.concat(
             [DATA_multi.iloc[:10, :], DATA_multi.iloc[12:, :]], axis=0
         )
+        # pyrefly: ignore
         self.TSData_multi2 = TimeSeriesData(DATA_multi2)
         DATA_multi3 = pd.merge(
             DATA_multi, DATA_multi, how="inner", on="time", suffixes=("_1", "_2")

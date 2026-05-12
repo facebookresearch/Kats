@@ -22,7 +22,7 @@ Kats development style.
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, cast, Dict, List, Optional
 
 import numpy.typing as npt
 import pandas as pd
@@ -302,8 +302,9 @@ class ARIMAModel(Model[ARIMAParams]):
                     .assign(time=t_pred)
                     .dropna(subset=["time"])
                 )
-                self.fcst_df = fcst_df = pd.concat(
-                    [hist_fcst, fcst_df], axis=0, ignore_index=True
+                self.fcst_df = fcst_df = cast(
+                    pd.DataFrame,
+                    pd.concat([hist_fcst, fcst_df], axis=0, ignore_index=True),
                 )
             except Exception as e:
                 msg = (

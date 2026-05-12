@@ -259,10 +259,10 @@ class CUSUMDetectorTest(TestCase):
 
         lambda_p = 2 * np.pi / float(periodicity)
 
-        # pyrefly: ignore [no-matching-overload]
-        gamma_jt = noise_std * np.random.randn((harmonics))
-        # pyrefly: ignore [no-matching-overload]
-        gamma_star_jt = noise_std * np.random.randn((harmonics))
+        # pyrefly: ignore
+        gamma_jt = noise_std * np.random.randn(int(harmonics))
+        # pyrefly: ignore
+        gamma_star_jt = noise_std * np.random.randn(int(harmonics))
 
         total_timesteps = 100 * duration  # Pad for burn in
         series = np.zeros(total_timesteps)

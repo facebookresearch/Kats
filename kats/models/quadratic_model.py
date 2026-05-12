@@ -96,6 +96,7 @@ class QuadraticModel(Model[QuadraticModelParams]):
         y = self.data.value
         quad_model = sm.OLS(y, X_quad)
 
+        # pyrefly: ignore
         self.model = quad_model.fit()
 
     # pyre-fixme[14]: `predict` overrides method defined in `Model` inconsistently.

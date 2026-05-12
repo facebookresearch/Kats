@@ -557,6 +557,7 @@ class TestDecomposingSeasonalityCUSUMDetectorModel(TestCase):
         )
 
         # removing a few data points to test the missing value handling as well
+        # pyrefly: ignore
         self.tsd = TimeSeriesData(pd.concat([df_sin[:100], df_sin[103:]]))
 
         model = CUSUMDetectorModel(
