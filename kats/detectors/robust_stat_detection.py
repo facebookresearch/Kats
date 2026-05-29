@@ -70,7 +70,7 @@ class RobustStatDetector(Detector):
         df_ = (
             # Smooth
             df_.mean()
-            .fillna(method="bfill")
+            .bfill()
             # Make spikes standout
             .diff(comparison_window)
             .fillna(0)
