@@ -1106,6 +1106,7 @@ class GMFeature:
             if ft in funcs:
                 features.append(funcs[ft](x, time))
         if len(features) > 0:
+            # pyrefly: ignore [bad-argument-type]
             return torch.cat(features, 1)
         return None
 

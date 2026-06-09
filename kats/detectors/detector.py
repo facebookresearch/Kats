@@ -58,6 +58,7 @@ class DetectorModelRegistry(ABCMeta, Generic[D]):
             # Note that the class name is case sensitive
             # pyrefly: ignore [missing-attribute]
             cls.REGISTRY[new_cls.__name__] = new_cls
+        # pyrefly: ignore [bad-return]
         return new_cls
 
     @classmethod

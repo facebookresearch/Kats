@@ -552,7 +552,7 @@ class Simulator:
                 anomaly_arr,
                 z_score_arr,
             )
-            # pyrefly: ignore [bad-typed-dict-key]
+            # pyrefly: ignore [bad-assignment, bad-typed-dict-key]
             df_dict[f"value{i + 1}"] = yval
 
         ts_df = pd.DataFrame(df_dict, copy=False)

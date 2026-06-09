@@ -96,6 +96,7 @@ class STDGlobalModel:
         else:
             assert self.decomposition == "additive"
             self.deseasonal_operator = operator.sub
+            # pyrefly: ignore [bad-assignment]
             self.reseasonal_operator = operator.add
 
         self.gm: Union[None, GMModel, GMEnsemble] = None

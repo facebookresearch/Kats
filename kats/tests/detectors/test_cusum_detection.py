@@ -654,6 +654,7 @@ class VectorizedCUSUMDetectorTest(TestCase):
             temp = detector.detector(interest_window=[20, 50])
             res2.append(temp)
 
+        # pyrefly: ignore [bad-argument-type]
         self.assertTrue(self._comp_cpval(res2, res1, 8))
 
         # interest_window = None
@@ -667,4 +668,5 @@ class VectorizedCUSUMDetectorTest(TestCase):
             temp = detector.detector()
             res2.append(temp)
 
+        # pyrefly: ignore [bad-argument-type]
         self.assertTrue(self._comp_cpval(res2, res1, 8))
