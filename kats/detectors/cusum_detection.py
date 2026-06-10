@@ -1236,6 +1236,7 @@ class VectorizedCUSUMDetector(CUSUMDetector):
                     continue
                 change_meta = {
                     k: (
+                        # pyrefly: ignore [unsupported-operation]
                         change_meta_[k][col_idx]
                         if isinstance(change_meta_[k], np.ndarray)
                         or isinstance(change_meta_[k], list)
@@ -1245,8 +1246,11 @@ class VectorizedCUSUMDetector(CUSUMDetector):
                 }
                 change_meta["llr"] = llr = self._get_llr(
                     ts,
+                    # pyrefly: ignore [bad-argument-type]
                     change_meta["mu0"],
+                    # pyrefly: ignore [bad-argument-type]
                     change_meta["mu1"],
+                    # pyrefly: ignore [bad-argument-type]
                     change_meta["changepoint"],
                 )
                 change_meta["p_value"] = 1 - chi2.cdf(change_meta["llr"], 2)
