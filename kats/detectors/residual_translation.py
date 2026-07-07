@@ -178,8 +178,6 @@ class KDEResidualTranslator:
                 each instance (row) in the input.
         """
         residual = self._get_residual(y, yhat, yhat_lower, yhat_upper, residual)
-        for _ in range(30):
-            print(type(residual))
 
         log_proba = pd.DataFrame(
             {

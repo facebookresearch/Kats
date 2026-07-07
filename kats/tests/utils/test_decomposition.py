@@ -609,7 +609,7 @@ class KDEResidualTranslatorTest(TestCase):
         self.assertTrue(np.all(proba.value >= 0) and np.all(proba.value <= 1))
         ks = ks_2samp(
             # pyre-fixme [16]: Optional type has no attribute `sample`
-            trn.kde_.sample(len(self._residual)).flatten(),
+            trn.kde_.sample(len(self._residual), random_state=0).flatten(),
             # pyrefly: ignore [bad-argument-type]
             self._residual.value,
         )
