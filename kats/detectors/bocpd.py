@@ -798,10 +798,13 @@ class _BayesOnlineChangePoint(Detector):
 
         if isinstance(threshold, float):
             threshold = np.repeat(threshold, self.P)
+        # pyrefly: ignore [bad-assignment]
         self.threshold = threshold
         if isinstance(changepoint_prior, float):
             changepoint_prior = np.repeat(changepoint_prior, self.P)
+        # pyrefly: ignore [bad-argument-type]
         self.rt_posterior = self._find_posterior(model, changepoint_prior)
+        # pyrefly: ignore [bad-argument-type]
         return self._construct_output(threshold, lag=self.lag)
 
     def get_posterior_predictive(self) -> npt.NDArray:

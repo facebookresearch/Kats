@@ -410,24 +410,32 @@ class MetaLearnHPT:
             msg = "n_hidden_num is missing!"
             raise _log_error(msg)
 
+        # pyrefly: ignore [bad-argument-type]
         if len(n_hidden_cat_combo) != len(self.dim_output_cat):
             msg = "Unmatched dimension!"
             raise _log_error(msg)
         # Add input dim before n_hidden_shared.
         # Add output dim at the end of n_hidden_cat_combo.
         # Add output dim at the end of n_hidden_num.
+        # pyrefly: ignore [bad-assignment]
         self.n_hidden_shared = n_hidden_shared
         # pyrefly: ignore [bad-assignment]
         self.n_hidden_cat_combo = n_hidden_cat_combo
+        # pyrefly: ignore [bad-assignment]
         self.n_hidden_num = n_hidden_num
 
         self.model = MultitaskNet(
+            # pyrefly: ignore [unsupported-operation]
             input_and_n_hidden_shared=[self.dim_input] + n_hidden_shared,
             n_hidden_and_output_cat_combo=self._get_hidden_and_output_cat_combo(
-                n_hidden_cat_combo, self.dim_output_cat
+                # pyrefly: ignore [bad-argument-type]
+                n_hidden_cat_combo,
+                self.dim_output_cat,
             ),
             n_hidden_and_output_num=self._get_hidden_and_output_num(
-                n_hidden_num, self._dim_output_num
+                # pyrefly: ignore [bad-argument-type]
+                n_hidden_num,
+                self._dim_output_num,
             ),
         )
         print("Multi-task neural network structure:")

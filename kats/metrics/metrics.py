@@ -709,20 +709,26 @@ def mult_exceed(
         y_true = y_true.reshape(1, -1)
 
     m = len(threshold)
+    # pyrefly: ignore [missing-attribute]
     n, horizon = y_true.shape
 
+    # pyrefly: ignore [missing-attribute]
     if y_pred.shape[0] != n:
         raise ValueError(
+            # pyrefly: ignore [missing-attribute]
             f"Arrays have different number of samples ({y_pred.shape}, expected {n, m * horizon})"
         )
+    # pyrefly: ignore [missing-attribute]
     elif y_pred.shape[1] != (m * horizon):
         raise ValueError(
+            # pyrefly: ignore [missing-attribute]
             f"Arrays have different number of samples ({y_pred.shape}, expected {n, m * horizon})"
         )
 
     y_true = np.tile(y_true, m)
     mask = np.repeat((threshold > 0.5) * 2 - 1, horizon)
 
+    # pyrefly: ignore [unsupported-operation]
     diff = (y_true - y_pred) * mask > 0
     return np.nanmean(diff.reshape(n, m, -1), axis=2).mean(axis=0)
 
