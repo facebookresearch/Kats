@@ -514,9 +514,6 @@ class TimeSeriesData:
 
         return True
 
-    def __ne__(self, other: object) -> bool:
-        return not self.__eq__(other)
-
     def __sub__(self, other: object) -> TimeSeriesData:
         return self._perform_op(other, OperationsEnum.SUB)
 

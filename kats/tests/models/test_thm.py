@@ -49,7 +49,7 @@ class testGetAggregateTS(TestCase):
         gat1 = GetAggregateTS(ts)
         agg_res1 = gat1.aggregate([1, 5, 10])
         # Aggregated TS for level 1 should be equal to original TS.
-        if agg_res1 != ts:
+        if agg_res1[1] != ts:
             msg = "Aggregated TS for level 1 should be equal to original TS."
             logging.info(msg)
             raise ValueError(msg)

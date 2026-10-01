@@ -1405,6 +1405,10 @@ class TimeSeriesDataOpsTest(TimeSeriesBaseTest):
         # Univariate vs. Multivariate inequality
         self.assertTrue(self.ts_univ_1 != self.ts_multi_1)
         self.assertTrue(self.ts_multi_1 != self.ts_univ_1)
+        # Non-TimeSeriesData operands
+        self.assertTrue(self.ts_univ_1 != None)  # noqa: E711
+        self.assertTrue(self.ts_univ_1 != 0)
+        self.assertTrue({1: self.ts_univ_1} != self.ts_univ_1)
 
     def test_add(self) -> None:
         # Add same DataFrames
