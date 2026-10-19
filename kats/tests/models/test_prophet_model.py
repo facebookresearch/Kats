@@ -94,7 +94,6 @@ TEST_DATA: Dict[str, Any] = {
 class ProphetModelTest(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        # pyre-fixme[33]: Given annotation cannot contain `Any`.
         original_import_fn: Callable[
             [
                 str,

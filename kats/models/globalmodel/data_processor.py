@@ -41,7 +41,6 @@ class GMDataLoader:
         self,
         # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         dataset: Union[Dict[Any, TimeSeriesData], List[TimeSeriesData]],
-        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_dataset: Union[
             None, Dict[Any, TimeSeriesData], List[TimeSeriesData]
         ] = None,
@@ -197,7 +196,6 @@ class GMBatch:
         batch_ids: List[Any],
         # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         train_TSs: Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]],
-        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         valid_TSs: Optional[
             Union[List[TimeSeriesData], Dict[Any, TimeSeriesData]]
         ] = None,

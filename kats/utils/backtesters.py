@@ -136,7 +136,6 @@ def _get_scorer(
         return calc_error
 
     elif callable(scorer):
-        # pyre-fixme Incompatible return type [7]: Expected `Optional[typing.Callable[[DataFrame], Dict[str, float]]]` but got `Union[Metric, MultiOutputMetric, WeightedMetric]`.
         return scorer
 
     msg = "Input `scorer` is invalid."

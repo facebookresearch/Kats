@@ -732,7 +732,6 @@ class _BayesOnlineChangePoint(Detector):
     T: int
     P: int
     data_values: npt.NDArray
-    # pyre-fixme[24]: Generic type `slice` expects 3 type parameters.
     _ts_slice: Union[int, slice]
     _ts_names: Sequence[str]
     _posterior_shape: Tuple[int, int, int]

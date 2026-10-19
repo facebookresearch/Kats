@@ -763,7 +763,6 @@ def predict(
     # pyrefly: ignore [missing-attribute]
     if prophet_model.uncertainty_samples:
         intervals = predict_uncertainty(
-            # pyrefly: ignore [bad-argument-type]
             prophet_model,
             # pyrefly: ignore [bad-argument-type]
             df,

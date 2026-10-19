@@ -348,7 +348,6 @@ class DecompositionTest(TestCase):
         df_15_min["time"] = list(
             pd.date_range(end="2020-02-01", periods=df_15_min.shape[0], freq="25T")
         )
-        # pyrefly: ignore [missing-attribute]
         df_15_min["time"] = df_15_min["time"].astype("str")
         df_15_min.columns = ["time", "y"]
 

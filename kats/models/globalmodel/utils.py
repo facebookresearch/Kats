@@ -717,7 +717,6 @@ class PinballLoss(_Loss):
         nans = nans.repeat(1, m)
 
         quants = self.quantile.repeat(horizon, 1).t().flatten()
-        # pyrefly: ignore [not-callable]
         weights = self.weight.repeat(horizon, 1).t().flatten()
 
         diff = target - input
@@ -852,7 +851,6 @@ class AdjustedPinballLoss(_Loss):
 
             res = torch.cat([res, res_q], dim=1)
 
-        # pyrefly: ignore [not-callable]
         weights = self.weight.repeat(horizon, 1).t().flatten()
         res = res * weights
         res = res.view(n, -1, horizon).sum(dim=2) / num_not_nan[:, None]

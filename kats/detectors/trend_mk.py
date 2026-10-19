@@ -670,7 +670,6 @@ class MKDetector(Detector):
                     figsize = (14, 5)
                 _, ax = plt.subplots(figsize=figsize)
 
-            # pyrefly: ignore [bad-argument-type]
             ax.plot(ts.index, ts.values)
 
             trend_annotated = False

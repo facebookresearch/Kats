@@ -282,7 +282,6 @@ class GMEnsemble:
 
     def predict(
         self,
-        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_TSs: Union[
             TimeSeriesData, List[TimeSeriesData], Dict[Any, TimeSeriesData]
         ],
@@ -440,11 +439,9 @@ class GMEnsemble:
 
     def evaluate(
         self,
-        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_train_TSs: Union[
             TimeSeriesData, List[TimeSeriesData], Dict[Any, TimeSeriesData]
         ],
-        # pyre-fixme[2]: Parameter annotation cannot contain `Any`.
         test_valid_TSs: Union[
             TimeSeriesData, List[TimeSeriesData], Dict[Any, TimeSeriesData]
         ],
