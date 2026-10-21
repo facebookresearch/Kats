@@ -46,6 +46,12 @@ which omits many dependencies (everything in `test_requirements.txt`).
 However, this will disable many functionalities and cause `import kats` to log
 warnings. See `setup.py` for full details and options.
 
+Kats is on conda-forge, so you can use `conda` to install it.
+
+```bash
+conda install -c conda-forge kats
+```
+
 ## Examples
 
 Here are a few sample snippets from a subset of Kats offerings:
