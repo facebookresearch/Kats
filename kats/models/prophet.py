@@ -97,9 +97,9 @@ class ProphetParams(Params):
     changepoints: Optional[List[float]]
     n_changepoints: int
     changepoint_range: float
-    yearly_seasonality: str
-    weekly_seasonality: str
-    daily_seasonality: str
+    yearly_seasonality: Union[str, bool, int]
+    weekly_seasonality: Union[str, bool, int]
+    daily_seasonality: Union[str, bool, int]
     holidays: Optional[pd.DataFrame]
     seasonality_mode: str
     seasonality_prior_scale: float
@@ -119,9 +119,9 @@ class ProphetParams(Params):
         changepoints: Optional[List[float]] = None,
         n_changepoints: int = 25,
         changepoint_range: float = 0.8,
-        yearly_seasonality: str = "auto",
-        weekly_seasonality: str = "auto",
-        daily_seasonality: str = "auto",
+        yearly_seasonality: Union[str, bool, int] = "auto",
+        weekly_seasonality: Union[str, bool, int] = "auto",
+        daily_seasonality: Union[str, bool, int] = "auto",
         holidays: Optional[pd.DataFrame] = None,
         seasonality_mode: str = "additive",
         seasonality_prior_scale: float = 10.0,
