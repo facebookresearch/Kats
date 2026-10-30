@@ -765,6 +765,7 @@ class GMModelTest(TestCase):
             self._test_single_gmmodel(gm, TSs, valid_TSs)
 
         # check saving/loading trained model
+        # pyrefly: ignore[unbound-name]
         gm.save_model("test_save_model.p")
         # check loading model
         gm = load_gmmodel_from_file("test_save_model.p")

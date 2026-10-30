@@ -376,6 +376,7 @@ class TimeSeriesData:
             self._extract_from_df(df=df)
 
         # If None is passed
+        # pyrefly: ignore[invalid-argument]
         elif not time and not value:
             self._time = pd.Series([], name=time_col_name, dtype="datetime64[ns]")
             self._value = pd.Series([], name=DEFAULT_VALUE_NAME, dtype=float)

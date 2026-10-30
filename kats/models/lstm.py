@@ -218,6 +218,7 @@ class LSTMModel(Model[LSTMParams]):
                 optimizer.step()
 
             if i % 25 == 1:
+                # pyrefly: ignore[unbound-name]
                 logging.info(f"epoch: {i:3} loss: {single_loss.item():10.8f}")
 
         return self
