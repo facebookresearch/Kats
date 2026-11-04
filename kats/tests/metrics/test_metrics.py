@@ -47,6 +47,7 @@ class MetricsTest(TestCase):
         self.assertEqual(metrics.mse([1.0, 100.0], [0.0, 0.0], [1.0, 0.0]), 1.0)
         self.assertEqual(metrics.mse([1.0, 2.0], [0.0, 0.0]), 2.5)
         self.assertTrue(np.isnan(metrics.mse([1.0, 2.0], [0.0, 0.0], [0.0, 0.0])))
+
     def validate(
         self,
         expected: Union[float, np_typing.NDArray],
