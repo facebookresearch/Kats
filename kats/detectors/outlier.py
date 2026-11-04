@@ -322,7 +322,7 @@ class MultivariateAnomalyDetector(Detector):
         # calculate p-values
         dof = len(self.df.columns)
         # pyre-fixme
-        residual_score["p_value"] = stats.chi2.sf(overall_anomaly_score, df=dof)
+        residual_score["p_value"] = stats.chi2.sf(overall_anomaly_score**2, df=dof)
 
         return residual_score
 
