@@ -154,9 +154,7 @@ def _safe_divide(
     Returns:
         The numerator divided by the denominator.
     """
-    nans = np.isnan(num)
-    if ~np.isscalar(denom):
-        nans &= np.isnan(denom)
+    nans = np.isnan(num) | np.isnan(denom)
     with np.errstate(divide="ignore", invalid="ignore"):
         result = np.divide(num, denom)
 

@@ -16,6 +16,36 @@ from parameterized.parameterized import parameterized
 
 
 class MetricsTest(TestCase):
+    def test_safe_divide_preserves_missing_operands(self) -> None:
+        npt.assert_allclose(
+            metrics._safe_divide(
+                np.array([np.nan, 1.0, np.nan, 0.0, 1.0, -1.0]),
+                np.array([1.0, np.nan, np.nan, 0.0, 0.0, 0.0]),
+                nan=7.0,
+                indeterminate=8.0,
+                positive_infinity=9.0,
+                negative_infinity=-9.0,
+            ),
+            [7.0, 7.0, 7.0, 8.0, 9.0, -9.0],
+        )
+
+    def test_safe_divide_scalar_nan_denominator(self) -> None:
+        npt.assert_allclose(
+            metrics._safe_divide(np.array([1.0, np.nan]), np.nan),
+            [np.nan, np.nan],
+            equal_nan=True,
+        )
+
+    def test_mape_ignores_missing_predictions(self) -> None:
+        y_true = [2.0, np.nan, 4.0]
+        y_pred = [1.0, 3.0, np.nan]
+        npt.assert_allclose(
+            metrics.absolute_percentage_error(y_true, y_pred),
+            [0.5, np.nan, np.nan],
+            equal_nan=True,
+        )
+        self.assertEqual(metrics.mean_absolute_percentage_error(y_true, y_pred), 0.5)
+
     def validate(
         self,
         expected: Union[float, np_typing.NDArray],
