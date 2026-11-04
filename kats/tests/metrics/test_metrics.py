@@ -19,7 +19,9 @@ class MetricsTest(TestCase):
     def test_absolute_percentage_error_with_negative_targets(self) -> None:
         y_true = [-2.0, 2.0, -4.0, 4.0]
         y_pred = [-1.0, 1.0, -6.0, 6.0]
-        npt.assert_allclose(metrics.absolute_percentage_error(y_true, y_pred), [0.5] * 4)
+        npt.assert_allclose(
+            metrics.absolute_percentage_error(y_true, y_pred), [0.5] * 4
+        )
         npt.assert_allclose(
             metrics.absolute_percentage_error(y_true, y_pred, [1.0] * 4),
             [0.125] * 4,
