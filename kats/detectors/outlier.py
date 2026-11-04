@@ -220,7 +220,7 @@ class MultivariateAnomalyDetector(Detector):
         z_score_threshold = 3
         # pyre-fixme
         zscore_df = stats.zscore(df)
-        non_outlier_flag = zscore_df < z_score_threshold
+        non_outlier_flag = np.abs(zscore_df) < z_score_threshold
         df_clean = df.where(non_outlier_flag, np.nan)
         df_clean = df_clean.interpolate(
             method="linear", order=2, limit_direction="both"

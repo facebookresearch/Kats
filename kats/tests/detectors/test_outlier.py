@@ -211,3 +211,20 @@ class MultivariateVARDetectorTest(TestCase):
                 attrgetter(attribute)(self), self.params_var, training_days=60
             )
             d.detector()
+
+
+class MultivariateCleaningRegressionTest(TestCase):
+    def test_clean_data_removes_both_outlier_tails(self) -> None:
+        detector = MultivariateAnomalyDetector.__new__(MultivariateAnomalyDetector)
+        data = pd.DataFrame(
+            {
+                "low": [0.0] * 20 + [-100.0],
+                "high": [0.0] * 20 + [100.0],
+                "control": [0.0, 1.0, -1.0] * 7,
+            }
+        )
+        original = data.copy()
+        cleaned = detector._clean_data(data)
+        np.testing.assert_allclose(cleaned[["low", "high"]], np.zeros((21, 2)))
+        pd.testing.assert_series_equal(cleaned["control"], data["control"])
+        pd.testing.assert_frame_equal(data, original)
