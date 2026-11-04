@@ -274,10 +274,10 @@ def _abs_pct_err(
 ) -> npt.NDArray:
     err = np.abs(y_true - y_pred)
     if sample_weight is None:
-        return _safe_divide(err, y_true)
+        return _safe_divide(err, np.abs(y_true))
 
     err = np.multiply(err, sample_weight)
-    return _safe_divide(err, y_true * np.nansum(sample_weight))
+    return _safe_divide(err, np.abs(y_true) * np.nansum(sample_weight))
 
 
 def absolute_percentage_error(
