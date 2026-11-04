@@ -1006,6 +1006,10 @@ CORE_METRICS: Dict[str, CoreMetric] = {
         "percentage_error",
         "absolute_percentage_error",
         "frequency_exceeds_relative_threshold",
+        "mult_exceed",
+        "pinball_loss",
+        "exceed",
+        "residual",
         "ae",
         "ape",
     }

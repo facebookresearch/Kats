@@ -16,6 +16,17 @@ from parameterized.parameterized import parameterized
 
 
 class MetricsTest(TestCase):
+    def test_core_metric_registry_contract(self) -> None:
+        for name, method in metrics.CORE_METRICS.items():
+            with self.subTest(name=name):
+                result = method([1.0, 2.0, 3.0], [2.0, 2.0, 4.0])
+                self.assertTrue(np.isscalar(result))
+        for name in ["mult_exceed", "pinball_loss", "exceed", "residual"]:
+            with self.subTest(excluded=name):
+                with self.assertRaises(ValueError):
+                    metrics.core_metric(name)
+                self.assertIs(metrics.metric(name), metrics.ALL_METRICS[name])
+
     def validate(
         self,
         expected: Union[float, np_typing.NDArray],
