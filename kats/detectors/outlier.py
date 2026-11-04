@@ -394,7 +394,9 @@ class MultivariateAnomalyDetector(Detector):
         if anomaly_score_df is None:
             raise ValueError("detector() must be called before get_anomalous_metrics()")
 
-        residual_scores = anomaly_score_df.drop(columns="overall_anomaly_score")
+        residual_scores = anomaly_score_df.drop(
+            columns=["overall_anomaly_score", "p_value"]
+        )
         residual_scores_t = (
             residual_scores.loc[t, :].sort_values(ascending=False).reset_index()
         )
