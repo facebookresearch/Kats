@@ -16,6 +16,37 @@ from parameterized.parameterized import parameterized
 
 
 class MetricsTest(TestCase):
+    def test_weighted_mse_weights_samples_for_multiple_outputs(self) -> None:
+        for truth, weights, expected in [
+            ([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], [1.0, 2.0, 3.0], 119.0 / 6.0),
+            ([[1.0, 2.0], [3.0, 4.0]], [1.0, 3.0], 10.0),
+        ]:
+            with self.subTest(samples=len(truth)):
+                prediction = np.zeros_like(truth)
+                self.assertAlmostEqual(
+                    metrics.mse(truth, prediction, weights), expected
+                )
+                self.assertAlmostEqual(
+                    metrics.rmse(truth, prediction, weights), np.sqrt(expected)
+                )
+                self.assertAlmostEqual(
+                    metrics.mse(truth, prediction, np.array(weights) * 7), expected
+                )
+
+    def test_weighted_mse_omits_weights_of_missing_pairs(self) -> None:
+        self.assertEqual(metrics.mse([1.0, np.nan], [0.0, 2.0], [1.0, 100.0]), 1.0)
+        self.assertEqual(metrics.mse([1.0, 2.0], [0.0, np.nan], [1.0, 100.0]), 1.0)
+        self.assertEqual(
+            metrics.mse(
+                [[1.0, np.nan], [2.0, 3.0]], [[0.0, 0.0], [0.0, 0.0]], [1.0, 2.0]
+            ),
+            6.0,
+        )
+
+    def test_weighted_mse_preserves_zero_weight_and_optional_controls(self) -> None:
+        self.assertEqual(metrics.mse([1.0, 100.0], [0.0, 0.0], [1.0, 0.0]), 1.0)
+        self.assertEqual(metrics.mse([1.0, 2.0], [0.0, 0.0]), 2.5)
+        self.assertTrue(np.isnan(metrics.mse([1.0, 2.0], [0.0, 0.0], [0.0, 0.0])))
     def validate(
         self,
         expected: Union[float, np_typing.NDArray],
