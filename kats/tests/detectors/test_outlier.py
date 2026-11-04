@@ -212,6 +212,7 @@ class MultivariateVARDetectorTest(TestCase):
             )
             d.detector()
 
+
 class MultivariateProbabilityRegressionTest(TestCase):
     def test_chi_squared_probability_uses_squared_distance(self) -> None:
         detector = MultivariateAnomalyDetector.__new__(MultivariateAnomalyDetector)
@@ -225,5 +226,9 @@ class MultivariateProbabilityRegressionTest(TestCase):
                 )
                 scores = detector._calc_anomaly_scores(prediction)
                 squared_distance = sum(value**2 for value in residual)
-                self.assertAlmostEqual(scores["overall_anomaly_score"], np.sqrt(squared_distance))
-                self.assertAlmostEqual(scores["p_value"], np.exp(-squared_distance / 2.0))
+                self.assertAlmostEqual(
+                    scores["overall_anomaly_score"], np.sqrt(squared_distance)
+                )
+                self.assertAlmostEqual(
+                    scores["p_value"], np.exp(-squared_distance / 2.0)
+                )
