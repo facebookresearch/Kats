@@ -211,3 +211,19 @@ class MultivariateVARDetectorTest(TestCase):
                 attrgetter(attribute)(self), self.params_var, training_days=60
             )
             d.detector()
+
+class MultivariateProbabilityRegressionTest(TestCase):
+    def test_chi_squared_probability_uses_squared_distance(self) -> None:
+        detector = MultivariateAnomalyDetector.__new__(MultivariateAnomalyDetector)
+        detector.sigma_u = pd.DataFrame(np.eye(2), columns=["a", "b"])
+        detector.resid = pd.DataFrame({"a": [-1.0, 1.0], "b": [-1.0, 1.0]})
+        detector.df = pd.DataFrame(columns=["a", "b"])
+        for residual in ([3.0, 4.0], [-3.0, -4.0], [0.0, 0.0]):
+            with self.subTest(residual=residual):
+                prediction = pd.DataFrame(
+                    {"est": residual, "actual": [0.0, 0.0]}, index=["a", "b"]
+                )
+                scores = detector._calc_anomaly_scores(prediction)
+                squared_distance = sum(value**2 for value in residual)
+                self.assertAlmostEqual(scores["overall_anomaly_score"], np.sqrt(squared_distance))
+                self.assertAlmostEqual(scores["p_value"], np.exp(-squared_distance / 2.0))
