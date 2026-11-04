@@ -538,10 +538,10 @@ def mean_squared_error(
         return np.nanmean((y_true - y_pred) ** 2)
 
     y_true, y_pred, sample_weight = _arrays(y_true, y_pred, sample_weight)
-    se = np.nanmean((y_true - y_pred) ** 2 * sample_weight, axis=0) / np.average(
-        sample_weight, axis=0
-    )
-    return np.nanmean(se)
+    squared_error = (y_true - y_pred) ** 2
+    masked_error = np.ma.MaskedArray(squared_error, np.isnan(squared_error))
+    se = np.ma.average(masked_error, weights=sample_weight, axis=0)
+    return np.nanmean(np.ma.filled(se, np.nan))
 
 
 def root_mean_squared_error(
