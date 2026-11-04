@@ -212,6 +212,7 @@ class MultivariateVARDetectorTest(TestCase):
             )
             d.detector()
 
+
 class MultivariateRankingRegressionTest(TestCase):
     def test_probability_is_not_an_input_metric(self) -> None:
         detector = MultivariateAnomalyDetector.__new__(MultivariateAnomalyDetector)
