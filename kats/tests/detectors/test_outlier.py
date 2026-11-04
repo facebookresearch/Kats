@@ -211,3 +211,18 @@ class MultivariateVARDetectorTest(TestCase):
                 attrgetter(attribute)(self), self.params_var, training_days=60
             )
             d.detector()
+
+
+class MultivariateRankingRegressionTest(TestCase):
+    def test_probability_is_not_an_input_metric(self) -> None:
+        detector = MultivariateAnomalyDetector.__new__(MultivariateAnomalyDetector)
+        timestamp = pd.Timestamp("2024-01-01")
+        detector.anomaly_score_df = pd.DataFrame(
+            {"a": [0.1], "b": [0.2], "p_value": [0.9], "overall_anomaly_score": [1.0]},
+            index=[timestamp],
+        )
+        for top_k, expected in [(None, ["b", "a"]), (1, ["b"]), (2, ["b", "a"])]:
+            with self.subTest(top_k=top_k):
+                result = detector.get_anomalous_metrics(timestamp, top_k=top_k)
+                self.assertEqual(result["metric"].tolist(), expected)
+                self.assertEqual(result.columns.tolist(), ["metric", "anomaly_score"])
