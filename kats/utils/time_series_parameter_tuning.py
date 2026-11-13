@@ -536,6 +536,7 @@ class TimeSeriesParameterTuning(ABC):
             list(filter(lambda x: "parameters" in x, new_cols))[0]
         ]
         transform.drop(columns="parameters", level=0, inplace=True)
+        # pyrefly: ignore [not-iterable]
         new_cols = new_cols.drop(labels=filter(lambda x: "parameters" in x, new_cols))
         transform.columns = ["trial_index", "arm_name"] + [
             "_".join(tpl) for tpl in new_cols[2:]
